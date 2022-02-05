@@ -1,9 +1,9 @@
 ﻿using CrisesControl.SharedKernel;
 using CrisesControl.SharedKernel.Interfaces;
 
-namespace CrisesControl.Core.CompanyAggregate
+namespace CrisesControl.Core.IncidentAggregate
 {
-    public class Company : BaseEntity, IAggregateRoot
+    public class Incident : BaseEntity, IAggregateRoot
     {
         
     }

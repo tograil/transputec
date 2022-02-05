@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <Folder Include="CompanyAggregate\Handlers\GetCompany\" />
-    <Folder Include="Interfaces\" />
+    <Folder Include="IncidentAggregate\" />
   </ItemGroup>
 
   <ItemGroup>
