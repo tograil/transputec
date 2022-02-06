@@ -1,6 +1,6 @@
 ﻿namespace CrisesControl.SharedKernel
 {
-    public abstract class BaseEntity
+    public abstract record BaseEntity
     {
         public int Id { get; set; }
     }
