@@ -11,7 +11,8 @@ namespace CrisesControl.Core
         {
             builder.RegisterMediatR(typeof(MainCoreModule).Assembly);
 
-            builder.RegisterType<GetCompanyValidator>();
+            builder.RegisterAssemblyTypes(ThisAssembly)
+                .AsClosedTypesOf(typeof(AbstractValidator<>));
         }
     }
 }
