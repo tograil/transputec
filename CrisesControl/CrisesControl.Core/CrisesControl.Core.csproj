@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <Folder Include="CompanyAggregate\Handlers\GetCompany\" />
+    <Folder Include="CompanyAggregate\Services\" />
     <Folder Include="IncidentAggregate\" />
   </ItemGroup>
 
