@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Ardalis.GuardClauses;
 using CrisesControl.Core.CompanyAggregate.Services;
@@ -20,11 +21,19 @@ namespace CrisesControl.Core.CompanyAggregate.Handlers.GetCompany
 
         public async Task<GetCompanyResponse> Handle(GetCompanyRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(GetCompanyRequest));
+            try
+            {
+                Guard.Against.Null(request, nameof(GetCompanyRequest));
 
-            _companyValidator.ValidateAndThrow(request);
+                _companyValidator.ValidateAndThrow(request);
 
-            var companies = await _companyService.GetAllCompanies();
+                var companies = await _companyService.GetAllCompanies();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
 
             return new GetCompanyResponse();
         }

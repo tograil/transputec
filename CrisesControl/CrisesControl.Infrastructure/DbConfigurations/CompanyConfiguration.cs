@@ -49,7 +49,7 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Property(e => e.SwitchBoardPhone).HasMaxLength(20);
 
         builder.Property(e => e.UniqueKey)
-                .HasMaxLength(150)
+            .HasMaxLength(150)
                 .UseCollation("Latin1_General_BIN2");
 
         builder.Property(e => e.Website).HasMaxLength(250);

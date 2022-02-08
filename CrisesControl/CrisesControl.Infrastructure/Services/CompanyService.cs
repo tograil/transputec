@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CrisesControl.Core.CompanyAggregate.Services;
 using CrisesControl.Core.Models;
@@ -18,6 +20,14 @@ public class CompanyService : ICompanyService
 
     public async Task<IEnumerable<Company>> GetAllCompanies()
     {
-        return (await _context.Set<Company>().ToArrayAsync());
+        try
+        {
+            return await _context.Set<Company>().AsNoTracking().ToArrayAsync();
+        }
+        catch (InvalidCastException exception)
+        {
+            Console.WriteLine(exception);
+            throw;
+        }
     }
 }
