@@ -6,6 +6,7 @@ public class GetCompanyValidator : AbstractValidator<GetCompanyRequest>
 {
     public GetCompanyValidator()
     {
-        
+        RuleFor(x => x.CompanyId)
+            .GreaterThan(0);
     }
 }

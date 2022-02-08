@@ -21,19 +21,11 @@ namespace CrisesControl.Core.CompanyAggregate.Handlers.GetCompany
 
         public async Task<GetCompanyResponse> Handle(GetCompanyRequest request, CancellationToken cancellationToken)
         {
-            try
-            {
-                Guard.Against.Null(request, nameof(GetCompanyRequest));
+            Guard.Against.Null(request, nameof(GetCompanyRequest));
 
-                _companyValidator.ValidateAndThrow(request);
+            await _companyValidator.ValidateAndThrowAsync(request, cancellationToken);
 
-                var companies = await _companyService.GetAllCompanies();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
+            var companies = await _companyService.GetAllCompanies();
 
             return new GetCompanyResponse();
         }

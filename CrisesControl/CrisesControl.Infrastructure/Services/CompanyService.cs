@@ -20,14 +20,6 @@ public class CompanyService : ICompanyService
 
     public async Task<IEnumerable<Company>> GetAllCompanies()
     {
-        try
-        {
-            return await _context.Set<Company>().AsNoTracking().ToArrayAsync();
-        }
-        catch (InvalidCastException exception)
-        {
-            Console.WriteLine(exception);
-            throw;
-        }
+        return await _context.Set<Company>().AsNoTracking().ToArrayAsync();
     }
 }

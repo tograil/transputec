@@ -2,7 +2,7 @@
 
 namespace CrisesControl.Core.Models
 {
-    public partial class Company
+    public record Company
     {
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = null!;
