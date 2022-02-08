@@ -16,9 +16,9 @@ public class CompanyController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public async Task<IActionResult> Index([FromQuery]GetCompanyRequest request, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(new GetCompanyRequest(), cancellationToken);
+        var result = await _mediator.Send(request, cancellationToken);
 
         return Ok(result);
     }
