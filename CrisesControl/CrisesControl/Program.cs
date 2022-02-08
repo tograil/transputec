@@ -2,10 +2,15 @@ using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using CrisesControl.Core;
 using CrisesControl.Infrastructure;
+using CrisesControl.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
+
+builder.Services.AddDbContext<CrisesControlContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlDatabase")));
 
 // Add services to the container.
 

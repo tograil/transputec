@@ -1,4 +1,6 @@
 ﻿using Autofac;
+using CrisesControl.Core.CompanyAggregate.Handlers.GetCompany;
+using FluentValidation;
 using MediatR.Extensions.Autofac.DependencyInjection;
 
 namespace CrisesControl.Core
@@ -7,7 +9,10 @@ namespace CrisesControl.Core
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterMediatR(typeof(MainCoreModule).Assembly);
+            builder.RegisterMediatR(ThisAssembly);
+
+            builder.RegisterAssemblyTypes(ThisAssembly)
+                .AsClosedTypesOf(typeof(AbstractValidator<>));
         }
     }
 }
