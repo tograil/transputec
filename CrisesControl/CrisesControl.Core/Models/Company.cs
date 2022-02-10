@@ -25,7 +25,7 @@ namespace CrisesControl.Core.Models
         public string? IOslogo { get; set; }
         public string? AndroidLogo { get; set; }
         public string? WindowsLogo { get; set; }
-        public byte[]? UniqueKey { get; set; }
+        public string? UniqueKey { get; set; }
         public bool OnTrial { get; set; }
         public string? CustomerId { get; set; }
         public string? InvitationCode { get; set; }
