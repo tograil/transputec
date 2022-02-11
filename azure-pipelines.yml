@@ -6,6 +6,9 @@
 trigger:
 - development
 
+inputs:
+  solution: '.\CrisesControl\*.sln'
+
 pool:
   vmImage: ubuntu-latest
 
