@@ -33,6 +33,7 @@ public class AuthService : IHostedService
                 {
                     OpenIddictConstants.Permissions.Endpoints.Token,
                     OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
+                    OpenIddictConstants.Permissions.GrantTypes.Password,
 
                     OpenIddictConstants.Permissions.Prefixes.Scope + "api"
                 }
