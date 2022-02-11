@@ -1,7 +1,12 @@
 using Autofac.Extensions.DependencyInjection;
 using CrisesControl.Auth;
+using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using OpenIddict.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +46,9 @@ builder.Services.AddOpenIddict()
             .AddEphemeralEncryptionKey()
             .AddEphemeralSigningKey();
 
+        options.AddEncryptionKey(new SymmetricSecurityKey(
+            Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
+
         // Register scopes (permissions)
         options.RegisterScopes("api");
 
@@ -49,6 +57,10 @@ builder.Services.AddOpenIddict()
             .UseAspNetCore()
             .EnableTokenEndpointPassthrough();
     });
+
+builder.Services.AddIdentity<User, IdentityRole>()
+    .AddUserStore<UserStore>()
+    .AddUserManager<CrisesControlUserManager>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -72,5 +84,23 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+
+    var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
+
+    if (await manager.FindByNameAsync("api") is null)
+    {
+        await manager.CreateAsync(new OpenIddictScopeDescriptor
+        {
+            Name = "api",
+            Resources =
+            {
+                "api"
+            }
+        });
+    }
+}
 
 app.Run();

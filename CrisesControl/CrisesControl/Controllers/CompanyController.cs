@@ -1,11 +1,14 @@
 ﻿using CrisesControl.Core.CompanyAggregate.Handlers.GetCompany;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
 
 namespace CrisesControl.Api.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
+[Authorize]
 public class CompanyController : Controller
 {
     private readonly IMediator _mediator;

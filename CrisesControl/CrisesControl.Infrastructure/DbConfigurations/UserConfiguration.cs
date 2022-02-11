@@ -8,6 +8,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
+        builder.ToTable("Users");
+
         builder.HasIndex(e => e.CompanyId, "IDX_CompanyId")
             .HasFillFactor(100);
 

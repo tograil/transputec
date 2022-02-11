@@ -1,5 +1,8 @@
 ﻿using System.Security.Claims;
+using CrisesControl.Core.Models;
+using CrisesControl.Infrastructure.Identity;
 using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -8,32 +11,41 @@ namespace CrisesControl.Auth.Controllers;
 
 public class AuthorizationController : Controller
     {
+        private UserManager<User> _userManager;
+
+        public AuthorizationController(UserManager<User> userManager)
+        {
+            _userManager = userManager;
+        }
+
         [HttpPost("~/connect/token")]
-        public IActionResult Exchange()
+        public async Task<IActionResult> Exchange()
         {
             var request = HttpContext.GetOpenIddictServerRequest() ??
                           throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
             ClaimsPrincipal claimsPrincipal;
 
-            if (request.IsClientCredentialsGrantType())
+            if (request.IsPasswordGrantType())
             {
-                // Note: the client credentials are automatically validated by OpenIddict:
-                // if client_id or client_secret are invalid, this action won't be invoked.
+                var user = await _userManager.FindByNameAsync(request.Username);
+
+                if (user is null)
+                    return Unauthorized();
+
+                if (!await _userManager.CheckPasswordAsync(user,request.Password))
+                    return Unauthorized();
 
                 var identity = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
-                // Subject (sub) is a required field, we use the client id as the subject identifier here.
-                identity.AddClaim(OpenIddictConstants.Claims.Subject, request.ClientId ?? throw new InvalidOperationException());
-
-                // Add some claim, don't forget to add destination otherwise it won't be added to the access token.
-                identity.AddClaim("some-claim", "some-value", OpenIddictConstants.Destinations.AccessToken);
+                identity.AddClaim(OpenIddictConstants.Claims.Subject, user.UserId.ToString(), OpenIddictConstants.Destinations.AccessToken);
+                identity.AddClaim(OpenIddictConstants.Claims.Username, user.PrimaryEmail, OpenIddictConstants.Destinations.AccessToken);
 
                 claimsPrincipal = new ClaimsPrincipal(identity);
+                claimsPrincipal.SetResources("api");
 
                 claimsPrincipal.SetScopes(request.GetScopes());
             }
-
             else
             {
                 throw new InvalidOperationException("The specified grant type is not supported.");
