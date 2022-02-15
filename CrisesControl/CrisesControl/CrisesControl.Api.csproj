@@ -22,10 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\CrisesControl.Core\CrisesControl.Core.csproj" />
     <ProjectReference Include="..\CrisesControl.Infrastructure\CrisesControl.Infrastructure.csproj" />
     <ProjectReference Include="..\CrisesControl.SharedKernel\CrisesControl.SharedKernel.csproj" />
