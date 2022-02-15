@@ -28,7 +28,7 @@ namespace CrisesControl.Core.DepartmentAggregate.Handles.GetDepartment
             
             await _departmentValidator.ValidateAndThrowAsync(request, cancellationToken);
             
-            var companies = await _departmentService.GetAllDepartments();
+            var departments = await _departmentService.GetAllDepartments();
 
             return new GetDepartmentResponse();
         }
