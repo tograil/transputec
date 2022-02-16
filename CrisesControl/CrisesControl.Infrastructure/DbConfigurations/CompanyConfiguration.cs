@@ -55,5 +55,14 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Property(e => e.Website).HasMaxLength(250);
 
         builder.Property(e => e.WindowsLogo).HasMaxLength(100);
+
+        builder.HasMany(e => e.Users)
+            .WithOne().HasForeignKey(x => x.CompanyId);
+
+        builder.HasOne(e => e.PackagePlan)
+            .WithMany().HasForeignKey(x => x.PackagePlanId);
+
+        builder.HasMany(e => e.CompanyPaymentProfiles)
+            .WithOne().HasForeignKey(x => x.CompanyId);
     }
 }

@@ -32,7 +32,7 @@ builder.Services.AddOpenIddict()
     {
         // Note: the validation handler uses OpenID Connect discovery
         // to retrieve the address of the introspection endpoint.
-        options.SetIssuer("https://localhost:44325/");
+        options.SetIssuer("https://localhost:7078/");
         options.AddAudiences("api");
 
 

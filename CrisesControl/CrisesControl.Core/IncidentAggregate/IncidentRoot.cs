@@ -3,7 +3,7 @@ using CrisesControl.SharedKernel.Interfaces;
 
 namespace CrisesControl.Core.IncidentAggregate
 {
-    public record Incident : BaseEntity, IAggregateRoot
+    public record IncidentRoot : BaseEntity, IAggregateRoot
     {
         
     }

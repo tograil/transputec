@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace CrisesControl.Core.Models
 {
@@ -31,5 +32,11 @@ namespace CrisesControl.Core.Models
         public string? InvitationCode { get; set; }
         public string? Sector { get; set; }
         public string? ContactLogoPath { get; set; }
+
+        public IEnumerable<User> Users { get; set; }
+
+        public PackagePlan PackagePlan { get; set; }
+
+        public IEnumerable<CompanyPaymentProfile> CompanyPaymentProfiles { get; set; }
     }
 }
