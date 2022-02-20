@@ -1,7 +1,7 @@
 ﻿using Autofac;
 using AutoMapper.Contrib.Autofac.DependencyInjection;
 using CrisesControl.Core.CompanyAggregate.Repositories;
-using CrisesControl.Infrastructure.Services;
+using CrisesControl.Infrastructure.Repositories;
 
 namespace CrisesControl.Infrastructure
 {

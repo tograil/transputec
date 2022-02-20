@@ -7,5 +7,5 @@ namespace CrisesControl.Core.CompanyAggregate.Repositories;
 public interface ICompanyRepository
 {
     Task<IEnumerable<Company>> GetAllCompanies();
-    Task<IEnumerable<CompanyRoot>> GetAllCompanyList(int? status, string? companyProfile);
+    Task<IEnumerable<Company>> GetAllCompanyList(int? status, string? companyProfile);
 }

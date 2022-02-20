@@ -4,5 +4,7 @@ namespace CrisesControl.Core.CompanyAggregate.Repositories;
 
 public interface IRegisterCompanyRepository
 {
-    Task<string> TempRegister(TempCompanyRegister tempCompany);
+    Registration? GetRegistrationDataByEmail(string email);
+    Task<string> TempRegister(Registration tempCompany);
+    Task<string> UpdateRegistration(Registration tempCompany);
 }

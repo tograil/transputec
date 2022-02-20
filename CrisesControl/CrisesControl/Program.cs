@@ -1,5 +1,6 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using CrisesControl.Api;
 using CrisesControl.Core;
 using CrisesControl.Infrastructure;
 using CrisesControl.Infrastructure.Context;
@@ -23,6 +24,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {
+    containerBuilder.RegisterModule(new ApiModule());
     containerBuilder.RegisterModule(new MainCoreModule());
     containerBuilder.RegisterModule(new MainInfrastructureModule(builder.Environment.EnvironmentName == "Development"));
 });
