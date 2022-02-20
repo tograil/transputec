@@ -4,7 +4,6 @@ namespace CrisesControl.Core.CompanyAggregate.Handlers.TempRegister;
 
 public class TempRegisterRequest : IRequest<TempRegisterResponse>
 {
-    public int RegID { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string Email { get; set; }
@@ -20,7 +19,6 @@ public class TempRegisterRequest : IRequest<TempRegisterResponse>
     public string State { get; set; }
     public string Postcode { get; set; }
     public string CountryCode { get; set; }
-    public string UniqueRef { get; set; }
     public int Status { get; set; }
     public int PackagePlanId { get; set; }
     public string PaymentMethod { get; set; }

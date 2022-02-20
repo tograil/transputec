@@ -7,6 +7,6 @@ public class CompanyProfile : Profile
 {
     public CompanyProfile()
     {
-        CreateMap<TempRegisterRequest, TempCompanyRegisterRoot>();
+        CreateMap<TempRegisterRequest, TempCompanyRegister>();
     }
 }

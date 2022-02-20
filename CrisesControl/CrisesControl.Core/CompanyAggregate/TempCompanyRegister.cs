@@ -2,7 +2,7 @@
 
 namespace CrisesControl.Core.CompanyAggregate;
 
-public record TempCompanyRegisterRoot : BaseEntity
+public record TempCompanyRegister : BaseEntity
 {
     public int RegID { get; set; }
     public string FirstName { get; set; }

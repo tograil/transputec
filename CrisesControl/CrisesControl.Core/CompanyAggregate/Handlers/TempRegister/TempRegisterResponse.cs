@@ -2,5 +2,5 @@
 
 public class TempRegisterResponse
 {
-    
+    public string Result { get; set; } = default!;
 }

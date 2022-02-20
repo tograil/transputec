@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Ardalis.GuardClauses;
-using CrisesControl.Core.CompanyAggregate.Services;
+using CrisesControl.Core.CompanyAggregate.Repositories;
 using FluentValidation;
 using MediatR;
 
@@ -11,9 +11,9 @@ namespace CrisesControl.Core.CompanyAggregate.Handlers.GetCompany
     public class GetCompanyHandler : IRequestHandler<GetCompanyRequest, GetCompanyResponse>
     {
         private readonly GetCompanyValidator _companyValidator;
-        private readonly ICompanyService _companyService;
+        private readonly ICompanyRepository _companyService;
 
-        public GetCompanyHandler(GetCompanyValidator companyValidator, ICompanyService companyService)
+        public GetCompanyHandler(GetCompanyValidator companyValidator, ICompanyRepository companyService)
         {
             _companyValidator = companyValidator;
             _companyService = companyService;

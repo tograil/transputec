@@ -4,18 +4,18 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using CrisesControl.Core.CompanyAggregate;
-using CrisesControl.Core.CompanyAggregate.Services;
+using CrisesControl.Core.CompanyAggregate.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace CrisesControl.Infrastructure.Services;
 
-public class CompanyService : ICompanyService
+public class CompanyRepository : ICompanyRepository
 {
     private readonly CrisesControlContext _context;
 
-    public CompanyService(CrisesControlContext context)
+    public CompanyRepository(CrisesControlContext context)
     {
         _context = context;
     }

@@ -22,7 +22,6 @@
     <Folder Include="CompanyAggregate\Handlers\GetCompanyList\" />
     <Folder Include="CompanyAggregate\Handlers\TempRegister\" />
     <Folder Include="CompanyAggregate\Maps\" />
-    <Folder Include="CompanyAggregate\Services\" />
   </ItemGroup>
 
   <ItemGroup>

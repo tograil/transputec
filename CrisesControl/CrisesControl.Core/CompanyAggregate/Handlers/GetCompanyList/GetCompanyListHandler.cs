@@ -1,15 +1,15 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using CrisesControl.Core.CompanyAggregate.Services;
+using CrisesControl.Core.CompanyAggregate.Repositories;
 using MediatR;
 
 namespace CrisesControl.Core.CompanyAggregate.Handlers.GetCompanyList;
 
 public class GetCompanyListHandler : IRequestHandler<GetCompanyListRequest, GetCompanyListResponse>
 {
-    private readonly ICompanyService _companyService;
+    private readonly ICompanyRepository _companyService;
 
-    public GetCompanyListHandler(ICompanyService companyService)
+    public GetCompanyListHandler(ICompanyRepository companyService)
     {
         _companyService = companyService;
     }
