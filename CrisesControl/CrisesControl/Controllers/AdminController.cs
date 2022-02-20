@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.CompanyAggregate.Handlers.GetCompanyList;
+﻿using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,18 +11,22 @@ namespace CrisesControl.Api.Controllers;
 public class AdminController : Controller
 {
     private readonly IMediator _mediator;
+    private readonly ICompanyQuery _companyQuery;
 
-    public AdminController(IMediator mediator)
+    public AdminController(IMediator mediator,
+        ICompanyQuery companyQuery)
     {
         _mediator = mediator;
+        _companyQuery = companyQuery;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllCompanyList([FromQuery] GetCompanyListRequest request,
+    public async Task<IActionResult> GetAllCompanyList([FromQuery] int? status,
+        [FromQuery] string? companyProfile,
         CancellationToken cancellationToken)
     {
-        var getCompanyListResponse = await _mediator.Send(request, cancellationToken);
+        var companies = await _companyQuery.GetCompanyList(status, companyProfile);
 
-        return Ok(getCompanyListResponse);
+        return Ok(companies);
     }
 }

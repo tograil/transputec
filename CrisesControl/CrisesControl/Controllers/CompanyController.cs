@@ -1,8 +1,7 @@
-﻿using CrisesControl.Core.CompanyAggregate.Handlers.GetCompany;
+﻿using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OpenIddict.Validation.AspNetCore;
 
 namespace CrisesControl.Api.Controllers;
 
@@ -12,17 +11,12 @@ namespace CrisesControl.Api.Controllers;
 public class CompanyController : Controller
 {
     private readonly IMediator _mediator;
+    private readonly ICompanyQuery _companyQuery;
 
-    public CompanyController(IMediator mediator)
+    public CompanyController(IMediator mediator,
+        ICompanyQuery companyQuery)
     {
         _mediator = mediator;
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> Index([FromQuery]GetCompanyRequest request, CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(request, cancellationToken);
-
-        return Ok(result);
+        _companyQuery = companyQuery;
     }
 }

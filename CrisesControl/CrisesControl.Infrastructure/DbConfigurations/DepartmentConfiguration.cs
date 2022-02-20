@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Department = CrisesControl.Core.DepartmentAggregate.Department;
 
 namespace CrisesControl.Infrastructure.DbConfigurations;
 
