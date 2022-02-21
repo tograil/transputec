@@ -25,6 +25,13 @@ public class RegisterCompanyRepository : IRegisterCompanyRepository
         return regDb;
     }
 
+    public Registration GetRegistrationDataById(int id)
+    {
+        var regDb = _context.Set<Registration>().Single(x => x.Id == id);
+
+        return regDb;
+    }
+
     public async Task<string> TempRegister(Registration tempCompany)
     {
        _context.Add(tempCompany);

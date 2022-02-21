@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.CompanyAggregate;
 using CrisesControl.Core.CompanyAggregate.Repositories;
@@ -28,7 +29,7 @@ public class CompanyRepository : ICompanyRepository
         var currentCompanyProfile = companyProfile ?? string.Empty;
 
         var companies = await _context.Set<Company>()
-            .Include(x => x.Users)
+            .Include(x => x.Users.Where(u => u.UserRole == "SUPERADMIN"))
             .Include(x => x.PackagePlan)
             .Include(x => x.CompanyPaymentProfiles)
             .Where(x => 
@@ -42,5 +43,14 @@ public class CompanyRepository : ICompanyRepository
             .ToArrayAsync();
 
         return companies;
+    }
+
+    public async Task<int> CreateCompany(Company company, CancellationToken token)
+    {
+        await _context.AddAsync(company, token);
+
+        await _context.SaveChangesAsync(token);
+
+        return company.CompanyId;
     }
 }

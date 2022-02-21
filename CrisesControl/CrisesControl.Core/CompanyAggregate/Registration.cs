@@ -2,7 +2,7 @@
 
 namespace CrisesControl.Core.CompanyAggregate
 {
-    public partial class Registration
+    public class Registration
     {
         public int Id { get; set; }
         public string FirstName { get; set; } = null!;
