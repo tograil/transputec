@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.UserAggregate;
 using CrisesControl.SharedKernel.Interfaces;
 
 namespace CrisesControl.Core.CompanyAggregate

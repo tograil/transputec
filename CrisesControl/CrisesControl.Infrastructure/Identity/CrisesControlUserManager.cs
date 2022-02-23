@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.UserAggregate;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

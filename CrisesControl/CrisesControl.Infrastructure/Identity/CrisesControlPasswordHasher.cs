@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Core.Models;
+using CrisesControl.Core.UserAggregate;
 using Microsoft.AspNetCore.Identity;
 
 namespace CrisesControl.Infrastructure.Identity;

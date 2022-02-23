@@ -1,8 +1,9 @@
 ﻿using System;
+using CrisesControl.SharedKernel.Interfaces;
 
-namespace CrisesControl.Core.Models
+namespace CrisesControl.Core.UserAggregate
 {
-    public partial class User
+    public class User : IAggregateRoot
     {
         public int UserId { get; set; }
         public int CompanyId { get; set; }

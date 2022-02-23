@@ -30,4 +30,8 @@
     <ProjectReference Include="..\CrisesControl.SharedKernel\CrisesControl.SharedKernel.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="UserAggregate\Repositories\" />
+  </ItemGroup>
+
 </Project>
