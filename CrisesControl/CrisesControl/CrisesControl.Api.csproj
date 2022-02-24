@@ -27,4 +27,10 @@
     <ProjectReference Include="..\CrisesControl.SharedKernel\CrisesControl.SharedKernel.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Application\Commands\" />
+    <Folder Include="Application\Query\" />
+    <Folder Include="Application\ViewModels\Company\" />
+  </ItemGroup>
+
 </Project>

@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.DepartmentAggregate.Handles.GetDepartment;
+﻿using CrisesControl.Api.Application.Commands.Departments.GetDepartment;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
