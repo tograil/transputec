@@ -11,6 +11,5 @@ namespace CrisesControl.Core.DepartmentAggregate.Handles.GetDepartment
     {
         public int DepartmentId { get; set; }  
         public int CompanyId { get; set; }
-        public string? DepartmentName { get; set;}
     }
 }
