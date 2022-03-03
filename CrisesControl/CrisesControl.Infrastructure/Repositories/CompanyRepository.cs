@@ -2,8 +2,8 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using CrisesControl.Core.CompanyAggregate;
-using CrisesControl.Core.CompanyAggregate.Repositories;
+using CrisesControl.Core.Companies;
+using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;

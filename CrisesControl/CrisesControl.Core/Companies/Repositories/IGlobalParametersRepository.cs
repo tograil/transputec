@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace CrisesControl.Core.CompanyAggregate.Repositories;
+namespace CrisesControl.Core.Companies.Repositories;
 
 public interface IGlobalParametersRepository
 {

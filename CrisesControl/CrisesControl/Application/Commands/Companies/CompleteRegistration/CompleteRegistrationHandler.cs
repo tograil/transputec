@@ -1,8 +1,9 @@
 ﻿using System.Data.SqlTypes;
-using CrisesControl.Core.CompanyAggregate;
-using CrisesControl.Core.CompanyAggregate.Repositories;
-using CrisesControl.Core.UserAggregate;
-using CrisesControl.Core.UserAggregate.Repositories;
+using CrisesControl.Core.Companies;
+using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
+using CrisesControl.Core.Users.Repositories;
 using CrisesControl.SharedKernel.Utils;
 using MediatR;
 
@@ -49,6 +50,11 @@ public class CompleteRegistrationHandler : IRequestHandler<CompleteRegistrationR
         };
 
         var newCompanyId = await _companyRepository.CreateCompany(newCompany, cancellationToken);
+
+        var userId = await CreateUser(newCompanyId, true, registration.FirstName, registration.Email, registration.Password
+            , registration.Status, -1, "GMT Standard Time", registration.LastName, registration.MobileNo!,
+            "SUPERADMIN",string.Empty, registration.MobileIsd!, "", "", "",
+            Guid.NewGuid().ToString());
 
         throw new NotImplementedException();
     }
@@ -100,24 +106,15 @@ public class CompleteRegistrationHandler : IRequestHandler<CompleteRegistrationR
 
         newUsers.Password = password;
 
-        if (!string.IsNullOrEmpty(uniqueGuiD))
-            newUsers.UniqueGuiId = uniqueGuiD;
-        else
-            newUsers.UniqueGuiId = Guid.NewGuid().ToString();
+        newUsers.UniqueGuiId = !string.IsNullOrEmpty(uniqueGuiD) ? uniqueGuiD : Guid.NewGuid().ToString();
 
         newUsers.Status = status;
 
         if (!string.IsNullOrEmpty(userPhoto))
             newUsers.UserPhoto = userPhoto;
 
-        if (!string.IsNullOrEmpty(userRole))
-        {
-            newUsers.UserRole = userRole.ToUpper().Replace("STAFF", "USER");
-        }
-        else
-        {
-            newUsers.UserRole = "USER";
-        }
+        newUsers.UserRole = !string.IsNullOrEmpty(userRole) ? 
+            userRole.ToUpper().Replace("STAFF", "USER") : "USER";
 
         if (!string.IsNullOrEmpty(lat))
             newUsers.Lat = lat.Left(15);
@@ -125,7 +122,7 @@ public class CompleteRegistrationHandler : IRequestHandler<CompleteRegistrationR
         if (!string.IsNullOrEmpty(lng))
             newUsers.Lng = lng.Left(15);
 
-        string compExpirePwd = await _companyRepository.GetCompanyParameter("EXPIRE_PASSWORD", companyId);
+        var compExpirePwd = await _companyRepository.GetCompanyParameter("EXPIRE_PASSWORD", companyId);
 
         newUsers.ExpirePassword = compExpirePwd == "true" && expirePassword;
 
@@ -163,11 +160,11 @@ public class CompleteRegistrationHandler : IRequestHandler<CompleteRegistrationR
             }
         }
 
-        //AddPwdChangeHistory(NewUsers.UserId, password, timeZoneId);
+        _userRepository.AddPwdChangeHistory(newUsers.UserId, password, timeZoneId);
 
-        //CreateUserSearch(NewUsers.UserId, firstName, lastName, ISDCode, mobileNo, primaryEmail, companyId);
+        _userRepository.CreateUserSearch(newUsers.UserId, firstName, lastName, isdCode, mobileNo, primaryEmail, companyId);
 
-        //CreateSMSTriggerRight(companyId, NewUsers.UserId, NewUsers.UserRole, SMSTrigger, NewUsers.ISDCode, NewUsers.mobileNo);
+        //TODO: Add sms trigger logic
 
         return newUsers.UserId;
 

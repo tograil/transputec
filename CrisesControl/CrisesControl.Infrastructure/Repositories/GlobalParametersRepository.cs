@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CrisesControl.Core.CompanyAggregate;
-using CrisesControl.Core.CompanyAggregate.Repositories;
+using CrisesControl.Core.Companies;
+using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.Data.SqlClient;
@@ -19,12 +19,8 @@ public class GlobalParametersRepository : IGlobalParametersRepository
     public GlobalParametersRepository(CrisesControlContext context)
     {
         _context = context;
-        _globalParams = new Lazy<ICollection<GlobalParams>>(() =>
-        {
-            var paramNames = new SqlParameter("@ParamNames", string.Empty);
-
-            return _context.Set<GlobalParams>().FromSqlRaw("exec Pro_Global_GetSystemParameter @ParamNames", paramNames).ToArray();
-        });
+        _globalParams = new Lazy<ICollection<GlobalParams>>(()
+            => _context.Set<GlobalParams>().FromSqlRaw("exec Pro_Global_GetSystemParameter {0}", string.Empty).ToArray());
     }
 
     public IEnumerable<GlobalParams> GlobalParams => _globalParams.Value;

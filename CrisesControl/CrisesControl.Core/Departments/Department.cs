@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CrisesControl.Core.DepartmentAggregate
+namespace CrisesControl.Core.Departments
 {
     public partial class Department
     {

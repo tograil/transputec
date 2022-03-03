@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.CompanyAggregate;
+﻿using CrisesControl.Core.Companies;
 using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

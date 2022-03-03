@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 using CrisesControl.Core.Models;
-using CrisesControl.Core.UserAggregate;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Identity;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Identity;

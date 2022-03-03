@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace CrisesControl.Core.CompanyAggregate.Repositories;
+namespace CrisesControl.Core.Companies.Repositories;
 
 public interface IRegisterCompanyRepository
 {

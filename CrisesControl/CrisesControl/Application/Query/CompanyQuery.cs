@@ -1,5 +1,5 @@
 ﻿using CrisesControl.Api.Application.ViewModels.Company;
-using CrisesControl.Core.CompanyAggregate.Repositories;
+using CrisesControl.Core.Companies.Repositories;
 
 namespace CrisesControl.Api.Application.Query;
 

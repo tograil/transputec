@@ -1,5 +1,5 @@
 ﻿using CrisesControl.Core.Models;
-using CrisesControl.Core.UserAggregate;
+using CrisesControl.Core.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

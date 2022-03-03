@@ -1,7 +1,7 @@
 using Autofac.Extensions.DependencyInjection;
 using CrisesControl.Auth;
 using CrisesControl.Core.Models;
-using CrisesControl.Core.UserAggregate;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;

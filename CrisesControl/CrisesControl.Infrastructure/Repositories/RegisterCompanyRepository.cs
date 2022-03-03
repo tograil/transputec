@@ -1,8 +1,8 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
-using CrisesControl.Core.CompanyAggregate;
-using CrisesControl.Core.CompanyAggregate.Repositories;
+using CrisesControl.Core.Companies;
+using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Infrastructure.Context;
 
 namespace CrisesControl.Infrastructure.Repositories;

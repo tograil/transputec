@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using CrisesControl.Core.Models;
-using CrisesControl.Core.UserAggregate;
-using CrisesControl.SharedKernel.Interfaces;
+using CrisesControl.Core.Users;
 
-namespace CrisesControl.Core.CompanyAggregate
+namespace CrisesControl.Core.Companies
 {
-    public record Company : IAggregateRoot
+    public record Company
     {
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = null!;

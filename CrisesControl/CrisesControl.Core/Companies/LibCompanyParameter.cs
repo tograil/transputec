@@ -1,4 +1,4 @@
-﻿namespace CrisesControl.Core.Models
+﻿namespace CrisesControl.Core.Companies
 {
     public partial class LibCompanyParameter
     {

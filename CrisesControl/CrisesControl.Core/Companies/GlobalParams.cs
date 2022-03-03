@@ -1,4 +1,4 @@
-﻿namespace CrisesControl.Core.CompanyAggregate;
+﻿namespace CrisesControl.Core.Companies;
 
 public class GlobalParams
 {

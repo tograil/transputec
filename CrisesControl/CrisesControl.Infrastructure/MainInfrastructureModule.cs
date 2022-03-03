@@ -1,8 +1,8 @@
 ﻿using Autofac;
 using AutoMapper.Contrib.Autofac.DependencyInjection;
-using CrisesControl.Core.CompanyAggregate.Repositories;
-using CrisesControl.Core.DepartmentAggregate.Repositories;
-using CrisesControl.Core.UserAggregate.Repositories;
+using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.Core.Departments.Repositories;
+using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Repositories;
 
 namespace CrisesControl.Infrastructure
