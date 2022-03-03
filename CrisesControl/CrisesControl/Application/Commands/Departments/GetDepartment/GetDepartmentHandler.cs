@@ -1,4 +1,5 @@
 ﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Query;
 using CrisesControl.Core.DepartmentAggregate.Repositories;
 using FluentValidation;
 using MediatR;
@@ -8,12 +9,12 @@ namespace CrisesControl.Api.Application.Commands.Departments.GetDepartment
     public class GetDepartmentHandler: IRequestHandler<GetDepartmentRequest, GetDepartmentResponse>
     {
         private readonly GetDepartmentValidator _departmentValidator;
-        private readonly IDepartmentRepository _departmentService;
+        private readonly IDepartmentQuery _departmentQuery;
 
-        public GetDepartmentHandler(GetDepartmentValidator departmentValidator, IDepartmentRepository departmentService)
+        public GetDepartmentHandler(GetDepartmentValidator departmentValidator, IDepartmentQuery departmentQuery)
         {
             _departmentValidator = departmentValidator;
-            _departmentService = departmentService;
+            _departmentQuery = departmentQuery;
         }
 
         public async Task<GetDepartmentResponse> Handle(GetDepartmentRequest request, CancellationToken cancellationToken)
@@ -22,7 +23,7 @@ namespace CrisesControl.Api.Application.Commands.Departments.GetDepartment
             
             await _departmentValidator.ValidateAndThrowAsync(request, cancellationToken);
             
-            var departments = await _departmentService.GetAllDepartments();
+            var departments = await _departmentQuery.GetDepartment(request);
 
             return new GetDepartmentResponse();
         }

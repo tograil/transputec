@@ -1,10 +1,10 @@
 ﻿using FluentValidation;
 
-namespace CrisesControl.Api.Application.Commands.Departments.GetDepartment
+namespace CrisesControl.Api.Application.Commands.Departments.UpdateDepartment
 {
-    public class GetDepartmentValidator: AbstractValidator<GetDepartmentRequest>
+    public class UpdateDepartmentValidator: AbstractValidator<UpdateDepartmentRequest>
     {
-        public GetDepartmentValidator()
+        public UpdateDepartmentValidator()
         {
             RuleFor(x => x.DepartmentId)
                 .GreaterThan(0);

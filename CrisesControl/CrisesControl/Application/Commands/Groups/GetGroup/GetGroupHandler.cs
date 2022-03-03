@@ -1,29 +1,29 @@
 ﻿using Ardalis.GuardClauses;
-using CrisesControl.Core.GroupAggregate.Services;
+using CrisesControl.Core.DepartmentAggregate.Repositories;
+using CrisesControl.Core.GroupAggregate.Repositories;
 using FluentValidation;
 using MediatR;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace CrisesControl.Core.GroupAggregate.Handlers.GetGroup
+namespace CrisesControl.Api.Application.Commands.Groups.GetGroup
 {
     public class GetGroupHandler: IRequestHandler<GetGroupRequest, GetGroupResponse>
     {
         private readonly GetGroupValidator _groupValidator;
-        private readonly IGroupService _groupService;
+        private readonly IGroupRepository _groupRepository;
 
-        public GetGroupHandler(GetGroupValidator groupValidator, IGroupService groupService)
+        public GetGroupHandler(GetGroupValidator groupValidator, IGroupRepository groupRepository)
         {
-            _groupService = groupService;
             _groupValidator = groupValidator;
+            _groupRepository = groupRepository;
         }
+
         public async Task<GetGroupResponse> Handle(GetGroupRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(GetGroupRequest));
-
+            
             await _groupValidator.ValidateAndThrowAsync(request, cancellationToken);
-
-            var groups = await _groupService.GetAllGroups();
+            
+            var departments = await _groupRepository.GetAllGroups();
 
             return new GetGroupResponse();
         }

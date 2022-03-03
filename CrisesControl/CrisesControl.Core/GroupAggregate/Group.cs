@@ -1,14 +1,16 @@
-﻿using CrisesControl.SharedKernel;
-using CrisesControl.SharedKernel.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CrisesControl.SharedKernel.Interfaces;
 
 namespace CrisesControl.Core.GroupAggregate
 {
-    public record class Group(string Name) : BaseEntity, IAggregateRoot
+    public record Group : IAggregateRoot
     {
+        public int GroupId { get; set; }
+        public string GroupName { get; set; }
+        public int CreatedBy { get; set; }
+        public System.DateTimeOffset CreatedOn { get; set; }
+        public int UpdatedBy { get; set; }
+        public System.DateTimeOffset UpdatedOn { get; set; }
+        public int CompanyId { get; set; }
+        public int Status { get; set; }
     }
 }

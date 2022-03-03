@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.DepartmentAggregate.Repositories;
 using CrisesControl.Infrastructure.Context;
@@ -17,14 +18,41 @@ namespace CrisesControl.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Department>> GetAllDepartments()
+        public async Task<int> CreateDepartment(Department department, CancellationToken token)
+        {
+            await _context.AddAsync(department, token);
+
+            await _context.SaveChangesAsync(token);
+
+            return department.DepartmentId;
+        }
+
+        public async Task<int> DeleteDepartment(int departmentId, CancellationToken token)
+        {
+            await _context.AddAsync(departmentId, token);
+
+            await _context.SaveChangesAsync(token);
+
+            return departmentId;
+        }
+
+        public async Task<IEnumerable<Department>> GetAllDepartments(int companyId)
         {
             return await _context.Set<Department>().AsNoTracking().ToListAsync();
         }
 
         public async Task<Department> GetDepartment(int companyId, int departmentId)
         {
-            return await _context.Set<Department>().Where(t => t.CompanyId ==companyId && t.DepartmentId == departmentId).AsNoTracking().FirstOrDefaultAsync();
+            return await _context.Set<Department>().Where(t => t.CompanyId == companyId && t.DepartmentId == departmentId).AsNoTracking().FirstOrDefaultAsync();
+        }
+
+        public async Task<int> UpdateDepartment(Department department, CancellationToken token)
+        {
+            await _context.AddAsync(department, token);
+
+            await _context.SaveChangesAsync(token);
+
+            return department.DepartmentId;
         }
     }
 }

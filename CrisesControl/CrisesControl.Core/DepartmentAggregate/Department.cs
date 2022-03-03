@@ -1,8 +1,9 @@
-﻿using System;
+﻿using CrisesControl.SharedKernel.Interfaces;
+using System;
 
 namespace CrisesControl.Core.DepartmentAggregate
 {
-    public partial class Department
+    public record Department : IAggregateRoot
     {
         public int DepartmentId { get; set; }
         public string? DepartmentName { get; set; }

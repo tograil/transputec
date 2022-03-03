@@ -2,13 +2,13 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using DepartmentModel = CrisesControl.Core.Models.Department;
+using DepartmentModel = CrisesControl.Core.Models.EmptyDepartment;
 
 namespace CrisesControl.Api.Controllers
 {
     [ApiController]
     [Route("/api/[controller]")]
-    [Authorize]
+    [AllowAnonymous]
     public class DepartmentController : Controller
     {
         private readonly IMediator _mediator;
@@ -19,9 +19,9 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index([FromQuery] GetDepartmentRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> Index([FromQuery] GetDepartmentRequest companyId, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _mediator.Send(companyId, cancellationToken);
             return Ok(result);
         }
 
@@ -39,8 +39,15 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
 
-        [HttpPut("departmentId")]
-        public async Task<IActionResult> UpdateDepartment([FromBody] DepartmentModel departmentModel, int departmentId, CancellationToken cancellationToken)
+        [HttpPut]
+        public async Task<IActionResult> UpdateDepartment([FromBody] DepartmentModel departmentModel, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(departmentModel, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteDepartment([FromBody] DepartmentModel departmentModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(departmentModel, cancellationToken);
             return Ok(result);

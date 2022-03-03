@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.GroupAggregate.Handlers.GetGroup;
+﻿using CrisesControl.Api.Application.Commands.Groups.GetGroup;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

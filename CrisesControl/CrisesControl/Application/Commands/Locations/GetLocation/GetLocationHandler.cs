@@ -1,29 +1,29 @@
 ﻿using Ardalis.GuardClauses;
+using CrisesControl.Core.DepartmentAggregate.Repositories;
 using CrisesControl.Core.LocationAggregate.Services;
 using FluentValidation;
 using MediatR;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace CrisesControl.Core.LocationAggregate.Handlers.GetLocation
+namespace CrisesControl.Api.Application.Commands.Locations.GetLocation
 {
     public class GetLocationHandler: IRequestHandler<GetLocationRequest, GetLocationResponse>
     {
         private readonly GetLocationValidator _locationValidator;
-        private readonly ILocationService _locationService;
+        private readonly ILocationRepository _locationRepository;
 
-        public GetLocationHandler(GetLocationValidator locationValidator, ILocationService locationService)
+        public GetLocationHandler(GetLocationValidator locationValidator, ILocationRepository locationRepository)
         {
-            _locationService = locationService;
             _locationValidator = locationValidator;
+            _locationRepository = locationRepository;
         }
+
         public async Task<GetLocationResponse> Handle(GetLocationRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(GetLocationRequest));
-
+            
             await _locationValidator.ValidateAndThrowAsync(request, cancellationToken);
-
-            var groups = await _locationService.GetAllLocations();
+            
+            var departments = await _locationRepository.GetAllLocations();
 
             return new GetLocationResponse();
         }

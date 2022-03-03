@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.LocationAggregate.Handlers.GetLocation;
+﻿using CrisesControl.Api.Application.Commands.Locations.GetLocation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
