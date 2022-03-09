@@ -2,6 +2,7 @@
 using AutoMapper.Contrib.Autofac.DependencyInjection;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Departments.Repositories;
+using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Repositories;
 
@@ -39,6 +40,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<UserRepository>().As<IUserRepository>();
             builder.RegisterType<GlobalParametersRepository>().As<IGlobalParametersRepository>();
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
+            builder.RegisterType<IncidentRepository>().As<IIncidentRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

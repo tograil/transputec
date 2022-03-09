@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace CrisesControl.Core.Models
+namespace CrisesControl.Core.Incidents
 {
-    public partial class Incident
+    public class Incident
     {
         public int IncidentId { get; set; }
         public int CompanyId { get; set; }

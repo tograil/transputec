@@ -28,6 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Application\Commands\Incidents\AddCompanyIncident\" />
+    <Folder Include="Application\Commands\Common\" />
+    <Folder Include="Application\Helpers\" />
     <Folder Include="Application\Query\" />
     <Folder Include="Application\ViewModels\Company\" />
   </ItemGroup>
