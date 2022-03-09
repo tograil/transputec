@@ -1,6 +1,7 @@
 ﻿using Autofac;
-using CrisesControl.Core.CompanyAggregate.Services;
-using CrisesControl.Infrastructure.Services;
+using AutoMapper.Contrib.Autofac.DependencyInjection;
+using CrisesControl.Core.CompanyAggregate.Repositories;
+using CrisesControl.Infrastructure.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -29,7 +30,10 @@ namespace CrisesControl.Infrastructure
 
         private void RegisterCommonDependencies(ContainerBuilder builder)
         {
-            builder.RegisterType<CompanyService>().As<ICompanyService>();
+            builder.RegisterAutoMapper(ThisAssembly);
+
+            builder.RegisterType<CompanyRepository>().As<ICompanyRepository>();
+            builder.RegisterType<RegisterCompanyRepository>().As<IRegisterCompanyRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

@@ -8,15 +8,25 @@ namespace CrisesControl.Api.Controllers;
 [ApiController]
 [Route("/api/[controller]")]
 [Authorize]
-public class CompanyController : Controller
+public class AdminController : Controller
 {
     private readonly IMediator _mediator;
     private readonly ICompanyQuery _companyQuery;
 
-    public CompanyController(IMediator mediator,
+    public AdminController(IMediator mediator,
         ICompanyQuery companyQuery)
     {
         _mediator = mediator;
         _companyQuery = companyQuery;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllCompanyList([FromQuery] int? status,
+        [FromQuery] string? companyProfile,
+        CancellationToken cancellationToken)
+    {
+        var companies = await _companyQuery.GetCompanyList(status, companyProfile);
+
+        return Ok(companies);
     }
 }
