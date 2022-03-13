@@ -1,5 +1,6 @@
 ﻿using Autofac;
 using AutoMapper.Contrib.Autofac.DependencyInjection;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.Query;
 using FluentValidation;
 using MediatR.Extensions.Autofac.DependencyInjection;
@@ -18,5 +19,9 @@ public class ApiModule : Module
         builder.RegisterAutoMapper(ThisAssembly);
 
         builder.RegisterType<CompanyQuery>().As<ICompanyQuery>();
+
+        builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>();
+
+        builder.RegisterType<CurrentUser>().As<ICurrentUser>();
     }
 }

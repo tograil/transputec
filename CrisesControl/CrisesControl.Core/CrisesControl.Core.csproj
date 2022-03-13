@@ -6,12 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="CompanyAggregate\Handlers\**" />
-    <Compile Remove="CompanyAggregate\Maps\**" />
-    <EmbeddedResource Remove="CompanyAggregate\Handlers\**" />
-    <EmbeddedResource Remove="CompanyAggregate\Maps\**" />
-    <None Remove="CompanyAggregate\Handlers\**" />
-    <None Remove="CompanyAggregate\Maps\**" />
+    <Compile Remove="Companies\Handlers\**" />
+    <Compile Remove="Companies\Maps\**" />
+    <EmbeddedResource Remove="Companies\Handlers\**" />
+    <EmbeddedResource Remove="Companies\Maps\**" />
+    <None Remove="Companies\Handlers\**" />
+    <None Remove="Companies\Maps\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,6 +28,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CrisesControl.SharedKernel\CrisesControl.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Incidents\Repositories\" />
+    <Folder Include="Messages\Repositories\" />
   </ItemGroup>
 
 </Project>

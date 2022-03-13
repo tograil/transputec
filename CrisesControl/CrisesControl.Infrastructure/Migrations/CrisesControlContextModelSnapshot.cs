@@ -23,6 +23,713 @@ namespace CrisesControl.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
+            modelBuilder.Entity("CrisesControl.Core.Companies.Company", b =>
+                {
+                    b.Property<int>("CompanyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CompanyId"), 1L, 1);
+
+                    b.Property<string>("AndroidLogo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTimeOffset>("AnniversaryDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
+
+                    b.Property<string>("CompanyLogoPath")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("Company_Name");
+
+                    b.Property<string>("CompanyProfile")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ContactLogoPath")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CustomerId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Fax")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("IOslogo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("iOSLogo");
+
+                    b.Property<string>("InvitationCode")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Isdcode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("ISDCode");
+
+                    b.Property<bool>("OnTrial")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("PackagePlanId")
+                        .IsRequired()
+                        .HasColumnType("int");
+
+                    b.Property<string>("PlanDrdoc")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("PlanDRDoc");
+
+                    b.Property<DateTimeOffset>("RegistrationDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Sector")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SwitchBoardPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("TimeZone")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UniqueKey")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .UseCollation("Latin1_General_BIN2");
+
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("WindowsLogo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("CompanyId");
+
+                    b.HasIndex("PackagePlanId");
+
+                    b.ToTable("Company", (string)null);
+                });
+
+            modelBuilder.Entity("CrisesControl.Core.Companies.CompanyParameter", b =>
+                {
+                    b.Property<int>("CompanyParametersId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CompanyParametersId"), 1L, 1);
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(70)
+                        .HasColumnType("nvarchar(70)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("CompanyParametersId")
+                        .HasName("PK_dbo.CompanyParameters");
+
+                    b.HasIndex(new[] { "CompanyId", "Name" }, "IDX_Name");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId", "Name" }, "IDX_Name"), 100);
+
+                    b.ToTable("CompanyParameter");
+                });
+
+            modelBuilder.Entity("CrisesControl.Core.Companies.CompanyPaymentProfile", b =>
+                {
+                    b.Property<int>("CompanyPaymentProfileId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CompanyPaymentProfileId"), 1L, 1);
+
+                    b.Property<string>("AgreementNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BillingAddress1")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("BillingAddress2")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("BillingEmail")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTimeOffset>("CardExpiryDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
+
+                    b.Property<bool>("CardFailed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CardHolderName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("CardType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ConfUplift")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<DateTimeOffset>("ContractAnniversary")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ContractStartDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("CreditBalance")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<decimal>("CreditLimit")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<DateTimeOffset>("CurrentStatementEndDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
+
+                    b.Property<decimal>("EmailUplift")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<string>("Ipaddress")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("IPAddress");
+
+                    b.Property<DateTimeOffset>("LastCreditDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("LastStatementEndDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
+
+                    b.Property<decimal>("MaxTransactionLimit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MinimumBalance")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<decimal>("MinimumConfRate")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<decimal>("MinimumEmailRate")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<decimal>("MinimumPhoneRate")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<decimal>("MinimumPushRate")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<decimal>("MinimumTextRate")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<bool?>("OrderCustomer")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PaymentPeriod")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<decimal>("PhoneUplift")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<string>("Postcode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("PushUplift")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<decimal>("SoptokenValue")
+                        .HasColumnType("decimal(20,4)")
+                        .HasColumnName("SOPTokenValue");
+
+                    b.Property<DateTimeOffset>("StatementRunDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("StorageLimit")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TextUplift")
+                        .HasColumnType("decimal(20,4)");
+
+                    b.Property<string>("Town")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal?>("Vatrate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("VATRate")
+                        .HasDefaultValueSql("((20))");
+
+                    b.HasKey("CompanyPaymentProfileId");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("CompanyPaymentProfile", (string)null);
+                });
+
+            modelBuilder.Entity("CrisesControl.Core.Companies.LibCompanyParameter", b =>
+                {
+                    b.Property<int>("LibCompanyParametersId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LibCompanyParametersId"), 1L, 1);
+
+                    b.Property<string>("AllowedValued")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("Display")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(70)
+                        .HasColumnType("nvarchar(70)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ValidationRule")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.HasKey("LibCompanyParametersId")
+                        .HasName("PK_dbo.LibCompanyParameters");
+
+                    b.ToTable("LibCompanyParameter");
+                });
+
+            modelBuilder.Entity("CrisesControl.Core.Companies.PackagePlan", b =>
+                {
+                    b.Property<int>("PackagePlanId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PackagePlanId"), 1L, 1);
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("PackagePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("PingOnly")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PlanDescription")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("PlanName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("PackagePlanId");
+
+                    b.ToTable("PackagePlan", (string)null);
+                });
+
+            modelBuilder.Entity("CrisesControl.Core.Companies.Registration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ID");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("AddressLine1")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("AddressLine2")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CompanyName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(5)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(5)");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CustomerId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("MobileIsd")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("MobileISD");
+
+                    b.Property<string>("MobileNo")
+                        .HasMaxLength(15)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(15)");
+
+                    b.Property<int?>("PackagePlanId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Postcode")
+                        .HasMaxLength(25)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(25)");
+
+                    b.Property<string>("Sector")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UniqueReference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTimeOffset?>("VerficationExpire")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("VerificationCode")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Registration");
+                });
+
+            modelBuilder.Entity("CrisesControl.Core.Departments.Department", b =>
+                {
+                    b.Property<int>("DepartmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DepartmentId"), 1L, 1);
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DepartmentName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("DepartmentId");
+
+                    b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId"), 100);
+
+                    b.HasIndex(new[] { "Status" }, "IDX_Status");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "Status" }, "IDX_Status"), 100);
+
+                    b.ToTable("Department", (string)null);
+                });
+
+            modelBuilder.Entity("CrisesControl.Core.Incidents.Incident", b =>
+                {
+                    b.Property<int>("IncidentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IncidentId"), 1L, 1);
+
+                    b.Property<int>("AudioAssetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CascadePlanId")
+                        .HasColumnType("int")
+                        .HasColumnName("CascadePlanID");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("HasTask")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("IncidentIcon")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("IncidentPlanDoc")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("IncidentTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsSopdoc")
+                        .HasColumnType("bit")
+                        .HasColumnName("IsSOPDoc");
+
+                    b.Property<bool>("IsSos")
+                        .HasColumnType("bit")
+                        .HasColumnName("IsSOS");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("NumberOfKeyHolders")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PlanAssetId")
+                        .HasColumnType("int")
+                        .HasColumnName("PlanAssetID");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("SilentMessage")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SopdocId")
+                        .HasColumnType("int")
+                        .HasColumnName("SOPDocID");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("TrackUser")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("IncidentId");
+
+                    b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId")
+                        .HasDatabaseName("IDX_CompanyId1");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId"), 100);
+
+                    b.HasIndex(new[] { "Status" }, "IDX_Status")
+                        .HasDatabaseName("IDX_Status1");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "Status" }, "IDX_Status"), 100);
+
+                    b.HasIndex(new[] { "IncidentTypeId" }, "IX_IncidentTypeId");
+
+                    b.ToTable("Incident", (string)null);
+                });
+
+            modelBuilder.Entity("CrisesControl.Core.Incidents.IncidentKeyholder", b =>
+                {
+                    b.Property<long>("IncidentKeyholderID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("IncidentKeyholderID"), 1L, 1);
+
+                    b.Property<int?>("ActiveIncidentID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CompanyID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IncidentID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("IncidentKeyholderID");
+
+                    b.ToTable("IncidentKeyholder", (string)null);
+                });
+
             modelBuilder.Entity("CrisesControl.Core.Models.AcademyAccess", b =>
                 {
                     b.Property<int>("AccessId")
@@ -736,7 +1443,8 @@ namespace CrisesControl.Infrastructure.Migrations
 
                     b.HasKey("AssetId");
 
-                    b.HasIndex(new[] { "Status" }, "IDX_Status");
+                    b.HasIndex(new[] { "Status" }, "IDX_Status")
+                        .HasDatabaseName("IDX_Status2");
 
                     SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "Status" }, "IDX_Status"), 100);
 
@@ -1038,7 +1746,7 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.HasIndex(new[] { "Sid" }, "IDX_SId");
 
                     b.HasIndex(new[] { "Status" }, "IDX_Status")
-                        .HasDatabaseName("IDX_Status1");
+                        .HasDatabaseName("IDX_Status3");
 
                     b.ToTable("CommsLog");
                 });
@@ -1188,122 +1896,6 @@ namespace CrisesControl.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.ToView("CommsMonitor");
-                });
-
-            modelBuilder.Entity("CrisesControl.Core.Models.Company", b =>
-                {
-                    b.Property<int>("CompanyId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CompanyId"), 1L, 1);
-
-                    b.Property<string>("AndroidLogo")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTimeOffset>("AnniversaryDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
-
-                    b.Property<string>("CompanyLogoPath")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CompanyName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("Company_Name");
-
-                    b.Property<string>("CompanyProfile")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("ContactLogoPath")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("CreatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("CustomerId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Fax")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("IOslogo")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("iOSLogo");
-
-                    b.Property<string>("InvitationCode")
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<string>("Isdcode")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasColumnName("ISDCode");
-
-                    b.Property<bool>("OnTrial")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("PackagePlanId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PlanDrdoc")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("PlanDRDoc");
-
-                    b.Property<DateTimeOffset>("RegistrationDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Sector")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SwitchBoardPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int?>("TimeZone")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UniqueKey")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("UpdatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Website")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("WindowsLogo")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("CompanyId");
-
-                    b.ToTable("Company", (string)null);
                 });
 
             modelBuilder.Entity("CrisesControl.Core.Models.CompanyActivation", b =>
@@ -1729,217 +2321,6 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.HasKey("CompanyPackageItemId");
 
                     b.ToTable("CompanyPackageItem", (string)null);
-                });
-
-            modelBuilder.Entity("CrisesControl.Core.Models.CompanyParameter", b =>
-                {
-                    b.Property<int>("CompanyParametersId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CompanyParametersId"), 1L, 1);
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("CreatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("UpdatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.HasKey("CompanyParametersId")
-                        .HasName("PK_dbo.CompanyParameters");
-
-                    b.HasIndex(new[] { "CompanyId", "Name" }, "IDX_Name");
-
-                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId", "Name" }, "IDX_Name"), 100);
-
-                    b.ToTable("CompanyParameter");
-                });
-
-            modelBuilder.Entity("CrisesControl.Core.Models.CompanyPaymentProfile", b =>
-                {
-                    b.Property<int>("CompanyPaymentProfileId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CompanyPaymentProfileId"), 1L, 1);
-
-                    b.Property<string>("AgreementNo")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("BillingAddress1")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("BillingAddress2")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("BillingEmail")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<DateTimeOffset>("CardExpiryDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
-
-                    b.Property<bool>("CardFailed")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("CardHolderName")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("CardType")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("City")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("ConfUplift")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<DateTimeOffset>("ContractAnniversary")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset>("ContractStartDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Country")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("CreatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<decimal>("CreditBalance")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<decimal>("CreditLimit")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<DateTimeOffset>("CurrentStatementEndDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
-
-                    b.Property<decimal>("EmailUplift")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<string>("Ipaddress")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("IPAddress");
-
-                    b.Property<DateTimeOffset>("LastCreditDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset>("LastStatementEndDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
-
-                    b.Property<decimal>("MaxTransactionLimit")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("MinimumBalance")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<decimal>("MinimumConfRate")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<decimal>("MinimumEmailRate")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<decimal>("MinimumPhoneRate")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<decimal>("MinimumPushRate")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<decimal>("MinimumTextRate")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<bool?>("OrderCustomer")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("PaymentPeriod")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<decimal>("PhoneUplift")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<string>("Postcode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("PushUplift")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<decimal>("SoptokenValue")
-                        .HasColumnType("decimal(20,4)")
-                        .HasColumnName("SOPTokenValue");
-
-                    b.Property<DateTimeOffset>("StatementRunDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("StorageLimit")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TextUplift")
-                        .HasColumnType("decimal(20,4)");
-
-                    b.Property<string>("Town")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("UpdatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<decimal?>("Vatrate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("VATRate")
-                        .HasDefaultValueSql("((20))");
-
-                    b.HasKey("CompanyPaymentProfileId");
-
-                    b.ToTable("CompanyPaymentProfile", (string)null);
                 });
 
             modelBuilder.Entity("CrisesControl.Core.Models.CompanyTransactionType", b =>
@@ -2591,50 +2972,6 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.HasKey("ModuleId");
 
                     b.ToTable("DashboardModule", (string)null);
-                });
-
-            modelBuilder.Entity("CrisesControl.Core.Models.Department", b =>
-                {
-                    b.Property<int>("DepartmentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DepartmentId"), 1L, 1);
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("CreatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("DepartmentName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("UpdatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("DepartmentId");
-
-                    b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId");
-
-                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId"), 100);
-
-                    b.HasIndex(new[] { "Status" }, "IDX_Status")
-                        .HasDatabaseName("IDX_Status2");
-
-                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "Status" }, "IDX_Status"), 100);
-
-                    b.ToTable("Department", (string)null);
                 });
 
             modelBuilder.Entity("CrisesControl.Core.Models.EmailFieldLookup", b =>
@@ -3865,105 +4202,6 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.HasKey("TemplateId");
 
                     b.ToTable("ImportTemplate");
-                });
-
-            modelBuilder.Entity("CrisesControl.Core.Models.Incident", b =>
-                {
-                    b.Property<int>("IncidentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IncidentId"), 1L, 1);
-
-                    b.Property<int>("AudioAssetId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CascadePlanId")
-                        .HasColumnType("int")
-                        .HasColumnName("CascadePlanID");
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("CreatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("HasTask")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("IncidentIcon")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("IncidentPlanDoc")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("IncidentTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsSopdoc")
-                        .HasColumnType("bit")
-                        .HasColumnName("IsSOPDoc");
-
-                    b.Property<bool>("IsSos")
-                        .HasColumnType("bit")
-                        .HasColumnName("IsSOS");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("NumberOfKeyHolders")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PlanAssetId")
-                        .HasColumnType("int")
-                        .HasColumnName("PlanAssetID");
-
-                    b.Property<int>("Severity")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("SilentMessage")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("SopdocId")
-                        .HasColumnType("int")
-                        .HasColumnName("SOPDocID");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("TrackUser")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("UpdatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("IncidentId");
-
-                    b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId")
-                        .HasDatabaseName("IDX_CompanyId1");
-
-                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId"), 100);
-
-                    b.HasIndex(new[] { "Status" }, "IDX_Status")
-                        .HasDatabaseName("IDX_Status3");
-
-                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "Status" }, "IDX_Status"), 100);
-
-                    b.HasIndex(new[] { "IncidentTypeId" }, "IX_IncidentTypeId");
-
-                    b.ToTable("Incident", (string)null);
                 });
 
             modelBuilder.Entity("CrisesControl.Core.Models.IncidentAction", b =>
@@ -5222,57 +5460,6 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.HasKey("LanguageItemId");
 
                     b.ToTable("LanguageItem", (string)null);
-                });
-
-            modelBuilder.Entity("CrisesControl.Core.Models.LibCompanyParameter", b =>
-                {
-                    b.Property<int>("LibCompanyParametersId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LibCompanyParametersId"), 1L, 1);
-
-                    b.Property<string>("AllowedValued")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("Display")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ValidationRule")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.HasKey("LibCompanyParametersId")
-                        .HasName("PK_dbo.LibCompanyParameters");
-
-                    b.ToTable("LibCompanyParameter");
                 });
 
             modelBuilder.Entity("CrisesControl.Core.Models.LibContent", b =>
@@ -7026,52 +7213,6 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.ToTable("PackageFeature", (string)null);
                 });
 
-            modelBuilder.Entity("CrisesControl.Core.Models.PackagePlan", b =>
-                {
-                    b.Property<int>("PackagePlanId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PackagePlanId"), 1L, 1);
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("CreatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal>("PackagePrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("PingOnly")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("PlanDescription")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("PlanName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("UpdatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("PackagePlanId");
-
-                    b.ToTable("PackagePlan", (string)null);
-                });
-
             modelBuilder.Entity("CrisesControl.Core.Models.PasswordChangeHistory", b =>
                 {
                     b.Property<int>("Id")
@@ -8185,117 +8326,6 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.HasIndex(new[] { "SchedName", "TriggerState" }, "IDX_QRTZ_T_STATE");
 
                     b.ToTable("QRTZ_TRIGGERS", (string)null);
-                });
-
-            modelBuilder.Entity("CrisesControl.Core.Models.Registration", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("ID");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("AddressLine1")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("AddressLine2")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("City")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CompanyName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("CountryCode")
-                        .HasMaxLength(5)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(5)");
-
-                    b.Property<DateTimeOffset>("CreatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("CustomerId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("MobileIsd")
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)")
-                        .HasColumnName("MobileISD");
-
-                    b.Property<string>("MobileNo")
-                        .HasMaxLength(15)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(15)");
-
-                    b.Property<int?>("PackagePlanId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("PaymentMethod")
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<string>("Postcode")
-                        .HasMaxLength(25)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(25)");
-
-                    b.Property<string>("Sector")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("State")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UniqueReference")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<DateTimeOffset?>("VerficationExpire")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("VerificationCode")
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Registration");
                 });
 
             modelBuilder.Entity("CrisesControl.Core.Models.Sconnection", b =>
@@ -10614,195 +10644,6 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.ToTable("UndeliveredMessage");
                 });
 
-            modelBuilder.Entity("CrisesControl.Core.Models.User", b =>
-                {
-                    b.Property<int>("UserId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"), 1L, 1);
-
-                    b.Property<int>("ActiveOffDuty")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("CreatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<int?>("DepartmentId")
-                        .HasColumnType("int");
-
-                    b.Property<bool?>("ExpirePassword")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValueSql("((1))");
-
-                    b.Property<bool>("FirstLogin")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<string>("Isdcode")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasColumnName("ISDCode")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<string>("Landline")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<DateTimeOffset>("LastLocationUpdate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
-
-                    b.Property<string>("LastName")
-                        .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<string>("Lat")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Llisdcode")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasColumnName("LLISDCode")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<string>("Lng")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("MobileNo")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<string>("Otpcode")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasColumnName("OTPCode");
-
-                    b.Property<DateTimeOffset>("Otpexpiry")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetimeoffset")
-                        .HasColumnName("OTPExpiry")
-                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<DateTimeOffset>("PasswordChangeDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
-
-                    b.Property<string>("PrimaryEmail")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<bool>("RegisteredUser")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("SecondaryEmail")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .UseCollation("Latin1_General_BIN2");
-
-                    b.Property<bool>("Smstrigger")
-                        .HasColumnType("bit")
-                        .HasColumnName("SMSTrigger");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TimezoneId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("TrackingEndTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
-
-                    b.Property<DateTimeOffset>("TrackingStartTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
-
-                    b.Property<string>("UniqueGuiId")
-                        .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)")
-                        .HasColumnName("UniqueGuiID");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("UpdatedOn")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("UserHash")
-                        .HasMaxLength(32)
-                        .IsUnicode(false)
-                        .HasColumnType("char(32)")
-                        .IsFixedLength();
-
-                    b.Property<string>("UserLanguage")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("UserPhoto")
-                        .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)");
-
-                    b.Property<string>("UserRole")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.HasKey("UserId");
-
-                    b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId")
-                        .HasDatabaseName("IDX_CompanyId7");
-
-                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId"), 100);
-
-                    b.HasIndex(new[] { "FirstName", "LastName" }, "IDX_FirstName_LastName");
-
-                    b.HasIndex(new[] { "PrimaryEmail", "Password" }, "IDX_PrimaryEmail");
-
-                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "PrimaryEmail", "Password" }, "IDX_PrimaryEmail"), 100);
-
-                    b.HasIndex(new[] { "RegisteredUser" }, "IDX_RegisteredUser");
-
-                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "RegisteredUser" }, "IDX_RegisteredUser"), 100);
-
-                    b.HasIndex(new[] { "UniqueGuiId" }, "IDX_UniqueGUID");
-
-                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "UniqueGuiId" }, "IDX_UniqueGUID"), 100);
-
-                    b.HasIndex(new[] { "UserRole" }, "IDX_UserRole");
-
-                    b.ToTable("User");
-                });
-
             modelBuilder.Entity("CrisesControl.Core.Models.UserComm", b =>
                 {
                     b.Property<int>("UserCommsId")
@@ -10849,7 +10690,7 @@ namespace CrisesControl.Infrastructure.Migrations
                         .HasName("PK_dbo.UserComms");
 
                     b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId")
-                        .HasDatabaseName("IDX_CompanyId8");
+                        .HasDatabaseName("IDX_CompanyId7");
 
                     SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId"), 100);
 
@@ -10983,7 +10824,7 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.HasKey("UserDeviceId");
 
                     b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId")
-                        .HasDatabaseName("IDX_CompanyId9");
+                        .HasDatabaseName("IDX_CompanyId8");
 
                     SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId"), 100);
 
@@ -11177,7 +11018,7 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.HasKey("UserLoginLogId");
 
                     b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId")
-                        .HasDatabaseName("IDX_CompanyId10");
+                        .HasDatabaseName("IDX_CompanyId9");
 
                     SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId"), 100);
 
@@ -11411,205 +11252,213 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.ToView("vw_UserLocations");
                 });
 
-            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>
+            modelBuilder.Entity("CrisesControl.Core.Users.User", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<int>("UserId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("int");
 
-                    b.Property<string>("ClientId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"), 1L, 1);
 
-                    b.Property<string>("ClientSecret")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("ActiveOffDuty")
+                        .HasColumnType("int");
 
-                    b.Property<string>("ConcurrencyToken")
-                        .IsConcurrencyToken()
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("ExpirePassword")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValueSql("((1))");
+
+                    b.Property<bool>("FirstLogin")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(70)
+                        .HasColumnType("nvarchar(70)")
+                        .UseCollation("Latin1_General_BIN2");
+
+                    b.Property<string>("Isdcode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("ISDCode")
+                        .UseCollation("Latin1_General_BIN2");
+
+                    b.Property<string>("Landline")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .UseCollation("Latin1_General_BIN2");
+
+                    b.Property<DateTimeOffset>("LastLocationUpdate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
+
+                    b.Property<string>("LastName")
+                        .HasMaxLength(70)
+                        .HasColumnType("nvarchar(70)")
+                        .UseCollation("Latin1_General_BIN2");
+
+                    b.Property<string>("Lat")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Llisdcode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("LLISDCode")
+                        .UseCollation("Latin1_General_BIN2");
+
+                    b.Property<string>("Lng")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("MobileNo")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .UseCollation("Latin1_General_BIN2");
+
+                    b.Property<string>("Otpcode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("OTPCode");
+
+                    b.Property<DateTimeOffset>("Otpexpiry")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("OTPExpiry")
+                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(50)")
+                        .UseCollation("Latin1_General_BIN2");
 
-                    b.Property<string>("ConsentType")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<DateTimeOffset>("PasswordChangeDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
 
-                    b.Property<string>("DisplayName")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<string>("PrimaryEmail")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .UseCollation("Latin1_General_BIN2");
 
-                    b.Property<string>("DisplayNames")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("RegisteredUser")
+                        .HasColumnType("bit");
 
-                    b.Property<string>("Permissions")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<string>("SecondaryEmail")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .UseCollation("Latin1_General_BIN2");
 
-                    b.Property<string>("PostLogoutRedirectUris")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("Smstrigger")
+                        .HasColumnType("bit")
+                        .HasColumnName("SMSTrigger");
 
-                    b.Property<string>("Properties")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
-                    b.Property<string>("RedirectUris")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("TimezoneId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Requirements")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTimeOffset>("TrackingEndTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
 
-                    b.Property<string>("Type")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<DateTimeOffset>("TrackingStartTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("('1900-01-01T00:00:00.000')");
 
-                    b.HasKey("Id");
+                    b.Property<string>("UniqueGuiId")
+                        .HasMaxLength(70)
+                        .HasColumnType("nvarchar(70)")
+                        .HasColumnName("UniqueGuiID");
 
-                    b.HasIndex("ClientId")
-                        .IsUnique()
-                        .HasFilter("[ClientId] IS NOT NULL");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
-                    b.ToTable("OpenIddictApplications", (string)null);
+                    b.Property<DateTimeOffset>("UpdatedOn")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UserHash")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("char(32)")
+                        .IsFixedLength();
+
+                    b.Property<string>("UserLanguage")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("UserPhoto")
+                        .HasMaxLength(70)
+                        .HasColumnType("nvarchar(70)");
+
+                    b.Property<string>("UserRole")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId")
+                        .HasDatabaseName("IDX_CompanyId10");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "CompanyId" }, "IDX_CompanyId"), 100);
+
+                    b.HasIndex(new[] { "FirstName", "LastName" }, "IDX_FirstName_LastName");
+
+                    b.HasIndex(new[] { "PrimaryEmail", "Password" }, "IDX_PrimaryEmail");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "PrimaryEmail", "Password" }, "IDX_PrimaryEmail"), 100);
+
+                    b.HasIndex(new[] { "RegisteredUser" }, "IDX_RegisteredUser");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "RegisteredUser" }, "IDX_RegisteredUser"), 100);
+
+                    b.HasIndex(new[] { "UniqueGuiId" }, "IDX_UniqueGUID");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex(new[] { "UniqueGuiId" }, "IDX_UniqueGUID"), 100);
+
+                    b.HasIndex(new[] { "UserRole" }, "IDX_UserRole");
+
+                    b.ToTable("Users", (string)null);
                 });
 
-            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", b =>
+            modelBuilder.Entity("CrisesControl.Core.Companies.Company", b =>
                 {
-                    b.Property<string>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(450)");
+                    b.HasOne("CrisesControl.Core.Companies.PackagePlan", "PackagePlan")
+                        .WithMany()
+                        .HasForeignKey("PackagePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Property<string>("ApplicationId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("CreationDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Properties")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Scopes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Subject")
-                        .HasMaxLength(400)
-                        .HasColumnType("nvarchar(400)");
-
-                    b.Property<string>("Type")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplicationId", "Status", "Subject", "Type");
-
-                    b.ToTable("OpenIddictAuthorizations", (string)null);
+                    b.Navigation("PackagePlan");
                 });
 
-            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreScope", b =>
+            modelBuilder.Entity("CrisesControl.Core.Companies.CompanyPaymentProfile", b =>
                 {
-                    b.Property<string>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Descriptions")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DisplayName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DisplayNames")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Properties")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Resources")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique()
-                        .HasFilter("[Name] IS NOT NULL");
-
-                    b.ToTable("OpenIddictScopes", (string)null);
-                });
-
-            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreToken", b =>
-                {
-                    b.Property<string>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ApplicationId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("AuthorizationId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("CreationDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ExpirationDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Payload")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Properties")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("RedemptionDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ReferenceId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Subject")
-                        .HasMaxLength(400)
-                        .HasColumnType("nvarchar(400)");
-
-                    b.Property<string>("Type")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorizationId");
-
-                    b.HasIndex("ReferenceId")
-                        .IsUnique()
-                        .HasFilter("[ReferenceId] IS NOT NULL");
-
-                    b.HasIndex("ApplicationId", "Status", "Subject", "Type");
-
-                    b.ToTable("OpenIddictTokens", (string)null);
+                    b.HasOne("CrisesControl.Core.Companies.Company", null)
+                        .WithMany("CompanyPaymentProfiles")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CrisesControl.Core.Models.QrtzCronTrigger", b =>
@@ -11659,28 +11508,20 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.Navigation("QrtzJobDetail");
                 });
 
-            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", b =>
+            modelBuilder.Entity("CrisesControl.Core.Users.User", b =>
                 {
-                    b.HasOne("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", "Application")
-                        .WithMany("Authorizations")
-                        .HasForeignKey("ApplicationId");
-
-                    b.Navigation("Application");
+                    b.HasOne("CrisesControl.Core.Companies.Company", null)
+                        .WithMany("Users")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
-            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreToken", b =>
+            modelBuilder.Entity("CrisesControl.Core.Companies.Company", b =>
                 {
-                    b.HasOne("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", "Application")
-                        .WithMany("Tokens")
-                        .HasForeignKey("ApplicationId");
+                    b.Navigation("CompanyPaymentProfiles");
 
-                    b.HasOne("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", "Authorization")
-                        .WithMany("Tokens")
-                        .HasForeignKey("AuthorizationId");
-
-                    b.Navigation("Application");
-
-                    b.Navigation("Authorization");
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("CrisesControl.Core.Models.QrtzJobDetail", b =>
@@ -11698,18 +11539,6 @@ namespace CrisesControl.Infrastructure.Migrations
 
                     b.Navigation("QrtzSimpropTrigger")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>
-                {
-                    b.Navigation("Authorizations");
-
-                    b.Navigation("Tokens");
-                });
-
-            modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", b =>
-                {
-                    b.Navigation("Tokens");
                 });
 #pragma warning restore 612, 618
         }
