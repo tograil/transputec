@@ -4,6 +4,7 @@ using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CrisesControl.Infrastructure.Migrations
 {
     [DbContext(typeof(CrisesControlContext))]
-    partial class CrisesControlContextModelSnapshot : ModelSnapshot
+    [Migration("20220312152427_AddIncidentKeyholder")]
+    partial class AddIncidentKeyholder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
