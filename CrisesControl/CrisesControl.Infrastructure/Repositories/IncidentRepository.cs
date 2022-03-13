@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -143,5 +146,28 @@ public class IncidentRepository : IIncidentRepository
         var pIncidentId = new SqlParameter("@IncidentId", incidentId);
 
         await _context.Database.ExecuteSqlRawAsync("exec Pro_Incident_CreateLink @CompanyId, @UserId, @IncidentId", pCompanyId, pUserId, pIncidentId);
+    }
+
+    public NewIncident CloneIncident(int incidentId, bool keepKeyContact, bool keepIncidentMessage, bool keepTasks,
+        bool keepIncidentAsset, bool keepTaskAssets, bool keepTaskCheckList, bool keepIncidentParticipants, int status,
+        int currentUserId, int companyId, string timeZoneId)
+    {
+        var pIncidentId = new SqlParameter("@IncidentID", incidentId);
+        var pKeepKeyContact = new SqlParameter("@KeepKeyContact", keepKeyContact);
+        var pKeepIncidentMessage = new SqlParameter("@KeepIncidentMessage", keepIncidentMessage);
+        var pKeepTasks = new SqlParameter("@KeepTasks", keepTasks);
+        var pKeepIncidentAsset = new SqlParameter("@KeepIncidentAsset",keepIncidentAsset);
+        var pKeepTaskAssets = new SqlParameter("@KeepTaskAssets", keepTaskAssets);
+        var pKeepTaskCheckList = new SqlParameter("@KeepTaskCheckList", keepTaskCheckList);
+        var pKeepIncidentParticipants = new SqlParameter("@KeepIncidentParticipants", keepIncidentParticipants);
+        var pStatus = new SqlParameter("@Status", status);
+        var pCurrentUserId = new SqlParameter("@CurrentUserID", currentUserId);
+        var pCompanyId = new SqlParameter("@CompanyID", companyId);
+        var pCustomerTime = new SqlParameter("@CustomerTime", DateTime.Now.GetDateTimeOffset(timeZoneId));
+
+        var result = _context.Set<NewIncident>().FromSqlRaw("exec Pro_Copy_Incident {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}",
+            pIncidentId, pKeepKeyContact, pKeepIncidentMessage, pKeepTasks, pKeepIncidentAsset, pKeepTaskAssets, pKeepTaskCheckList, pKeepIncidentParticipants, pStatus, pCurrentUserId, pCompanyId, pCustomerTime).ToList().First();
+
+        return result;
     }
 }

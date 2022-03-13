@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -22,6 +23,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.UseCollation("Latin1_General_CI_AS");
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrisesControlContext).Assembly);
+
+            modelBuilder.Entity<NewIncident>().HasNoKey();
         }
     }
 }

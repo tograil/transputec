@@ -19,4 +19,9 @@ public interface IIncidentRepository
     Task AddIncidentGroup(int incidentId, int[] groups, int companyId);
 
     Task CreateIncidentSegLinks(int incidentId, int userId, int companyId);
+
+    NewIncident CloneIncident(int incidentId, bool keepKeyContact, bool keepIncidentMessage, bool keepTasks,
+        bool keepIncidentAsset, bool keepTaskAssets,
+        bool keepTaskCheckList, bool keepIncidentParticipants, int status, int currentUserId, int companyId,
+        string timeZoneId);
 }
