@@ -41,7 +41,7 @@ namespace CrisesControl.Api.Application.Commands.Locations.CreateLocation
 
         private bool CheckDuplicate(Location location)
         {
-            return _locationRepository.CheckDublicate(location);
+            return _locationRepository.CheckDuplicate(location);
         }
     }
 }

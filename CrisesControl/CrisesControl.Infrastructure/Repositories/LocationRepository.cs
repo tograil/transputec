@@ -53,9 +53,9 @@ namespace CrisesControl.Infrastructure.Repositories
             return location.LocationId;
         }
 
-        public bool CheckDublicate(Location location)
+        public bool CheckDuplicate(Location location)
         {
-           return _context.Set<Location>().Where(t=>t.LocationName.Equals(location.LocationName)).FirstOrDefault() != null;
+           return _context.Set<Location>().Where(t=>t.LocationName.Equals(location.LocationName)).Any();
         }
     }
 }

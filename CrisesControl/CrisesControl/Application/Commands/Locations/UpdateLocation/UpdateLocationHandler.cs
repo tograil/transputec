@@ -26,7 +26,7 @@ namespace CrisesControl.Api.Application.Commands.Locations.UpdateLocation
 
             Location value = _mapper.Map<UpdateLocationRequest, Location>(request);
 
-            if (CheckDublicate(value))
+            if (CheckDuplicate(value))
             {
                 var locationId = await _locationRepository.UpdateLocation(value, cancellationToken);
                 var result = new UpdateLocationResponse();
@@ -37,9 +37,9 @@ namespace CrisesControl.Api.Application.Commands.Locations.UpdateLocation
             return null;
         }
 
-        private bool CheckDublicate(Location request)
+        private bool CheckDuplicate(Location request)
         {
-            return _locationRepository.CheckDublicate(request);
+            return _locationRepository.CheckDuplicate(request);
         }
     }
 }

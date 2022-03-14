@@ -57,7 +57,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
         public bool CheckDuplicate(Department department)
         {
-            return _context.Set<Department>().Where(t => t.DepartmentName.Equals(department.DepartmentName)).FirstOrDefault() != null;
+            return _context.Set<Department>().Where(t => t.DepartmentName.Equals(department.DepartmentName)).Any();
         }
     }
 }
