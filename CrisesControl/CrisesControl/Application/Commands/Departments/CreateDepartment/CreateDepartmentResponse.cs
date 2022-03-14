@@ -2,5 +2,6 @@
 {
     public class CreateDepartmentResponse
     {
+        public int DepartmentId { get; set; }
     }
 }

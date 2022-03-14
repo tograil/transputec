@@ -1,11 +1,12 @@
-﻿using CrisesControl.Core.LocationAggregate.Services;
-using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.LocationAggregate;
+using CrisesControl.Core.LocationAggregate.Services;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CrisesControl.Infrastructure.Repositories
@@ -19,34 +20,38 @@ namespace CrisesControl.Infrastructure.Repositories
             _context = context;
         }
 
-        public Task<Core.LocationAggregate.Location> CreateLocation(Core.LocationAggregate.Location location)
+        public async Task<int> CreateLocation(Location location, CancellationToken token)
         {
-            throw new NotImplementedException();
+            await _context.AddAsync(location, token);
+            await _context.SaveChangesAsync(token);
+            return location.LocationId;
         }
 
-        public Task DeleteLocation(int locationId)
+        public async Task<int> DeleteLocation(int locationId, CancellationToken token)
         {
-            throw new NotImplementedException();
+            await _context.AddAsync(locationId);
+
+            await _context.SaveChangesAsync(token);
+
+            return locationId;
         }
 
-        public async Task<IEnumerable<Location>> GetAllLocations()
+        public async Task<IEnumerable<Location>> GetAllLocations(int companyId)
         {
-            return await _context.Set<Location>().AsNoTracking().ToArrayAsync();
+            return await _context.Set<Location>().AsNoTracking().Where(t=>t.CompanyId == companyId).ToListAsync();
         }
 
-        public Task<Core.LocationAggregate.Location> GetLocationById(int locationId)
+        public async Task<Location> GetLocationById(int locationId)
         {
-            throw new NotImplementedException();
+            return await _context.Set<Location>().AsNoTracking().Where(t => t.LocationId == locationId).FirstOrDefaultAsync();
         }
 
-        public Task<Core.LocationAggregate.Location> UpdateLocation(Core.LocationAggregate.Location location)
+        public async Task<int> UpdateLocation(Location location, CancellationToken token)
         {
-            throw new NotImplementedException();
+            await _context.AddAsync(location, token);
+            await _context.SaveChangesAsync(token);
+            return location.LocationId;
         }
 
-        Task<IEnumerable<Core.LocationAggregate.Location>> ILocationRepository.GetAllLocations()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

@@ -23,9 +23,10 @@ namespace CrisesControl.Api.Application.Commands.Departments.CreateDepartment
             Guard.Against.Null(request, nameof(CreateDepartmentRequest));
 
             var sample = new Department();
-            var departments = await _departmentRepository.CreateDepartment(sample, cancellationToken);
-
-            return new CreateDepartmentResponse();
+            var departmentId = await _departmentRepository.CreateDepartment(sample, cancellationToken);
+            var result = new CreateDepartmentResponse();
+            result.DepartmentId = departmentId;
+            return result;
         }
     }
 }

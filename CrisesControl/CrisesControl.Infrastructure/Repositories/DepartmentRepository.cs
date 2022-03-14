@@ -38,12 +38,12 @@ namespace CrisesControl.Infrastructure.Repositories
 
         public async Task<IEnumerable<Department>> GetAllDepartments(int companyId)
         {
-            return await _context.Set<Department>().AsNoTracking().ToListAsync();
+            return await _context.Set<Department>().Where(t=>t.CompanyId == companyId).ToListAsync();
         }
 
         public async Task<Department> GetDepartment(int companyId, int departmentId)
         {
-            return await _context.Set<Department>().Where(t => t.CompanyId == companyId && t.DepartmentId == departmentId).AsNoTracking().FirstOrDefaultAsync();
+            return await _context.Set<Department>().Where(t => t.CompanyId == companyId && t.DepartmentId == departmentId).FirstOrDefaultAsync();
         }
 
         public async Task<int> UpdateDepartment(Department department, CancellationToken token)

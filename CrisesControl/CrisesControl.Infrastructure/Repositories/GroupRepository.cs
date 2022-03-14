@@ -38,12 +38,13 @@ namespace CrisesControl.Infrastructure.Repositories
             return groupId;
         }
 
-        public async Task<IEnumerable<Group>> GetAllGroups()
+        public async Task<IEnumerable<Group>> GetAllGroups(int companyId)
         {
-            return await _context.Set<Group>().AsNoTracking().ToArrayAsync();
+            return await _context.Set<Group>().AsNoTracking().Where(t => t.CompanyId == companyId).ToListAsync();
         }
 
-        public async Task<Group> GetById(int groupId)
+
+        public async Task<Group> GetGroup(int groupId)
         {
             return await _context.Set<Group>().AsNoTracking().Where(t => t.GroupId == groupId).FirstOrDefaultAsync();
         }

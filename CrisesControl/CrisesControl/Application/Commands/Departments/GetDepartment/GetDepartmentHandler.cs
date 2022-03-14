@@ -1,4 +1,5 @@
 ﻿using Ardalis.GuardClauses;
+using AutoMapper;
 using CrisesControl.Api.Application.Query;
 using CrisesControl.Core.DepartmentAggregate.Repositories;
 using FluentValidation;
@@ -23,9 +24,9 @@ namespace CrisesControl.Api.Application.Commands.Departments.GetDepartment
             
             await _departmentValidator.ValidateAndThrowAsync(request, cancellationToken);
             
-            var departments = await _departmentQuery.GetDepartment(request);
+            var department = await _departmentQuery.GetDepartment(request);
 
-            return new GetDepartmentResponse();
+            return department;
         }
     }
 }

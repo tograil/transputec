@@ -1,4 +1,5 @@
 ﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Query;
 using CrisesControl.Core.DepartmentAggregate.Repositories;
 using CrisesControl.Core.GroupAggregate.Repositories;
 using FluentValidation;
@@ -9,12 +10,12 @@ namespace CrisesControl.Api.Application.Commands.Groups.GetGroup
     public class GetGroupHandler: IRequestHandler<GetGroupRequest, GetGroupResponse>
     {
         private readonly GetGroupValidator _groupValidator;
-        private readonly IGroupRepository _groupRepository;
+        private readonly IGroupQuery _groupQuery;
 
-        public GetGroupHandler(GetGroupValidator groupValidator, IGroupRepository groupRepository)
+        public GetGroupHandler(GetGroupValidator groupValidator, IGroupQuery groupQuery)
         {
             _groupValidator = groupValidator;
-            _groupRepository = groupRepository;
+            _groupQuery = groupQuery;
         }
 
         public async Task<GetGroupResponse> Handle(GetGroupRequest request, CancellationToken cancellationToken)
@@ -23,9 +24,9 @@ namespace CrisesControl.Api.Application.Commands.Groups.GetGroup
             
             await _groupValidator.ValidateAndThrowAsync(request, cancellationToken);
             
-            var departments = await _groupRepository.GetAllGroups();
+            var groups = await _groupQuery.GetGroup(request);
 
-            return new GetGroupResponse();
+            return groups;
         }
     }
 }

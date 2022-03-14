@@ -2,5 +2,6 @@
 {
     public class UpdateDepartmentResponse
     {
+        public int DepartmentId { get; set; }
     }
 }

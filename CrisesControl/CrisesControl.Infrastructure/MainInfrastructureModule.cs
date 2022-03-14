@@ -1,6 +1,9 @@
 ﻿using Autofac;
 using AutoMapper.Contrib.Autofac.DependencyInjection;
 using CrisesControl.Core.CompanyAggregate.Repositories;
+using CrisesControl.Core.DepartmentAggregate.Repositories;
+using CrisesControl.Core.GroupAggregate.Repositories;
+using CrisesControl.Core.LocationAggregate.Services;
 using CrisesControl.Infrastructure.Repositories;
 
 namespace CrisesControl.Infrastructure
@@ -34,6 +37,9 @@ namespace CrisesControl.Infrastructure
 
             builder.RegisterType<CompanyRepository>().As<ICompanyRepository>();
             builder.RegisterType<RegisterCompanyRepository>().As<IRegisterCompanyRepository>();
+            builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
+            builder.RegisterType<GroupRepository>().As<IGroupRepository>();
+            builder.RegisterType<LocationRepository>().As<ILocationRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

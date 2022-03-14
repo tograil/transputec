@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.LocationAggregate
 {
-    public partial class Location
+    public record Location: IAggregateRoot
     {
         public int LocationId { get; set; }
         public string LocationName { get; set; }

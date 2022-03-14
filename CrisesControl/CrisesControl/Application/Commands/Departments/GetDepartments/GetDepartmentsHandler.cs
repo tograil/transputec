@@ -6,7 +6,7 @@ using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Departments.GetDepartments
 {
-    public class GetDepartmentsHandler: IRequestHandler<GetDepartmentsRequest, GetDepartmentsResponse>
+    public class GetDepartmentsHandler : IRequestHandler<GetDepartmentsRequest,GetDepartmentsResponse>
     {
         private readonly GetDepartmentsValidator _departmentValidator;
         private readonly IDepartmentQuery _departmentQuery;
@@ -26,8 +26,7 @@ namespace CrisesControl.Api.Application.Commands.Departments.GetDepartments
             await _departmentValidator.ValidateAndThrowAsync(request, cancellationToken);
             
             var departments = await _departmentQuery.GetDepartments(request);
-
-            return new GetDepartmentsResponse();
+            return departments;
         }
     }
 }
