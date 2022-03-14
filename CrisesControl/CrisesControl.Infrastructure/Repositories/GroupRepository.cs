@@ -56,5 +56,10 @@ namespace CrisesControl.Infrastructure.Repositories
             return group.GroupId;
         }
 
+        public bool CheckDuplicate(Group group)
+        {
+            return _context.Set<Group>().Where(t=>t.GroupName.Equals(group.GroupName)).Any();
+        }
+
     }
 }

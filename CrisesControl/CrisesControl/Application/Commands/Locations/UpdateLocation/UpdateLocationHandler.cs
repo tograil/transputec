@@ -1,7 +1,5 @@
 ﻿using Ardalis.GuardClauses;
-using CrisesControl.Api.Application.ViewModels.Company;
-using CrisesControl.Core.DepartmentAggregate;
-using CrisesControl.Core.DepartmentAggregate.Repositories;
+using AutoMapper;
 using CrisesControl.Core.LocationAggregate;
 using CrisesControl.Core.LocationAggregate.Services;
 using FluentValidation;
@@ -13,22 +11,35 @@ namespace CrisesControl.Api.Application.Commands.Locations.UpdateLocation
     {
         private readonly UpdateLocationValidator _locationValidator;
         private readonly ILocationRepository _locationRepository;
+        private readonly IMapper _mapper;
 
-        public UpdateLocationHandler(UpdateLocationValidator locationValidator, ILocationRepository locationRepository)
+        public UpdateLocationHandler(UpdateLocationValidator locationValidator, ILocationRepository locationRepository, IMapper mapper)
         {
             _locationValidator = locationValidator;
             _locationRepository = locationRepository;
+            _mapper = mapper;
         }
 
-        public async Task<UpdateLocationResponse> Handle(UpdateLocationRequest request, CancellationToken cancellationToken)
+        public async Task<UpdateLocationResponse?> Handle(UpdateLocationRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(UpdateLocationRequest));
 
-            var sample = new Location();
-            var locationId = await _locationRepository.UpdateLocation(sample, cancellationToken);
-            var result = new UpdateLocationResponse();
-            result.LocationId = locationId;
-            return result;
+            Location value = _mapper.Map<UpdateLocationRequest, Location>(request);
+
+            if (CheckDublicate(value))
+            {
+                var locationId = await _locationRepository.UpdateLocation(value, cancellationToken);
+                var result = new UpdateLocationResponse();
+                result.LocationId = locationId;
+                return result;
+            }
+
+            return null;
+        }
+
+        private bool CheckDublicate(Location request)
+        {
+            return _locationRepository.CheckDublicate(request);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Ardalis.GuardClauses;
+using AutoMapper;
 using CrisesControl.Api.Application.ViewModels.Company;
 using CrisesControl.Core.DepartmentAggregate;
 using CrisesControl.Core.DepartmentAggregate.Repositories;
@@ -13,23 +14,34 @@ namespace CrisesControl.Api.Application.Commands.Locations.CreateLocation
     {
         private readonly CreateLocationValidator _locationValidator;
         private readonly ILocationRepository _locationRepository;
+        private readonly IMapper _mapper;
 
-        public CreateLocationHandler(CreateLocationValidator locationValidator, ILocationRepository locationService)
+        public CreateLocationHandler(CreateLocationValidator locationValidator, ILocationRepository locationService, IMapper mapper)
         {
             _locationValidator = locationValidator;
             _locationRepository = locationService;
+            _mapper = mapper;
         }
 
         public async Task<CreateLocationResponse> Handle(CreateLocationRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(CreateLocationRequest));
 
-            var sample = new Location();
-            var locationId = await _locationRepository.CreateLocation(sample, cancellationToken);
-            var result = new CreateLocationResponse();
-            result.LocationId = locationId;
+            Location value = _mapper.Map<CreateLocationRequest, Location>(request);
+            if (CheckDuplicate(value))
+            {
+                var locationId = await _locationRepository.CreateLocation(value, cancellationToken);
+                var result = new CreateLocationResponse();
+                result.LocationId = locationId;
 
-            return result;
+                return result;
+            }
+            return null;
+        }
+
+        private bool CheckDuplicate(Location location)
+        {
+            return _locationRepository.CheckDublicate(location);
         }
     }
 }

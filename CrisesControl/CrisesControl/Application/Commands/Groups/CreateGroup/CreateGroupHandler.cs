@@ -1,4 +1,5 @@
 ﻿using Ardalis.GuardClauses;
+using AutoMapper;
 using CrisesControl.Api.Application.ViewModels.Company;
 using CrisesControl.Core.DepartmentAggregate;
 using CrisesControl.Core.DepartmentAggregate.Repositories;
@@ -13,22 +14,33 @@ namespace CrisesControl.Api.Application.Commands.Groups.CreateGroup
     {
         private readonly CreateGroupValidator _groupValidator;
         private readonly IGroupRepository _groupRepository;
+        private readonly IMapper _mapper;
 
-        public CreateGroupHandler(CreateGroupValidator groupValidator, IGroupRepository groupRepository)
+        public CreateGroupHandler(CreateGroupValidator groupValidator, IGroupRepository groupRepository, IMapper mapper)
         {
             _groupValidator = groupValidator;
             _groupRepository = groupRepository;
+            _mapper = mapper;
         }
 
         public async Task<CreateGroupResponse> Handle(CreateGroupRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(CreateGroupRequest));
 
-            var sample = new Group();
-            var groupId = await _groupRepository.CreateGroup(sample, cancellationToken);
-            var result = new CreateGroupResponse();
-            result.GroupId = groupId;
-            return result;
+            Group value = _mapper.Map<CreateGroupRequest, Group>(request);
+            if (CheckDuplicate(value))
+            {
+                var groupId = await _groupRepository.CreateGroup(value, cancellationToken);
+                var result = new CreateGroupResponse();
+                result.GroupId = groupId;
+                return result;
+            }
+            return null;
+        }
+
+        private bool CheckDuplicate(Group group)
+        {
+            return _groupRepository.CheckDuplicate(group);
         }
     }
 }
