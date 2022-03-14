@@ -8,7 +8,7 @@ using DepartmentModel = CrisesControl.Core.Models.EmptyDepartment;
 namespace CrisesControl.Api.Controllers
 {
     [ApiController]
-    [AllowAnonymous]
+    [Authorize]
     [Route("/api/[controller]")]
     public class DepartmentController : Controller
     {
