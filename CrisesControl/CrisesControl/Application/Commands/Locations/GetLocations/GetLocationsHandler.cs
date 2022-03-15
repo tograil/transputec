@@ -1,7 +1,5 @@
 ﻿using Ardalis.GuardClauses;
 using CrisesControl.Api.Application.Query;
-using CrisesControl.Core.DepartmentAggregate.Repositories;
-using CrisesControl.Core.GroupAggregate.Repositories;
 using FluentValidation;
 using MediatR;
 

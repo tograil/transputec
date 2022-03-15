@@ -1,8 +1,8 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
 using CrisesControl.Api.Application.ViewModels.Company;
-using CrisesControl.Core.DepartmentAggregate;
-using CrisesControl.Core.DepartmentAggregate.Repositories;
+using CrisesControl.Core.Departments;
+using CrisesControl.Core.Departments.Repositories;
 using FluentValidation;
 using MediatR;
 

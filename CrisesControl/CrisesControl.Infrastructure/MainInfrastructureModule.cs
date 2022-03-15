@@ -1,7 +1,5 @@
 ﻿using Autofac;
 using AutoMapper.Contrib.Autofac.DependencyInjection;
-using CrisesControl.Core.CompanyAggregate.Repositories;
-using CrisesControl.Core.DepartmentAggregate.Repositories;
 using CrisesControl.Core.GroupAggregate.Repositories;
 using CrisesControl.Core.LocationAggregate.Services;
 using CrisesControl.Core.Companies.Repositories;

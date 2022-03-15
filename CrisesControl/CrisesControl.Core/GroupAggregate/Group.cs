@@ -1,8 +1,6 @@
-﻿using CrisesControl.SharedKernel.Interfaces;
-
-namespace CrisesControl.Core.GroupAggregate
+﻿namespace CrisesControl.Core.GroupAggregate
 {
-    public record Group : IAggregateRoot
+    public record Group
     {
         public int GroupId { get; set; }
         public string GroupName { get; set; }

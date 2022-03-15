@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Departments.GetDepartment;
 using CrisesControl.Api.Application.Commands.Departments.GetDepartments;
-using CrisesControl.Core.DepartmentAggregate;
-using CrisesControl.Core.DepartmentAggregate.Repositories;
+using CrisesControl.Core.Departments;
+using CrisesControl.Core.Departments.Repositories;
 
 namespace CrisesControl.Api.Application.Query
 {

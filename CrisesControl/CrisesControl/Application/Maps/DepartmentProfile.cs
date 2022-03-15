@@ -2,7 +2,7 @@
 using CrisesControl.Api.Application.Commands.Departments.GetDepartment;
 using CrisesControl.Api.Application.Commands.Departments.GetDepartments;
 using CrisesControl.Api.Application.ViewModels.Department;
-using CrisesControl.Core.DepartmentAggregate;
+using CrisesControl.Core.Departments;
 
 namespace CrisesControl.Api.Application.Maps
 {
