@@ -6,7 +6,7 @@ using Object = CrisesControl.Core.Models.Object;
 
 namespace CrisesControl.Infrastructure.Context
 {
-    public partial class CrisesControlContext : DbContext
+    public class CrisesControlContext : DbContext
     {
         public CrisesControlContext()
         {

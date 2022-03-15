@@ -2,6 +2,7 @@
 using AutoMapper;
 using CrisesControl.Api.Application.Query;
 using CrisesControl.Core.DepartmentAggregate.Repositories;
+using CrisesControl.Core.Departments.Repositories;
 using FluentValidation;
 using MediatR;
 

@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using CrisesControl.Core.CompanyAggregate;
-using CrisesControl.Core.CompanyAggregate.Repositories;
+using CrisesControl.Core.Companies;
+using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.SharedKernel.Utils;
 using FluentValidation;
 using MediatR;

@@ -1,5 +1,6 @@
 ﻿using Autofac;
 using AutoMapper.Contrib.Autofac.DependencyInjection;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.Query;
 using FluentValidation;
 using MediatR.Extensions.Autofac.DependencyInjection;
@@ -21,5 +22,9 @@ public class ApiModule : Module
         builder.RegisterType<DepartmentQuery>().As<IDepartmentQuery>();
         builder.RegisterType<GroupQuery>().As<IGroupQuery>();
         builder.RegisterType<LocationQuery>().As<ILocationQuery>();
+
+        builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>();
+
+        builder.RegisterType<CurrentUser>().As<ICurrentUser>();
     }
 }

@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Companies.TempRegister;
-using CrisesControl.Core.CompanyAggregate;
+using CrisesControl.Core.Companies;
 using CrisesControl.SharedKernel.Utils;
 
 namespace CrisesControl.Api.Application.Maps;

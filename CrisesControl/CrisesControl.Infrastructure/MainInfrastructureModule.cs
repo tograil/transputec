@@ -4,6 +4,11 @@ using CrisesControl.Core.CompanyAggregate.Repositories;
 using CrisesControl.Core.DepartmentAggregate.Repositories;
 using CrisesControl.Core.GroupAggregate.Repositories;
 using CrisesControl.Core.LocationAggregate.Services;
+using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.Core.Departments.Repositories;
+using CrisesControl.Core.Incidents.Repositories;
+using CrisesControl.Core.Messages.Repositories;
+using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Repositories;
 
 namespace CrisesControl.Infrastructure
@@ -40,6 +45,11 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
             builder.RegisterType<GroupRepository>().As<IGroupRepository>();
             builder.RegisterType<LocationRepository>().As<ILocationRepository>();
+            builder.RegisterType<UserRepository>().As<IUserRepository>();
+            builder.RegisterType<GlobalParametersRepository>().As<IGlobalParametersRepository>();
+            builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
+            builder.RegisterType<IncidentRepository>().As<IIncidentRepository>();
+            builder.RegisterType<MessageRepository>().As<IMessageRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

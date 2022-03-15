@@ -1,5 +1,5 @@
 ﻿using CrisesControl.Api.Application.ViewModels.Company;
-using CrisesControl.Core.CompanyAggregate.Repositories;
+using CrisesControl.Core.Companies.Repositories;
 
 namespace CrisesControl.Api.Application.Query;
 
@@ -18,7 +18,7 @@ public class CompanyQuery : ICompanyQuery
 
         return companies.Select(c =>
         {
-            var user = c.Users.First(x => x.UserRole == "SUPERADMIN");
+            var user = c.Users.First();
             var companyPaymentProfile = c.CompanyPaymentProfiles?.FirstOrDefault();
 
             return new CompanyInfo

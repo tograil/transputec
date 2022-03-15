@@ -2,10 +2,10 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using CrisesControl.Core.DepartmentAggregate.Repositories;
+using CrisesControl.Core.Departments.Repositories;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
-using Department = CrisesControl.Core.DepartmentAggregate.Department;
+using Department = CrisesControl.Core.Departments.Department;
 
 namespace CrisesControl.Infrastructure.Repositories
 {
