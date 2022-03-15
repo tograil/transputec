@@ -8,8 +8,6 @@ namespace CrisesControl.Api.Application.Commands.Departments.GetDepartment
         {
             RuleFor(x => x.DepartmentId)
                 .GreaterThan(0);
-            RuleFor(x => x.DepartmentName)
-                .NotNull();
             RuleFor(x => x.CompanyId)
                 .GreaterThan(0);
 

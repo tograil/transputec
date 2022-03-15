@@ -2,7 +2,7 @@
 
 namespace CrisesControl.Core.Departments
 {
-    public partial class Department
+    public record Department
     {
         public int DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
