@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.Incidents.AddCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.CloneIncident;
+using CrisesControl.Api.Application.Commands.Incidents.CopyIncident;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,16 @@ public class IncidentController : Controller
     [HttpPost]
     [Route("[action]")]
     public async Task<IActionResult> CloneIncident([FromBody] CloneIncidentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> SetupCompleted([FromBody] CopyIncidentRequest request,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);

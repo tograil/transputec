@@ -24,4 +24,8 @@ public interface IIncidentRepository
         bool keepIncidentAsset, bool keepTaskAssets,
         bool keepTaskCheckList, bool keepIncidentParticipants, int status, int currentUserId, int companyId,
         string timeZoneId);
+
+    Task<ICollection<DataIncidentType>> CopyIncidentTypes(int userId, int companyId);
+
+    Task CopyIncidentToCompany(int companyId, int userId, string timeZoneId = "GMT Standard Time");
 }

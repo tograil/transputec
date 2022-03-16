@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
@@ -169,5 +170,123 @@ public class IncidentRepository : IIncidentRepository
             pIncidentId, pKeepKeyContact, pKeepIncidentMessage, pKeepTasks, pKeepIncidentAsset, pKeepTaskAssets, pKeepTaskCheckList, pKeepIncidentParticipants, pStatus, pCurrentUserId, pCompanyId, pCustomerTime).ToList().First();
 
         return result;
+    }
+
+    public async Task<ICollection<DataIncidentType>> CopyIncidentTypes(int userId, int companyId)
+    {
+        var libIncidentTypeData = await _context.Set<LibIncidentType>().ToListAsync();
+
+        var dataIncidentTypes = new List<DataIncidentType>();
+
+        foreach (var libIncidentType in libIncidentTypeData)
+        {
+            var incType = await _context.Set<IncidentType>()
+                .FirstOrDefaultAsync(x => x.CompanyId == companyId && libIncidentType.Name == x.Name);
+
+            if (incType is not null)
+            {
+                dataIncidentTypes.Add(new DataIncidentType
+                {
+                    IncidentTypeId = incType.IncidentTypeId,
+                    Name = incType.Name!,
+                    LibIncidentType = libIncidentType.LibIncidentTypeId
+                });
+            }
+            else
+            {
+                var newIncidentType = new IncidentType()
+                {
+                    CompanyId = companyId,
+                    Name = libIncidentType.Name,
+                    Status = 1
+                };
+
+                await _context.AddAsync(newIncidentType);
+                await _context.SaveChangesAsync();
+
+                dataIncidentTypes.Add(new DataIncidentType
+                {
+                    IncidentTypeId = newIncidentType.IncidentTypeId,
+                    Name = newIncidentType.Name,
+                    LibIncidentType = libIncidentType.LibIncidentTypeId
+                });
+            }
+        }
+
+        return dataIncidentTypes;
+    }
+
+    public async Task CopyIncidentToCompany(int companyId, int userId, string timeZoneId = "GMT Standard Time")
+    {
+        var sourceIncidentTypes = await CopyIncidentTypes(userId, companyId);
+
+        var incidentsFromLib =
+            await _context.Set<LibIncident>().Where(x => x.IsDefault == 1 && x.Status != 3).ToListAsync();
+
+        foreach (var incident in incidentsFromLib)
+        {
+            var isIncidentExists = await _context.Set<Incident>()
+                .AnyAsync(x => x.CompanyId == companyId && x.Name == incident.Name);
+
+            if (!isIncidentExists)
+            {
+                var incidentType =
+                    sourceIncidentTypes.FirstOrDefault(x => x.LibIncidentType == incident.LibIncidentTypeId);
+
+                if (incidentType != null)
+                {
+                    var keyHolderList = _context.Set<User>().Where(x => x.CompanyId == companyId && x.Status != 3)
+                        .Select(x => new AddIncidentKeyHldLst(x.UserId));
+
+                    var ackOptions = new List<AckOption>();
+
+                    var incidentNew = new Incident
+                    {
+                        CompanyId = companyId,
+                        IncidentIcon = incident.LibIncodentIcon,
+                        Name = incident.Name,
+                        Description = incident.Description,
+                        PlanAssetId = 0,
+                        IncidentTypeId = incidentType.IncidentTypeId,
+                        Severity = incident.Severity,
+                        Status = incident.Status,
+                        NumberOfKeyHolders = 1,
+                        AudioAssetId = 0,
+                        TrackUser = false,
+                        SilentMessage = false,
+                        CreatedBy = userId,
+                        CreatedOn = DateTimeOffset.UtcNow,
+                        UpdatedBy = userId,
+                        IsSos = false,
+                        CascadePlanId = 0,
+                        UpdatedOn = DateTimeOffset.UtcNow
+                    };
+
+                    var incidentId = await AddIncident(incidentNew);
+
+                    var contacts = keyHolderList
+                        .Select(x => new IncidentKeyContact
+                        {
+                            CompanyId = companyId,
+                            IncidentId = incidentId,
+                            UserId = x.UserId ?? 0,
+                            CreatedBy = userId,
+                            CreatedOn = DateTimeOffset.UtcNow,
+                            UpdatedBy = userId,
+                            UpdatedOn = DateTimeOffset.UtcNow
+                        }).ToArray();
+
+                    await AddIncidentKeyContacts(contacts);
+
+                    await ProcessKeyHolders(companyId, incidentId, userId, Array.Empty<int>());
+
+                    await SaveIncidentMessageResponse(ackOptions, incidentId);
+
+                    await AddIncidentGroup(incidentId, Array.Empty<int>(), companyId);
+
+                    await CreateIncidentSegLinks(incidentId, userId, companyId);
+                }
+            }
+        }
     }
 }
