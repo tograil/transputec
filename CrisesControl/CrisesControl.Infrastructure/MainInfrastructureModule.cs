@@ -8,6 +8,7 @@ using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Repositories;
+using CrisesControl.Core.Assets.Respositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -48,6 +49,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
             builder.RegisterType<IncidentRepository>().As<IIncidentRepository>();
             builder.RegisterType<MessageRepository>().As<IMessageRepository>();
+            builder.RegisterType<AssetRespository>().As<IAssetRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)
