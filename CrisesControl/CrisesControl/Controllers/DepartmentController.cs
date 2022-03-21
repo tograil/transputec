@@ -1,5 +1,7 @@
-﻿using CrisesControl.Api.Application.Commands.Departments.GetDepartment;
+﻿using CrisesControl.Api.Application.Commands.Departments.CreateDepartment;
+using CrisesControl.Api.Application.Commands.Departments.GetDepartment;
 using CrisesControl.Api.Application.Commands.Departments.GetDepartments;
+using CrisesControl.Api.Application.Commands.Departments.UpdateDepartment;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +10,7 @@ using DepartmentModel = CrisesControl.Core.Models.EmptyDepartment;
 namespace CrisesControl.Api.Controllers
 {
     [ApiController]
-    [Authorize]
+    [AllowAnonymous]
     [Route("/api/[controller]")]
     public class DepartmentController : Controller
     {
@@ -34,14 +36,14 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateDepartment([FromBody] DepartmentModel departmentModel, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest departmentModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(departmentModel, cancellationToken);
             return Ok(result);
         }
 
         [HttpPut]
-        public async Task<IActionResult> UpdateDepartment([FromBody] DepartmentModel departmentModel, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateDepartment([FromBody] UpdateDepartmentRequest departmentModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(departmentModel, cancellationToken);
             return Ok(result);

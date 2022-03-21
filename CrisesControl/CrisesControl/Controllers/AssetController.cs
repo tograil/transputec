@@ -8,7 +8,7 @@ using AssetModel = CrisesControl.Core.Models.Asset;
 namespace CrisesControl.Api.Controllers
 {
     [ApiController]
-    [Authorize]
+    [AllowAnonymous]
     [Route("/api/[controller]")]
     public class AssetController : Controller
     {

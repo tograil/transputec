@@ -22,9 +22,9 @@ namespace CrisesControl.Infrastructure.Repositories
 
         public async Task<int> CreateGroup(Group group, CancellationToken token)
         {
-            await _context.AddAsync(group);
+            await _context.AddAsync(group, token);
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(token);
 
             return group.GroupId;
         }
@@ -44,9 +44,9 @@ namespace CrisesControl.Infrastructure.Repositories
         }
 
 
-        public async Task<Group> GetGroup(int groupId)
+        public async Task<Group> GetGroup(int companyId, int groupId)
         {
-            return await _context.Set<Group>().AsNoTracking().Where(t => t.GroupId == groupId).FirstOrDefaultAsync();
+            return await _context.Set<Group>().AsNoTracking().Where(t => t.CompanyId == companyId && t.GroupId == groupId).FirstOrDefaultAsync();
         }
 
         public async Task<int> UpdateGroup(Group group, CancellationToken token)

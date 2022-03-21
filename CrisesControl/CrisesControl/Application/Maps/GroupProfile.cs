@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using CrisesControl.Api.Application.Commands.Locations.GetLocation;
+using CrisesControl.Api.Application.Commands.Groups.CreateGroup;
+using CrisesControl.Api.Application.Commands.Groups.GetGroup;
 using CrisesControl.Core.GroupAggregate;
 
 namespace CrisesControl.Api.Application.Maps
@@ -8,7 +9,9 @@ namespace CrisesControl.Api.Application.Maps
     {
         public GroupProfile()
         {
-            CreateMap<Group, GetLocationResponse>();
+            CreateMap<Group, GetGroupResponse>();
+
+            CreateMap<Group, CreateGroupRequest>();
         }
     }
 }

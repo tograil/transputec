@@ -19,7 +19,7 @@ namespace CrisesControl.Api.Application.Query
         public async Task<GetGroupsResponse> GetGroups(GetGroupsRequest request)
         {
             var groups = await _groupRepository.GetAllGroups(request.CompanyId);
-            List<GetGroupResponse> response = _mapper.Map<List<Group>, List<GetGroupResponse>>(groups.ToList());
+            List<GetGroupResponse> response = _mapper.Map<List<GetGroupResponse>>(groups.ToList());
             var result = new GetGroupsResponse();
             result.Data = response;
             return result;
@@ -27,8 +27,8 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetGroupResponse> GetGroup(GetGroupRequest request)
         {
-            var group = await _groupRepository.GetGroup(request.GroupId);
-            GetGroupResponse response = _mapper.Map<Group, GetGroupResponse>(group);
+            var group = await _groupRepository.GetGroup(request.CompanyId, request.GroupId);
+            GetGroupResponse response = _mapper.Map<GetGroupResponse>(group);
 
             return response;
         }
