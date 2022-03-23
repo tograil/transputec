@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
@@ -32,6 +33,12 @@ public class IncidentRepository : IIncidentRepository
                                                  && x.Name == incidentName && x.Status != 3 && x.IncidentId == incidentId);
     }
 
+    public async Task<Incident?> GetIncident(int companyId, int incidentId)
+    {
+        return await _context.Set<Incident>()
+            .FirstOrDefaultAsync(x => x.IncidentId == incidentId && x.CompanyId == companyId);
+    }
+
     public async Task<int> AddIncident(Incident incident)
     {
         await _context.AddAsync(incident);
@@ -39,6 +46,20 @@ public class IncidentRepository : IIncidentRepository
         await _context.SaveChangesAsync();
 
         return incident.IncidentId;
+    }
+
+    public async Task AddIncidentActivation(IncidentActivation incidentActivation, CancellationToken cancellationToken)
+    {
+        await _context.AddAsync(incidentActivation, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IncidentActivation?> GetIncidentActivation(int companyId, int incidentActivationId)
+    {
+        var result = await _context.Set<IncidentActivation>()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId && x.IncidentActivationId == incidentActivationId);
+
+        return result;
     }
 
     public async Task AddIncidentKeyContacts(ICollection<IncidentKeyContact> contacts)
@@ -288,5 +309,12 @@ public class IncidentRepository : IIncidentRepository
                 }
             }
         }
+    }
+
+    public async Task<string> GetStatusName(int status)
+    {
+        return (await _context.Set<SysParameter>()
+            .FirstAsync(x => x.Value == status.ToString()
+                             && x.Category == "IncidentStatus")).Name;
     }
 }
