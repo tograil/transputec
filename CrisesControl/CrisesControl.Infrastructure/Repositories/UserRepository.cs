@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,11 +42,11 @@ public class UserRepository : IUserRepository
         return await _context.Set<User>().FirstOrDefaultAsync(x => x.UserId == id);
     }
 
-    public async Task UpdateUser(User user, CancellationToken cancellationToken)
+    public async Task<int> UpdateUser(User user, CancellationToken cancellationToken)
     {
-        _context.Update(user);
-
+        await _context.AddAsync(user, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+        return user.UserId;
     }
 
     public int AddPwdChangeHistory(int userId, string newPassword, string timeZoneId)
@@ -75,5 +76,28 @@ public class UserRepository : IUserRepository
             var memberUser = _context.Set<MemberUser>().FromSqlRaw("Pro_Create_User_Search {0}, {1}, {2}",
                 userId, searchString, comp.UniqueKey!).FirstOrDefault();
         }
+    }
+
+    public async Task<int> DeleteUser(int userId, CancellationToken token)
+    {
+        //var userToRemove = _context.User.SingleOrDefault(item => item.Id == userId);
+        //if (userToRemove != null) await _context.Remove(userToRemove, token);
+        await _context.SaveChangesAsync(token);
+        return userId;
+    }
+
+    public async Task<IEnumerable<User>> GetAllUsers(int companyId)
+    {
+        return await _context.Set<User>().Where(t => t.CompanyId == companyId).ToListAsync();
+    }
+
+    public async Task<User> GetUser(int companyId, int userId)
+    {
+        return await _context.Set<User>().Where(t => t.CompanyId == companyId && t.UserId == userId).FirstOrDefaultAsync();
+    }
+
+    public bool CheckDuplicate(User user)
+    {
+        return _context.Set<User>().Where(t => t.PrimaryEmail.Equals(user.PrimaryEmail)).Any();
     }
 }

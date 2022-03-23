@@ -22,6 +22,7 @@ public class ApiModule : Module
         builder.RegisterType<DepartmentQuery>().As<IDepartmentQuery>();
         builder.RegisterType<GroupQuery>().As<IGroupQuery>();
         builder.RegisterType<LocationQuery>().As<ILocationQuery>();
+        builder.RegisterType<UserQuery>().As<IUserQuery>();
 
         builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>();
 
