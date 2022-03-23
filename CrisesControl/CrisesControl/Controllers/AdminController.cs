@@ -21,6 +21,7 @@ public class AdminController : Controller
     }
 
     [HttpGet]
+    [Route("[action]")]
     public async Task<IActionResult> GetAllCompanyList([FromQuery] int? status,
         [FromQuery] string? companyProfile,
         CancellationToken cancellationToken)
