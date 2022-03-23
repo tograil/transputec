@@ -1,9 +1,11 @@
-﻿using CrisesControl.Api.Application.Commands.MediaAssets.GetAsset;
+﻿using CrisesControl.Api.Application.Commands.MediaAssets.CreateAsset;
+using CrisesControl.Api.Application.Commands.MediaAssets.GetAsset;
 using CrisesControl.Api.Application.Commands.MediaAssets.GetAssets;
+using CrisesControl.Api.Application.Commands.MediaAssets.UpdateAssets;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using AssetModel = CrisesControl.Core.Models.Asset;
+using AssetModel = CrisesControl.Core.AssetAggregate.Asset;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -34,14 +36,14 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateAsset([FromBody] AssetModel assetModel, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateAsset([FromBody] CreateAssetRequest assetModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(assetModel, cancellationToken);
             return Ok(result);
         }
 
         [HttpPut]
-        public async Task<IActionResult> UpdateAsset([FromBody] AssetModel assetModel, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsset([FromBody] UpdateAssetsRequest assetModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(assetModel, cancellationToken);
             return Ok(result);

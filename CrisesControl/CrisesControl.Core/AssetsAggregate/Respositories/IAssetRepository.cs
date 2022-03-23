@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Core.Assets.Respositories
+namespace CrisesControl.Core.AssetAggregate.Respositories
 {
     public interface IAssetRepository
     {

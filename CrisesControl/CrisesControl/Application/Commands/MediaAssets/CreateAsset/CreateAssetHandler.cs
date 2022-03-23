@@ -1,7 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
-using CrisesControl.Core.Assets;
-using CrisesControl.Core.Assets.Respositories;
+using CrisesControl.Core.AssetAggregate;
+using CrisesControl.Core.AssetAggregate.Respositories;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.MediaAssets.CreateAsset

@@ -1,5 +1,4 @@
-﻿using CrisesControl.Core.Assets;
-using CrisesControl.Core.Assets.Respositories;
+﻿using CrisesControl.Core.AssetAggregate.Respositories;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -8,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Asset = CrisesControl.Core.AssetAggregate.Asset;
+
 
 namespace CrisesControl.Infrastructure.Repositories
 {

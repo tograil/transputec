@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace CrisesControl.Core.Assets
+namespace CrisesControl.Core.AssetAggregate
 {
-    public class Asset
+    public record Asset
     {
         public int AssetId { get; set; }
         public int CompanyId { get; set; }

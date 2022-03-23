@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.MediaAssets.GetAsset;
-using CrisesControl.Core.Assets;
+using CrisesControl.Core.AssetAggregate;
 
 namespace CrisesControl.Api.Application.Maps
 {

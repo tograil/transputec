@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.MediaAssets.GetAsset;
 using CrisesControl.Api.Application.Commands.MediaAssets.GetAssets;
-using CrisesControl.Core.Assets;
-using CrisesControl.Core.Assets.Respositories;
+using CrisesControl.Core.AssetAggregate;
+using CrisesControl.Core.AssetAggregate.Respositories;
 
 namespace CrisesControl.Api.Application.Query
 {
