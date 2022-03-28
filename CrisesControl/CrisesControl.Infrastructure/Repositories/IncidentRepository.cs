@@ -12,6 +12,7 @@ using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -54,9 +55,17 @@ public class IncidentRepository : IIncidentRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task UpdateIncidentActivation(IncidentActivation incidentActivation, CancellationToken cancellationToken)
+    {
+        _context.Update(incidentActivation);
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<IncidentActivation?> GetIncidentActivation(int companyId, int incidentActivationId)
     {
         var result = await _context.Set<IncidentActivation>()
+            .Include(x => x.Incident)
             .FirstOrDefaultAsync(x => x.CompanyId == companyId && x.IncidentActivationId == incidentActivationId);
 
         return result;

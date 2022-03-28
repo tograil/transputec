@@ -8,6 +8,7 @@ using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.SharedKernel.Utils;
 using MediatR;
+using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
 
 namespace CrisesControl.Api.Application.Commands.Incidents.InitiateCompanyIncident;
 
