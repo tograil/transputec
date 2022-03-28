@@ -35,6 +35,7 @@
     <Folder Include="Application\Commands\Incidents\CloneIncident\" />
     <Folder Include="Application\Commands\Incidents\CopyIncident\" />
     <Folder Include="Application\Commands\Incidents\InitiateCompanyIncident\" />
+    <Folder Include="Application\Commands\Incidents\LaunchCompanyIncident\" />
     <Folder Include="Application\Helpers\" />
     <Folder Include="Application\Query\" />
     <Folder Include="Application\ViewModels\Company\" />

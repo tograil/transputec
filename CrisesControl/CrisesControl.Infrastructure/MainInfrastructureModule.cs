@@ -47,6 +47,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<GlobalParametersRepository>().As<IGlobalParametersRepository>();
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
             builder.RegisterType<IncidentRepository>().As<IIncidentRepository>();
+            builder.RegisterType<ActiveIncidentRepository>().As<IActiveIncidentRepository>();
             builder.RegisterType<MessageRepository>().As<IMessageRepository>();
         }
 

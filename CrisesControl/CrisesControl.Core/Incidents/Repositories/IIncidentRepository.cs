@@ -15,6 +15,8 @@ public interface IIncidentRepository
 
     Task AddIncidentActivation(IncidentActivation incidentActivation, CancellationToken cancellationToken);
 
+    Task UpdateIncidentActivation(IncidentActivation incidentActivation, CancellationToken cancellationToken);
+
     Task<IncidentActivation?> GetIncidentActivation(int companyId, int incidentActivationId);
 
     Task AddIncidentKeyContacts(ICollection<IncidentKeyContact> contacts);
