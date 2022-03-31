@@ -11,6 +11,7 @@ using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using UserModel = CrisesControl.Core.Models.EmptyUser;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -78,12 +79,12 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task<int> DeleteUser(int userId, CancellationToken token)
+    public async Task<User> DeleteUser(User user, CancellationToken token)
     {
-        //var userToRemove = _context.User.SingleOrDefault(item => item.Id == userId);
-        //if (userToRemove != null) await _context.Remove(userToRemove, token);
+        var userToRemove = new User { UserId = user.UserId, CompanyId =  user.CompanyId};
+        _context.Remove(userToRemove);
         await _context.SaveChangesAsync(token);
-        return userId;
+        return user;
     }
 
     public async Task<IEnumerable<User>> GetAllUsers(int companyId)

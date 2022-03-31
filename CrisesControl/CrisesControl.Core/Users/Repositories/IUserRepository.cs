@@ -16,6 +16,6 @@ public interface IUserRepository
         string primaryEmail, int companyId);
     Task<IEnumerable<User>> GetAllUsers(int companyId);
     Task<User> GetUser(int companyId, int userId);
-    Task<int> DeleteUser(int userId, CancellationToken token);
+    Task<User> DeleteUser(User user, CancellationToken token);
     bool CheckDuplicate(User user);
 }

@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.Users.GetUser;
+﻿using CrisesControl.Api.Application.Commands.Users.DeleteUser;
+using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -48,9 +49,9 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> DeleteUser([FromBody] UserModel UserModel, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteUser([FromBody] DeleteUserRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(UserModel, cancellationToken);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
     }

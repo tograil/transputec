@@ -38,13 +38,5 @@
         public int? DepartmentId { get; set; }
         public string UserHash { get; set; }
         public int? TimezoneId { get; set; }
-        public string? UniqueGuiId { get; set; }
-        public string? Isdcode { get; set; }
-        public string? Llisdcode { get; set; }
-        public string? Otpcode { get; set; }
-        public DateTimeOffset? Otpexpiry { get; set; }
-        public bool? Smstrigger { get; set; }
-
-
     }
 }
