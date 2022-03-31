@@ -1,6 +1,6 @@
 ﻿namespace CrisesControl.Core.Messages
 {
-    public partial class MessageMethod
+    public class MessageMethod
     {
         public int MessageMethhodId { get; set; }
         public int MethodId { get; set; }

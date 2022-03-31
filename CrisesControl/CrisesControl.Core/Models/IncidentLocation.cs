@@ -8,5 +8,7 @@
         public int? IncidentActivationId { get; set; }
         public int? ImpactedLocationId { get; set; }
         public bool Display { get; set; }
+
+        public IncidentLocationLibrary IncidentLocationLibrary { get; set; }
     }
 }
