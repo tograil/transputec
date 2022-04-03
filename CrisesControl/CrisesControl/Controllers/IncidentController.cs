@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Api.Application.Commands.Incidents.AddCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.CloneIncident;
 using CrisesControl.Api.Application.Commands.Incidents.CopyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.InitiateAndLaunchIncident;
 using CrisesControl.Api.Application.Commands.Incidents.InitiateCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.LaunchCompanyIncident;
 using MediatR;
@@ -64,6 +65,16 @@ public class IncidentController : Controller
     [HttpPost]
     [Route("[action]")]
     public async Task<IActionResult> LaunchCompanyIncident([FromBody] LaunchCompanyIncidentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> InitiateAndLaunchIncident([FromBody] InitiateAndLaunchIncidentRequest request,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);

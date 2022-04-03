@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.SharedKernel.Utils;
 using Microsoft.EntityFrameworkCore;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 
@@ -87,5 +90,72 @@ public class MessageRepository : IMessageRepository
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteMessageMethod(int messageId = 0, int activeIncidentId = 0)
+    {
+        if (activeIncidentId == 0 && messageId > 0)
+        {
+            var mtList = await _context.Set<MessageMethod>().Where(m => m.MessageId == messageId).ToListAsync();
+
+            _context.RemoveRange(mtList);
+        }
+        else
+        {
+            var mtList = await _context.Set<MessageMethod>().Where(m => m.ActiveIncidentId == activeIncidentId).ToListAsync();
+
+            _context.RemoveRange(mtList);
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<int> CreateMessage(int companyId, string msgText, string messageType, int incidentActivationId, int priority,
+        int currentUserId, int source, DateTimeOffset localTime, bool multiResponse, ICollection<AckOption> ackOptions, int status = 0,
+        int assetId = 0, int activeIncidentTaskId = 0, bool trackUser = false, bool silentMessage = false,
+        int[] messageMethod = null, ICollection<MediaAttachment> mediaAttachments = null, int parentId = 0, int messageActionType = 0)
+    {
+        if (parentId > 0 && incidentActivationId == 0 && messageType.ToUpper() == "INCIDENT")
+        {
+            var parentMsg = await _context.Set<Message>().FirstOrDefaultAsync(x => x.MessageId == parentId);
+            
+            if (parentMsg is not null)
+            {
+                incidentActivationId = parentMsg.IncidentActivationId;
+            }
+        }
+
+        var saveMessage = new Message
+        {
+            CompanyId = companyId,
+            MessageText = !string.IsNullOrEmpty(msgText) ? msgText.Trim() : string.Empty,
+            MessageType = messageType,
+            IncidentActivationId = incidentActivationId,
+            Priority = priority,
+            Status = status,
+            CreatedBy = currentUserId,
+            CreatedOn = DateTime.Now.GetDateTimeOffset(),
+            UpdatedBy = currentUserId,
+            UpdatedOn = localTime,
+            Source = source,
+            MultiResponse = multiResponse,
+            AssetId = assetId,
+            CreatedTimeZone = localTime,
+            ActiveIncidentTaskId = activeIncidentTaskId,
+            TrackUser = trackUser,
+            SilentMessage = silentMessage,
+            AttachmentCount = 0,
+            MessageActionType = messageActionType,
+            CascadePlanId = 0,
+            MessageSourceAction = string.Empty
+        };
+        _context.Add(saveMessage);
+
+        await _context.SaveChangesAsync();
+
+        if (multiResponse)
+            await SaveActiveMessageResponse(saveMessage.MessageId, ackOptions, incidentActivationId);
+
+        return saveMessage.MessageId;
     }
 }
