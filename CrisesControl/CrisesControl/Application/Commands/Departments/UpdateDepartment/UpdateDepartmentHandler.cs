@@ -26,19 +26,12 @@ namespace CrisesControl.Api.Application.Commands.Departments.UpdateDepartment
             Guard.Against.Null(request, nameof(UpdateDepartmentRequest));
 
             Department value = _mappper.Map<UpdateDepartmentRequest,Department>(request);
-            if (CheckDuplicate(value))
-            {
-                var departmentId = await _departmentRepository.UpdateDepartment(value, cancellationToken);
-                var result = new UpdateDepartmentResponse();
-                result.DepartmentId = departmentId;   
-                return result;
-            }
-            return null;
+            var departmentId = await _departmentRepository.UpdateDepartment(value, cancellationToken);
+            var result = new UpdateDepartmentResponse();
+            result.DepartmentId = departmentId;   
+            return result;
+          
         }
 
-        private bool CheckDuplicate(Department department)
-        {
-            return _departmentRepository.CheckDuplicate(department);
-        }
     }
 }
