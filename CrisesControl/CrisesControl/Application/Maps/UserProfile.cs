@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Users.CreateUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.ViewModels.User;
@@ -11,6 +12,8 @@ namespace CrisesControl.Api.Application.Maps
         public UserProfile()
         {
             CreateMap<User, GetUserResponse>();
+
+            CreateMap<CreateUserRequest, User>();
         }
     }
 }
