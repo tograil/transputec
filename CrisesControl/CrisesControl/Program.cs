@@ -1,11 +1,14 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using CrisesControl.Api;
+using CrisesControl.Config;
 using CrisesControl.Core;
 using CrisesControl.Infrastructure;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Net.Http.Headers;
+using Microsoft.OpenApi.Models;
 using OpenIddict.Validation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,21 +23,60 @@ builder.Services.AddDbContext<CrisesControlContext>(options =>
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crises Control API", Version = "v1" });
+            c.AddSecurityDefinition(
+                "oauth2",
+                new OpenApiSecurityScheme
+                {
+                    Flows = new OpenApiOAuthFlows
+                    {
+                        Password = new OpenApiOAuthFlow
+                        {
+                            Scopes = new Dictionary<string, string>
+                            {
+                                ["api"] = "api scope description"
+                            },
+                            TokenUrl = new Uri("https://localhost:7078/connect/token"),
+                        },
+                    },
+                    In = ParameterLocation.Header,
+                    Name = HeaderNames.Authorization,
+                    Type = SecuritySchemeType.OAuth2
+                }
+            );
+            c.AddSecurityRequirement(
+                new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                                { Type = ReferenceType.SecurityScheme, Id = "oauth2" },
+                        },
+                        new[] { "api" }
+                    }
+                }
+            );
+        }
+    );
 
-builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
-{
+
+builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder => {
     containerBuilder.RegisterModule(new ApiModule());
     containerBuilder.RegisterModule(new MainCoreModule());
     containerBuilder.RegisterModule(new MainInfrastructureModule(builder.Environment.EnvironmentName == "Development"));
 });
 
+var serverCredentials = builder.Configuration.GetSection(ServerCredentialsOptions.ServerCredentials)
+            .Get<ServerCredentialsOptions>();
+
 builder.Services.AddOpenIddict()
-    .AddValidation(options =>
-    {
+    .AddValidation(options => {
         // Note: the validation handler uses OpenID Connect discovery
         // to retrieve the address of the introspection endpoint.
-        options.SetIssuer("https://localhost:7078/");
+        options.SetIssuer(serverCredentials.OpendIddictEndpoint);
         options.AddAudiences("api");
 
 
@@ -54,10 +96,13 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(setupAction =>
+    {
+        setupAction.OAuthClientId(serverCredentials.ClientId);
+        setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
+    });
 }
 
 app.UseHttpsRedirection();
