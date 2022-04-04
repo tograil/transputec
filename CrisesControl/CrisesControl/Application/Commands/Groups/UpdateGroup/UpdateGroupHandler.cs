@@ -26,7 +26,7 @@ namespace CrisesControl.Api.Application.Commands.Groups.UpdateGroup
             Guard.Against.Null(request, nameof(UpdateGroupRequest));
 
             Group value = _mapper.Map<UpdateGroupRequest, Group>(request);
-            if (CheckDuplicate(value))
+            if (CheckForExistance(value))
             {
                 var groupId = await _groupRepository.UpdateGroup(value, cancellationToken);
                 var result = new UpdateGroupResponse();
@@ -36,9 +36,9 @@ namespace CrisesControl.Api.Application.Commands.Groups.UpdateGroup
             return null;
         }
 
-        private bool CheckDuplicate(Group group)
+        private bool CheckForExistance(Group group)
         {
-            return _groupRepository.CheckDuplicate(group);
+            return _groupRepository.CheckForExistance(group.GroupId);
         }
     }
 }

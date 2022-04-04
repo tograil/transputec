@@ -25,7 +25,7 @@ namespace CrisesControl.Api.Application.Commands.Groups.CreateGroup
             Guard.Against.Null(request, nameof(CreateGroupRequest));
 
             Group value = _mapper.Map<CreateGroupRequest, Group>(request);
-            if (CheckDuplicate(value))
+            if (!CheckDuplicate(value))
             {
                 var groupId = await _groupRepository.CreateGroup(value, cancellationToken);
                 var result = new CreateGroupResponse();

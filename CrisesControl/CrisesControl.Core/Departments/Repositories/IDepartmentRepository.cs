@@ -12,5 +12,6 @@ namespace CrisesControl.Core.Departments.Repositories
         Task<int> UpdateDepartment(Department department, CancellationToken token);
         Task<int> DeleteDepartment(int departmentId, CancellationToken token);
         bool CheckDuplicate(Department department);
+        bool CheckForExistance(int departmentId);
     }
 }

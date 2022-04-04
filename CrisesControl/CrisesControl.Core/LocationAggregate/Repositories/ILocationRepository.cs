@@ -12,5 +12,6 @@ namespace CrisesControl.Core.LocationAggregate.Services
         Task<int> UpdateLocation(Location location, CancellationToken cancellationToken);
         Task<int> DeleteLocation(int locationId, CancellationToken cancellationToken);
         bool CheckDuplicate(Location location);
+        bool CheckForExisting(int locationId);
     }
 }
