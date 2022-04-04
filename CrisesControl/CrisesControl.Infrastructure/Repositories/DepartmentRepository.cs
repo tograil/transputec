@@ -70,5 +70,10 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             return _context.Set<Department>().Where(t => t.DepartmentName.Equals(department.DepartmentName) && t.CompanyId == department.CompanyId).Any();
         }
+
+        public bool CheckForExistance(int DepartmentId)
+        {
+            return _context.Set<Department>().Where(t => t.DepartmentId.Equals(DepartmentId)).Any();
+        }
     }
 }

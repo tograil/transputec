@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Api.Application.Commands.Departments.CreateDepartment;
+using CrisesControl.Api.Application.Commands.Departments.DeleteDepartment;
 using CrisesControl.Api.Application.Commands.Departments.GetDepartment;
 using CrisesControl.Api.Application.Commands.Departments.GetDepartments;
 using CrisesControl.Api.Application.Commands.Departments.UpdateDepartment;
@@ -50,7 +51,7 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> DeleteDepartment([FromBody] DepartmentModel departmentModel, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteDepartment([FromQuery] DeleteDepartmentRequest departmentModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(departmentModel, cancellationToken);
             return Ok(result);

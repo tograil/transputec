@@ -22,9 +22,9 @@ namespace CrisesControl.Api.Application.Commands.Locations.GetLocation
             
             await _locationValidator.ValidateAndThrowAsync(request, cancellationToken);
             
-            var departments = await _locationQuery.GetLocation(request);
+            var location = await _locationQuery.GetLocation(request);
 
-            return new GetLocationResponse();
+            return location;
         }
     }
 }

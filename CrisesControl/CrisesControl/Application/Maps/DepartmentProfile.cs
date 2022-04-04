@@ -1,9 +1,7 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Departments.CreateDepartment;
 using CrisesControl.Api.Application.Commands.Departments.GetDepartment;
-using CrisesControl.Api.Application.Commands.Departments.GetDepartments;
 using CrisesControl.Api.Application.Commands.Departments.UpdateDepartment;
-using CrisesControl.Api.Application.ViewModels.Department;
 using CrisesControl.Core.Departments;
 
 namespace CrisesControl.Api.Application.Maps

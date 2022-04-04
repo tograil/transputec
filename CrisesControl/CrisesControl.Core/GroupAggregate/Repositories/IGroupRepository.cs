@@ -12,5 +12,6 @@ namespace CrisesControl.Core.GroupAggregate.Repositories
         Task<int> UpdateGroup(Group payload, CancellationToken token);
         Task<int> DeleteGroup(int groupId, CancellationToken token);
         bool CheckDuplicate(Group group);
+        bool CheckForExistance(int groupId);
     }
 }
