@@ -21,34 +21,31 @@ builder.Services.AddDbContext<CrisesControlContext>(options =>
 // Add services to the container.
 
 builder.Services.AddControllers();
+var serverCredentials = builder.Configuration.GetSection(ServerCredentialsOptions.ServerCredentials)
+            .Get<ServerCredentialsOptions>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-        {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crises Control API", Version = "v1" });
-            c.AddSecurityDefinition(
-                "oauth2",
-                new OpenApiSecurityScheme
-                {
-                    Flows = new OpenApiOAuthFlows
-                    {
-                        Password = new OpenApiOAuthFlow
-                        {
-                            Scopes = new Dictionary<string, string>
-                            {
-                                ["api"] = "api scope description"
-                            },
-                            TokenUrl = new Uri("https://localhost:7078/connect/token"),
-                        },
+builder.Services.AddSwaggerGen(c => {
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crises Control API", Version = "v1" });
+    c.AddSecurityDefinition(
+        "oauth2",
+        new OpenApiSecurityScheme {
+            Flows = new OpenApiOAuthFlows {
+                Password = new OpenApiOAuthFlow {
+                    Scopes = new Dictionary<string, string> {
+                        ["api"] = "api scope description"
                     },
-                    In = ParameterLocation.Header,
-                    Name = HeaderNames.Authorization,
-                    Type = SecuritySchemeType.OAuth2
-                }
-            );
-            c.AddSecurityRequirement(
-                new OpenApiSecurityRequirement
-                {
+                    TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
+                },
+            },
+            In = ParameterLocation.Header,
+            Name = HeaderNames.Authorization,
+            Type = SecuritySchemeType.OAuth2
+        }
+    );
+    c.AddSecurityRequirement(
+        new OpenApiSecurityRequirement
+        {
                     {
                         new OpenApiSecurityScheme
                         {
@@ -57,9 +54,9 @@ builder.Services.AddSwaggerGen(c =>
                         },
                         new[] { "api" }
                     }
-                }
-            );
         }
+    );
+}
     );
 
 
@@ -69,8 +66,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder => {
     containerBuilder.RegisterModule(new MainInfrastructureModule(builder.Environment.EnvironmentName == "Development"));
 });
 
-var serverCredentials = builder.Configuration.GetSection(ServerCredentialsOptions.ServerCredentials)
-            .Get<ServerCredentialsOptions>();
+
 
 builder.Services.AddOpenIddict()
     .AddValidation(options => {
@@ -98,8 +94,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
-    app.UseSwaggerUI(setupAction =>
-    {
+    app.UseSwaggerUI(setupAction => {
         setupAction.OAuthClientId(serverCredentials.ClientId);
         setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
     });
