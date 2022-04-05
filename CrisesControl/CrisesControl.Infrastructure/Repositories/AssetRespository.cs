@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Asset = CrisesControl.Core.AssetAggregate.Asset;
+using Assets = CrisesControl.Core.AssetAggregate.Assets;
 
 
 namespace CrisesControl.Infrastructure.Repositories
@@ -21,7 +21,7 @@ namespace CrisesControl.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<int> CreateAsset(Asset asset, CancellationToken cancellationToken)
+        public async Task<int> CreateAsset(Assets asset, CancellationToken cancellationToken)
         {
             await _context.AddAsync(asset, cancellationToken);
 
@@ -39,26 +39,26 @@ namespace CrisesControl.Infrastructure.Repositories
             return assetId;
         }
 
-        public async Task<IEnumerable<Asset>> GetAllAssets(int companyId)
+        public async Task<IEnumerable<Assets>> GetAllAssets(int companyId)
         {
-            return await _context.Set<Asset>().Where(t => t.CompanyId == companyId).ToListAsync();
+            return await _context.Set<Assets>().Where(t => t.CompanyId == companyId).ToListAsync();
         }
 
-        public async Task<Asset> GetAsset(int companyId, int assetId)
+        public async Task<Assets> GetAsset(int companyId, int assetId)
         {
-            return await _context.Set<Asset>().Where(t => t.CompanyId == companyId && t.AssetId == assetId).FirstOrDefaultAsync();
+            return await _context.Set<Assets>().Where(t => t.CompanyId == companyId && t.AssetId == assetId).FirstOrDefaultAsync();
         }
 
-        public async Task<int> UpdateAsset(Asset asset, CancellationToken cancellationToken)
+        public async Task<int> UpdateAsset(Assets asset, CancellationToken cancellationToken)
         {
             await _context.AddAsync(asset, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             return asset.AssetId;
         }
 
-        public bool CheckDuplicate(Asset asset)
+        public bool CheckDuplicate(Assets asset)
         {
-            return _context.Set<Asset>().Where(t=>t.AssetTitle.Equals(asset.AssetTitle)).Any();
+            return _context.Set<Assets>().Where(t=>t.AssetTitle.Equals(asset.AssetTitle)).Any();
         }
     }
 }

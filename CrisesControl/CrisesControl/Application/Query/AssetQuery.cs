@@ -20,7 +20,7 @@ namespace CrisesControl.Api.Application.Query
         public async Task<GetAssetsResponse> GetAssets(GetAssetsRequest request)
         {
             var assets = await _assetRepository.GetAllAssets(request.CompanyId);
-            List<GetAssetResponse> response = _mapper.Map<List<Asset>, List<GetAssetResponse>>(assets.ToList());
+            List<GetAssetResponse> response = _mapper.Map<List<Assets>, List<GetAssetResponse>>(assets.ToList());
             var result = new GetAssetsResponse();
             result.Data = response;
             return result;
@@ -29,7 +29,7 @@ namespace CrisesControl.Api.Application.Query
         public async Task<GetAssetResponse> GetAsset(GetAssetRequest request)
         {
             var asset = await _assetRepository.GetAsset(request.CompanyId, request.AssetId);
-            GetAssetResponse response = _mapper.Map<Asset, GetAssetResponse>(asset);
+            GetAssetResponse response = _mapper.Map<Assets, GetAssetResponse>(asset);
 
             return response;
         }

@@ -8,7 +8,7 @@ namespace CrisesControl.Api.Application.Maps
     {
         public AssetProfile()
         {
-            CreateMap<Asset, GetAssetResponse>();
+            CreateMap<Assets, GetAssetResponse>();
         }
     }
 }

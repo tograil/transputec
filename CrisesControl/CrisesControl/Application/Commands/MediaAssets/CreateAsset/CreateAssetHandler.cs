@@ -24,7 +24,7 @@ namespace CrisesControl.Api.Application.Commands.MediaAssets.CreateAsset
         {
             Guard.Against.Null(request, nameof(CreateAssetRequest));
 
-            Asset value = _mapper.Map<CreateAssetRequest, Asset>(request);
+            Assets value = _mapper.Map<CreateAssetRequest, Assets>(request);
 
             if (CheckDuplicate(value))
             {
@@ -36,7 +36,7 @@ namespace CrisesControl.Api.Application.Commands.MediaAssets.CreateAsset
             return null;
         }
 
-        private bool CheckDuplicate(Asset asset)
+        private bool CheckDuplicate(Assets asset)
         {
             return _assetRepository.CheckDuplicate(asset);
         }
