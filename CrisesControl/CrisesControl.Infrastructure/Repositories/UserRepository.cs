@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using UserModel = CrisesControl.Core.Models.EmptyUser;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -41,11 +43,11 @@ public class UserRepository : IUserRepository
         return await _context.Set<User>().FirstOrDefaultAsync(x => x.UserId == id);
     }
 
-    public async Task UpdateUser(User user, CancellationToken cancellationToken)
+    public async Task<int> UpdateUser(User user, CancellationToken cancellationToken)
     {
-        _context.Update(user);
-
+        await _context.AddAsync(user, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+        return user.UserId;
     }
 
     public int AddPwdChangeHistory(int userId, string newPassword, string timeZoneId)
@@ -75,5 +77,28 @@ public class UserRepository : IUserRepository
             var memberUser = _context.Set<MemberUser>().FromSqlRaw("Pro_Create_User_Search {0}, {1}, {2}",
                 userId, searchString, comp.UniqueKey!).FirstOrDefault();
         }
+    }
+
+    public async Task<User> DeleteUser(User user, CancellationToken token)
+    {
+        var userToRemove = new User { UserId = user.UserId, CompanyId =  user.CompanyId};
+        _context.Remove(userToRemove);
+        await _context.SaveChangesAsync(token);
+        return user;
+    }
+
+    public async Task<IEnumerable<User>> GetAllUsers(int companyId)
+    {
+        return await _context.Set<User>().Where(t => t.CompanyId == companyId).ToListAsync();
+    }
+
+    public async Task<User> GetUser(int companyId, int userId)
+    {
+        return await _context.Set<User>().Where(t => t.CompanyId == companyId && t.UserId == userId).FirstOrDefaultAsync();
+    }
+
+    public bool CheckDuplicate(User user)
+    {
+        return _context.Set<User>().Where(t => t.PrimaryEmail.Equals(user.PrimaryEmail)).Any();
     }
 }
