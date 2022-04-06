@@ -2,5 +2,6 @@
 {
     public class UpdateAssetsResponse
     {
+        public int AssetId { get; set; }
     }
 }

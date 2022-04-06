@@ -26,7 +26,7 @@ namespace CrisesControl.Api.Application.Commands.MediaAssets.CreateAsset
 
             Assets value = _mapper.Map<CreateAssetRequest, Assets>(request);
 
-            if (CheckDuplicate(value))
+            if (!CheckDuplicate(value))
             {
                 var assetId = await _assetRepository.CreateAsset(value, cancellationToken);
                 var result = new CreateAssetResponse();
