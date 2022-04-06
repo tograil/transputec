@@ -6,8 +6,8 @@ namespace CrisesControl.Api.Application.Commands.Groups.CreateGroup
     {
         public CreateGroupValidator()
         {
-            RuleFor(x => x.GroupId)
-                .GreaterThan(0);
+            RuleFor(x => x.GroupName)
+                .NotEmpty();
             RuleFor(x => x.CompanyId)
                 .GreaterThan(0);
 

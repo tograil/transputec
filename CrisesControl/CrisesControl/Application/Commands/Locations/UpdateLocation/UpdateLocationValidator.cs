@@ -6,7 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Locations.UpdateLocation
     {
         public UpdateLocationValidator()
         {
-            RuleFor(x => x.DepartmentId)
+            RuleFor(x => x.LocationId)
                 .GreaterThan(0);
             RuleFor(x => x.CompanyId)
                 .GreaterThan(0);

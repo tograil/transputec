@@ -48,14 +48,31 @@ namespace CrisesControl.Infrastructure.Repositories
 
         public async Task<int> UpdateLocation(Location location, CancellationToken token)
         {
-            await _context.AddAsync(location, token);
-            await _context.SaveChangesAsync(token);
-            return location.LocationId;
+            var result = _context.Set<Location>().Where(t => t.LocationId == location.LocationId).FirstOrDefault();
+
+            if (result == null)
+            {
+                return default;
+            }
+            else
+            {
+                result.LocationName = location.LocationName;
+                result.Status = location.Status;
+                result.UpdatedOn = location.UpdatedOn;
+                result.UpdatedBy = location.UpdatedBy;
+                await _context.SaveChangesAsync(token);
+                return result.LocationId;
+            }
         }
 
         public bool CheckDuplicate(Location location)
         {
-           return _context.Set<Location>().Where(t=>t.LocationName.Equals(location.LocationName)).Any();
+           return _context.Set<Location>().Where(t => t.LocationName.Equals(location.LocationName)).Any();
+        }
+
+        public bool CheckForExisting(int locationId)
+        {
+            return _context.Set<Location>().Where(t => t.LocationId.Equals(locationId)).Any();
         }
     }
 }

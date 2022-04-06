@@ -22,9 +22,9 @@ namespace CrisesControl.Api.Application.Commands.Groups.GetGroup
             
             await _groupValidator.ValidateAndThrowAsync(request, cancellationToken);
             
-            var groups = await _groupQuery.GetGroup(request);
+            var group = await _groupQuery.GetGroup(request);
 
-            return groups;
+            return group;
         }
     }
 }

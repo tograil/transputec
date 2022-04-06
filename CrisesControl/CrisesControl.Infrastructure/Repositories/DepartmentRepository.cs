@@ -48,16 +48,32 @@ namespace CrisesControl.Infrastructure.Repositories
 
         public async Task<int> UpdateDepartment(Department department, CancellationToken token)
         {
-            await _context.AddAsync(department, token);
 
-            await _context.SaveChangesAsync(token);
+            var result = _context.Set<Department>().Where(t=>t.DepartmentId == department.DepartmentId).FirstOrDefault();
 
-            return department.DepartmentId;
+            if (result == null)
+            {
+                return default;
+            }
+            else
+            {
+                result.DepartmentName = department.DepartmentName;
+                result.Status = department.Status;
+                result.UpdatedOn = department.UpdatedOn;
+                result.UpdatedBy = department.UpdatedBy;
+                await _context.SaveChangesAsync(token);
+                return result.DepartmentId;
+            }
         }
 
         public bool CheckDuplicate(Department department)
         {
-            return _context.Set<Department>().Where(t => t.DepartmentName.Equals(department.DepartmentName)).Any();
+            return _context.Set<Department>().Where(t => t.DepartmentName.Equals(department.DepartmentName) && t.CompanyId == department.CompanyId).Any();
+        }
+
+        public bool CheckForExistance(int DepartmentId)
+        {
+            return _context.Set<Department>().Where(t => t.DepartmentId.Equals(DepartmentId)).Any();
         }
     }
 }
