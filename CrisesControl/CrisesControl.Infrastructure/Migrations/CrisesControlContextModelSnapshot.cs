@@ -1371,7 +1371,7 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.ToTable("AppUserLog", (string)null);
                 });
 
-            modelBuilder.Entity("CrisesControl.Core.Models.Asset", b =>
+            modelBuilder.Entity("CrisesControl.Core.Models.Assets", b =>
                 {
                     b.Property<int>("AssetId")
                         .ValueGeneratedOnAdd()
@@ -1451,7 +1451,7 @@ namespace CrisesControl.Infrastructure.Migrations
                     b.HasIndex(new[] { "CompanyId" }, "IX_CompanyId")
                         .HasDatabaseName("IX_CompanyId1");
 
-                    b.ToTable("Asset");
+                    b.ToTable("Assets");
                 });
 
             modelBuilder.Entity("CrisesControl.Core.Models.AssetType", b =>

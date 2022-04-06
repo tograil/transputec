@@ -1,9 +1,11 @@
-﻿using MediatR;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 
-namespace CrisesControl.Api.Application.Commands.MediaAssets.UpdateAssets
+namespace CrisesControl.Core.AssetAggregate
 {
-    public class UpdateAssetsRequest:IRequest<UpdateAssetsResponse>
+    public record Assets
     {
+        [Key]
         public int AssetId { get; set; }
         public int CompanyId { get; set; }
         public string AssetTitle { get; set; } = null!;

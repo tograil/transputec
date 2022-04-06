@@ -5,7 +5,7 @@ using CrisesControl.Api.Application.Commands.MediaAssets.UpdateAssets;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using AssetModel = CrisesControl.Core.AssetAggregate.Asset;
+using AssetModel = CrisesControl.Core.AssetAggregate.Assets;
 
 namespace CrisesControl.Api.Controllers
 {
