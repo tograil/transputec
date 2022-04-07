@@ -22,6 +22,14 @@ builder.Services.AddDbContext<CrisesControlContext>(options =>
     options.UseOpenIddict();
 });
 
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.ClaimsIdentity.UserNameClaimType = OpenIddictConstants.Claims.Name;
+    options.ClaimsIdentity.UserIdClaimType = OpenIddictConstants.Claims.Subject;
+    options.ClaimsIdentity.RoleClaimType = OpenIddictConstants.Claims.Role;
+    // configure more options if necessary...
+});
+
 builder.Services.AddOpenIddict()
 
     // Register the OpenIddict core components.
@@ -37,10 +45,24 @@ builder.Services.AddOpenIddict()
     {
         options
             .AllowClientCredentialsFlow()
-            .AllowPasswordFlow();
+            .AllowPasswordFlow()
+            .AllowRefreshTokenFlow();
 
         options
             .SetTokenEndpointUris("/connect/token");
+        options
+            .SetUserinfoEndpointUris("/connect/userinfo");
+
+        options.UseReferenceAccessTokens();
+        options.UseReferenceRefreshTokens();
+
+        options.RegisterScopes(OpenIddictConstants.Permissions.Scopes.Email,
+                        OpenIddictConstants.Permissions.Scopes.Profile,
+                        OpenIddictConstants.Permissions.Scopes.Roles);
+
+        // Set the lifetime of your tokens
+        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(30));
+        options.SetRefreshTokenLifetime(TimeSpan.FromDays(7));
 
         // Encryption and signing of tokens
         options
@@ -57,6 +79,7 @@ builder.Services.AddOpenIddict()
         options
             .UseAspNetCore()
             .EnableTokenEndpointPassthrough();
+
     });
 
 builder.Services.AddIdentity<User, IdentityRole>()
@@ -69,7 +92,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddHostedService<AuthService>();
-
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = OpenIddictConstants.Schemes.Bearer;
+    options.DefaultChallengeScheme = OpenIddictConstants.Schemes.Bearer;
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
