@@ -6,7 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Locations.CreateLocation
     {
         public CreateLocationValidator()
         {
-            RuleFor(x => x.GroupId)
+            RuleFor(x => x.LocationId)
                 .GreaterThan(0);
             RuleFor(x => x.CompanyId)
                 .GreaterThan(0);

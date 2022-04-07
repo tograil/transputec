@@ -25,7 +25,7 @@ namespace CrisesControl.Api.Application.Commands.Departments.CreateDepartment
             Guard.Against.Null(request, nameof(CreateDepartmentRequest));
 
             Department value = _mapper.Map<CreateDepartmentRequest, Department>(request);
-            if (CheckDuplicate(value))
+            if (!CheckDuplicate(value))
             {
                 var departmentId = await _departmentRepository.CreateDepartment(value, cancellationToken);
                 var result = new CreateDepartmentResponse();

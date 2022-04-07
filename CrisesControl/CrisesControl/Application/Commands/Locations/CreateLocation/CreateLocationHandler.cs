@@ -26,7 +26,7 @@ namespace CrisesControl.Api.Application.Commands.Locations.CreateLocation
             Guard.Against.Null(request, nameof(CreateLocationRequest));
 
             Location value = _mapper.Map<CreateLocationRequest, Location>(request);
-            if (CheckDuplicate(value))
+            if (!CheckDuplicate(value))
             {
                 var locationId = await _locationRepository.CreateLocation(value, cancellationToken);
                 var result = new CreateLocationResponse();

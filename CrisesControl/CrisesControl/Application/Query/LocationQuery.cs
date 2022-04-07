@@ -18,7 +18,7 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetLocationsResponse> GetLocations(GetLocationsRequest request)
         {
-            var locations = await _locationRepository.GetAllLocations(request.LocationId);
+            var locations = await _locationRepository.GetAllLocations(request.CompanyId);
             List<GetLocationResponse> response = _mapper.Map<List<Location>, List<GetLocationResponse>>(locations.ToList());
             var result = new GetLocationsResponse();
             result.Data = response;
@@ -27,8 +27,8 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetLocationResponse> GetLocation(GetLocationRequest request)
         {
-            var department = await _locationRepository.GetLocationById(request.LocationId);
-            GetLocationResponse response = _mapper.Map<Location, GetLocationResponse>(department);
+            var location = await _locationRepository.GetLocationById(request.LocationId);
+            GetLocationResponse response = _mapper.Map<Location, GetLocationResponse>(location);
 
             return response;
         }

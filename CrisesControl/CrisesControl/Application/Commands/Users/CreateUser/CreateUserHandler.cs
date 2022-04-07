@@ -25,7 +25,7 @@ namespace CrisesControl.Api.Application.Commands.Users.CreateUser
             Guard.Against.Null(request, nameof(CreateUserRequest));
 
             User value = _mapper.Map<CreateUserRequest, User>(request);
-            if (CheckDuplicate(value))
+            if (!CheckDuplicate(value))
             {
                 var userId = await _userRepository.CreateUser(value, cancellationToken);
                 var result = new CreateUserResponse();

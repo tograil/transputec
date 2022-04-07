@@ -15,8 +15,7 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
 
 // Add services to the container.
-builder.Services.AddDbContext<CrisesControlContext>(options =>
-{
+builder.Services.AddDbContext<CrisesControlContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlDatabase"));
 
     options.UseOpenIddict();
@@ -33,36 +32,22 @@ builder.Services.Configure<IdentityOptions>(options =>
 builder.Services.AddOpenIddict()
 
     // Register the OpenIddict core components.
-    .AddCore(options =>
-    {
+    .AddCore(options => {
         // Configure OpenIddict to use the EF Core stores/models.
         options.UseEntityFrameworkCore()
             .UseDbContext<CrisesControlContext>();
     })
 
     // Register the OpenIddict server components.
-    .AddServer(options =>
-    {
+    .AddServer(options => {
         options
             .AllowClientCredentialsFlow()
-            .AllowPasswordFlow()
-            .AllowRefreshTokenFlow();
+            .AllowAuthorizationCodeFlow()
+            .AllowPasswordFlow();
 
         options
-            .SetTokenEndpointUris("/connect/token");
-        options
-            .SetUserinfoEndpointUris("/connect/userinfo");
-
-        options.UseReferenceAccessTokens();
-        options.UseReferenceRefreshTokens();
-
-        options.RegisterScopes(OpenIddictConstants.Permissions.Scopes.Email,
-                        OpenIddictConstants.Permissions.Scopes.Profile,
-                        OpenIddictConstants.Permissions.Scopes.Roles);
-
-        // Set the lifetime of your tokens
-        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(30));
-        options.SetRefreshTokenLifetime(TimeSpan.FromDays(7));
+            .SetTokenEndpointUris("/connect/token")
+            .SetAuthorizationEndpointUris("/connect/authorize");
 
         // Encryption and signing of tokens
         options
@@ -92,16 +77,19 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddHostedService<AuthService>();
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = OpenIddictConstants.Schemes.Bearer;
-    options.DefaultChallengeScheme = OpenIddictConstants.Schemes.Bearer;
+builder.Services.AddCors(options => {
+    options.AddPolicy("AllowedOrigins",
+        builder => {
+            builder.AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+        });
 });
-var app = builder.Build();
 
+var app = builder.Build();
+app.UseCors("AllowedOrigins");
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -113,15 +101,14 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-await using (var scope = app.Services.CreateAsyncScope())
-{
+
+
+await using (var scope = app.Services.CreateAsyncScope()) {
 
     var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
 
-    if (await manager.FindByNameAsync("api") is null)
-    {
-        await manager.CreateAsync(new OpenIddictScopeDescriptor
-        {
+    if (await manager.FindByNameAsync("api") is null) {
+        await manager.CreateAsync(new OpenIddictScopeDescriptor {
             Name = "api",
             Resources =
             {

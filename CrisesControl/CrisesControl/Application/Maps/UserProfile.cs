@@ -2,6 +2,7 @@
 using CrisesControl.Api.Application.Commands.Users.CreateUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
+using CrisesControl.Api.Application.Commands.Users.UpdateUser;
 using CrisesControl.Api.Application.ViewModels.User;
 using CrisesControl.Core.Users;
 
@@ -13,7 +14,12 @@ namespace CrisesControl.Api.Application.Maps
         {
             CreateMap<User, GetUserResponse>();
 
-            CreateMap<CreateUserRequest, User>();
+            CreateMap<CreateUserRequest, User>()
+                .ForMember(x => x.CreatedOn, m => m.MapFrom(x => DateTimeOffset.Now))
+                .ForMember(x => x.UpdatedOn, m => m.MapFrom(x => DateTimeOffset.Now));
+
+            CreateMap<UpdateUserRequest, User>()
+                .ForMember(x => x.UpdatedOn, m => m.MapFrom(x => DateTimeOffset.Now));
         }
     }
 }
