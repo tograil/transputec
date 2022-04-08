@@ -11,7 +11,6 @@ using UserModel = CrisesControl.Core.Models.EmptyUser;
 namespace CrisesControl.Api.Controllers
 {
     [ApiController]
-    [AllowAnonymous]
     [Route("/api/[controller]")]
     public class UserController : Controller
     {
