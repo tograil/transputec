@@ -3,7 +3,6 @@ using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Messages.Repositories;
-using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.SharedKernel.Utils;
