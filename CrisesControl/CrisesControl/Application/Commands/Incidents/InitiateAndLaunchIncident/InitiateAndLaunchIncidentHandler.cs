@@ -3,6 +3,7 @@ using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
+using CrisesControl.Core.Incidents.Services;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.SharedKernel.Utils;
 using MediatR;
@@ -17,18 +18,21 @@ public class InitiateAndLaunchIncidentHandler
     private readonly ICompanyRepository _companyRepository;
     private readonly IActiveIncidentRepository _activeIncidentRepository;
     private readonly IMessageRepository _messageRepository;
+    private readonly IActiveIncidentTaskService _activeIncidentTaskService;
 
     public InitiateAndLaunchIncidentHandler(IIncidentRepository incidentRepository,
         ICurrentUser currentUser,
         ICompanyRepository companyRepository,
         IActiveIncidentRepository activeIncidentRepository,
-        IMessageRepository messageRepository)
+        IMessageRepository messageRepository,
+        IActiveIncidentTaskService activeIncidentTaskService)
     {
         _incidentRepository = incidentRepository;
         _currentUser = currentUser;
         _companyRepository = companyRepository;
         _activeIncidentRepository = activeIncidentRepository;
         _messageRepository = messageRepository;
+        _activeIncidentTaskService = activeIncidentTaskService;
     }
 
     public async Task<InitiateAndLaunchIncidentResponse> Handle(InitiateAndLaunchIncidentRequest request, CancellationToken cancellationToken)
@@ -86,11 +90,43 @@ public class InitiateAndLaunchIncidentHandler
                 incidentActivation.IncidentId,
                 request.InitiateIncidentKeyHldLst, _currentUser.UserId, _currentUser.CompanyId, "GMT Standard Time");
 
+            var priority = SharedKernel.Utils.Common.GetPriority(request.Severity);
+
             await _messageRepository.DeleteMessageMethod(0, incidentActivation.IncidentActivationId);
+
+            var messageId = await _messageRepository.CreateMessage(_currentUser.CompanyId,
+                incidentActivation.IncidentDescription,
+                "Incident", incidentActivation.IncidentActivationId, priority, _currentUser.UserId, 1,
+                DateTime.Now.GetDateTimeOffset(),
+                request.MultiResponse, request.AckOptions, 99, request.AudioAssetId, 0, request.TrackUser,
+                request.SilentMessage,
+                request.MessageMethod);
+
+            if (request.UsersToNotify != null)
+            {
+                await _messageRepository.AddUserToNotify(messageId, request.UsersToNotify,
+                    incidentActivation.IncidentActivationId);
+            }
+
+            await _messageRepository.CreateIncidentNotificationList(incidentActivation.IncidentActivationId, messageId,
+                request.InitiateIncidentNotificationObjLst.ToList(), _currentUser.UserId, _currentUser.CompanyId);
+
+            if (incidentToVerify.HasTask)
+            {
+                await _activeIncidentTaskService.StartTaskAllocation(incidentActivation.IncidentId,
+                    incidentActivation.IncidentActivationId, _currentUser.UserId, _currentUser.CompanyId);
+            }
+
+            await _activeIncidentTaskService.CopyAssets(incidentActivation.IncidentId,
+                incidentActivation.IncidentActivationId, messageId);
+
+            var incidents =
+                await _activeIncidentRepository.GetIncidentActivationList(incidentActivation.IncidentActivationId,
+                    _currentUser.CompanyId);
 
             return new InitiateAndLaunchIncidentResponse
             {
-                IncidentActivationId = incidentActivation.IncidentActivationId,
+                IncidentActivationId = incidents.FirstOrDefault()?.IncidentActivationId ?? 0,
                 ErrorCode = "0"
             };
         }

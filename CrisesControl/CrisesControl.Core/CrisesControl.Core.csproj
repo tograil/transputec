@@ -31,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Incidents\Services\" />
     <Folder Include="Incidents\Repositories\" />
     <Folder Include="Messages\Repositories\" />
   </ItemGroup>

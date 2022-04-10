@@ -23,4 +23,11 @@ public interface IMessageRepository
         int assetId = 0, int activeIncidentTaskId = 0, bool trackUser = false, bool silentMessage = false,
         int[] messageMethod = null, ICollection<MediaAttachment> mediaAttachments = null, int parentId = 0,
         int messageActionType = 0);
+
+    Task CreateIncidentNotificationList(int incidentActivationId, int messageId,
+        ICollection<IncidentNotificationObjLst> launchIncidentNotificationObjLst,
+        int currentUserId, int companyId);
+
+    Task CreateIncidentNotificationList(int messageId, int incidentActivationId, int mappingId, int sourceId,
+        int currentUserId, int companyId);
 }

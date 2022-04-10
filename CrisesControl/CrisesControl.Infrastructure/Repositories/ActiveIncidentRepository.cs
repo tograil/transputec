@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
@@ -9,6 +10,7 @@ using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
 using Location = CrisesControl.Core.LocationAggregate.Location;
 
 namespace CrisesControl.Infrastructure.Repositories;
@@ -62,6 +64,13 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         }
     }
 
+    public async Task<ICollection<IncidentActivation>> GetIncidentActivationList(int incidentActivationId, int companyId)
+    {
+        return await _context.Set<IncidentActivation>()
+            .Where(x => x.CompanyId == companyId && x.IncidentActivationId == incidentActivationId)
+            .ToListAsync();
+    }
+
     public async Task CreateActiveKeyContact(int incidentActivationId, int incidentId, IncidentKeyHldLst[] keyHldLst, int currentUserId,
         int companyId, string timeZoneId)
     {
@@ -108,6 +117,102 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<int> CreateActiveIncidentTask(int activeIncidentTaskId, int activeIncidentId, int incidentTaskId, string taskTitle,
+        string taskDescription, bool hasPredecessor, double escalationDuration, double expectedCompletionTime,
+        int taskSequence, int taskOwnerId, DateTime taskAcceptedDate, DateTime taskEscalatedDate, int taskStatus,
+        int taskCompletedBy, int nextIncidentTaskId, int previousIncidentTaskId, int previousOwnerId,
+        DateTimeOffset taskActivationDate, int currentUserId, int companyId)
+    {
+        if (activeIncidentTaskId <= 0)
+        {
+            var ait = new TaskActiveIncident
+            {
+                IncidentTaskId = incidentTaskId,
+                ActiveIncidentId = activeIncidentId,
+                CompanyId = companyId,
+                TaskOwnerId = taskOwnerId,
+                TaskEscalatedDate = taskEscalatedDate,
+                TaskStatus = taskStatus,
+                TaskCompletedBy = taskCompletedBy,
+                NextIncidentTaskId = nextIncidentTaskId,
+                PreviousIncidentTaskId = previousIncidentTaskId,
+                TaskActivationDate = taskActivationDate,
+                PreviousOwnerId = previousOwnerId,
+                TaskSequence = taskSequence,
+                TaskTitle = taskTitle,
+                TaskDescription = taskDescription,
+                HasPredecessor = hasPredecessor,
+                EscalationDuration = escalationDuration,
+                ExpectedCompletionTime = expectedCompletionTime,
+                UpdatedDate = DateTime.Now.GetDateTimeOffset(),
+                UpdatedBy = currentUserId,
+                DelayedAccept = (DateTime)SqlDateTime.Null,
+                DelayedComplete = (DateTime)SqlDateTime.Null,
+                HasCheckList = 0
+            };
+
+            await _context.AddAsync(ait);
+            await _context.SaveChangesAsync();
+
+            return ait.ActiveIncidentTaskId;
+        }
+        else
+        {
+            var getTask = await _context.Set<TaskActiveIncident>()
+                .FirstOrDefaultAsync(x => x.ActiveIncidentTaskId == activeIncidentTaskId);
+
+            if (getTask is not null)
+            {
+                getTask.NextIncidentTaskId = nextIncidentTaskId;
+                getTask.PreviousIncidentTaskId = previousIncidentTaskId;
+                getTask.PreviousOwnerId = previousOwnerId;
+                getTask.TaskActivationDate = taskActivationDate;
+                getTask.TaskAcceptedDate = taskAcceptedDate;
+                getTask.TaskCompletedBy = taskCompletedBy;
+                getTask.TaskEscalatedDate = taskEscalatedDate;
+                getTask.TaskOwnerId = taskOwnerId;
+                getTask.TaskStatus = taskStatus;
+                getTask.TaskTitle = taskTitle;
+                getTask.TaskDescription = taskDescription;
+                getTask.HasPredecessor = hasPredecessor;
+                getTask.TaskSequence = taskSequence;
+                getTask.EscalationDuration = escalationDuration;
+                getTask.ExpectedCompletionTime = expectedCompletionTime;
+                getTask.UpdatedDate = DateTime.Now.GetDateTimeOffset();
+                getTask.UpdatedBy = currentUserId;
+
+                await _context.SaveChangesAsync();
+
+                return activeIncidentTaskId;
+            }
+        }
+
+        return 0;
+    }
+
+    public async Task CreateActiveCheckList(int activeIncidentTaskId, int incidentTaskId, int userId,
+        string timeZoneId = "GMT Standard Time")
+    {
+        var pActiveIncidentTaskID = new SqlParameter("@ActiveIncidentTaskID", activeIncidentTaskId);
+        var pIncidentTaskID = new SqlParameter("@IncidentTaskID", incidentTaskId);
+        var pUserID = new SqlParameter("@UserID", userId);
+        var pTimeZone = new SqlParameter("@TimeZoneId", timeZoneId);
+
+        await _context.Database.ExecuteSqlRawAsync(
+            "Pro_Create_Active_CheckList @ActiveIncidentTaskID, @IncidentTaskID, @UserID, @TimeZoneId",
+            pActiveIncidentTaskID, pIncidentTaskID, pUserID, pTimeZone);
+    }
+
+    public async Task CreateTaskRecipient(int activeIncidentId, int activeIncidentTaskId, int incidentTaskId)
+    {
+        var pActiveIncidentId = new SqlParameter("@IncidentActivationID", activeIncidentId);
+        var pActiveIncidentTaskId = new SqlParameter("@ActiveIncidentTaskID", activeIncidentTaskId);
+        var pIncidentTaskId = new SqlParameter("@IncidentTaskID", incidentTaskId);
+
+        await _context.Database.ExecuteSqlRawAsync("Pro_Create_Launch_Task_Receipient_List @IncidentActivationID, @ActiveIncidentTaskID, @IncidentTaskID",
+            pActiveIncidentId, pActiveIncidentTaskId, pIncidentTaskId);
     }
 
     private async Task CreateIncidentLocation(AffectedLocation affectedLocation, int activeIncidentId, int companyId)

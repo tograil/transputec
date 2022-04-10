@@ -158,4 +158,68 @@ public class MessageRepository : IMessageRepository
 
         return saveMessage.MessageId;
     }
+
+    public async Task CreateIncidentNotificationList(int incidentActivationId, int messageId,
+        ICollection<IncidentNotificationObjLst> launchIncidentNotificationObjLst, int currentUserId, int companyId)
+    {
+        var oldNotifyList = await _context.Set<IncidentNotificationList>()
+            .Where(x => x.CompanyId == companyId && x.IncidentActivationId == incidentActivationId)
+            .ToListAsync();
+
+        var toDeleteList = new List<int>();
+        foreach (var incidentNotificationList in launchIncidentNotificationObjLst)
+        {
+            if (incidentNotificationList.ObjectMappingId > 0)
+            {
+                var isExists = oldNotifyList
+                    .FirstOrDefault(s => s.CompanyId == companyId 
+                                         && s.IncidentActivationId == incidentActivationId 
+                                         && s.ObjectMappingId == incidentNotificationList.ObjectMappingId 
+                                         && s.SourceObjectPrimaryId == incidentNotificationList.SourceObjectPrimaryId
+                                         && s.Status == 1);
+                if (isExists is not null)
+                {
+                    toDeleteList.Add(isExists.IncidentNotificationListId);
+                }
+                else
+                {
+                    CreateIncidentNotificationList(messageId, incidentActivationId,
+                        incidentNotificationList.ObjectMappingId,
+                        incidentNotificationList.SourceObjectPrimaryId, currentUserId, companyId);
+                }
+            }
+        }
+
+        foreach (var incidentNotificationList in oldNotifyList)
+        {
+            var isDel = toDeleteList.Any(s => s == incidentNotificationList.IncidentNotificationListId);
+            if (!isDel)
+            {
+                _context.Remove(incidentNotificationList);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task CreateIncidentNotificationList(int messageId, int incidentActivationId, int mappingId, int sourceId,
+        int currentUserId, int companyId)
+    {
+        var incidentNotificationList = new IncidentNotificationList
+        {
+            CompanyId = companyId,
+            IncidentActivationId = incidentActivationId,
+            ObjectMappingId = mappingId,
+            SourceObjectPrimaryId = sourceId,
+            MessageId = messageId,
+            Status = 1,
+            CreatedBy = currentUserId,
+            CreatedOn = DateTime.Now,
+            UpdatedBy = currentUserId,
+            UpdatedOn = DateTime.Now.GetDateTimeOffset()
+        };
+
+        await _context.AddAsync(incidentNotificationList);
+        await _context.SaveChangesAsync();
+    }
 }
