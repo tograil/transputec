@@ -99,6 +99,12 @@ if (app.Environment.IsDevelopment()) {
         setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
         setupAction.SwaggerEndpoint("/swagger/v1/swagger.json", "CC Core API V1");
     });
+} else {
+    app.UseSwaggerUI(setupAction => {
+        setupAction.OAuthClientId(serverCredentials.ClientId);
+        setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
+        setupAction.SwaggerEndpoint("/CrisesControlCore/swagger/v1/swagger.json", "CC Core API V1");
+    });
 }
 
 app.UseHttpsRedirection();

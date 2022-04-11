@@ -85,6 +85,11 @@ if (app.Environment.IsDevelopment()) {
     app.UseSwaggerUI(c => {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "CC Core API V1");
     });
+} else {
+    app.UseSwagger();
+    app.UseSwaggerUI(c => {
+        c.SwaggerEndpoint("/CrisesControlCore/swagger/v1/swagger.json", "CC Core API V1");
+    });
 }
 
 app.UseHttpsRedirection();
