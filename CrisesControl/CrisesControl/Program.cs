@@ -97,8 +97,7 @@ if (app.Environment.IsDevelopment()) {
     app.UseSwaggerUI(setupAction => {
         setupAction.OAuthClientId(serverCredentials.ClientId);
         setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
-        setupAction.SwaggerEndpoint("swagger/v1/swagger.json", "CC Core API V1");
-        setupAction.RoutePrefix = String.Empty;
+        setupAction.SwaggerEndpoint("/swagger/v1/swagger.json", "CC Core API V1");
     });
 }
 
