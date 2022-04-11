@@ -82,7 +82,10 @@ app.UseCors("AllowedOrigins");
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c => {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CC Core API V1");
+        c.RoutePrefix = String.Empty;
+    });
 }
 
 app.UseHttpsRedirection();
