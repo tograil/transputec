@@ -20,5 +20,7 @@ public class IncidentTaskNoteConfiguration : IEntityTypeConfiguration<IncidentTa
         builder.Property(e => e.ObjectId).HasColumnName("ObjectID");
 
         builder.Property(e => e.UserId).HasColumnName("UserID");
+
+        builder.ToTable("IncidentTaskNote");
     }
 }

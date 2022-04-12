@@ -21,5 +21,7 @@ public class UndeliveredMessageConfiguration : IEntityTypeConfiguration<Undelive
         builder.Property(e => e.MethodName)
             .HasMaxLength(10)
             .IsUnicode(false);
+
+        builder.ToTable("UndeliveredMessages");
     }
 }

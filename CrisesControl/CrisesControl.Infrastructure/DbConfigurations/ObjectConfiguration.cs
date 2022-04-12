@@ -20,5 +20,7 @@ public class ObjectConfiguration : IEntityTypeConfiguration<Object>
         builder.Property(e => e.ObjectTableName).HasMaxLength(50);
 
         builder.Property(e => e.UpdatedOn).HasDefaultValueSql("(getdate())");
+
+        builder.ToTable("Objects");
     }
 }

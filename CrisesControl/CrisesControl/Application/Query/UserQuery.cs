@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
+using CrisesControl.Api.Application.Commands.Users.Login;
+using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 
@@ -31,6 +33,14 @@ namespace CrisesControl.Api.Application.Query
             GetUserResponse response = _mapper.Map<User, GetUserResponse>(User);
 
             return response;
+        }
+
+        public async Task<LoginResponse> GetLoggedInUserInfo(LoginRequest request, CancellationToken cancellationToken)
+        {
+            var loginRequest = _mapper.Map<LoginInfo>(request);
+            var LoginInfo = _UserRepository.GetLoggedInUserInfo(loginRequest, cancellationToken);
+            var result = _mapper.Map<LoginResponse>(LoginInfo);
+            return result;
         }
     }
 }

@@ -61,5 +61,7 @@ public class RegistrationConfiguration : IEntityTypeConfiguration<Registration>
         builder.Property(e => e.VerificationCode)
             .HasMaxLength(10)
             .IsUnicode(false);
+
+        builder.ToTable("Registrations");
     }
 }

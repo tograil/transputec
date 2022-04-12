@@ -22,5 +22,7 @@ public class MessageMethodConfiguration : IEntityTypeConfiguration<MessageMethod
         builder.Property(e => e.MessageId).HasColumnName("MessageID");
 
         builder.Property(e => e.MethodId).HasColumnName("MethodID");
+
+        builder.ToTable("MessageMethods");
     }
 }

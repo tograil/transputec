@@ -26,5 +26,7 @@ public class OrderDetailConfiguration : IEntityTypeConfiguration<OrderDetail>
         builder.Property(e => e.OrderId).HasColumnName("OrderID");
 
         builder.Property(e => e.Rate).HasColumnType("decimal(18, 2)");
+
+        builder.ToTable("OrderDetails");
     }
 }

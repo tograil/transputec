@@ -26,5 +26,7 @@ public class JobScheduleConfiguration : IEntityTypeConfiguration<JobSchedule>
         builder.Property(e => e.JobId).HasColumnName("JobID");
 
         builder.Property(e => e.NextRunTime).HasMaxLength(10);
+
+        builder.ToTable("JobSchedule");
     }
 }
