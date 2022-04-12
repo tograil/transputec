@@ -80,17 +80,23 @@ builder.Services.AddCors(options => {
 var app = builder.Build();
 app.UseCors("AllowedOrigins");
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment()) {
-    app.UseSwagger();
-    app.UseSwaggerUI(c => {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CC Core API V1");
-    });
-} else {
-    app.UseSwagger();
-    app.UseSwaggerUI(c => {
-        c.SwaggerEndpoint("/CrisesControlCore/swagger/v1/swagger.json", "CC Core API V1");
-    });
-}
+
+app.UseSwagger();
+app.UseSwaggerUI(setupAction => {
+    setupAction.SwaggerEndpoint(builder.Configuration.GetSection("AppName").Value + "/swagger/v1/swagger.json", "CC Core API V1");
+});
+//if (app.Environment.IsDevelopment()) {
+//    app.UseSwagger();
+//    app.UseSwaggerUI(c => {
+//        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CC Core API V1");
+//    });
+//} else {
+//    app.UseSwagger();
+//    app.UseSwaggerUI(c => {
+//        c.SwaggerEndpoint("/CriesControlAuth/swagger/v1/swagger.json", "CC Core API V1");
+//        c.RoutePrefix = string.Empty;
+//    });
+//}
 
 app.UseHttpsRedirection();
 

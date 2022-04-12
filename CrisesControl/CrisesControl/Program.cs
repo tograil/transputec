@@ -91,21 +91,28 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment()) {
-    app.UseSwagger();
-    app.UseSwaggerUI(setupAction => {
-        setupAction.OAuthClientId(serverCredentials.ClientId);
-        setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
-        setupAction.SwaggerEndpoint("/swagger/v1/swagger.json", "CC Core API V1");
-    });
-} else {
-    app.UseSwaggerUI(setupAction => {
-        setupAction.OAuthClientId(serverCredentials.ClientId);
-        setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
-        setupAction.SwaggerEndpoint("/CrisesControlCore/swagger/v1/swagger.json", "CC Core API V1");
-    });
-}
+app.UseSwagger();
+app.UseSwaggerUI(setupAction => {
+    setupAction.OAuthClientId(serverCredentials.ClientId);
+    setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
+    setupAction.SwaggerEndpoint(builder.Configuration.GetSection("AppName").Value + "/swagger/v1/swagger.json", "CC Core API V1");
+});
+//// Configure the HTTP request pipeline.
+//if (app.Environment.IsDevelopment()) {
+//    app.UseSwagger();
+//    app.UseSwaggerUI(setupAction => {
+//        setupAction.OAuthClientId(serverCredentials.ClientId);
+//        setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
+//        setupAction.SwaggerEndpoint(builder.Configuration.GetSection("AppName").Value + "/swagger/v1/swagger.json", "CC Core API V1");
+//    });
+//} else {
+//    app.UseSwagger();
+//    app.UseSwaggerUI(setupAction => {
+//        setupAction.OAuthClientId(serverCredentials.ClientId);
+//        setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
+//        setupAction.SwaggerEndpoint(builder.Configuration.GetSection("AppName").Value + "/swagger/v1/swagger.json", "CC Core API V1");
+//    });
+//}
 
 app.UseHttpsRedirection();
 
