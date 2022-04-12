@@ -21,6 +21,14 @@ builder.Services.AddDbContext<CrisesControlContext>(options => {
     options.UseOpenIddict();
 });
 
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.ClaimsIdentity.UserNameClaimType = OpenIddictConstants.Claims.Name;
+    options.ClaimsIdentity.UserIdClaimType = OpenIddictConstants.Claims.Subject;
+    options.ClaimsIdentity.RoleClaimType = OpenIddictConstants.Claims.Role;
+    // configure more options if necessary...
+});
+
 builder.Services.AddOpenIddict()
 
     // Register the OpenIddict core components.
@@ -56,6 +64,7 @@ builder.Services.AddOpenIddict()
         options
             .UseAspNetCore()
             .EnableTokenEndpointPassthrough();
+
     });
 
 builder.Services.AddIdentity<User, IdentityRole>()

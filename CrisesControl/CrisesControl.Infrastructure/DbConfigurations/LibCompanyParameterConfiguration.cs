@@ -25,5 +25,7 @@ public class LibCompanyParameterConfiguration : IEntityTypeConfiguration<LibComp
         builder.Property(e => e.ValidationRule).HasMaxLength(250);
 
         builder.Property(e => e.Value).HasMaxLength(250);
+
+        builder.ToTable("LibCompanyParameters");
     }
 }

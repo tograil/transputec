@@ -28,5 +28,7 @@ public class TransactionDetailConfiguration : IEntityTypeConfiguration<Transacti
         builder.Property(e => e.TransactionRate).HasColumnType("decimal(20, 4)");
 
         builder.Property(e => e.TransactionReference).HasMaxLength(150);
+
+        builder.ToTable("TransactionDetails");
     }
 }

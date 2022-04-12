@@ -37,5 +37,7 @@ public class ModuleConfiguration : IEntityTypeConfiguration<Module>
         builder.Property(e => e.SecurityObjectId).HasColumnName("SecurityObjectID");
 
         builder.Property(e => e.TransactionTypeId).HasColumnName("TransactionTypeID");
+
+        builder.ToTable("Modules");
     }
 }

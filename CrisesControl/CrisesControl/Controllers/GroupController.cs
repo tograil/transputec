@@ -10,7 +10,6 @@ namespace CrisesControl.Api.Controllers
 {
     [ApiController]
     [Route("/api/[controller]")]
-    [AllowAnonymous]
     public class GroupController : Controller
     {
         private readonly IMediator _mediator;
