@@ -63,7 +63,8 @@ builder.Services.AddOpenIddict()
         // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
         options
             .UseAspNetCore()
-            .EnableTokenEndpointPassthrough();
+            .EnableTokenEndpointPassthrough()
+            .DisableTransportSecurityRequirement();
 
     });
 
