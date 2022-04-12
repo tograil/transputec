@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
@@ -9,6 +10,7 @@ using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using UserModel = CrisesControl.Core.Models.EmptyUser;
@@ -18,13 +20,15 @@ namespace CrisesControl.Infrastructure.Repositories;
 public class UserRepository : IUserRepository
 {
     private readonly CrisesControlContext _context;
-    private readonly int UserID = 16;
-    private readonly int CompanyID = 7;
+    private int UserID;
+    private int CompanyID;
     private readonly string TimeZoneId = "GMT Standard Time";
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public UserRepository(CrisesControlContext context)
+    public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
@@ -300,13 +304,14 @@ public class UserRepository : IUserRepository
         {
             try
             {
-                //var deviceinfo = (from D in _context.Set<UserDevices>()
-                //                  where (D.DeviceSerial == request.DeviceSerial && D.CompanyId == CompanyID && D.UserId == UserID) ||
-                //                      (D.DeviceModel == request.DeviceModel && D.DeviceType == request.DeviceType && D.CompanyId == CompanyID && D.UserId == UserID)
-                //                  select D).FirstOrDefault();
-                var dev = _context.Set<UserDevice>().ToList();
-                var deviceinfo = _context.Set<UserDevice>().Where(d => d.DeviceModel == request.DeviceModel && d.UserId == UserID
-                ).FirstOrDefault();
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+
+                var deviceinfo = (from D in _context.Set<UserDevice>()
+                                  where (D.DeviceSerial == request.DeviceSerial && D.CompanyId == CompanyID && D.UserId == UserID) ||
+                                      (D.DeviceModel == request.DeviceModel && D.DeviceType == request.DeviceType && D.CompanyId == CompanyID && D.UserId == UserID)
+                                  select D).FirstOrDefault();
+                
                 if (deviceinfo != null)
                 {
                     //if(!string.IsNullOrEmpty(IP.PushDeviceId.Trim())) {

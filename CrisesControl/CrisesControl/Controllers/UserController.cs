@@ -7,6 +7,7 @@ using CrisesControl.Api.Application.Commands.Users.UpdateUser;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using UserModel = CrisesControl.Core.Models.EmptyUser;
 
 namespace CrisesControl.Api.Controllers
@@ -38,6 +39,7 @@ namespace CrisesControl.Api.Controllers
         [HttpPost("getUserInfo")]
         public async Task<IActionResult> GetLoggedinUserInfo([FromForm] LoginRequest request, CancellationToken cancellationToken)
         {
+            var userId = this.User.FindFirstValue("sub");
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
