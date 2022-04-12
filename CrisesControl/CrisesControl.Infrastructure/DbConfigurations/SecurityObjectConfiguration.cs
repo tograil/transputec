@@ -28,5 +28,7 @@ public class SecurityObjectConfiguration : IEntityTypeConfiguration<SecurityObje
         builder.Property(e => e.Target).HasMaxLength(150);
 
         builder.Property(e => e.TypeId).HasColumnName("TypeID");
+
+        builder.ToTable("SecurityObjects");
     }
 }

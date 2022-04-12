@@ -19,5 +19,7 @@ public class UserCommConfiguration : IEntityTypeConfiguration<UserComm>
         builder.Property(e => e.MessageType).HasMaxLength(20);
 
         builder.Property(e => e.Priority).HasDefaultValueSql("((1))");
+        
+        builder.ToTable("UserComms");
     }
 }

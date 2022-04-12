@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace CrisesControl.Api.Controllers;
 [ApiController]
 [Route("/api/[controller]")]
-[AllowAnonymous]
 public class LocationController : Controller
 {
     private readonly IMediator _mediator;

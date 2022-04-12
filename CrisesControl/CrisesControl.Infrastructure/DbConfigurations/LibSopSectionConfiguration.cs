@@ -13,5 +13,6 @@ public class LibSopSectionConfiguration : IEntityTypeConfiguration<LibSopSection
         builder.Property(e => e.SectionName).HasMaxLength(250);
 
         builder.Property(e => e.SectionType).HasMaxLength(20);
+        builder.ToTable("LibSopSections");
     }
 }

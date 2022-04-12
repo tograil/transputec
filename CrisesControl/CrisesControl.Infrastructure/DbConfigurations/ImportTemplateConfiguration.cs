@@ -21,5 +21,7 @@ public class ImportTemplateConfiguration : IEntityTypeConfiguration<ImportTempla
         builder.Property(e => e.TemplateType)
             .HasMaxLength(20)
             .IsUnicode(false);
+
+        builder.ToTable("ImportTemplates");
     }
 }

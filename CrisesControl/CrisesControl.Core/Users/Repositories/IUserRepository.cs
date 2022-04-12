@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using CrisesControl.Core.Models;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,4 +19,6 @@ public interface IUserRepository
     Task<User> GetUser(int companyId, int userId);
     Task<User> DeleteUser(User user, CancellationToken token);
     bool CheckDuplicate(User user);
+    LoginInfoReturnModel GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken);
+
 }

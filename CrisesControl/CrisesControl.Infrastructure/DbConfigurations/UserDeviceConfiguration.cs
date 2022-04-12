@@ -49,5 +49,6 @@ public class UserDeviceConfiguration : IEntityTypeConfiguration<UserDevice>
             .HasDefaultValueSql("('default')");
 
         builder.Property(e => e.UserId).HasColumnName("UserID");
+        builder.ToTable("UserDevices");
     }
 }
