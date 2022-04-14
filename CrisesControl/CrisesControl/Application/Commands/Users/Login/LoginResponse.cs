@@ -1,4 +1,6 @@
-﻿namespace CrisesControl.Api.Application.Commands.Users.Login
+﻿using CrisesControl.Core.Models;
+
+namespace CrisesControl.Api.Application.Commands.Users.Login
 {
     public class LoginResponse
     {
@@ -46,7 +48,7 @@
         public string UniqueKey { get; set; }
         public bool TwoFactorLogin { get; set; }
         public string UserPhoto { get; set; }
-        public string SecItems { get; set; }
+        public SecItemModel SecItems { get; set; }
         public string UploadPath { get; set; }
     }
 }

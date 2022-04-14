@@ -428,7 +428,26 @@ public class UserRepository : IUserRepository
                                     AudioRecordMaxDuration = AudioRecordMaxDuration,
                                     UniqueKey = user.company.UniqueKey,
                                     TwoFactorLogin = twofactor,
-                                    UserPhoto = string.IsNullOrEmpty(user.users.UserPhoto) ? "" : user.users.UserPhoto
+                                    UserPhoto = string.IsNullOrEmpty(user.users.UserPhoto) ? "" : user.users.UserPhoto,
+                                    SecItems = (from PF in _context.Set<CompanyPackageFeature>()
+                                                join SO in _context.Set<SecurityObject>() on PF.SecurityObjectId equals SO.SecurityObjectId
+                                                join SOT in _context.Set<SecurityObjectType>() on SO.TypeId equals SOT.SecurityObjectTypeId
+                                                join ASG in
+                                                    (from USG in _context.Set<UserSecurityGroup>()
+                                                     join SG in _context.Set<SecurityGroup>() on USG.SecurityGroupId equals SG.SecurityGroupId
+                                                     join GSO in _context.Set<GroupSecuityObject>() on USG.SecurityGroupId equals GSO.SecurityGroupId
+                                                     join SO1 in _context.Set<SecurityObject>() on GSO.SecurityObjectId equals SO1.SecurityObjectId
+                                                     where USG.UserId == user.users.UserId && SO1.Status == 1 && SG.CompanyId == CompanyID
+                                                     select new { USG.SecurityGroupId, SO1.SecurityObjectId })
+                                                on SO.SecurityObjectId equals ASG.SecurityObjectId
+                                                into ASGS
+                                                from ASG in ASGS.DefaultIfEmpty()
+                                                where SO.Status == 1 && PF.Status == 1 && PF.CompanyId == user.users.CompanyId
+                                                select new SecItemModel
+                                                {
+                                                    SecurityKey = SO.SecurityKey,
+                                                    HasAccess = ASG.SecurityGroupId == null && !roles.Contains(user.users.UserRole) ? "false" : "true"
+                                                }).FirstOrDefault(),
                                 }).FirstOrDefault();
             return getuserlogin;
         }

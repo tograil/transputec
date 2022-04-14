@@ -61,7 +61,13 @@ namespace CrisesControl.Core.Models
         public string UniqueKey { get; set; }
         public bool TwoFactorLogin { get; set; }
         public string UserPhoto { get; set; }
-        public string SecItems { get; set; }
+        public SecItemModel? SecItems { get; set; }
         public string UploadPath { get; set; }
+    }
+
+    public class SecItemModel
+    {
+        public string SecurityKey { get; set; }
+        public string HasAccess { get; set; }
     }
 }
