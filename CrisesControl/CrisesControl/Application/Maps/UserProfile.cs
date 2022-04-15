@@ -4,6 +4,7 @@ using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.UpdateUser;
+using CrisesControl.Api.Application.Commands.Users.ValidateEmail;
 using CrisesControl.Api.Application.ViewModels.User;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
@@ -24,6 +25,7 @@ namespace CrisesControl.Api.Application.Maps
                 .ForMember(x => x.UpdatedOn, m => m.MapFrom(x => DateTimeOffset.Now));
             CreateMap<LoginRequest, LoginInfo>();
             CreateMap<LoginInfoReturnModel, LoginResponse>();
+            CreateMap<ValidateEmailReponseModel, ValidateEmailResponse>();
         }
     }
 }

@@ -11,6 +11,7 @@ using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using UserModel = CrisesControl.Core.Models.EmptyUser;
@@ -450,6 +451,40 @@ public class UserRepository : IUserRepository
                                                 }).FirstOrDefault(),
                                 }).FirstOrDefault();
             return getuserlogin;
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+    }
+
+ 
+    public async Task<ValidateEmailReponseModel> ValidateLoginEmail(string UserName)
+    {
+        try
+        {
+            var user = (from U in _context.Set<User>()
+                        join C in _context.Set<Company>() on U.CompanyId equals C.CompanyId
+                        where U.PrimaryEmail == UserName && U.Status == 1
+                        select new { U.UserId, U.Password, C.CompanyId }).FirstOrDefault();
+            if (user != null)
+            {
+                string sso_type = GetCompanyParameter("SSO_PROVIDER", user.CompanyId);
+                string sso_enabled = GetCompanyParameter("SINGLE_SIGNON_ENABLED", user.CompanyId);
+                string sso_issuer = GetCompanyParameter("AAD_SSO_TENANT_ID", user.CompanyId);
+                string sso_client_secret = GetCompanyParameter("SSO_CLIENT_SECRET", user.CompanyId); 
+                return new ValidateEmailReponseModel 
+                { 
+                    SSOType = sso_type, 
+                    SSOEnabled = sso_enabled, 
+                    SSOIssuer = sso_issuer, 
+                    SSOSecret = sso_client_secret 
+                };
+            }
+            else
+            {
+                return null;
+            }
         }
         catch (Exception ex)
         {

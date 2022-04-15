@@ -2,6 +2,7 @@
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
+using CrisesControl.Api.Application.Commands.Users.ValidateEmail;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -40,6 +41,13 @@ namespace CrisesControl.Api.Application.Query
             var loginRequest = _mapper.Map<LoginInfo>(request);
             var LoginInfo = _UserRepository.GetLoggedInUserInfo(loginRequest, cancellationToken);
             var result = _mapper.Map<LoginResponse>(LoginInfo);
+            return result;
+        }
+
+        public async Task<ValidateEmailResponse> ValidateLoginEmail(ValidateEmailRequest request)
+        {
+            var validateEmail = _UserRepository.ValidateLoginEmail(request.UserEmail);
+            var result = _mapper.Map<ValidateEmailResponse>(validateEmail.Result);
             return result;
         }
     }
