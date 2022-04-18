@@ -14,6 +14,7 @@ namespace CrisesControl.Api.Controllers
 {
     [ApiController]
     [Route("/api/[controller]")]
+    //[Authorize]
     public class UserController : Controller
     {
         private readonly IMediator _mediator;
@@ -36,10 +37,10 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPost("getUserInfo")]
-        public async Task<IActionResult> GetLoggedinUserInfo([FromForm] LoginRequest request, CancellationToken cancellationToken)
+        [HttpGet("getlogininfo")]
+        public async Task<IActionResult> GetLoggedinUserInfo([FromQuery] LoginRequest request, CancellationToken cancellationToken)
         {
-            var userId = this.User.FindFirstValue("sub");
+            //var userId = this.User.FindFirstValue("sub");
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }

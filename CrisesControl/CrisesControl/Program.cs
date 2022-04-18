@@ -22,7 +22,8 @@ builder.Services.AddDbContext<CrisesControlContext>(options =>
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
+
 var serverCredentials = builder.Configuration.GetSection(ServerCredentialsOptions.ServerCredentials)
             .Get<ServerCredentialsOptions>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -88,15 +89,16 @@ builder.Services.AddOpenIddict()
         options.UseAspNetCore();
     });
 
-builder.Services.AddControllers(o =>
- {
-     var policy = new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .Build();
+//builder.Services.AddControllers(o =>
+// {
+//     var policy = new AuthorizationPolicyBuilder()
+//                .RequireAuthenticatedUser()
+//                .Build();
 
-     o.Filters.Add(new AuthorizeFilter(policy));
- }
-);
+//     o.Filters.Add(new AuthorizeFilter(policy));
+// }
+//);
+builder.Services.AddControllers();
 
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 builder.Services.AddAuthorization();

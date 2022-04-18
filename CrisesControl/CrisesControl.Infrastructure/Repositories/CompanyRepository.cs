@@ -101,4 +101,46 @@ public class CompanyRepository : ICompanyRepository
 
         return company.CompanyId;
     }
+
+    public async Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token)
+    {
+        CompanyInfoReturn compnayrtn = new CompanyInfoReturn();
+
+        var Companydata = await (from CompanyVal in _context.Set<Company>()
+                           where CompanyVal.CompanyId == company.CompanyId
+                                 select CompanyVal).FirstOrDefaultAsync();
+
+        var AddressInfo = await (from Addressval in _context.Set<Address>()
+                           join AddLink in _context.Set <AddressLink>() on Addressval.AddressId equals AddLink.AddressId
+                           where AddLink.CompanyId == company.CompanyId && Addressval.AddressType == "Primary"
+                           select Addressval).FirstOrDefaultAsync();
+
+        if (Companydata != null) {
+            compnayrtn.Company_Name = Companydata.CompanyName;
+            compnayrtn.CompanyProfile = Companydata.CompanyProfile;
+            compnayrtn.CompanyLogo = Companydata.CompanyLogoPath;
+            compnayrtn.ContactLogo = Companydata.ContactLogoPath;
+            compnayrtn.Master_Action_Plan = (Companydata.PlanDrdoc == null || Companydata.PlanDrdoc == "") ? "" : Companydata.PlanDrdoc;
+            compnayrtn.Website = (Companydata.Website == null || Companydata.Website == "") ? "" : Companydata.Website;
+            compnayrtn.TimeZone = Companydata.TimeZone.ToString();
+            compnayrtn.PhoneISDCode = Companydata.Isdcode;
+            compnayrtn.SwitchBoardPhone = Companydata.SwitchBoardPhone;
+            compnayrtn.AnniversaryDate = Companydata.AnniversaryDate;
+            compnayrtn.Fax = Companydata.Fax;
+            compnayrtn.OnTrial = Companydata.OnTrial;
+            compnayrtn.CustomerId = Companydata.CustomerId;
+            compnayrtn.InvitationCode = Companydata.InvitationCode;
+        }
+        if (AddressInfo != null) {
+            compnayrtn.AddressLine1 = AddressInfo.AddressLine1;
+            compnayrtn.AddressLine2 = AddressInfo.AddressLine2;
+            compnayrtn.City = AddressInfo.City;
+            compnayrtn.State = AddressInfo.State;
+            compnayrtn.Postcode = AddressInfo.Postcode;
+            compnayrtn.CountryCode = AddressInfo.CountryCode;
+        }
+        compnayrtn.ErrorId = 0;
+        compnayrtn.Message = "CompanyView";
+        return compnayrtn;
+    }
 }
