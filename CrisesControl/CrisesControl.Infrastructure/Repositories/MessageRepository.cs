@@ -8,28 +8,25 @@ using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
-public class MessageRepository : IMessageRepository
-{
+public class MessageRepository : IMessageRepository {
     private readonly CrisesControlContext _context;
 
-    public MessageRepository(CrisesControlContext context)
-    {
+    public MessageRepository(CrisesControlContext context) {
         _context = context;
     }
 
-    public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0)
-    {
+    public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0) {
         var exists = await _context.Set<MessageMethod>().AnyAsync(x => activeIncidentId > 0
                                                             && x.ActiveIncidentId == activeIncidentId
                                                             && x.MethodId == methodId);
 
-        var mm = new MessageMethod
-        {
+        var mm = new MessageMethod {
             MessageId = messageId,
             MethodId = methodId,
             ActiveIncidentId = !exists ? activeIncidentId : 0,
@@ -40,17 +37,14 @@ public class MessageRepository : IMessageRepository
         await _context.SaveChangesAsync();
     }
 
-    public int GetPushMethodId()
-    {
+    public int GetPushMethodId() {
         return _context.Set<CommsMethod>()
             .Where(w => w.MethodCode == "PUSH")
             .Select(s => s.CommsMethodId).First();
     }
 
-    public async Task AddUserToNotify(int messageId, ICollection<int> userIds, int activeIncidentId = 0)
-    {
-        var ins = userIds.Select(x => new UsersToNotify
-        {
+    public async Task AddUserToNotify(int messageId, ICollection<int> userIds, int activeIncidentId = 0) {
+        var ins = userIds.Select(x => new UsersToNotify {
             MessageId = messageId,
             UserId = x,
             ActiveIncidentId = activeIncidentId
@@ -60,23 +54,19 @@ public class MessageRepository : IMessageRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task SaveActiveMessageResponse(int messageId, ICollection<AckOption> ackOptions, int activeIncidentId = 0)
-    {
+    public async Task SaveActiveMessageResponse(int messageId, ICollection<AckOption> ackOptions, int activeIncidentId = 0) {
         var deleteOld = await _context.Set<ActiveMessageResponse>()
             .Where(x => x.MessageId == 0 && x.ActiveIncidentId == activeIncidentId).ToListAsync();
 
         _context.Set<ActiveMessageResponse>().RemoveRange(deleteOld);
         await _context.SaveChangesAsync();
 
-        foreach (var (responseId, _, responseCode) in ackOptions)
-        {
+        foreach (var (responseId, _, responseCode) in ackOptions) {
             var option = _context
                 .Set<CompanyMessageResponse>().FirstOrDefault(w => w.ResponseId == responseId);
 
-            if (option is not null)
-            {
-                var ac = new ActiveMessageResponse
-                {
+            if (option is not null) {
+                var ac = new ActiveMessageResponse {
                     MessageId = messageId,
                     ResponseId = responseId,
                     ResponseCode = responseCode,
@@ -92,16 +82,12 @@ public class MessageRepository : IMessageRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteMessageMethod(int messageId = 0, int activeIncidentId = 0)
-    {
-        if (activeIncidentId == 0 && messageId > 0)
-        {
+    public async Task DeleteMessageMethod(int messageId = 0, int activeIncidentId = 0) {
+        if (activeIncidentId == 0 && messageId > 0) {
             var mtList = await _context.Set<MessageMethod>().Where(m => m.MessageId == messageId).ToListAsync();
 
             _context.RemoveRange(mtList);
-        }
-        else
-        {
+        } else {
             var mtList = await _context.Set<MessageMethod>().Where(m => m.ActiveIncidentId == activeIncidentId).ToListAsync();
 
             _context.RemoveRange(mtList);
@@ -113,20 +99,16 @@ public class MessageRepository : IMessageRepository
     public async Task<int> CreateMessage(int companyId, string msgText, string messageType, int incidentActivationId, int priority,
         int currentUserId, int source, DateTimeOffset localTime, bool multiResponse, ICollection<AckOption> ackOptions, int status = 0,
         int assetId = 0, int activeIncidentTaskId = 0, bool trackUser = false, bool silentMessage = false,
-        int[] messageMethod = null, ICollection<MediaAttachment> mediaAttachments = null, int parentId = 0, int messageActionType = 0)
-    {
-        if (parentId > 0 && incidentActivationId == 0 && messageType.ToUpper() == "INCIDENT")
-        {
+        int[] messageMethod = null, ICollection<MediaAttachment> mediaAttachments = null, int parentId = 0, int messageActionType = 0) {
+        if (parentId > 0 && incidentActivationId == 0 && messageType.ToUpper() == "INCIDENT") {
             var parentMsg = await _context.Set<Message>().FirstOrDefaultAsync(x => x.MessageId == parentId);
-            
-            if (parentMsg is not null)
-            {
+
+            if (parentMsg is not null) {
                 incidentActivationId = parentMsg.IncidentActivationId;
             }
         }
 
-        var saveMessage = new Message
-        {
+        var saveMessage = new Message {
             CompanyId = companyId,
             MessageText = !string.IsNullOrEmpty(msgText) ? msgText.Trim() : string.Empty,
             MessageType = messageType,
@@ -160,29 +142,23 @@ public class MessageRepository : IMessageRepository
     }
 
     public async Task CreateIncidentNotificationList(int incidentActivationId, int messageId,
-        ICollection<IncidentNotificationObjLst> launchIncidentNotificationObjLst, int currentUserId, int companyId)
-    {
+        ICollection<IncidentNotificationObjLst> launchIncidentNotificationObjLst, int currentUserId, int companyId) {
         var oldNotifyList = await _context.Set<IncidentNotificationList>()
             .Where(x => x.CompanyId == companyId && x.IncidentActivationId == incidentActivationId)
             .ToListAsync();
 
         var toDeleteList = new List<int>();
-        foreach (var incidentNotificationList in launchIncidentNotificationObjLst)
-        {
-            if (incidentNotificationList.ObjectMappingId > 0)
-            {
+        foreach (var incidentNotificationList in launchIncidentNotificationObjLst) {
+            if (incidentNotificationList.ObjectMappingId > 0) {
                 var isExists = oldNotifyList
-                    .FirstOrDefault(s => s.CompanyId == companyId 
-                                         && s.IncidentActivationId == incidentActivationId 
-                                         && s.ObjectMappingId == incidentNotificationList.ObjectMappingId 
+                    .FirstOrDefault(s => s.CompanyId == companyId
+                                         && s.IncidentActivationId == incidentActivationId
+                                         && s.ObjectMappingId == incidentNotificationList.ObjectMappingId
                                          && s.SourceObjectPrimaryId == incidentNotificationList.SourceObjectPrimaryId
                                          && s.Status == 1);
-                if (isExists is not null)
-                {
+                if (isExists is not null) {
                     toDeleteList.Add(isExists.IncidentNotificationListId);
-                }
-                else
-                {
+                } else {
                     CreateIncidentNotificationList(messageId, incidentActivationId,
                         incidentNotificationList.ObjectMappingId,
                         incidentNotificationList.SourceObjectPrimaryId, currentUserId, companyId);
@@ -190,11 +166,9 @@ public class MessageRepository : IMessageRepository
             }
         }
 
-        foreach (var incidentNotificationList in oldNotifyList)
-        {
+        foreach (var incidentNotificationList in oldNotifyList) {
             var isDel = toDeleteList.Any(s => s == incidentNotificationList.IncidentNotificationListId);
-            if (!isDel)
-            {
+            if (!isDel) {
                 _context.Remove(incidentNotificationList);
             }
         }
@@ -203,10 +177,8 @@ public class MessageRepository : IMessageRepository
     }
 
     public async Task CreateIncidentNotificationList(int messageId, int incidentActivationId, int mappingId, int sourceId,
-        int currentUserId, int companyId)
-    {
-        var incidentNotificationList = new IncidentNotificationList
-        {
+        int currentUserId, int companyId) {
+        var incidentNotificationList = new IncidentNotificationList {
             CompanyId = companyId,
             IncidentActivationId = incidentActivationId,
             ObjectMappingId = mappingId,
@@ -221,5 +193,18 @@ public class MessageRepository : IMessageRepository
 
         await _context.AddAsync(incidentNotificationList);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<UserMessageCount> GetNotificationsCount(int userId) {
+        UserMessageCount result = new UserMessageCount();
+        try {
+            var pUserId = new SqlParameter("@UserID", userId);
+            var response = _context.Set<UserMessageCount>().FromSqlRaw("exec User_Get_Message_Count {0}", pUserId).ToList().FirstOrDefault();
+            if (response != null)
+                return response;
+        } catch (Exception ex) {
+
+        }
+        return result;
     }
 }
