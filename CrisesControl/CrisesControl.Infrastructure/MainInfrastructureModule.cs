@@ -12,6 +12,7 @@ using CrisesControl.Core.AssetAggregate.Respositories;
 using CrisesControl.Core.Incidents.Services;
 using CrisesControl.Core.Messages.Services;
 using CrisesControl.Infrastructure.Services;
+using CrisesControl.Core.Billing.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -54,6 +55,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<ActiveIncidentRepository>().As<IActiveIncidentRepository>();
             builder.RegisterType<MessageRepository>().As<IMessageRepository>();
             builder.RegisterType<AssetRespository>().As<IAssetRepository>();
+            builder.RegisterType<BillingRespository>().As<IBillingRepository>();
 
 
             builder.RegisterType<MessageService>().As<IMessageService>();
