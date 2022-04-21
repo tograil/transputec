@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -142,5 +143,17 @@ public class CompanyRepository : ICompanyRepository
         compnayrtn.ErrorId = 0;
         compnayrtn.Message = "CompanyView";
         return compnayrtn;
+    }
+
+    public async Task<List<CommsMethod>> GetCommsMethod() {
+        List<CommsMethod> result = new List<CommsMethod>();
+        try {
+            var response = await _context.Set<CommsMethod>().FromSqlRaw("exec Pro_Get_Comms_Methods").ToListAsync();
+            if (response != null)
+                return response;
+        } catch (Exception ex) {
+
+        }
+        return result;
     }
 }

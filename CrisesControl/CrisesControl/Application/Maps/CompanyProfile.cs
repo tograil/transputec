@@ -20,5 +20,6 @@ public class CompanyProfile : Profile
 
         CreateMap<GetCompanyRequest, CompanyRequestInfo>();
         CreateMap<CompanyInfoReturn, GetCompanyResponse>();
+
     }
 }

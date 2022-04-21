@@ -12,4 +12,5 @@ public interface ICompanyRepository
     Task<string> GetCompanyParameter(string key, int companyId, string @default = "", string customerId = "");
     Task<int> CreateCompany(Company company, CancellationToken token);
     Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token);
+    Task<List<CommsMethod>> GetCommsMethod();
 }

@@ -1,5 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.Companies.GetCompany;
-using CrisesControl.Api.Application.Query;
+﻿using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
+using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +19,13 @@ public class CompanyController : Controller {
     [HttpGet]
     [Route("{CompanyId:int}")]
     public async Task<IActionResult> GetCompany([FromRoute] GetCompanyRequest request, CancellationToken cancellationToken) {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    [Route("GetCommsMethod")]
+    public async Task<IActionResult> GetCommsMethod([FromRoute] GetCommsMethodRequest request, CancellationToken cancellationToken) {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.ViewModels.Company;
 using CrisesControl.Core.Companies;
@@ -52,5 +53,14 @@ public class CompanyQuery : ICompanyQuery {
         var companyInfo = await _companyRepository.GetCompany(companyRequest, cancellationToken);
         var result = _mapper.Map<GetCompanyResponse>(companyInfo);
         return result;
-    }    
+    }
+
+    public async Task<GetCommsMethodResponse> GetCommsMethod(CancellationToken cancellationToken) {
+        var methods = await _companyRepository.GetCommsMethod();
+        var response = _mapper.Map<List<CommsMethod>>(methods);
+        var result = new GetCommsMethodResponse();
+        result.Data = response;
+        result.ErrorCode = "0";
+        return result;
+    }
 }
