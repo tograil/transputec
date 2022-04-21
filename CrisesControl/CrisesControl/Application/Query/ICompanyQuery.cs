@@ -9,5 +9,5 @@ public interface ICompanyQuery
 {
     public Task<IEnumerable<CompanyInfo>> GetCompanyList(int? status, string? companyProfile);
     public Task<GetCompanyResponse> GetCompany(GetCompanyRequest request, CancellationToken cancellationToken);
-    Task<GetCommsMethodResponse> GetCommsMethod(CancellationToken cancellationToken);
+    public Task<GetCommsMethodResponse> GetCommsMethod(CancellationToken cancellationToken);
 }
