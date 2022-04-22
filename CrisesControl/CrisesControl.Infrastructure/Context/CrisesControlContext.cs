@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using CrisesControl.Core.Billing;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrisesControlContext).Assembly);
 
             modelBuilder.Entity<NewIncident>().HasNoKey();
+            modelBuilder.Entity<CompanySubscribedMethod>().HasNoKey();
         }
     }
 }
