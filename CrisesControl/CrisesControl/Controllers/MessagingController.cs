@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CrisesControl.Api.Controllers {
     [ApiController]
     [Route("/api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class MessagingController : Controller {
         private readonly IMediator _mediator;
 
