@@ -101,4 +101,11 @@ public class CompanyRepository : ICompanyRepository
 
         return company.CompanyId;
     }
+
+    public async Task<string> GetTimeZone(int companyId)
+    {
+        return (await _context.Set<Company>()
+            .Include(x => x.StdTimeZone)
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId))?.StdTimeZone?.ZoneLabel ?? "GMT Standard Time";
+    }
 }

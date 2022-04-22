@@ -6,15 +6,20 @@ namespace CrisesControl.Api.Application.Query;
 public class CompanyQuery : ICompanyQuery
 {
     private readonly ICompanyRepository _companyRepository;
+    private readonly ILogger<CompanyQuery> _logger;
 
-    public CompanyQuery(ICompanyRepository companyRepository)
+    public CompanyQuery(ICompanyRepository companyRepository,
+        ILogger<CompanyQuery> logger)
     {
         _companyRepository = companyRepository;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<CompanyInfo>> GetCompanyList(int? status, string? companyProfile)
     {
         var companies = await _companyRepository.GetAllCompanyList(status, companyProfile);
+
+        _logger.LogInformation("Company list return requested");
 
         return companies.Select(c =>
         {
