@@ -1,7 +1,4 @@
-﻿using CrisesControl.Api.Application.Commands.Billing.GetPaymentProfile;
-using CrisesControl.Api.Application.Query;
-using CrisesControl.Core.Companies.Repositories;
-using CrisesControl.Core.Models;
+﻿using CrisesControl.Api.Application.Query;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Companies.GetCommsMethod {

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
@@ -8,6 +10,7 @@ using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
@@ -15,10 +18,17 @@ using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 namespace CrisesControl.Infrastructure.Repositories;
 
 public class MessageRepository : IMessageRepository {
-    private readonly CrisesControlContext _context;
 
-    public MessageRepository(CrisesControlContext context) {
+    private int UserID;
+    private int CompanyID;
+    private readonly string TimeZoneId = "GMT Standard Time";
+
+    private readonly CrisesControlContext _context;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public MessageRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor) {
         _context = context;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0) {
@@ -206,5 +216,99 @@ public class MessageRepository : IMessageRepository {
 
         }
         return result;
+    }
+
+    public async Task<CompanyMessageResponse> GetMessageResponse(int responseID, string messageType) {
+        CompanyMessageResponse companyMessageResponse = new CompanyMessageResponse();
+        try {
+            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pResponseID = new SqlParameter("@ResponseID", responseID.ToString());
+            var pmessageType = new SqlParameter("@MessageType", messageType);
+            var pStatus = new SqlParameter("@Status", -1);
+
+            var option = _context.Set<CompanyMessageResponse>().FromSqlRaw("exec Pro_Message_Response_Select {0},{1},{2},{3}", 
+                pCompanyID, pResponseID, pmessageType, pStatus).ToList().FirstOrDefault();
+
+            if (option != null)
+                return option;
+
+        } catch (Exception) {
+
+            throw;
+        }
+        return companyMessageResponse;
+    }
+
+    public async Task<List<CompanyMessageResponse>> GetMessageResponses(string messageType, int Status = 1) {
+        try {
+
+            UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pResponseID = new SqlParameter("@ResponseID", "0");
+            var pmessageType = new SqlParameter("@MessageType", messageType);
+            var pStatus = new SqlParameter("@Status", Status);
+
+            var option_list = await _context.Set<CompanyMessageResponse>().FromSqlRaw("exec Pro_Message_Response_Select {0},{1},{2},{3}",
+                pCompanyID, pResponseID, pmessageType, pStatus).ToListAsync();
+
+            return option_list;
+
+        } catch (Exception) {
+
+            throw;
+        }
+    }
+
+    public async Task<List<LibMessageResponse>> GetLibMessageResponse() {
+        try {
+            var rsps = (from MR in _context.Set<LibMessageResponse>() select MR).ToList();
+            return rsps;
+        } catch (Exception) {
+
+            throw;
+        }
+    }
+
+    public async Task CopyMessageResponse(int CompanyID, int CurrentUserId, string TimeZoneID, CancellationToken token) {
+        try {
+            var rsps = await GetLibMessageResponse();
+            foreach (var rsp in rsps) {
+                int responseid = await CreateMessageResponse(rsp.ResponseLabel, (bool)rsp.IsSafetyOption, rsp.MessageType,
+                    "NONE", rsp.Status, CurrentUserId, CompanyID, TimeZoneID, token);
+            }
+        } catch (Exception) {
+
+            throw;
+        }
+    }
+
+    public async Task<int> CreateMessageResponse(string ResponseLabel, bool SOSEvent, string MessageType, string SafetyAction, int Status,
+            int CurrentUserId, int CompanyID, string TimeZoneId, CancellationToken token) {
+        try {
+
+            CompanyMessageResponse msgResponse = new CompanyMessageResponse();
+            msgResponse.ResponseLabel = ResponseLabel;
+            msgResponse.Description = ResponseLabel;
+            msgResponse.IsSafetyResponse = SOSEvent;
+            msgResponse.SafetyAckAction = SafetyAction;
+            msgResponse.MessageType = MessageType;
+            msgResponse.Status = Status;
+            msgResponse.UpdatedBy = CurrentUserId;
+            msgResponse.CompanyId = CompanyID;
+            msgResponse.UpdatedOn = DateTimeOffset.UtcNow;
+
+            await _context.AddAsync(msgResponse, token);
+
+            await _context.SaveChangesAsync(token);
+
+            return msgResponse.ResponseId;
+        } catch (Exception) {
+
+            throw;
+        }
     }
 }
