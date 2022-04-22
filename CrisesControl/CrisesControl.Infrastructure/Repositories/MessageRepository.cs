@@ -311,4 +311,25 @@ public class MessageRepository : IMessageRepository {
             throw;
         }
     }
+
+    public async Task<List<UserMessageList>> GetMessages(int targetUserId, string? messageType, int incidentActivationId) {
+        try {
+
+            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pUserId = new SqlParameter("@UserID", targetUserId);
+            var pmessageType = new SqlParameter("@MessageType", messageType);
+            var pIncidentId = new SqlParameter("@IncidentActivationId", incidentActivationId);
+
+            var result = await _context.Set<UserMessageList>().FromSqlRaw("exec Pro_User_Ping {0},{1},{2},{3}",
+                pCompanyID, pUserId, pmessageType, pIncidentId).ToListAsync();
+
+            return result;
+
+        } catch (Exception) {
+
+            throw;
+        }
+    }
 }

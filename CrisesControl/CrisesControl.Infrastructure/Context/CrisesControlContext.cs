@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
-using CrisesControl.Core.Billing;
+﻿using CrisesControl.Core.Billing;
 using CrisesControl.Core.Incidents;
-using CrisesControl.Core.Models;
+using CrisesControl.Core.Messages;
+using CrisesControl.Core.Users;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Object = CrisesControl.Core.Models.Object;
+
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -27,6 +26,9 @@ namespace CrisesControl.Infrastructure.Context
 
             modelBuilder.Entity<NewIncident>().HasNoKey();
             modelBuilder.Entity<CompanySubscribedMethod>().HasNoKey();
+            modelBuilder.Entity<UserMessageList>().HasNoKey().Ignore("SentBy");
+            modelBuilder.Entity<UserFullName>().HasNoKey();
+
         }
     }
 }

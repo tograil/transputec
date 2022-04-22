@@ -38,4 +38,5 @@ public interface IMessageRepository
     Task<List<LibMessageResponse>> GetLibMessageResponse();
 
     Task CopyMessageResponse(int CompanyID, int CurrentUserId, string TimeZoneID, CancellationToken token);
+    Task<List<UserMessageList>> GetMessages(int targetUserId, string? messageType, int incidentActivationId);
 }
