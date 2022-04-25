@@ -13,6 +13,7 @@ using CrisesControl.Core.Incidents.Services;
 using CrisesControl.Core.Messages.Services;
 using CrisesControl.Infrastructure.Services;
 using CrisesControl.Core.Billing.Repositories;
+using CrisesControl.Core.Reports.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -56,10 +57,9 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<MessageRepository>().As<IMessageRepository>();
             builder.RegisterType<AssetRespository>().As<IAssetRepository>();
             builder.RegisterType<BillingRespository>().As<IBillingRepository>();
-
-
             builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<ActiveIncidentTaskService>().As<IActiveIncidentTaskService>();
+            builder.RegisterType<ReportRepository>().As<IReportsRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

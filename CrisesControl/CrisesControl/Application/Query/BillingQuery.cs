@@ -7,8 +7,10 @@ namespace CrisesControl.Api.Application.Query {
     public class BillingQuery : IBillingQuery  {
         private readonly IBillingRepository _billingRepository;
         private readonly IMapper _mapper;
+        private readonly ILogger<BillingQuery> _logger;
 
-        public BillingQuery(IBillingRepository billingRepository, IMapper mapper) {
+        public BillingQuery(IBillingRepository billingRepository, IMapper mapper,
+            ILogger<BillingQuery> logger) {
             _mapper = mapper;
             _billingRepository = billingRepository;
         }
