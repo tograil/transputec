@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Core.Billing;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
+using CrisesControl.Core.Reports;
 using CrisesControl.Core.Users;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,7 +29,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanySubscribedMethod>().HasNoKey();
             modelBuilder.Entity<UserMessageList>().HasNoKey().Ignore("SentBy");
             modelBuilder.Entity<UserFullName>().HasNoKey();
-
+            modelBuilder.Entity<SOSItem>().HasNoKey();
+            
         }
     }
 }
