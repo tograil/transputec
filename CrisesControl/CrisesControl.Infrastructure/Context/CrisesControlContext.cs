@@ -3,6 +3,7 @@ using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Users;
+using CrisesControl.Core.Communication;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -30,7 +31,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<UserMessageList>().HasNoKey().Ignore("SentBy");
             modelBuilder.Entity<UserFullName>().HasNoKey();
             modelBuilder.Entity<SOSItem>().HasNoKey();
-            
+            modelBuilder.Entity<ConferenceDetails>().HasNoKey();
+
         }
     }
 }
