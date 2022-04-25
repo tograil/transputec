@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Core.Billing;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Reports;
@@ -30,7 +31,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<UserMessageList>().HasNoKey().Ignore("SentBy");
             modelBuilder.Entity<UserFullName>().HasNoKey();
             modelBuilder.Entity<SOSItem>().HasNoKey();
-            
+            modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
+
         }
     }
 }
