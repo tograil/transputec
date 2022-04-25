@@ -10,6 +10,8 @@ using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Repositories;
 using CrisesControl.Core.AssetAggregate.Respositories;
 using CrisesControl.Core.Incidents.Services;
+using CrisesControl.Core.Jobs.Repositories;
+using CrisesControl.Core.Jobs.Services;
 using CrisesControl.Core.Messages.Services;
 using CrisesControl.Infrastructure.Services;
 
@@ -54,10 +56,13 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<ActiveIncidentRepository>().As<IActiveIncidentRepository>();
             builder.RegisterType<MessageRepository>().As<IMessageRepository>();
             builder.RegisterType<AssetRespository>().As<IAssetRepository>();
+            builder.RegisterType<JobRepository>().As<IJobRepository>();
+            builder.RegisterType<JobScheduleRepository>().As<IJobScheduleRepository>();
 
 
             builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<ActiveIncidentTaskService>().As<IActiveIncidentTaskService>();
+            builder.RegisterType<ScheduleService>().As<IScheduleService>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)
