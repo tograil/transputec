@@ -39,4 +39,10 @@ public interface IIncidentRepository
     Task CopyIncidentToCompany(int companyId, int userId, string timeZoneId = "GMT Standard Time");
 
     Task<string> GetStatusName(int status);
+    List<IncidentList> GetCompanyIncident(int CompanyId, int UserID);
+    Task <List<IncidentTypeReturn>> CompanyIncidentType(int CompanyId);
+    List<AffectedLocation> GetAffectedLocation(int CompanyId, string? LocationType);
+    List<AffectedLocation> GetIncidentLocation(int CompanyId, int IncidentActivationId);
+    List<CommsMethods> GetIncidentComms(int ItemID, string Type);
+    IncidentDetails GetIncidentById(int CompanyId, int UserID, int IncidentId, string UserStatus);
 }

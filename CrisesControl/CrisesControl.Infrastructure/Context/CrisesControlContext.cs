@@ -25,6 +25,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrisesControlContext).Assembly);
 
             modelBuilder.Entity<NewIncident>().HasNoKey();
+            //modelBuilder.Entity<UpdateIncidentStatusReturn>().HasNoKey();
         }
     }
 }

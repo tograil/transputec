@@ -31,7 +31,6 @@
 
   <ItemGroup>
     <Folder Include="Application\Commands\Incidents\AddCompanyIncident\" />
-    <Folder Include="Application\Commands\Common\" />
     <Folder Include="Application\Commands\Incidents\CloneIncident\" />
     <Folder Include="Application\Commands\Incidents\CopyIncident\" />
     <Folder Include="Application\Commands\Incidents\InitiateCompanyIncident\" />

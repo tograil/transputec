@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Incidents.Repositories;
@@ -28,4 +29,6 @@ public interface IActiveIncidentRepository
     Task CreateActiveCheckList(int activeIncidentTaskId, int incidentTaskId, int userId, string timeZoneId = "GMT Standard Time");
 
     Task CreateTaskRecipient(int activeIncidentId, int activeIncidentTaskId, int incidentTaskId);
+
+    List<UpdateIncidentStatusReturn> GetCompanyActiveIncident(int CompanyID, int UserID, string Status, int RecordStart = 0, int RecordLength = 100, string SearchString = "", string OrderBy = "Name", string OrderDir = "asc");
 }
