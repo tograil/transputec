@@ -21,6 +21,7 @@ namespace CrisesControl.Api.Controllers
             this._communicationQuery=communicationQuery;
         }
         [HttpGet]
+        [Route("GetUserActiveConferrenceList")]
         public async Task<IActionResult> GetUserActiveConferrenceList([FromQuery] GetUserActiveConferenceListRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

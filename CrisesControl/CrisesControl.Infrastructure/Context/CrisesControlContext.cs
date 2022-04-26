@@ -5,7 +5,7 @@ using CrisesControl.Core.Reports;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Communication;
 using Microsoft.EntityFrameworkCore;
-
+using CrisesControl.Core.Security;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -32,6 +32,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<UserFullName>().HasNoKey();
             modelBuilder.Entity<SOSItem>().HasNoKey();
             modelBuilder.Entity<ConferenceDetails>().HasNoKey();
+            modelBuilder.Entity<CompanySecurityGroup>().HasNoKey();
 
         }
     }
