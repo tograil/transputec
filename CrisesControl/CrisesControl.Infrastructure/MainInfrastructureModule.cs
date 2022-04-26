@@ -16,6 +16,7 @@ using CrisesControl.Core.Billing.Repositories;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Communication.Repositories;
 using CrisesControl.Core.Security;
+using CrisesControl.Core.CompanyParameters.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -64,6 +65,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<ReportRepository>().As<IReportsRepository>();
             builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
             builder.RegisterType<SecurityRepository>().As<ISecurityRepository>();
+            builder.RegisterType<CompanyParametersRepository>().As<ICompanyParametersRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

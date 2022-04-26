@@ -6,6 +6,7 @@ using CrisesControl.Core.Users;
 using CrisesControl.Core.Communication;
 using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
+using CrisesControl.Core.CompanyParameters;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -33,6 +34,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<SOSItem>().HasNoKey();
             modelBuilder.Entity<ConferenceDetails>().HasNoKey();
             modelBuilder.Entity<CompanySecurityGroup>().HasNoKey();
+            modelBuilder.Entity<CommsMethodPriority>().HasNoKey();
+            modelBuilder.Entity<CascadingPlanReturn>().HasNoKey();
 
         }
     }
