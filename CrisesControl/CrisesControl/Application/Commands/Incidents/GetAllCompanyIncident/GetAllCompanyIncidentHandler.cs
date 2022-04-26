@@ -1,11 +1,12 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using CrisesControl.Api.Application.Commands.Common;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Incidents.Repositories;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Incidents.GetAllCompanyIncident;
 
 public class GetAllCompanyIncidentHandler 
-    : IRequestHandler<GetAllCompanyIncidentRequest, GetAllCompanyIncidentResponse>
+    : IRequestHandler<GetAllCompanyIncidentRequest, BaseResponse>
 {
     private readonly IIncidentRepository _incidentRepository;
     private readonly ICurrentUser _currentUser;
@@ -17,13 +18,13 @@ public class GetAllCompanyIncidentHandler
         _currentUser = currentUser;
     }
 
-    public async Task<GetAllCompanyIncidentResponse> Handle(GetAllCompanyIncidentRequest request, CancellationToken cancellationToken)
+    public async Task<BaseResponse> Handle(GetAllCompanyIncidentRequest request, CancellationToken cancellationToken)
     {
         var IncidentDtl = _incidentRepository.GetCompanyIncident(_currentUser.CompanyId, request.QUserId > 0 ? request.QUserId : _currentUser.UserId);
 
         if (IncidentDtl != null)
         {
-            return new GetAllCompanyIncidentResponse()
+            return new BaseResponse()
             {
                 Data = IncidentDtl,
                 ErrorCode = "0"
@@ -31,10 +32,11 @@ public class GetAllCompanyIncidentHandler
         }
         else
         {
-            return new GetAllCompanyIncidentResponse()
+            return new BaseResponse()
             {
                 Data = IncidentDtl,
-                ErrorCode = "110"
+                ErrorCode = "110",
+                Message = "No record found."
             };
         }
     }

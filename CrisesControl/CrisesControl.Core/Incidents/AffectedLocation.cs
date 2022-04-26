@@ -8,6 +8,6 @@ public class AffectedLocation
     public string Lat { get; set; }
     public string Lng { get; set; }
     public string LocationType { get; set; }
-    public int ImpactedLocationID { get; set; }
-    public int IncidentActivationID { get; set; }
+    public int? ImpactedLocationID { get; set; }
+    public int? IncidentActivationID { get; set; }
 }
