@@ -40,6 +40,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CascadingPlanReturn>().HasNoKey();
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
+            modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
+            
         }
     }
 }

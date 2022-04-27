@@ -49,3 +49,4 @@ namespace CrisesControl.Api.Application.Query {
         }
     }
 }
+

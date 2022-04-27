@@ -10,10 +10,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Infrastructure.Repositories
-{
-    public class CompanyParametersRepository : ICompanyParametersRepository
-    {
+namespace CrisesControl.Infrastructure.Repositories {
+    public class CompanyParametersRepository : ICompanyParametersRepository {
         private readonly CrisesControlContext _context;
         public CompanyParametersRepository(CrisesControlContext context)
         {
