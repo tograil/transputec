@@ -27,6 +27,8 @@ public class ApiModule : Module
         builder.RegisterType<UserQuery>().As<IUserQuery>();
         builder.RegisterType<MessageQuery>().As<IMessageQuery>();
         builder.RegisterType<ReportsQuery>().As<IReportsQuery>();
+        builder.RegisterType<CommunicationQuery>().As<ICommunicationQuery>();
+        builder.RegisterType<SecurityQuery>().As<ISecurityQuery>();
         builder.RegisterType<CompanyParametersQuery>().As<ICompanyParametersQuery>();
 
 
