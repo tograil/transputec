@@ -30,6 +30,7 @@ public class ApiModule : Module
         builder.RegisterType<CommunicationQuery>().As<ICommunicationQuery>();
         builder.RegisterType<SecurityQuery>().As<ISecurityQuery>();
         builder.RegisterType<CompanyParametersQuery>().As<ICompanyParametersQuery>();
+        builder.RegisterType<CommunicationQuery>().As<ICommunicationQuery>();
 
 
         builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>();
