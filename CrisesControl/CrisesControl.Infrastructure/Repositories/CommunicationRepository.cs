@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using CrisesControl.Core.Communication;
 using CrisesControl.Core.Communication.Repositories;
+using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
@@ -16,10 +18,10 @@ namespace CrisesControl.Infrastructure.Repositories {
     public class CommunicationRepository : ICommunicationRepository {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-
+        
         private int UserID;
         private int CompanyID;
-
+            
         public CommunicationRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor) {
             _context = context;
             _httpContextAccessor = httpContextAccessor;

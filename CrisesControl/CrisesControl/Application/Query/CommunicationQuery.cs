@@ -8,6 +8,10 @@ namespace CrisesControl.Api.Application.Query {
     public class CommunicationQuery : ICommunicationQuery {
         private readonly ICommunicationRepository _communicationRepository;
         private readonly IMapper _mapper;
+        public CommunicationQuery(ICommunicationRepository communicationRepository, IMapper mapper)
+        {
+            this._communicationRepository = communicationRepository;
+            this._mapper = mapper;
 
         public CommunicationQuery(ICommunicationRepository communicationRepository, IMapper mapper,
            ILogger<BillingQuery> logger) {
