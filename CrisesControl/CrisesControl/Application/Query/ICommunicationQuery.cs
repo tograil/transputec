@@ -2,6 +2,6 @@
 
 namespace CrisesControl.Api.Application.Query {
     public interface ICommunicationQuery {
-        public Task<GetUserActiveConferencesResponse> GetUserActiveConferences(GetUserActiveConferencesRequest request);
+        public Task<GetUserActiveConferencesResponse> GetUserActiveConferences();
     }
 }
