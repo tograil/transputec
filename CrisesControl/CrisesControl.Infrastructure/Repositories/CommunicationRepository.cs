@@ -18,10 +18,10 @@ namespace CrisesControl.Infrastructure.Repositories {
     public class CommunicationRepository : ICommunicationRepository {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-
+        
         private int UserID;
         private int CompanyID;
-
+            
         public CommunicationRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor) {
             _context = context;
             _httpContextAccessor = httpContextAccessor;

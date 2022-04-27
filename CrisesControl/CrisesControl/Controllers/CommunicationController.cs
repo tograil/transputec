@@ -10,7 +10,6 @@ namespace CrisesControl.Api.Controllers {
     [Authorize]
     public class CommunicationController : Controller {
         private readonly IMediator _mediator;
-        private readonly ICommunicationQuery _communicationQuery;
 
         public CommunicationController(IMediator mediator) {
             _mediator = mediator;

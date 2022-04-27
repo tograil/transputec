@@ -1,14 +1,14 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.CompanyParameters.GetCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.GetCompanyFTP;
+using CrisesControl.Api.Application.Commands.CompanyParameters.GetAllCompanyParameters;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Models;
 
-namespace CrisesControl.Api.Application.Query
-{
-    public class CompanyParametersQuery : ICompanyParametersQuery
-    {
+namespace CrisesControl.Api.Application.Query {
+    public class CompanyParametersQuery : ICompanyParametersQuery {
+
         private readonly ICompanyParametersRepository _companyParametersRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<CompanyParametersQuery> _logger;
@@ -39,13 +39,14 @@ namespace CrisesControl.Api.Application.Query
             return result;
         }
 
-public async Task<GetAllCompanyParametersResponse> GetAllCompanyParameters(GetAllCompanyParametersRequest request) {
-    var msgresponse = await _companyParamsRepository.GetAllCompanyParameters(request.CompanyId);
-    var response = _mapper.Map<List<CompanyParameterItem>>(msgresponse);
-    var result = new GetAllCompanyParametersResponse();
-    result.Data = response;
-    result.ErrorCode = "0";
-    return result;
-}
+        public async Task<GetAllCompanyParametersResponse> GetAllCompanyParameters(GetAllCompanyParametersRequest request) {
+            var msgresponse = await _companyParametersRepository.GetAllCompanyParameters(request.CompanyId);
+            var response = _mapper.Map<List<CompanyParameterItem>>(msgresponse);
+            var result = new GetAllCompanyParametersResponse();
+            result.Data = response;
+            result.ErrorCode = "0";
+            return result;
+        }
     }
 }
+
