@@ -6,11 +6,9 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetSOSItems {
     public class GetSOSItemsHandler : IRequestHandler<GetSOSItemsRequest, GetSOSItemsResponse> {
 
         private readonly IReportsQuery _reportsQuery;
-        private readonly IMapper _mapper;
 
-        public GetSOSItemsHandler(IReportsQuery reportsQuery, IMapper mapper) {
+        public GetSOSItemsHandler(IReportsQuery reportsQuery) {
             _reportsQuery = reportsQuery;
-            _mapper = mapper;
         }
 
         public async Task<GetSOSItemsResponse> Handle(GetSOSItemsRequest request, CancellationToken cancellationToken) {

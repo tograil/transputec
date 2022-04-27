@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.CompanyParameters.GetCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.GetCompanyFTP;
+using CrisesControl.Api.Application.Commands.CompanyParameters.GetAllCompanyParameters;
 using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -33,6 +34,21 @@ namespace CrisesControl.Api.Controllers
         public async Task<IActionResult> GetCompanyFTP([FromQuery] GetCompanyFTPRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get all the company parameters by company id.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("{CompanyId:int}")]
+        public async Task<IActionResult> GetAllCompanyParameters([FromRoute] GetAllCompanyParametersRequest request, CancellationToken cancellationToken) {
+            var result = await _mediator.Send(request, cancellationToken);
+
             return Ok(result);
         }
     }

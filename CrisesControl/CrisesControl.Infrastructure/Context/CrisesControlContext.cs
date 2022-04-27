@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Core.Billing;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Reports;
@@ -36,6 +37,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanySecurityGroup>().HasNoKey();
             modelBuilder.Entity<CommsMethodPriority>().HasNoKey();
             modelBuilder.Entity<CascadingPlanReturn>().HasNoKey();
+            modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
 
         }
     }

@@ -87,5 +87,17 @@ namespace CrisesControl.Infrastructure.Repositories
                 return null;
             }
         }
+
+        public async Task<List<CompanyParameterItem>> GetAllCompanyParameters(int companyId) {
+            try {
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+
+                var result = await _context.Set<CompanyParameterItem>().FromSqlRaw("exec Pro_Company_GetAllCompanyParameters {0}", pCompanyID).ToListAsync();
+                return result;
+            } catch (Exception ex) {
+                return null;
+            }
+
+        }
     }
 }
