@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Api.Application.Commands.Communication.GetUserActiveConferences;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CrisesControl.Api.Controllers {
@@ -9,6 +10,7 @@ namespace CrisesControl.Api.Controllers {
     [Authorize]
     public class CommunicationController : Controller {
         private readonly IMediator _mediator;
+        private readonly ICommunicationQuery _communicationQuery;
 
         public CommunicationController(IMediator mediator) {
             _mediator = mediator;

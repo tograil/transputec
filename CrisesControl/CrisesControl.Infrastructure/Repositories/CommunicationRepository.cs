@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using CrisesControl.Core.Communication;
 using CrisesControl.Core.Communication.Repositories;
+using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
@@ -24,8 +26,10 @@ namespace CrisesControl.Infrastructure.Repositories {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
         }
+
         public async Task<List<UserConferenceItem>> GetUserActiveConferences() {
             try {
+
                 UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
                 CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
 
@@ -40,5 +44,6 @@ namespace CrisesControl.Infrastructure.Repositories {
                 throw;
             }
         }
+
     }
 }
