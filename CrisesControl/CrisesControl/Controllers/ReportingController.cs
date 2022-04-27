@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
+﻿using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
+using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -26,6 +27,20 @@ namespace CrisesControl.Api.Controllers {
         [HttpGet]
         [Route("GetSOSItems")]
         public async Task<IActionResult> GetSOSItems([FromRoute] GetSOSItemsRequest request, CancellationToken cancellationToken) {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get the stats data for the dashboard charts
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetIncidentPingStats/{CompanyId:int}/{NoOfMonth:int}")]
+        public async Task<IActionResult> GetIncidentPingStats([FromRoute] GetIncidentPingStatsRequest request, CancellationToken cancellationToken) {
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);
