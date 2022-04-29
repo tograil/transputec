@@ -1,4 +1,6 @@
 ﻿using CrisesControl.Core.Billing;
+using CrisesControl.Core.Communication;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Reports;
@@ -41,6 +43,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<JobSchedulerVM>().HasNoKey();
             modelBuilder.Entity<ExTriggerList>().HasNoKey();
 
+            modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
+            modelBuilder.Entity<UserConferenceItem>().HasNoKey();
+            modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
+            
         }
     }
 }

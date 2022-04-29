@@ -10,10 +10,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Infrastructure.Repositories
-{
-    public class CompanyParametersRepository : ICompanyParametersRepository
-    {
+namespace CrisesControl.Infrastructure.Repositories {
+    public class CompanyParametersRepository : ICompanyParametersRepository {
         private readonly CrisesControlContext _context;
         public CompanyParametersRepository(CrisesControlContext context)
         {
@@ -86,6 +84,18 @@ namespace CrisesControl.Infrastructure.Repositories
                 Console.WriteLine(ex.Message);
                 return null;
             }
+        }
+
+        public async Task<List<CompanyParameterItem>> GetAllCompanyParameters(int companyId) {
+            try {
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+
+                var result = await _context.Set<CompanyParameterItem>().FromSqlRaw("exec Pro_Company_GetAllCompanyParameters {0}", pCompanyID).ToListAsync();
+                return result;
+            } catch (Exception ex) {
+                return null;
+            }
+
         }
     }
 }

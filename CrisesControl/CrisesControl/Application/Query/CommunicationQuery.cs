@@ -1,27 +1,25 @@
 ﻿using AutoMapper;
-using CrisesControl.Api.Application.Commands.Communication.GetUserActiveConferenceList;
+using CrisesControl.Api.Application.Commands.Communication.GetUserActiveConferences;
 using CrisesControl.Core.Communication;
 using CrisesControl.Core.Communication.Repositories;
-using CrisesControl.Core.Models;
 
-namespace CrisesControl.Api.Application.Query
-{
-    public class CommunicationQuery : ICommunicationQuery
-    {
+namespace CrisesControl.Api.Application.Query {
+    public class CommunicationQuery : ICommunicationQuery {
         private readonly ICommunicationRepository _communicationRepository;
         private readonly IMapper _mapper;
-        public CommunicationQuery(ICommunicationRepository communicationRepository, IMapper mapper)
-        {
-            this._communicationRepository = communicationRepository;
-            this._mapper = mapper;
 
+        public CommunicationQuery(ICommunicationRepository communicationRepository, IMapper mapper,
+           ILogger<BillingQuery> logger) {
+            _mapper = mapper;
+            _communicationRepository = communicationRepository;
         }
-        public async Task<GetUserActiveConferenceListResponse> GetUserActiveConferenceList(GetUserActiveConferenceListRequest request)
-        {
-            var conferences = await _communicationRepository.GetUserActiveConferenceList(request.UserID, request.CompanyID);
-            List<GetUserActiveConferenceListResponse> response = _mapper.Map<List<ConferenceDetails>, List<GetUserActiveConferenceListResponse>>(conferences.ToList());
-            var result = new GetUserActiveConferenceListResponse();
+
+        public async Task<GetUserActiveConferencesResponse> GetUserActiveConferences(GetUserActiveConferencesRequest request) {
+            var conflist = await _communicationRepository.GetUserActiveConferences();
+            var response = _mapper.Map<List<UserConferenceItem>>(conflist);
+            var result = new GetUserActiveConferencesResponse();
             result.Data = response;
+            result.ErrorCode = "0";
             return result;
         }
     }

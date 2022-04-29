@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Reports;
+﻿using CrisesControl.Core.Models;
+using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.AspNetCore.Http;
@@ -38,6 +39,21 @@ namespace CrisesControl.Infrastructure.Repositories {
             } catch (Exception ex) {
                 return null;
             }
+        }
+
+        public async Task<List<IncidentPingStatsCount>> GetIncidentPingStats(int CompanyID, int NoOfMonth) {
+            try {
+
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pNoOfMonth = new SqlParameter("@NoOfMonth", NoOfMonth);
+
+                var result = await _context.Set<IncidentPingStatsCount>().FromSqlRaw("exec Pro_Report_Dashboard_Incident_Ping_Stats_ByMonth {0},{1}", pCompanyID, pNoOfMonth).ToListAsync();
+                return result;
+
+
+            } catch (Exception ex) {
+            }
+            return new List<IncidentPingStatsCount>();
         }
     }
 }
