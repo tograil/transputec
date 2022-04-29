@@ -8,7 +8,7 @@ namespace CrisesControl.Api.Application.Commands.CompanyParameters.GetCascading
         {
             RuleFor(x => x.CompanyID)
                 .GreaterThan(0);
-            RuleFor(x => x.PlanType != "" || string.IsNullOrEmpty(x.PlanType));
+            RuleFor(x => x.PlanType != "" || !string.IsNullOrEmpty(x.PlanType));
         }
     }
 }

@@ -17,6 +17,8 @@ using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Communication.Repositories;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.Scheduler.Repositories;
+using CrisesControl.Core.ExTriggers.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -66,6 +68,8 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
             builder.RegisterType<SecurityRepository>().As<ISecurityRepository>();
             builder.RegisterType<CompanyParametersRepository>().As<ICompanyParametersRepository>();
+            builder.RegisterType<SchedulerRepository>().As<ISchedulerRepository>();
+            builder.RegisterType<ExTriggerRepository>().As<IExTriggerRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)
