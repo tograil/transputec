@@ -138,9 +138,12 @@ public class UserRepository : IUserRepository
         return user;
     }
 
-    public async Task<IEnumerable<User>> GetAllUsers(int companyId)
+    public async Task<IEnumerable<User>> GetAllUsers(int CompanyID, int UserID, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir,
+                bool SkipDeleted, bool ActiveOnly, bool SkipInActive, bool KeyHolderOnly, string Filters, string CompanyKey)
     {
-        return await _context.Set<User>().Where(t => t.CompanyId == companyId).ToListAsync();
+       var val = _context.Set<User>().FromSqlRaw($"Pro_Get_User_SelectAll @CompanyId = {CompanyID},@UserID = {UserID},@RecordStart={RecordStart},@RecordLength={RecordLength},@SearchString={SearchString}," +
+            $"@OrderBy = {OrderBy},@OrderDir = {OrderDir},@SkipDeleted= {SkipDeleted},@ActiveOnly = {ActiveOnly},@SkipInActive={SkipInActive},@KeyHolderOnly={KeyHolderOnly},@Filters={Filters},@UniqueKey = {CompanyKey}").ToList();
+        return await _context.Set<User>().Where(t => t.CompanyId == CompanyID).ToListAsync();
     }
 
     public async Task<User> GetUser(int companyId, int userId)
