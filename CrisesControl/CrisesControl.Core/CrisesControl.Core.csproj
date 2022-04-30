@@ -37,6 +37,8 @@
     <Folder Include="Jobs\Repositories\" />
     <Folder Include="Messages\Services\" />
     <Folder Include="Messages\Repositories\" />
+    <Folder Include="Queues\Services\" />
+    <Folder Include="Settings\Repositories\" />
   </ItemGroup>
 
 </Project>

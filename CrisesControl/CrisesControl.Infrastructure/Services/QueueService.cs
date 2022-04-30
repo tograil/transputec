@@ -89,6 +89,11 @@ public class QueueService : IQueueService
 
         model.ExchangeDeclare(exchangeName, "direct", true, true);
 
+        var properties = model.CreateBasicProperties();
+        properties.Persistent = true;
+        properties.DeliveryMode = 2;
+
+
         throw new System.NotImplementedException();
     }
 
