@@ -13,7 +13,9 @@ using CrisesControl.Core.Incidents.Services;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.Jobs.Services;
 using CrisesControl.Core.Messages.Services;
+using CrisesControl.Core.Settings.Repositories;
 using CrisesControl.Infrastructure.Services;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CrisesControl.Infrastructure
 {
@@ -44,6 +46,8 @@ namespace CrisesControl.Infrastructure
         {
             builder.RegisterAutoMapper(ThisAssembly);
 
+            builder.RegisterType<MemoryCache>().As<IMemoryCache>().SingleInstance();
+
             builder.RegisterType<CompanyRepository>().As<ICompanyRepository>();
             builder.RegisterType<RegisterCompanyRepository>().As<IRegisterCompanyRepository>();
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
@@ -58,6 +62,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<AssetRespository>().As<IAssetRepository>();
             builder.RegisterType<JobRepository>().As<IJobRepository>();
             builder.RegisterType<JobScheduleRepository>().As<IJobScheduleRepository>();
+            builder.RegisterType<SettingsRepository>().As<ISettingsRepository>().SingleInstance();
 
 
             builder.RegisterType<MessageService>().As<IMessageService>();

@@ -183,7 +183,7 @@ public class MessageRepository : IMessageRepository
                 }
                 else
                 {
-                    CreateIncidentNotificationList(messageId, incidentActivationId,
+                    await CreateIncidentNotificationList(messageId, incidentActivationId,
                         incidentNotificationList.ObjectMappingId,
                         incidentNotificationList.SourceObjectPrimaryId, currentUserId, companyId);
                 }
