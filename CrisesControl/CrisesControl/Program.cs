@@ -23,10 +23,12 @@ builder.Services.AddDbContext<CrisesControlContext>(options =>
 
 // Add services to the container.
 
-builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
+builder.Services.AddControllers()
+                .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-var serverCredentials = builder.Configuration.GetSection(ServerCredentialsOptions.ServerCredentials)
-            .Get<ServerCredentialsOptions>();
+var serverCredentials = builder.Configuration
+                               .GetSection(ServerCredentialsOptions.ServerCredentials)
+                               .Get<ServerCredentialsOptions>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => {
@@ -36,9 +38,7 @@ builder.Services.AddSwaggerGen(c => {
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);
 
-    c.AddSecurityDefinition(
-        "oauth2",
-        new OpenApiSecurityScheme {
+    c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme {
             Flows = new OpenApiOAuthFlows {
                 Password = new OpenApiOAuthFlow {
                     Scopes = new Dictionary<string, string> {
@@ -115,7 +115,8 @@ app.UseSwagger();
 app.UseSwaggerUI(setupAction => {
     setupAction.OAuthClientId(serverCredentials.ClientId);
     setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
-    setupAction.SwaggerEndpoint(builder.Configuration.GetSection("AppName").Value + "/swagger/v1/swagger.json", "CC Core API V1");
+    setupAction.SwaggerEndpoint(builder.Configuration.GetSection("AppName")
+               .Value + "/swagger/v1/swagger.json", "CC Core API V1");
 });
 //// Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment()) {

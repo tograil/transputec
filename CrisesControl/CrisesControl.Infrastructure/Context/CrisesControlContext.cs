@@ -41,7 +41,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
-            
+
         }
     }
 }
