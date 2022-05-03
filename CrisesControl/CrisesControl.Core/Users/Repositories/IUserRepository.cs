@@ -20,5 +20,6 @@ public interface IUserRepository
     Task<User> DeleteUser(User user, CancellationToken token);
     bool CheckDuplicate(User user);
     Task<LoginInfoReturnModel> GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken);
+    Task<User> ReactivateUser(int qureiedUserId, CancellationToken cancellationToken);
 
 }

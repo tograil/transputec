@@ -404,4 +404,42 @@ public class UserRepository : IUserRepository
             return null;
         }
     }
+
+    public async Task<User> ReactivateUser(int queriedUserId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userRecord = await _context.Set<User>().Where(t => t.UserId == queriedUserId).FirstOrDefaultAsync();
+
+            if (userRecord != null)
+            {
+                userRecord.Status = 1;
+                await _context.SaveChangesAsync(cancellationToken);
+
+                var ActivatedUser = (from U in _context.Set<User>()
+                                     where U.UserId == queriedUserId
+                                     select new
+                                     {
+                                         UserId = U.UserId,
+                                         UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                                         UserEmail = U.PrimaryEmail,
+                                         CompanyName = (from C in _context.Set<Company>() where C.CompanyId == U.CompanyId select C.CompanyName).FirstOrDefault()
+                                     }).FirstOrDefault();
+                if (ActivatedUser != null)
+                {
+                    return userRecord;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+           
+           return null;
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+    }
 }
