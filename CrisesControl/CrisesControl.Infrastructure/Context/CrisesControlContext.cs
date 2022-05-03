@@ -5,12 +5,11 @@ using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Users;
-using CrisesControl.Core.Communication;
 using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
-using CrisesControl.Core.CompanyParameters;
-using CrisesControl.Core.Scheduler;
+
 using CrisesControl.Core.ExTriggers;
+using CrisesControl.Core.Jobs;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -40,7 +39,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanySecurityGroup>().HasNoKey();
             modelBuilder.Entity<CommsMethodPriority>().HasNoKey();
             modelBuilder.Entity<CascadingPlanReturn>().HasNoKey();
-            modelBuilder.Entity<JobSchedulerVM>().HasNoKey();
+            modelBuilder.Entity<JobList>().HasNoKey();
             modelBuilder.Entity<ExTriggerList>().HasNoKey();
 
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
