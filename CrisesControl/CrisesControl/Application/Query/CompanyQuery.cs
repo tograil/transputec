@@ -10,12 +10,9 @@ namespace CrisesControl.Api.Application.Query;
 
 public class CompanyQuery : ICompanyQuery {
     private readonly ICompanyRepository _companyRepository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<CompanyQuery> _logger;
 
-    public CompanyQuery(ICompanyRepository companyRepository, IMapper mapper,
-        ILogger<CompanyQuery> logger) {
-        _mapper = mapper;
+    public CompanyQuery(ICompanyRepository companyRepository)
+    {
         _companyRepository = companyRepository;
         _logger = logger;
     }
@@ -23,7 +20,8 @@ public class CompanyQuery : ICompanyQuery {
     public async Task<IEnumerable<CompanyInfo>> GetCompanyList(int? status, string? companyProfile) {
         var companies = await _companyRepository.GetAllCompanyList(status, companyProfile);
 
-        return companies.Select(c => {
+        return companies.Select(c =>
+        {
             var user = c.Users.First();
             var companyPaymentProfile = c.CompanyPaymentProfiles?.FirstOrDefault();
 

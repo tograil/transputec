@@ -1,4 +1,4 @@
-﻿
+﻿using System.Threading.Tasks;
 using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Infrastructure.Context;
@@ -10,17 +10,23 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+namespace CrisesControl.Infrastructure.Repositories;
+
 namespace CrisesControl.Infrastructure.Repositories
 {
-    public class JobRepository : IJobRepository
+public class JobRepository : IJobRepository
+{
+    private readonly CrisesControlContext _context;
+    private readonly ILogger<JobRepository> _logger;
+
+    public JobRepository(CrisesControlContext context,
+        ILogger<JobRepository> logger)
     {
-        private readonly CrisesControlContext _context;
-        private readonly ILogger<JobRepository> _logger;
-        public JobRepository(CrisesControlContext context, ILogger<JobRepository> logger)
-        {
+        _context = context;
+        _logger = logger;
          this._context = context; 
          this._logger= logger;
-        }
+    }
         public async Task<IEnumerable<JobList>> GetAllJobs(int CompanyID, int UserID)
         {
             try
@@ -87,22 +93,33 @@ namespace CrisesControl.Infrastructure.Repositories
         public async Task<IEnumerable<JobList>> GetJob(int CompanyID, int JobId)
         {
             try
-            {
+    public async Task<int> AddJob(Job job)
+    {
+        await _context.AddAsync(job);
 
-              
+        await _context.SaveChangesAsync();
+
                 var jobId = new SqlParameter("@JobID", JobId);
                 var companyId = new SqlParameter("@CompanyID", CompanyID);
                 var jobs= await _context.Set<JobList>().FromSqlRaw("EXEC Pro_Get_Job @CompanyID, @JobID",companyId , jobId).ToListAsync();
                 return jobs;                 
-                
-            }
+        _logger.LogInformation($"Added new job {job.JobId}");
+
+        return job.JobId;
+    }
             catch (Exception ex)
-            {
+
+    public Task<int> UpdateJob(Job job)
+    {
                 Console.WriteLine(ex.Message);
                 _logger.LogInformation(ex.Message);
                 return null;
-            }
-            
+        throw new System.NotImplementedException();
+    }
+
+    public async Task<Job> GetJobById(int id)
+    {
+        return await _context.Set<Job>().FirstAsync(x => x.JobId == id);
         }
     }
 }

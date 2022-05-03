@@ -2,6 +2,8 @@
 using CrisesControl.Core.Communication;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Models;
+using CrisesControl.Core.Queues;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Users;
@@ -46,6 +48,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
             
+            modelBuilder.Entity<MessageQueueItem>().HasNoKey();
         }
     }
 }

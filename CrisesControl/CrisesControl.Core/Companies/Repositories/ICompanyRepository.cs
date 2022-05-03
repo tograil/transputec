@@ -13,4 +13,6 @@ public interface ICompanyRepository
     Task<int> CreateCompany(Company company, CancellationToken token);
     Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token);
     Task<List<CommsMethod>> GetCommsMethod();
+
+    Task<string> GetTimeZone(int companyId);
 }

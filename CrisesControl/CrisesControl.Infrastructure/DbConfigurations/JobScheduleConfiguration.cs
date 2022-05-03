@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.Jobs;
+using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -27,6 +28,6 @@ public class JobScheduleConfiguration : IEntityTypeConfiguration<JobSchedule>
 
         builder.Property(e => e.NextRunTime).HasMaxLength(10);
 
-        builder.ToTable("JobSchedule");
+        builder.ToTable("JobSchedules");
     }
 }

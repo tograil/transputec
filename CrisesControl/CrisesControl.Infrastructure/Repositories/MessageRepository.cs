@@ -168,8 +168,10 @@ public class MessageRepository : IMessageRepository {
                                          && s.Status == 1);
                 if (isExists is not null) {
                     toDeleteList.Add(isExists.IncidentNotificationListId);
-                } else {
-                    CreateIncidentNotificationList(messageId, incidentActivationId,
+                }
+                else
+                {
+                    await CreateIncidentNotificationList(messageId, incidentActivationId,
                         incidentNotificationList.ObjectMappingId,
                         incidentNotificationList.SourceObjectPrimaryId, currentUserId, companyId);
                 }
