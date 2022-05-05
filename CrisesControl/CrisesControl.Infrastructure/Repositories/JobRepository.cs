@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+﻿
 using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Infrastructure.Context;

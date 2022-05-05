@@ -1,7 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.Scheduler.GetAllJobs;
 using CrisesControl.Api.Application.Commands.Scheduler.GetJob;
 using CrisesControl.Api.Application.Query;
-using CrisesControl.Api.Application.Commands.Scheduler.AddJob;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -24,17 +23,16 @@ public class SchedulerController : Controller
         [HttpGet]
         [Route("GetAllJobs")]
         public async Task<IActionResult> GetAllJobs([FromQuery] GetAllJobsRequest request, CancellationToken cancellationToken)
-    {
+        {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
-    }
+        }
         [HttpGet]
         [Route("GetJob")]
         public async Task<IActionResult> GetJob([FromQuery] GetJobRequest request, CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(request, cancellationToken);
-
-        return Ok(result);
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
     }
 }
-

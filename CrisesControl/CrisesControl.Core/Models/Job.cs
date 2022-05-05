@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 
-namespace CrisesControl.Core.Jobs
+namespace CrisesControl.Core.Models
 {
-    public class Job
+    public partial class Job
     {
         public int JobId { get; set; }
         public string? JobType { get; set; }
@@ -24,7 +23,5 @@ namespace CrisesControl.Core.Jobs
         public int CompanyId { get; set; }
         public DateTimeOffset LastRunDateTime { get; set; }
         public int JobIncidentId { get; set; }
-
-        public ICollection<JobSchedule> JobSchedules { get; set; }
     }
 }

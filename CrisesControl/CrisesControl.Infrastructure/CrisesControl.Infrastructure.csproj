@@ -32,8 +32,6 @@
 
   <ItemGroup>
     <Folder Include="Identity\" />
-    <Folder Include="MongoSettings\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

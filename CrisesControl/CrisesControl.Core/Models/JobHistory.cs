@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CrisesControl.Core.Jobs
+namespace CrisesControl.Core.Models
 {
     public partial class JobHistory
     {

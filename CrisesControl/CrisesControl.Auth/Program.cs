@@ -1,10 +1,7 @@
-using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using CrisesControl.Auth;
-using CrisesControl.Core;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
-using CrisesControl.Infrastructure;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -88,11 +85,6 @@ builder.Services.AddCors(options => {
                     .AllowAnyHeader()
                     .AllowAnyMethod();
         });
-});
-
-builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder => {
-    containerBuilder.RegisterModule(new MainCoreModule());
-    containerBuilder.RegisterModule(new MainInfrastructureModule(builder.Environment.EnvironmentName == "Development"));
 });
 
 var app = builder.Build();

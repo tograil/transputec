@@ -1,5 +1,4 @@
-﻿using CrisesControl.Core.Jobs;
-using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -9,8 +8,6 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
 {
     public void Configure(EntityTypeBuilder<Job> builder)
     {
-        builder.ToTable("Jobs");
-
         builder.Property(e => e.JobId).HasColumnName("JobID");
 
         builder.Property(e => e.ActionType).HasMaxLength(50);
@@ -30,8 +27,5 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(e => e.LockedBy).HasMaxLength(100);
 
         builder.Property(e => e.NextRunTime).HasMaxLength(10);
-
-        builder.HasMany(e => e.JobSchedules).WithOne()
-            .HasForeignKey(e => e.JobId);
     }
 }

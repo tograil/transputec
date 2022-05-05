@@ -13,8 +13,9 @@ public class CompanyQuery : ICompanyQuery {
     private readonly IMapper _mapper;
     private readonly ILogger<CompanyQuery> _logger;
 
-    public CompanyQuery(ICompanyRepository companyRepository, ILogger<CompanyQuery> logger)
-    {
+    public CompanyQuery(ICompanyRepository companyRepository, IMapper mapper,
+        ILogger<CompanyQuery> logger) {
+        _mapper = mapper;
         _companyRepository = companyRepository;
         _logger = logger;
     }
@@ -22,8 +23,7 @@ public class CompanyQuery : ICompanyQuery {
     public async Task<IEnumerable<CompanyInfo>> GetCompanyList(int? status, string? companyProfile) {
         var companies = await _companyRepository.GetAllCompanyList(status, companyProfile);
 
-        return companies.Select(c =>
-        {
+        return companies.Select(c => {
             var user = c.Users.First();
             var companyPaymentProfile = c.CompanyPaymentProfiles?.FirstOrDefault();
 

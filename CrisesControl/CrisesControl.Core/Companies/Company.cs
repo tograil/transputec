@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 
 namespace CrisesControl.Core.Companies
@@ -10,8 +9,6 @@ namespace CrisesControl.Core.Companies
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = null!;
         public int? TimeZone { get; set; }
-
-        public StdTimeZone StdTimeZone { get; set; }
         public string? CompanyProfile { get; set; }
         public string? SwitchBoardPhone { get; set; }
         public string? Fax { get; set; }

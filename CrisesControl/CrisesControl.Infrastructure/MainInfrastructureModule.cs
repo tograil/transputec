@@ -10,10 +10,7 @@ using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Repositories;
 using CrisesControl.Core.AssetAggregate.Respositories;
 using CrisesControl.Core.Incidents.Services;
-using CrisesControl.Core.Jobs.Repositories;
-using CrisesControl.Core.Jobs.Services;
 using CrisesControl.Core.Messages.Services;
-using CrisesControl.Core.Settings.Repositories;
 using CrisesControl.Infrastructure.Services;
 using CrisesControl.Core.Billing.Repositories;
 using CrisesControl.Core.Reports.Repositories;
@@ -23,7 +20,6 @@ using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Communication.Repositories;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.ExTriggers.Repositories;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace CrisesControl.Infrastructure
 {
@@ -54,8 +50,6 @@ namespace CrisesControl.Infrastructure
         {
             builder.RegisterAutoMapper(ThisAssembly);
 
-            builder.RegisterType<MemoryCache>().As<IMemoryCache>().SingleInstance();
-
             builder.RegisterType<CompanyRepository>().As<ICompanyRepository>();
             builder.RegisterType<RegisterCompanyRepository>().As<IRegisterCompanyRepository>();
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
@@ -68,11 +62,6 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<ActiveIncidentRepository>().As<IActiveIncidentRepository>();
             builder.RegisterType<MessageRepository>().As<IMessageRepository>();
             builder.RegisterType<AssetRespository>().As<IAssetRepository>();
-            builder.RegisterType<JobRepository>().As<IJobRepository>();
-            builder.RegisterType<JobScheduleRepository>().As<IJobScheduleRepository>();
-            builder.RegisterType<SettingsRepository>().As<ISettingsRepository>().SingleInstance();
-
-
             builder.RegisterType<BillingRespository>().As<IBillingRepository>();
             builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<ActiveIncidentTaskService>().As<IActiveIncidentTaskService>();
@@ -83,7 +72,6 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<JobRepository>().As<IJobRepository>();
             builder.RegisterType<ExTriggerRepository>().As<IExTriggerRepository>();
             builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
-            builder.RegisterType<ScheduleService>().As<IScheduleService>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)
