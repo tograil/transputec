@@ -14,7 +14,7 @@ namespace CrisesControl.Api.Controllers;
 [Authorize]
 public class SchedulerController : Controller
 {
-    private readonly IMediator _mediator;
+        private readonly IMediator _mediator;
         private readonly ISchedulerQuery _schedulerQuery;
         public SchedulerController(ISchedulerQuery schedulerQuery, IMediator mediator)
         {
@@ -37,4 +37,4 @@ public class SchedulerController : Controller
         return Ok(result);
     }
 }
-}
+

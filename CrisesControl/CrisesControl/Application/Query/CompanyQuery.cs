@@ -10,8 +10,10 @@ namespace CrisesControl.Api.Application.Query;
 
 public class CompanyQuery : ICompanyQuery {
     private readonly ICompanyRepository _companyRepository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<CompanyQuery> _logger;
 
-    public CompanyQuery(ICompanyRepository companyRepository)
+    public CompanyQuery(ICompanyRepository companyRepository, ILogger<CompanyQuery> logger)
     {
         _companyRepository = companyRepository;
         _logger = logger;
