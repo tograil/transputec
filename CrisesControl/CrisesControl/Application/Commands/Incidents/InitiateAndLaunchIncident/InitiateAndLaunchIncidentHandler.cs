@@ -90,7 +90,7 @@ public class InitiateAndLaunchIncidentHandler
                 incidentActivation.IncidentId,
                 request.InitiateIncidentKeyHldLst, _currentUser.UserId, _currentUser.CompanyId, "GMT Standard Time");
 
-            var priority = SharedKernel.Utils.Common.GetPriority(request.Severity);
+            var priority = SharedKernel.Utils.Common.GetPriority(incidentActivation.Severity);
 
             await _messageRepository.DeleteMessageMethod(0, incidentActivation.IncidentActivationId);
 

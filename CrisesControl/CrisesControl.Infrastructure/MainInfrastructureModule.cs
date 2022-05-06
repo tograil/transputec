@@ -13,6 +13,8 @@ using CrisesControl.Core.Incidents.Services;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.Jobs.Services;
 using CrisesControl.Core.Messages.Services;
+using CrisesControl.Core.Queues.Repositories;
+using CrisesControl.Core.Queues.Services;
 using CrisesControl.Core.Settings.Repositories;
 using CrisesControl.Infrastructure.Services;
 using Microsoft.Extensions.Caching.Memory;
@@ -63,11 +65,14 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<JobRepository>().As<IJobRepository>();
             builder.RegisterType<JobScheduleRepository>().As<IJobScheduleRepository>();
             builder.RegisterType<SettingsRepository>().As<ISettingsRepository>().SingleInstance();
+            builder.RegisterType<QueueRepository>().As<IQueueRepository>();
 
 
             builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<ActiveIncidentTaskService>().As<IActiveIncidentTaskService>();
             builder.RegisterType<ScheduleService>().As<IScheduleService>();
+            builder.RegisterType<QueueService>().As<IQueueService>();
+            builder.RegisterType<QueueMessageService>().As<IQueueMessageService>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

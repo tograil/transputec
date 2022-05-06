@@ -1,9 +1,11 @@
 using System.Collections.Specialized;
+using CrisesControl.Core.Compatibility.Jobs;
 using CrisesControl.Core.Jobs.Services;
 using CrisesControl.Scheduler.Jobs;
+using CrisesControl.SharedKernel.Enums;
+using Newtonsoft.Json;
 using Quartz;
 using Quartz.Impl;
-using Quartz.Spi;
 using Quartz.Spi.MongoDbJobStore;
 
 namespace CrisesControl.Scheduler
@@ -12,29 +14,70 @@ namespace CrisesControl.Scheduler
     {
         private readonly ILogger<Worker> _logger;
         private readonly IScheduleService _scheduleService;
-        private readonly IJobFactory _jobFactory;
 
         private IScheduler _scheduler;
 
-        public Worker(ILogger<Worker> logger, IScheduleService scheduleService, IJobFactory jobFactory)
+        public Worker(ILogger<Worker> logger, IScheduleService scheduleService)
         {
             _logger = logger;
             _scheduleService = scheduleService;
-            _jobFactory = jobFactory;
 
-            _scheduleService.OnJobCreated += _scheduleService_OnJobCreated;
+            _scheduleService.OnJobCreated += ScheduleService_OnJobCreated;
         }
 
-        private void _scheduleService_OnJobCreated(Core.Jobs.Job obj)
+        private void ScheduleService_OnJobCreated(Core.Jobs.JobQueueData obj)
         {
-            var key = new JobKey(obj.JobId.ToString());
-            var job = JobBuilder.Create<IncidentJob>()
-                .WithIdentity(key)
-                .SetJobData(new JobDataMap((IDictionary<string, object>)new Dictionary<string, object>
+            var identity = $"job_{obj.JobData.JobId}_{obj.JobScheduleId}";
+            var triggerIdentity = $"trigger_{obj.JobData.JobId}_{obj.JobScheduleId}";
+            var group = obj.JobType.ToString();
+            var objJobType = obj.JobType switch
+            {
+                JobType.InitiateIncident => JobBuilder.Create<InitiateIncidentJob>().WithIdentity(identity, group)
+                    .UsingJobData("command", JsonConvert.SerializeObject(obj.JobModel as InitiateIncidentModel)).Build(),
+                JobType.InitiateAndLaunchIncident => JobBuilder.Create<InitiateAndLaunchJob>().WithIdentity(identity, group)
+                    .UsingJobData("command", JsonConvert.SerializeObject(obj.JobModel as InitiateIncidentModel)).Build(),
+                JobType.PingMessage => JobBuilder.Create<PingJob>().WithIdentity(identity, group)
+                    .UsingJobData("command", JsonConvert.SerializeObject(obj.JobModel as PingMessageModel)).Build()
+            };
+
+            var trigger = TriggerBuilder.Create()
+                .WithIdentity(triggerIdentity, group);
+
+            var minutes = obj.FrequencySubInterval / 60;
+            var restSeconds = obj.FrequencySubInterval % 60;
+            var hours = minutes / 60;
+            var restMinutes = minutes % 60;
+            var days = hours / 24;
+            var restHours = hours % 24;
+
+            trigger = obj.StartDate is null ? trigger.StartNow() : trigger.StartAt(obj.StartDate.Value);
+
+            trigger = obj.FrequencyType switch
+            {
+                JobFrequencyType.OneTime => trigger.WithSimpleSchedule(x => x.WithRepeatCount(1)),
+                JobFrequencyType.Daily => obj.JobSubDayType switch 
                 {
-                    { "JobId", obj.JobId }
-                }))
-                .Build();
+                    JobSubDayType.Once =>  trigger.WithCronSchedule($"{restSeconds} {restMinutes} {restHours} ? * *"),
+                    JobSubDayType.Hour => trigger.WithCronSchedule($"0 0 0/{hours} ? * *"),
+                    JobSubDayType.Minute => trigger.WithCronSchedule($"0 0/{minutes} * ? * *"),
+                },
+                JobFrequencyType.Weekly => obj.JobSubDayType switch
+                {
+                    JobSubDayType.Once => trigger.WithCronSchedule($"{restSeconds} {restMinutes} {restHours} {days} * */1"),
+                    JobSubDayType.Minute => trigger.WithCronSchedule($"0 0 0/{hours} ? * */1"),
+                    JobSubDayType.Hour => trigger.WithCronSchedule($"0 0/{minutes} * ? * */1"),
+                },
+                JobFrequencyType.Monthly => obj.JobSubDayType switch
+                {
+                    JobSubDayType.Once => trigger.WithCronSchedule($"{restSeconds} {restMinutes} {restHours} {days} */1 *"),
+                    JobSubDayType.Minute => trigger.WithCronSchedule($"0 0 0/{hours} ? */1 *"),
+                    JobSubDayType.Hour => trigger.WithCronSchedule($"0 0/{minutes} * ? */1 *"),
+                }
+            };
+
+            var triggerToStart = trigger.Build();
+
+            _scheduler.ScheduleJob(objJobType, triggerToStart);
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)

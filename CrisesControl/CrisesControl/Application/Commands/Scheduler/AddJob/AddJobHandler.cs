@@ -1,10 +1,14 @@
 ﻿using System.Data.SqlTypes;
 using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Compatibility.Jobs;
 using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.Jobs.Services;
+using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using MediatR;
+using Newtonsoft.Json;
 
 namespace CrisesControl.Api.Application.Commands.Scheduler.AddJob;
 
@@ -78,7 +82,30 @@ public class AddJobHandler : IRequestHandler<AddJobRequest, AddJobResponse>
 
         var jobScheduleId = await _jobScheduleRepository.AddJobSchedule(jobSchedule);
 
-        await _scheduleService.ScheduleIncident(jobSchedule);
+        var command = JobCommandConstants.ParseCommand(request.CommandLine);
+
+        var commandParameters = command switch
+        {
+            JobType.InitiateIncident => JsonConvert.DeserializeObject<InitiateIncidentModel>(request.CommandLineParams) as CcBase,
+            JobType.InitiateAndLaunchIncident => JsonConvert.DeserializeObject<InitiateIncidentModel>(request.CommandLineParams),
+            JobType.PingMessage => JsonConvert.DeserializeObject<PingMessageModel>(request.CommandLineParams),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        var jobQueue = new JobQueueData
+        {
+            JobData = job,
+            JobScheduleId = jobScheduleId,
+            FrequencyType = JobCommandConstants.ParseFrequencyType(request.FrequencyType),
+            FrequencyInterval = request.FrequencyInterval,
+            JobSubDayType = JobCommandConstants.ParseJobSubDayType(request.FrequencySubDayType),
+            FrequencySubInterval = request.FrequencySubDayInterval,
+            JobType = command,
+            JobModel = commandParameters,
+            TimeZone = _currentUser.TimeZone
+        };
+
+        await _scheduleService.ScheduleIncident(jobQueue);
 
         return new AddJobResponse
         {

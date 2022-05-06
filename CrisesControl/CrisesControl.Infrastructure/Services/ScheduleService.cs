@@ -14,7 +14,7 @@ namespace CrisesControl.Infrastructure.Services;
 public class ScheduleService : IScheduleService
 {
     private readonly IMongoCollection<Job> _jobCollection;
-    private readonly IMongoCollection<JobSchedule> _scheduleCollection;
+    private readonly IMongoCollection<JobQueueData> _scheduleCollection;
 
     private readonly IJobRepository _jobRepository;
 
@@ -34,24 +34,14 @@ public class ScheduleService : IScheduleService
 
         _jobCollection = mongoDatabase.GetCollection<Job>(
             "jobs");
-        _scheduleCollection = mongoDatabase.GetCollection<JobSchedule>("jobSchedules");
+        _scheduleCollection = mongoDatabase.GetCollection<JobQueueData>("jobQueue");
     }
 
-    public event Action<Job>? OnJobCreated;
+    public event Action<JobQueueData>? OnJobCreated;
 
-    public async Task ScheduleIncident(JobSchedule incident)
+    public async Task ScheduleIncident(JobQueueData incident)
     {
         await _scheduleCollection.InsertOneAsync(incident);
-
-        
-    }
-
-    public async Task<Job> GetNextIncidentJob()
-    {
-        throw new NotImplementedException();
-        
-
-        
     }
 
     public async Task StartJobsListener()
@@ -66,10 +56,10 @@ public class ScheduleService : IScheduleService
                 {
                     if (OnJobCreated != null && cursor.Current.Any())
                     {
-
-                        var job = await _jobRepository.GetJobById(cursor.Current.First().FullDocument.JobId);
-
-                        OnJobCreated.Invoke(job);
+                        foreach (var changeStreamDocument in cursor.Current)
+                        {
+                            OnJobCreated.Invoke(changeStreamDocument.FullDocument);
+                        }
                     }
 
                     await Task.Delay(1000);
