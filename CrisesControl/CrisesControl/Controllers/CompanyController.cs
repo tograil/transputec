@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Query;
+﻿using CrisesControl.Api.Application.Commands.Companies.UpdateCompanyDRPlan;
+using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,5 +19,14 @@ public class CompanyController : Controller
     {
         _mediator = mediator;
         _companyQuery = companyQuery;
+    }
+    [HttpPut]
+    [Route("UpdateCompanyDRP")]
+    public async Task<IActionResult> UpdateCompanyDRP([FromBody] UpdateCompanyDRPlanRequest request,
+    CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
     }
 }

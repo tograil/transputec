@@ -7,6 +7,7 @@ using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -14,11 +15,13 @@ public class CompanyRepository : ICompanyRepository
 {
     private readonly CrisesControlContext _context;
     private readonly IGlobalParametersRepository _globalParametersRepository;
+    private readonly ILogger<CompanyRepository> _logger;
 
-    public CompanyRepository(CrisesControlContext context, IGlobalParametersRepository globalParametersRepository)
+    public CompanyRepository(CrisesControlContext context, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
     {
         _context = context;
         _globalParametersRepository = globalParametersRepository;
+        this._logger = logger;
     }
 
     public async Task<IEnumerable<Company>> GetAllCompanies()
@@ -35,7 +38,7 @@ public class CompanyRepository : ICompanyRepository
             .Include(x => x.Users.Where(u => u.UserRole == "SUPERADMIN"))
             .Include(x => x.PackagePlan)
             .Include(x => x.CompanyPaymentProfiles)
-            .Where(x => 
+            .Where(x =>
                 (currentStatus > 0 && currentCompanyProfile == "ON_TRIAL" && x.OnTrial && x.Status == currentStatus)
                 || (currentStatus > 0 && currentCompanyProfile == "ALL" && x.Users.Any(y => y.RegisteredUser) && x.Status == currentStatus)
                 || (currentStatus > 0 && currentCompanyProfile == "" && x.Users.Any(y => y.RegisteredUser) && x.Status == currentStatus)
@@ -58,7 +61,7 @@ public class CompanyRepository : ICompanyRepository
         {
             var lkp = await _context.Set<CompanyParameter>()
                 .FirstOrDefaultAsync(x => x.Name == key && x.CompanyId == companyId);
-            
+
             if (lkp != null)
             {
                 @default = lkp.Value;
@@ -107,5 +110,20 @@ public class CompanyRepository : ICompanyRepository
         return (await _context.Set<Company>()
             .Include(x => x.StdTimeZone)
             .FirstOrDefaultAsync(x => x.CompanyId == companyId))?.StdTimeZone?.ZoneLabel ?? "GMT Standard Time";
+    }
+    public async Task<Company> GetCompanyByID(int companyId)        
+    {
+        return await _context.Set<Company>().Include(x=>x.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
+    }
+    public async Task<int> UpdateCompanyDRPlan(Company company)
+    {
+      
+        _context.Entry(company).State = EntityState.Modified;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation($"Updated Company DR Plan {company.CompanyId}");
+
+        return company.CompanyId;
     }
 }

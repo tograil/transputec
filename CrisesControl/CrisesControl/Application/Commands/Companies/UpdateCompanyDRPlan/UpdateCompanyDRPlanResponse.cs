@@ -6,6 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyDRPlan
     {
         public int PackageId { get; set; }
         public int CompanyId { get; set; }
+        public string Message { get; set; }
         public HttpStatusCode StatusCode { get; set; }
     }
 }
