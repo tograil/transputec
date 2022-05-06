@@ -46,7 +46,9 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<ActivateUserResponse> ReactivateUser(int queriedUserId, CancellationToken cancellationToken)
         {
-            return null; 
+            var reactivate = await _UserRepository.ReactivateUser(queriedUserId, cancellationToken);
+            var result = _mapper.Map<ActivateUserResponse>(reactivate);
+            return result;
         }
     }
 }
