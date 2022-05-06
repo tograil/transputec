@@ -8,6 +8,7 @@ using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -155,5 +156,52 @@ public class CompanyRepository : ICompanyRepository
 
         }
         return result;
+    }
+
+    public async Task<int> UpdateDepartment(Company company, CancellationToken token)
+    {
+        try {
+            var result = _context.Set<Company>().Where(t => t.CompanyId == company.CompanyId).FirstOrDefault();
+
+            if (result != null)
+            {
+
+                result.CompanyName = company.CompanyName;
+                result.Status = company.Status;
+                result.UpdatedOn = company.UpdatedOn;
+                result.UpdatedBy = company.UpdatedBy;
+                result.CompanyLogoPath = company.CompanyLogoPath;
+                result.CompanyProfile = company.CompanyProfile;
+                result.CompanyPaymentProfiles = company.CompanyPaymentProfiles;
+                result.PackagePlanId = company.PackagePlanId;
+                result.PlanDrdoc = company.PlanDrdoc;
+                result.AndroidLogo = company.AndroidLogo;
+                result.ContactLogoPath = company.ContactLogoPath;
+                result.CustomerId = company.CustomerId;
+                result.Fax = company.Fax;
+                result.WindowsLogo = company.WindowsLogo;
+                result.Website = company.Website;
+                result.InvitationCode = company.InvitationCode;
+                result.IOslogo = company.IOslogo;
+                result.Isdcode = company.Isdcode;
+                result.OnTrial = company.OnTrial;
+                result.Sector = company.Sector;
+                result.SwitchBoardPhone = company.SwitchBoardPhone;
+                result.TimeZone = company.TimeZone;
+                result.UniqueKey = company.UniqueKey;
+                _context.Update(company);
+                await _context.SaveChangesAsync();
+                return company.CompanyId;
+            }
+
+           
+        }
+        catch (Exception ex) { 
+         Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                   ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+        }
+        return 0;
+
+
     }
 }
