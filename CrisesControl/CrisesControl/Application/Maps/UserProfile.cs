@@ -24,6 +24,7 @@ namespace CrisesControl.Api.Application.Maps
                 .ForMember(x => x.UpdatedOn, m => m.MapFrom(x => DateTimeOffset.Now));
             CreateMap<LoginRequest, LoginInfo>();
             CreateMap<LoginInfoReturnModel, LoginResponse>();
+            CreateMap<GetUsersRequest, GetAllUserRequest>();
         }
     }
 }

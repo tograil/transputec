@@ -20,22 +20,9 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetUsersResponse> GetUsers(GetUsersRequest request)
         {
-            var Users = await _UserRepository.GetAllUsers(
-                request.CompanyId, 
-                request.UserID, 
-                request.RecordStart, 
-                request.RecordLength, 
-                request.SearchString, 
-                request.OrderBy, 
-                request.OrderDir, 
-                request.SkipDeleted, 
-                request.ActiveOnly, 
-                request.SkipInActive,
-                request.KeyHolderOnly,
-                request.Filters,
-                request.CompanyKey
-                );
-            List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(Users.ToList());
+            var mappedRequest = _mapper.Map<GetAllUserRequest>(request);
+            var users = await _UserRepository.GetAllUsers(mappedRequest);
+            List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(users.ToList());
             var result = new GetUsersResponse();
             result.Data = response;
             return result;

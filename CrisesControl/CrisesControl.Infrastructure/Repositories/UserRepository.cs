@@ -11,24 +11,24 @@ using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using UserModel = CrisesControl.Core.Models.EmptyUser;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
 public class UserRepository : IUserRepository
 {
     private readonly CrisesControlContext _context;
-    private int UserID;
-    private int CompanyID;
-    private readonly string TimeZoneId = "GMT Standard Time";
+    private readonly string timeZoneId = "GMT Standard Time";
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private int userID;
+    private int companyID;
 
     public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
+        userID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+        companyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
     }
 
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
@@ -138,12 +138,12 @@ public class UserRepository : IUserRepository
         return user;
     }
 
-    public async Task<IEnumerable<User>> GetAllUsers(int CompanyID, int UserID, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir,
-                bool SkipDeleted, bool ActiveOnly, bool SkipInActive, bool KeyHolderOnly, string Filters, string CompanyKey)
+    public async Task<IEnumerable<User>> GetAllUsers(GetAllUserRequest request)
     {
-       var val = _context.Set<User>().FromSqlRaw($"Pro_Get_User_SelectAll @CompanyId = {CompanyID},@UserID = {UserID},@RecordStart={RecordStart},@RecordLength={RecordLength},@SearchString={SearchString}," +
-            $"@OrderBy = {OrderBy},@OrderDir = {OrderDir},@SkipDeleted= {SkipDeleted},@ActiveOnly = {ActiveOnly},@SkipInActive={SkipInActive},@KeyHolderOnly={KeyHolderOnly},@Filters={Filters},@UniqueKey = {CompanyKey}").ToList();
-        return await _context.Set<User>().Where(t => t.CompanyId == CompanyID).ToListAsync();
+        var propertyInfo = typeof(GetAllUserRequest).GetProperty(request.OrderBy);
+        var val = _context.Set<User>().FromSqlRaw($"Pro_Get_User_SelectAll @CompanyId = {companyID},@UserID = {userID},@RecordStart={request.RecordStart},@RecordLength={request.RecordLength},@SearchString={request.SearchString}," +
+            $"@OrderBy = {request.OrderBy},@SkipDeleted= {request.SkipDeleted},@ActiveOnly = {request.ActiveOnly},@SkipInActive={request.SkipInActive},@KeyHolderOnly={request.KeyHolderOnly},@Filters={request.Filters},@UniqueKey = {request.CompanyKey}").OrderByDescending(o => propertyInfo.GetValue(o, null)).ToListAsync();
+        return await _context.Set<User>().Where(t => t.CompanyId == companyID).ToListAsync();
     }
 
     public async Task<User> GetUser(int companyId, int userId)
@@ -305,12 +305,9 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-
             var CompanyInfo = await (from C in _context.Set<Company>()
                                join TZ in _context.Set<StdTimeZone>() on C.TimeZone equals TZ.TimeZoneId
-                               where C.CompanyId == CompanyID
+                               where C.CompanyId == companyID
                                      select new { C, TZ }).FirstOrDefaultAsync();
 
             string strCompanyName = "";
@@ -318,18 +315,18 @@ public class UserRepository : IUserRepository
             if (CompanyInfo != null) {
                 strCompanyName = CompanyInfo.C.CompanyName;
                 UserLoginLog TblUserLog = new UserLoginLog();
-                TblUserLog.CompanyId = CompanyID;
-                TblUserLog.UserId = UserID;
+                TblUserLog.CompanyId = companyID;
+                TblUserLog.UserId = userID;
                 TblUserLog.DeviceType = request.DeviceType;
                 TblUserLog.Ipaddress = request.IPAddress;
-                TblUserLog.LoggedInTime = GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                TblUserLog.LoggedInTime = GetDateTimeOffset(DateTime.Now, timeZoneId);
                 await _context.AddAsync(TblUserLog);
                 await _context.SaveChangesAsync(cancellationToken);
 
 
                 if (!string.IsNullOrEmpty(request.Language)) {
                     var user = await (from Usersval in _context.Set<User>()
-                                where Usersval.CompanyId == CompanyID && Usersval.UserId == UserID
+                                where Usersval.CompanyId == companyID && Usersval.UserId == userID
                                       select Usersval).FirstOrDefaultAsync();
                     if (user != null) {
                         user.UserLanguage = request.Language;
@@ -340,7 +337,7 @@ public class UserRepository : IUserRepository
                 var RegUserInfo = await (from U in _context.Set<User>()
                                    join TZ in _context.Set<StdTimeZone>() on U.TimezoneId equals TZ.TimeZoneId into ps
                                    from p in ps.DefaultIfEmpty()
-                                   where U.CompanyId == CompanyID && U.UserId == UserID
+                                   where U.CompanyId == companyID && U.UserId == userID
                                          select new LoginInfoReturnModel {
                                        CompanyId = U.CompanyId,
                                        CompanyName = strCompanyName,
@@ -376,7 +373,7 @@ public class UserRepository : IUserRepository
                                                         join SG in _context.Set<SecurityGroup>() on USG.SecurityGroupId equals SG.SecurityGroupId
                                                         join GSO in _context.Set<GroupSecuityObject>() on USG.SecurityGroupId equals GSO.SecurityGroupId
                                                         join SO1 in _context.Set<SecurityObject>() on GSO.SecurityObjectId equals SO1.SecurityObjectId
-                                                        where USG.UserId == U.UserId && SO1.Status == 1 && SG.CompanyId == CompanyID
+                                                        where USG.UserId == U.UserId && SO1.Status == 1 && SG.CompanyId == companyID
                                                         select new { USG.SecurityGroupId, SO1.SecurityObjectId })
                                                    on SO.SecurityObjectId equals ASG.SecurityObjectId
                                                    into ASGS

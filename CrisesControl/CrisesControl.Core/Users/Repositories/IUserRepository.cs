@@ -15,8 +15,7 @@ public interface IUserRepository
 
     void CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
         string primaryEmail, int companyId);
-    Task<IEnumerable<User>> GetAllUsers(int CompanyID, int UserID, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir,
-                bool SkipDeleted, bool ActiveOnly, bool SkipInActive, bool KeyHolderOnly, string Filters, string CompanyKey);
+    Task<IEnumerable<User>> GetAllUsers(GetAllUserRequest userRequest);
     Task<User> GetUser(int companyId, int userId);
     Task<User> DeleteUser(User user, CancellationToken token);
     bool CheckDuplicate(User user);
