@@ -12,7 +12,7 @@ public class CompanyQuery : ICompanyQuery {
     private readonly ICompanyRepository _companyRepository;
     private readonly ILogger<CompanyQuery> _logger;
     private readonly IMapper _mapper;
-    private readonly ILogger<CompanyQuery> _logger;
+   
 
     public CompanyQuery(ICompanyRepository companyRepository, IMapper mapper,
         ILogger<CompanyQuery> logger) {

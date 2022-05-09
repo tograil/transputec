@@ -6,7 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyLogo
     {
         public UpdateCompanyLogoValidator()
         {
-            RuleFor(x => x.CompanyLogo == string.Empty || string.IsNullOrEmpty(x.CompanyLogo));
+            RuleFor(x => string.IsNullOrEmpty(x.CompanyLogo));
              
         }
     }
