@@ -25,22 +25,10 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyDRPlan
             try
             {
                 Company company = await this._companyRepository.GetCompanyByID(request.CompanyId);
-                if (company == null)
+                if (company != null)
                 {
-                    //Getting the Package Plan to update
-                    PackagePlan PackagePlan = new PackagePlan { PackagePlanId = company.PackagePlanId==null ? default(int)  : company.PackagePlanId.Value };
-                    PackagePlan.Status = request.Status;
-                    PackagePlan.PackagePlanId = company.PackagePlanId == null ? default(int) : company.PackagePlanId.Value;
-                    PackagePlan.PlanName = request.PlanName;
-                    PackagePlan.PackagePrice = request.PackagePrice;
-                    PackagePlan.PingOnly = request.PingOnly;
-                    PackagePlan.PlanDescription = request.PlanDescription;
-                    PackagePlan.UpdatedBy = _currentUser.UserId;
-                    PackagePlan.UpdatedOn = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone); ;
-                    PackagePlan.IsDefault = request.IsDefault;
-
                     company.CompanyId = request.CompanyId;
-                    company.PackagePlan = PackagePlan;
+                    company.PlanDrdoc = (request.DRPlan == null || request.DRPlan == string.Empty) ? "" : request.DRPlan;
                     company.UpdatedOn = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone);
                     company.UpdatedBy = _currentUser.UserId;
                     await _companyRepository.UpdateCompanyDRPlan(company);
@@ -48,7 +36,6 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyDRPlan
                     return new UpdateCompanyDRPlanResponse
                     {
                         CompanyId = company.CompanyId,
-                        PackageId = company.PackagePlan.PackagePlanId,
                         StatusCode = System.Net.HttpStatusCode.OK,
                         Message = "Plan uploaded successfully"
                     };
@@ -57,8 +44,9 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyDRPlan
 
                 return new UpdateCompanyDRPlanResponse
                 {
+                    CompanyId = 0,
                     Message = "Company not found",
-                    StatusCode = System.Net.HttpStatusCode.BadRequest
+                    StatusCode = System.Net.HttpStatusCode.NotFound
                 };
 
             }

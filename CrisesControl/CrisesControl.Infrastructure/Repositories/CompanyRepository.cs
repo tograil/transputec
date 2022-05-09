@@ -126,4 +126,13 @@ public class CompanyRepository : ICompanyRepository
 
         return company.CompanyId;
     }
+
+    public async Task<int> UpdateCompanyLogo(Company company)
+    {
+        _context.Entry(company).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+        _logger.LogInformation($"Updated Company logo for {company.CompanyId}");
+
+        return company.CompanyId;
+    }
 }

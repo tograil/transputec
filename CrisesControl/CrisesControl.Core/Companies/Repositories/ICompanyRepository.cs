@@ -15,4 +15,5 @@ public interface ICompanyRepository
     Task<string> GetTimeZone(int companyId);
 
     Task<int> UpdateCompanyDRPlan(Company company);
+    Task<int> UpdateCompanyLogo(Company company);
 }
