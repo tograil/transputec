@@ -3,7 +3,9 @@ using AutoMapper;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.SharedKernel.Utils;
 using MediatR;
+using Serilog;
 
 namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompany
 {
@@ -24,14 +26,50 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompany
 
         public async Task<UpdateCompanyResponse> Handle(UpdateCompanyRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(UpdateCompanyRequest));
+            Guard.Against.Null(request, nameof(UpdateCompanyRequest));            
 
-            Company value = _mapper.Map<UpdateCompanyRequest, Company>(request);
-            var departmentId = await _companyRepository.UpdateDepartment(value, cancellationToken);
-            var result = new UpdateCompanyResponse();
-            result.CompanyId = departmentId;
-            result.ErrorCode=System.Net.HttpStatusCode.OK;
-            return result;
+            try
+            {
+                Company company = await this._companyRepository.GetCompanyByID(request.CompanyId);
+                if (company != null)
+                {
+
+                    company.CompanyName = request.CompanyName;
+
+                    company.UpdatedOn = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone); ;
+                    company.UpdatedBy = _currentUser.UserId;
+                    company.CompanyProfile = request.CompanyProfile;
+                    company.Website = request.Website;
+                    company.SwitchBoardPhone = request.SwitchBoardPhone;
+                    company.TimeZone =Int32.Parse( _currentUser.TimeZone);
+
+                    await _companyRepository.UpdateCompany(company);
+                   // _mapper.Map<UpdateCompanyRequest, Company>(request);
+
+                    return new UpdateCompanyResponse() { 
+                    CompanyId = request.CompanyId,
+                    ErrorCode = System.Net.HttpStatusCode.OK,
+                    Message= "Company has been updated"
+
+                    };
+                }
+                return new UpdateCompanyResponse()
+                {
+                    CompanyId = 0,
+                    ErrorCode = System.Net.HttpStatusCode.NotFound,
+                    Message = "NOT Found"
+
+                };
+            }
+            catch (Exception ex)
+            {
+                Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                          ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+                return null;
+            }
+           
+
+
         }
     }
 }
