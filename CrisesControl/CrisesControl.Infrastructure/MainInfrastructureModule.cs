@@ -18,6 +18,11 @@ using CrisesControl.Core.Queues.Services;
 using CrisesControl.Core.Settings.Repositories;
 using CrisesControl.Infrastructure.Services;
 using Microsoft.Extensions.Caching.Memory;
+using CrisesControl.Core.Reports.Repositories;
+using CrisesControl.Core.Communication.Repositories;
+using CrisesControl.Core.Security;
+using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.Communication.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -70,10 +75,15 @@ namespace CrisesControl.Infrastructure
 
             builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<ActiveIncidentTaskService>().As<IActiveIncidentTaskService>();
+            builder.RegisterType<ReportRepository>().As<IReportsRepository>();
+            builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
+            builder.RegisterType<SecurityRepository>().As<ISecurityRepository>();
+            builder.RegisterType<CompanyParametersRepository>().As<ICompanyParametersRepository>();
             builder.RegisterType<ScheduleService>().As<IScheduleService>();
             builder.RegisterType<QueueService>().As<IQueueService>();
             builder.RegisterType<QueueMessageService>().As<IQueueMessageService>();
             builder.RegisterType<IncidentService>().As<IIncidentService>();
+            builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)
