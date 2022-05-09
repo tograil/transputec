@@ -8,6 +8,8 @@ using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -15,11 +17,13 @@ public class CompanyRepository : ICompanyRepository
 {
     private readonly CrisesControlContext _context;
     private readonly IGlobalParametersRepository _globalParametersRepository;
+    private readonly ILogger<CompanyRepository> _logger;
 
-    public CompanyRepository(CrisesControlContext context, IGlobalParametersRepository globalParametersRepository)
+    public CompanyRepository(CrisesControlContext context, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
     {
         _context = context;
         _globalParametersRepository = globalParametersRepository;
+        this._logger = logger;
     }
 
     public async Task<IEnumerable<Company>> GetAllCompanies()
@@ -156,4 +160,23 @@ public class CompanyRepository : ICompanyRepository
         }
         return result;
     }
+
+    public async Task<int> UpdateCompany(Company company)
+    {
+        
+          _context.Update(company);
+         await _context.SaveChangesAsync();
+        _logger.LogInformation($"Company has been updated {company.CompanyId}");
+        return company.CompanyId;
+            
+
+           
+    }
+
+   
+        public async Task<Company> GetCompanyByID(int companyId)
+        {
+            return await _context.Set<Company>().Include(x => x.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
+        }
+    
 }
