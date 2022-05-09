@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using CrisesControl.Core.Models;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,4 +17,6 @@ public interface ICompanyRepository
 
     Task<int> UpdateCompanyDRPlan(Company company);
     Task<int> UpdateCompanyLogo(Company company);
+    Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token);
+    Task<List<CommsMethod>> GetCommsMethod();
 }

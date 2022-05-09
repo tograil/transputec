@@ -6,7 +6,7 @@ using CrisesControl.Core.AssetAggregate.Respositories;
 
 namespace CrisesControl.Api.Application.Query
 {
-    public class AssetQuery: IAssetQuery
+    public class AssetQuery : IAssetQuery
     {
         private readonly IAssetRepository _assetRepository;
         private readonly IMapper _mapper;

@@ -12,8 +12,8 @@ namespace CrisesControl.Api.Application.Commands.Users.Login
             //    .MaximumLength(50);
             //RuleFor(x => x.TOKEN)
             //    .MaximumLength(50);
-            RuleFor(x => x.DeviceSerial)
-                .MaximumLength(250)
+            RuleFor(x => x.Language)
+                .MaximumLength(3)
                 .NotNull();
             RuleFor(x => x.DeviceType)
                 .MaximumLength(50)
@@ -21,10 +21,10 @@ namespace CrisesControl.Api.Application.Commands.Users.Login
             //RuleFor(x => x.AppVersion)
             //    .MaximumLength(10)
             //    .NotNull();
-            RuleFor(x => x.DeviceOS)
+            RuleFor(x => x.IPAddress)
                 .MaximumLength(50)
                 .NotNull();
-            RuleFor(x => x.DeviceModel)
+            RuleFor(x => x.DeviceType)
                 .MaximumLength(100)
                 .NotNull();
             //RuleFor(x => x.ExtraInfo)
