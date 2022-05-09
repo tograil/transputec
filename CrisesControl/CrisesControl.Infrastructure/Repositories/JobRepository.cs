@@ -8,9 +8,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
-
-
+using CrisesControl.Core.Models;
+using Serilog;
 
 namespace CrisesControl.Infrastructure.Repositories
 {
@@ -18,25 +19,32 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly ILogger<JobRepository> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public JobRepository(CrisesControlContext context,
+        private int UserID;
+        private int CompanyID;
+
+        public JobRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,
             ILogger<JobRepository> logger)
         {
             _context = context;
             _logger = logger;
+            this._httpContextAccessor=httpContextAccessor;
         }
-        public async Task<IEnumerable<JobList>> GetAllJobs(int CompanyID, int UserID)
+        public async Task<IEnumerable<JobList>> GetAllJobs()
         {
             try
             {
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
                 var pUserId = new SqlParameter("@UserID", UserID);
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
                 return await _context.Set<JobList>().FromSqlRaw("EXEC Pro_Get_Schedule_Jobs @CompanyID,@UserID", pCompanyId, pUserId).ToListAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
-                _logger.LogInformation(ex.Message);
+                Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                    ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
                 return null;
             }
         }
@@ -101,8 +109,8 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
-                _logger.LogInformation(ex.Message);
+                Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                     ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
                 return null;
             }
         }

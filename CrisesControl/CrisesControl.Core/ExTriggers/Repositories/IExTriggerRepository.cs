@@ -9,8 +9,8 @@ namespace CrisesControl.Core.ExTriggers.Repositories
 {
     public interface IExTriggerRepository
     {
-        Task<IEnumerable<ExTriggerList>> GetAllExTrigger(int CompanyID, int UserID);
+        Task<IEnumerable<ExTriggerList>> GetAllExTrigger();
         Task<IEnumerable<ExTriggerList>> GetExTrigger(int ExTriggerID, int CompanyID);
-        Task<IEnumerable<ExTriggerList>> GetImpTrigger(int CompanyID, int UserID);
+        Task<IEnumerable<ExTriggerList>> GetImpTrigger();
     }
 }

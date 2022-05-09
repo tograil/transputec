@@ -16,15 +16,21 @@ namespace CrisesControl.Infrastructure.Repositories
     public class ExTriggerRepository : IExTriggerRepository
     {
         private readonly CrisesControlContext _context;
-        public ExTriggerRepository(CrisesControlContext context)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        private int UserID;
+        private int CompanyID;
+        public ExTriggerRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
-            this._context = context;    
+            this._context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
-        public async Task<IEnumerable<ExTriggerList>> GetAllExTrigger(int CompanyID, int UserID)
+        public async Task<IEnumerable<ExTriggerList>> GetAllExTrigger()
         {
             try
             {
-                
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
                 var pUserId = new SqlParameter("@UserID", UserID);
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
                var result=  _context.Set<ExTriggerList>().FromSqlRaw("EXEC Pro_Get_Ex_Trigger @CompanyID,@UserID", pCompanyId, pUserId);
@@ -34,15 +40,15 @@ namespace CrisesControl.Infrastructure.Repositories
                 {
                     return resultlist;
                 }
-                return new List<ExTriggerList>();
+                
 
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                return null;
+               
             }
-            
+            return new List<ExTriggerList>();
         }
         /*Create a new store procedure
          * 
@@ -119,10 +125,13 @@ namespace CrisesControl.Infrastructure.Repositories
           
         }
 
-        public async Task<IEnumerable<ExTriggerList>> GetImpTrigger(int CompanyID, int UserID)
+        public async Task<IEnumerable<ExTriggerList>> GetImpTrigger()
         {
             try
             {
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
                 var pUserID = new SqlParameter("@UserID", UserID);
                 var result = await _context.Set<ExTriggerList>().FromSqlRaw("EXEC Pro_Get_Import_Trigger @CompanyID, @UserID", pCompanyID, pUserID).ToListAsync();

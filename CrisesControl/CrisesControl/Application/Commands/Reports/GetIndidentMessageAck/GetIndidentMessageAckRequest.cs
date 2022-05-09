@@ -6,6 +6,8 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck
     public class GetIndidentMessageAckRequest: IRequest<GetIndidentMessageAckResponse>
     {
         public int MessageId { get; set; }
+
+        public int CompanyID { get; set; }
         public int MessageAckStatus { get; set; }
         public int MessageSentStatus { get; set; }
         public int RecordStart { get; set; }

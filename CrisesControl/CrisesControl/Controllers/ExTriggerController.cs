@@ -20,20 +20,23 @@ namespace CrisesControl.Api.Controllers
             this._mediator = mediator;
             this._exTriggerQuery = exTriggerQuery;
         }
-        [HttpGet("GetAllExTrigger")]
-        public async Task<IActionResult> GetAllExTrigger([FromQuery] GetAllExTriggerRequest request, CancellationToken cancellationToken)
+        [HttpGet]
+        [Route("GetAllExTrigger")]
+        public async Task<IActionResult> GetAllExTrigger([FromRoute] GetAllExTriggerRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet("GetExTrigger")]
-        public async Task<IActionResult> GetExTrigger([FromQuery] GetExTriggerRequest request, CancellationToken cancellationToken)
+        [HttpGet]
+        [Route("GetExTrigger/{ExTriggerID:int}/{CompanyID}")]
+        public async Task<IActionResult> GetExTrigger([FromRoute] GetExTriggerRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet("GetImpTrigger")]
-        public async Task<IActionResult> GetImpTrigger([FromQuery] GetImpTriggerRequest request, CancellationToken cancellationToken)
+        [HttpGet]
+        [Route("GetImpTrigger")]
+        public async Task<IActionResult> GetImpTrigger([FromRoute] GetImpTriggerRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

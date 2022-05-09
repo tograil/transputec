@@ -22,7 +22,7 @@ namespace CrisesControl.Api.Application.Query
         /// <inheritdoc/>
         public async Task<GetAllExTriggerResponse> GetAllExTrigger(GetAllExTriggerRequest request)
         {
-            var triggers = await _exTriggerRepository.GetAllExTrigger(request.CompanyID, request.UserID);
+            var triggers = await _exTriggerRepository.GetAllExTrigger();
             var response = _mapper.Map<List<ExTriggerList>>(triggers);
             var result = new GetAllExTriggerResponse();            
             if (triggers != null)
@@ -61,7 +61,7 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetImpTriggerResponse> GetImpTrigger(GetImpTriggerRequest request)
         {
-            var importsT = await _exTriggerRepository.GetImpTrigger(request.CompanyID, request.UserID);
+            var importsT = await _exTriggerRepository.GetImpTrigger();
          
             var response = _mapper.Map<List<ExTriggerList>>(importsT);
             var result = new GetImpTriggerResponse();

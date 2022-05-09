@@ -20,14 +20,14 @@ namespace CrisesControl.Api.Controllers {
             this._companyParametersQuery = companyParametersQuery;
         }
         [HttpGet]
-        [Route("GetCascading")]
-        public async Task<IActionResult> GetCascading([FromQuery] GetCascadingRequest request, CancellationToken cancellationToken) {
+        [Route("GetCascading/{PlanID:int}/{PlanType:string}/{CompanyId:int}")]
+        public async Task<IActionResult> GetCascading([FromRoute] GetCascadingRequest request, CancellationToken cancellationToken) {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpGet]
-        [Route("GetCompanyFTP")]
-        public async Task<IActionResult> GetCompanyFTP([FromQuery] GetCompanyFTPRequest request, CancellationToken cancellationToken) {
+        [Route("GetCompanyFTP/{CompanyID:int}")]
+        public async Task<IActionResult> GetCompanyFTP([FromRoute] GetCompanyFTPRequest request, CancellationToken cancellationToken) {
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);

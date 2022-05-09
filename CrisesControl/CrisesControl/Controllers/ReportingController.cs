@@ -54,8 +54,9 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpGet("GetIndidentMessageAck")]        
-        public async Task<IActionResult> GetIndidentMessageAck([FromQuery] GetIndidentMessageAckRequest request, CancellationToken cancellationToken)
+        [HttpGet]     
+        [Route("GetIndidentMessageAck/{CompanyID:int}/{MessageId:int}/{MessageAckStatus:int}/{MessageSentStatus:int}/{RecordStart:int}/{RecordLength:int}/{SearchString:string}")]
+        public async Task<IActionResult> GetIndidentMessageAck([FromRoute] GetIndidentMessageAckRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 
@@ -68,7 +69,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("ResponseSummary")]
+        [Route("ResponseSummary/{MessageID:int}")]
         public async Task<IActionResult> ResponseSummary([FromQuery] ResponseSummaryRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

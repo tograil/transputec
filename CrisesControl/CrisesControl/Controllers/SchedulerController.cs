@@ -22,17 +22,17 @@ public class SchedulerController : Controller
         }
         [HttpGet]
         [Route("GetAllJobs")]
-        public async Task<IActionResult> GetAllJobs([FromQuery] GetAllJobsRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAllJobs([FromRoute] GetAllJobsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpGet]
-        [Route("GetJob")]
-        public async Task<IActionResult> GetJob([FromQuery] GetJobRequest request, CancellationToken cancellationToken)
+        [Route("GetJob/{CompanyID:int}/{JobId:int}")]
+        public async Task<IActionResult> GetJob([FromRoute] GetJobRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-    }
+    
 }
