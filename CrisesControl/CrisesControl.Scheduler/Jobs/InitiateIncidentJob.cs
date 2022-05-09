@@ -14,17 +14,16 @@ namespace CrisesControl.Scheduler.Jobs;
 public class InitiateIncidentJob : IJob
 {
     private readonly ILogger<InitiateIncidentJob> _logger;
-    private readonly IScheduleService _scheduleService;
     private readonly IIncidentRepository _incidentRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IIncidentService _incidentService;
 
     public InitiateIncidentJob(ILogger<InitiateIncidentJob> logger,
-        IScheduleService scheduleService,
-        IIncidentRepository incidentRepository, ICompanyRepository companyRepository, IIncidentService incidentService)
+        IIncidentRepository incidentRepository,
+        ICompanyRepository companyRepository,
+        IIncidentService incidentService)
     {
         _logger = logger;
-        _scheduleService = scheduleService;
         _incidentRepository = incidentRepository;
         _companyRepository = companyRepository;
         _incidentService = incidentService;

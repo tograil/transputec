@@ -73,6 +73,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<ScheduleService>().As<IScheduleService>();
             builder.RegisterType<QueueService>().As<IQueueService>();
             builder.RegisterType<QueueMessageService>().As<IQueueMessageService>();
+            builder.RegisterType<IncidentService>().As<IIncidentService>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)
