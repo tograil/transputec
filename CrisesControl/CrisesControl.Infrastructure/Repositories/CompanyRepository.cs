@@ -109,6 +109,13 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<string> GetTimeZone(int companyId)
     {
+        return (await _context.Set<Company>()
+            .Include(x => x.StdTimeZone)
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId))?.StdTimeZone?.ZoneLabel ?? "GMT Standard Time";
+    }
+
+    public async Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token)
+    {
         CompanyInfoReturn compnayrtn = new CompanyInfoReturn();
 
         var Companydata = await (from CompanyVal in _context.Set<Company>()

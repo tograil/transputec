@@ -5,10 +5,9 @@ using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Queues;
 using CrisesControl.Core.Users;
-using CrisesControl.Core.Communication;
 using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
-using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Reports;
 
 namespace CrisesControl.Infrastructure.Context
 {

@@ -97,4 +97,5 @@ public class InitiateAndLaunchJob : IJob
 
             _logger.LogInformation("Initiate and launch incident job ended");
         }
+    }
 }
