@@ -1,7 +1,10 @@
-﻿namespace CrisesControl.Core.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CrisesControl.Core.Models
 {
     public partial class IncidentLocationLibrary
     {
+        [Key]
         public int LocationId { get; set; }
         public int? CompanyId { get; set; }
         public string? LocationName { get; set; }

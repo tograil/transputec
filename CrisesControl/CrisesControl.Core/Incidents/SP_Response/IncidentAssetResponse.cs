@@ -1,4 +1,6 @@
-﻿namespace CrisesControl.Core.Incidents.SP_Response;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CrisesControl.Core.Incidents.SP_Response;
 
 public class IncidentAssetResponse : IncidentAssets
 {
@@ -38,5 +40,5 @@ public class IncidentAssetResponse : IncidentAssets
             }
         }
     }
-
+    public string FilePath { get; set; }
 }

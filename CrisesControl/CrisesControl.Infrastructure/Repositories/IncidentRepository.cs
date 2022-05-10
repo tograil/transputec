@@ -330,23 +330,12 @@ public class IncidentRepository : IIncidentRepository
 
     public List<IncidentList> GetCompanyIncident(int CompanyId, int UserID)
     {
-        List<IncidentList> result = new();
-        try
-        {
-            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
-            var pUserID = new SqlParameter("@UserID", UserID);
-
-            result = _context.Set<IncidentList>().FromSqlRaw("Pro_Get_Company_Incident @CompanyID,@UserID", pCompanyId, pUserID).ToList();
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-        }
-        return result;
+        var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+        var pUserID = new SqlParameter("@UserID", UserID);
+        return _context.Set<IncidentList>().FromSqlRaw("Pro_Get_Company_Incident @CompanyID,@UserID", pCompanyId, pUserID).ToList();
     }
 
-    public async Task<List<IncidentTypeReturn>> CompanyIncidentType(int CompanyId)
+    public List<IncidentTypeReturn> CompanyIncidentType(int CompanyId)
     {
         return (from IncidentTypeval in _context.Set<IncidentType>().AsEnumerable()
                 where IncidentTypeval.CompanyId == CompanyId && IncidentTypeval.Status == 1
@@ -362,82 +351,55 @@ public class IncidentRepository : IIncidentRepository
 
     public List<AffectedLocation> GetAffectedLocation(int CompanyId, string? LocationType)
     {
-        List<AffectedLocation> result = new();
-        try
-        {
-            var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
-            var pLocationType = new SqlParameter("@LocationType", LocationType);
-
-            result = _context.Set<AffectedLocation>().FromSqlRaw("Pro_ActiveIncident_GetAffectedLocation @CompanyID, @LocationType",
-                pCompanyID, pLocationType).ToList();
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-        }
-        return result;
+        var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+        var pLocationType = new SqlParameter("@LocationType", LocationType);
+        return _context.Set<AffectedLocation>().FromSqlRaw("Pro_ActiveIncident_GetAffectedLocation @CompanyID, @LocationType",
+            pCompanyID, pLocationType).ToList();
     }
 
     public List<AffectedLocation> GetIncidentLocation(int CompanyId, int IncidentActivationId)
     {
-        List<AffectedLocation> result = new();
-        try
-        {
-            var locs = (from IL in _context.Set<IncidentLocation>().AsEnumerable()
-                        join ILL in _context.Set<IncidentLocationLibrary>().AsEnumerable() on IL.LibLocationId equals ILL.LocationId
-                        where IL.CompanyId == CompanyId && IL.IncidentActivationId == IncidentActivationId
+        var locs = (from IL in _context.Set<IncidentLocation>().AsEnumerable()
+                    join ILL in _context.Set<IncidentLocationLibrary>().AsEnumerable() on IL.LibLocationId equals ILL.LocationId
+                    where IL.CompanyId == CompanyId && IL.IncidentActivationId == IncidentActivationId
+                    select new AffectedLocation
+                    {
+                        Address = ILL.Address,
+                        Lat = ILL.Lat,
+                        Lng = ILL.Lng,
+                        LocationID = ILL.LocationId,
+                        LocationName = ILL.LocationName,
+                        LocationType = ILL.LocationType
+                    }).ToList();
+        var incloc = (from L in _context.Set<CrisesControl.Core.LocationAggregate.Location>().AsEnumerable()
+                        join IA in _context.Set<IncidentActivation>().AsEnumerable() on L.LocationId equals IA.ImpactedLocationId
+                        where IA.IncidentActivationId == IncidentActivationId
                         select new AffectedLocation
                         {
-                            Address = ILL.Address,
-                            Lat = ILL.Lat,
-                            Lng = ILL.Lng,
-                            LocationID = ILL.LocationId,
-                            LocationName = ILL.LocationName,
-                            LocationType = ILL.LocationType
+                            Address = L.PostCode,
+                            Lat = L.Lat,
+                            Lng = L.Long,
+                            LocationID = L.LocationId,
+                            LocationName = L.LocationName,
+                            LocationType = "IMPACTED"
                         }).ToList();
-            var incloc = (from L in _context.Set<Location>().AsEnumerable()
-                          join IA in _context.Set<IncidentActivation>().AsEnumerable() on L.LocationId equals IA.ImpactedLocationId
-                          where IA.IncidentActivationId == IncidentActivationId
-                          select new AffectedLocation
-                          {
-                              Address = L.PostCode,
-                              Lat = L.Lat,
-                              Lng = L.Long,
-                              LocationID = L.LocationId,
-                              LocationName = L.LocationName,
-                              LocationType = "IMPACTED"
-                          }).ToList();
 
-            locs = locs.Union(incloc).Distinct().ToList();
-            return locs;
-        }
-        catch (Exception ex)
-        {
-        }
-        return result;
+        return locs.Union(incloc).Distinct().ToList();
     }
 
     public List<CommsMethods> GetIncidentComms(int ItemID, string Type)
     {
         List<CommsMethods> result = new();
-        try
+        if (Type == "TASK" && ItemID > 0)
         {
-            if (Type == "TASK" && ItemID > 0)
-            {
-                ItemID = (from TI in _context.Set<TaskActiveIncident>().AsEnumerable() where TI.ActiveIncidentTaskId == ItemID select TI.ActiveIncidentId).FirstOrDefault();
-            }
+            ItemID = (from TI in _context.Set<TaskActiveIncident>().AsEnumerable() where TI.ActiveIncidentTaskId == ItemID select TI.ActiveIncidentId).FirstOrDefault();
+        }
 
-            //Use: [dbo].[Pro_ActiveIncident_GetMessageMethods] @ItemID
-            result = (from MM in _context.Set<MessageMethod>().AsEnumerable()
-                          join MT in _context.Set<CommsMethod>().AsEnumerable() on MM.MethodId equals MT.CommsMethodId
-                          where MM.ActiveIncidentId == ItemID
-                          select new CommsMethods { MethodId = MM.MethodId, MethodName = MT.MethodName }).ToList();
-            return result;
-        }
-        catch (Exception ex)
-        {
-        }
+        //Use: [dbo].[Pro_ActiveIncident_GetMessageMethods] @ItemID
+        result = (from MM in _context.Set<CrisesControl.Core.Messages.MessageMethod>().AsEnumerable()
+                        join MT in _context.Set<CommsMethod>().AsEnumerable() on MM.MethodId equals MT.CommsMethodId
+                        where MM.ActiveIncidentId == ItemID
+                        select new CommsMethods { MethodId = MM.MethodId, MethodName = MT.MethodName }).ToList();
         return result;
     }
 
@@ -459,7 +421,8 @@ public class IncidentRepository : IIncidentRepository
             var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
             var pUserID = new SqlParameter("@UserID", UserID);
             var pIncidentID = new SqlParameter("@IncidentID", IncidentId);
-            result = _context.Set<GetIncidentByIDResponse>().FromSqlRaw("Pro_Incident_GetIncidentByRef @CompanyID,@UserID,@IncidentID", pCompanyID, pUserID, pIncidentID).FirstOrDefault();
+            //result = _context.Set<IncidentDetails>().FromSqlRaw("Pro_Incident_GetIncidentByRef @CompanyID,@UserID,@IncidentID", pCompanyID, pUserID, pIncidentID).FirstOrDefault();
+            result = _context.Set<IncidentDetails>().FromSqlRaw("Pro_Incident_GetIncidentByRef @CompanyID,@UserID,@IncidentID", pCompanyID, pUserID, pIncidentID).ToList().FirstOrDefault();
 
 
 
@@ -472,7 +435,7 @@ public class IncidentRepository : IIncidentRepository
             //var pDepInc = new SqlParameter("@IncidentID", IncidentId);
             //result.SharingDepartments = db.Database.SqlQuery<IncidentSharingDepartment>("Pro_Incident_GetIncidentByRef_Department @IncidentID", pDepInc).ToList();
 
-            
+
 
             var pCompanyID2 = new SqlParameter("@CompanyID", CompanyId);
             var pIncidentID2 = new SqlParameter("@IncidentID", IncidentId);

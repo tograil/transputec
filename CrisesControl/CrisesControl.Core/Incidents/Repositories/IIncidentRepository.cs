@@ -40,7 +40,7 @@ public interface IIncidentRepository
 
     Task<string> GetStatusName(int status);
     List<IncidentList> GetCompanyIncident(int CompanyId, int UserID);
-    Task <List<IncidentTypeReturn>> CompanyIncidentType(int CompanyId);
+    List<IncidentTypeReturn> CompanyIncidentType(int CompanyId);
     List<AffectedLocation> GetAffectedLocation(int CompanyId, string? LocationType);
     List<AffectedLocation> GetIncidentLocation(int CompanyId, int IncidentActivationId);
     List<CommsMethods> GetIncidentComms(int ItemID, string Type);

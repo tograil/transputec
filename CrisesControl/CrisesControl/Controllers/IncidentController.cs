@@ -1,16 +1,11 @@
 ﻿using CrisesControl.Api.Application.Commands.Incidents.AddCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.CloneIncident;
 using CrisesControl.Api.Application.Commands.Incidents.CopyIncident;
-using CrisesControl.Api.Application.Commands.Incidents.GetAffectedLocations;
-using CrisesControl.Api.Application.Commands.Incidents.GetAllActiveCompanyIncident;
-using CrisesControl.Api.Application.Commands.Incidents.GetAllCompanyIncident;
-using CrisesControl.Api.Application.Commands.Incidents.GetCompanyIncidentById;
-using CrisesControl.Api.Application.Commands.Incidents.GetCompanyIncidentType;
-using CrisesControl.Api.Application.Commands.Incidents.GetIncidentComms;
-using CrisesControl.Api.Application.Commands.Incidents.GetIncidentLocations;
 using CrisesControl.Api.Application.Commands.Incidents.InitiateAndLaunchIncident;
 using CrisesControl.Api.Application.Commands.Incidents.InitiateCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.LaunchCompanyIncident;
+using CrisesControl.Api.Application.Query;
+using CrisesControl.Api.Application.Query.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,10 +18,14 @@ namespace CrisesControl.Api.Controllers;
 public class IncidentController : Controller
 {
     private readonly IMediator _mediator;
+    private readonly IIncidentQuery _incidentQuery;
 
-    public IncidentController(IMediator mediator)
+    public IncidentController(IMediator mediator,
+        IIncidentQuery incidentQuery)
     {
         _mediator = mediator;
+        _incidentQuery = incidentQuery;
+
     }
 
     [HttpPost]
@@ -91,87 +90,57 @@ public class IncidentController : Controller
 
     [HttpGet]
     [Route("[action]")]
-    public async Task<IActionResult> GetAllActiveCompanyIncident(CancellationToken cancellationToken)
+    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? Status, [FromRoute] PagedRequest Paging)
     {
-        var result = await _mediator.Send(
-            new GetAllActiveCompanyIncidentRequest()
-            {
-            },
-            cancellationToken
-        );
-
+        var result = _incidentQuery.GetAllActiveCompanyIncident(Status, Paging);
         return Ok(result);
     }
 
     [HttpGet]
     [Route("[action]/{UserId}")]
-    public async Task<IActionResult> GetAllCompanyIncident(int UserId, CancellationToken cancellationToken)
+    public IActionResult GetAllCompanyIncident([FromRoute] int UserId)
     {
-        var result = await _mediator.Send(
-            new GetAllCompanyIncidentRequest() { QUserId = UserId },
-            cancellationToken
-        );
-
+        var result = _incidentQuery.GetAllCompanyIncident(UserId);
         return Ok(result);
     }
 
     [HttpGet]
     [Route("[action]/{CompanyId}")]
-    public async Task<IActionResult> GetCompanyIncidentType(int CompanyId, CancellationToken cancellationToken)
+    public IActionResult GetCompanyIncidentType([FromRoute] int CompanyId)
     {
-        var result = await _mediator.Send(
-            new GetCompanyIncidentTypeRequest() { CompanyId = CompanyId },
-            cancellationToken
-        );
-
+        var result = _incidentQuery.GetCompanyIncidentType(CompanyId);
         return Ok(result);
     }
 
     [HttpGet]
     [Route("[action]/{CompanyId}/{LocationType}")]
-    public async Task<IActionResult> GetAffectedLocations(int CompanyId, string LocationType, CancellationToken cancellationToken)
+    public IActionResult GetAffectedLocations([FromRoute] int CompanyId, [FromRoute] string LocationType)
     {
-        var result = await _mediator.Send(
-            new GetAffectedLocationsRequest() { CompanyId = CompanyId, LocationType = LocationType },
-            cancellationToken
-        );
-
+        var result = _incidentQuery.GetAffectedLocations(CompanyId, LocationType);
         return Ok(result);
     }
 
     [HttpGet]
     [Route("[action]/{CompanyId}/{IncidentActivationId}")]
-    public async Task<IActionResult> GetIncidentLocations(int CompanyId, int IncidentActivationId, CancellationToken cancellationToken)
+    public IActionResult GetIncidentLocations([FromRoute] int CompanyId, [FromRoute] int IncidentActivationId)
     {
-        var result = await _mediator.Send(
-            new GetIncidentLocationsRequest() { CompanyId = CompanyId, IncidentActivationId = IncidentActivationId },
-            cancellationToken
-        );
-
+        var result = _incidentQuery.GetIncidentLocations(CompanyId, IncidentActivationId);
         return Ok(result);
     }
 
     [HttpGet]
     [Route("[action]/{ItemID}/{Type}")]
-    public async Task<IActionResult> GetIncidentComms(int ItemID, string Type, CancellationToken cancellationToken)
+    public IActionResult GetIncidentComms([FromRoute] int ItemID, [FromRoute] string Type)
     {
-        var result = await _mediator.Send(
-            new GetIncidentCommsRequest() { ItemID = ItemID, Type = Type },
-            cancellationToken
-        );
-
+        var result = _incidentQuery.GetIncidentComms(ItemID, Type);
         return Ok(result);
     }
 
     [HttpGet]
     [Route("[action]/{CompanyId}/{IncidentId}/{UserStatus}")]
-    public async Task<IActionResult> GetCompanyIncidentById(int CompanyId, int IncidentId, string UserStatus, CancellationToken cancellationToken)
+    public IActionResult GetCompanyIncidentById([FromRoute] int CompanyId, [FromRoute] int IncidentId, [FromRoute] string UserStatus)
     {
-        var result = await _mediator.Send(
-            new GetCompanyIncidentByIdRequest() { CompanyId = CompanyId, IncidentId = IncidentId, UserStatus = UserStatus },
-            cancellationToken
-        );
-
+        var result = _incidentQuery.GetCompanyIncidentById(CompanyId, IncidentId, UserStatus);
         return Ok(result);
     }
 }
