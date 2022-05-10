@@ -4,7 +4,7 @@ using CrisesControl.Core.Users;
 
 namespace CrisesControl.Core.Companies
 {
-    public record Company
+    public class Company
     {
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = null!;

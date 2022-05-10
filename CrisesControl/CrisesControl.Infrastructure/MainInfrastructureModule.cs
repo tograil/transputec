@@ -12,6 +12,12 @@ using CrisesControl.Core.AssetAggregate.Respositories;
 using CrisesControl.Core.Incidents.Services;
 using CrisesControl.Core.Messages.Services;
 using CrisesControl.Infrastructure.Services;
+using CrisesControl.Core.Billing.Repositories;
+using CrisesControl.Core.Reports.Repositories;
+using CrisesControl.Core.Communication.Repositories;
+using CrisesControl.Core.Security;
+using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.Communication.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -54,10 +60,14 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<ActiveIncidentRepository>().As<IActiveIncidentRepository>();
             builder.RegisterType<MessageRepository>().As<IMessageRepository>();
             builder.RegisterType<AssetRespository>().As<IAssetRepository>();
-
-
+            builder.RegisterType<BillingRespository>().As<IBillingRepository>();
             builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<ActiveIncidentTaskService>().As<IActiveIncidentTaskService>();
+            builder.RegisterType<ReportRepository>().As<IReportsRepository>();
+            builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
+            builder.RegisterType<SecurityRepository>().As<ISecurityRepository>();
+            builder.RegisterType<CompanyParametersRepository>().As<ICompanyParametersRepository>();
+            builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)
