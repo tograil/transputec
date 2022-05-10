@@ -11,6 +11,8 @@ public interface ICompanyRepository
     Task<IEnumerable<Company>> GetAllCompanyList(int? status, string? companyProfile);
     Task<string> GetCompanyParameter(string key, int companyId, string @default = "", string customerId = "");
     Task<int> CreateCompany(Company company, CancellationToken token);
+
+    Task<string> GetTimeZone(int companyId);
     Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token);
     Task<List<CommsMethod>> GetCommsMethod();
     Task<int> UpdateCompany(Company company);

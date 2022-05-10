@@ -5,7 +5,9 @@ using CrisesControl.Config;
 using CrisesControl.Core;
 using CrisesControl.Infrastructure;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.MongoSettings;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -21,6 +23,9 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
 builder.Services.AddDbContext<CrisesControlContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlDatabase")));
+
+builder.Services.Configure<JobsMongoSettings>(
+    builder.Configuration.GetSection("JobsMongoSettings"));
 
 // Add services to the container.
 
@@ -73,6 +78,10 @@ builder.Services.AddSwaggerGen(c => {
 }
     );
 
+builder.Host.UseSerilog((ctx, lc) =>
+{
+    lc.ReadFrom.Configuration(ctx.Configuration);
+});
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder => {
     containerBuilder.RegisterModule(new ApiModule());
@@ -146,5 +155,23 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseExceptionHandler(exceptionHandlerApps =>
+{
+    exceptionHandlerApps.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+
+        var exceptionHandlerFeature =
+            context.Features.Get<IExceptionHandlerFeature>();
+
+        var logger = app.Services.GetService<ILogger<Program>>();
+
+        logger.LogError(exceptionHandlerFeature?.Error, "Error in controller happened");
+
+        await context.Response.WriteAsync("Exception happened. Please look in log");
+    });
+});
 
 app.Run();

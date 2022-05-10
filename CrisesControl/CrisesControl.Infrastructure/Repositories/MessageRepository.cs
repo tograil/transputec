@@ -106,7 +106,7 @@ public class MessageRepository : IMessageRepository {
         await _context.SaveChangesAsync();
     }
 
-    public async Task<int> CreateMessage(int companyId, string msgText, string messageType, int incidentActivationId, int priority,
+    public async Task<int> CreateMessage(int companyId, string? msgText, string messageType, int incidentActivationId, int priority,
         int currentUserId, int source, DateTimeOffset localTime, bool multiResponse, ICollection<AckOption> ackOptions, int status = 0,
         int assetId = 0, int activeIncidentTaskId = 0, bool trackUser = false, bool silentMessage = false,
         int[] messageMethod = null, ICollection<MediaAttachment> mediaAttachments = null, int parentId = 0, int messageActionType = 0) {
@@ -169,7 +169,7 @@ public class MessageRepository : IMessageRepository {
                 if (isExists is not null) {
                     toDeleteList.Add(isExists.IncidentNotificationListId);
                 } else {
-                    CreateIncidentNotificationList(messageId, incidentActivationId,
+                    await CreateIncidentNotificationList(messageId, incidentActivationId,
                         incidentNotificationList.ObjectMappingId,
                         incidentNotificationList.SourceObjectPrimaryId, currentUserId, companyId);
                 }

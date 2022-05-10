@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Identity;
@@ -13,12 +14,16 @@ namespace CrisesControl.Auth.Controllers;
 public class AuthorizationController : Controller
 {
     private const string CompanyIdClaimName = "company_id";
+    private const string TimeZoneClaimName = "time_zone";
 
     private readonly UserManager<User> _userManager;
+    private readonly ICompanyRepository _companyRepository;
 
-    public AuthorizationController(UserManager<User> userManager)
+    public AuthorizationController(UserManager<User> userManager,
+        ICompanyRepository companyRepository)
     {
         _userManager = userManager;
+        _companyRepository = companyRepository;
     }
 
     [HttpPost("~/connect/token")]
@@ -39,6 +44,8 @@ public class AuthorizationController : Controller
             if (!await _userManager.CheckPasswordAsync(user, request.Password))
                 return Unauthorized();
 
+            var timeZone = await _companyRepository.GetTimeZone(user.CompanyId);
+
             var identity = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
             identity.AddClaim(OpenIddictConstants.Claims.Subject, user.UserId.ToString(),
@@ -46,6 +53,8 @@ public class AuthorizationController : Controller
             identity.AddClaim(OpenIddictConstants.Claims.Username, user.PrimaryEmail,
                 OpenIddictConstants.Destinations.AccessToken);
             identity.AddClaim(CompanyIdClaimName, user.CompanyId.ToString(),
+                OpenIddictConstants.Destinations.AccessToken);
+            identity.AddClaim(TimeZoneClaimName, timeZone,
                 OpenIddictConstants.Destinations.AccessToken);
 
             claimsPrincipal = new ClaimsPrincipal(identity);

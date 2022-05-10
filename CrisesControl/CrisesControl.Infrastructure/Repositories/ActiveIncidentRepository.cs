@@ -24,6 +24,29 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         _context = context;
     }
 
+    public async Task ProcessKeyHolders(int companyId, int incidentId, int activeIncidentId, int currentUserId,
+        int[] incidentKeyHolders)
+    {
+        var deleteExt = await _context.Set<IncidentKeyholder>().Where(x => x.IncidentID == incidentId
+                                                                     && x.ActiveIncidentID == activeIncidentId)
+            .ToListAsync();
+
+        _context.RemoveRange(deleteExt);
+
+        await _context.SaveChangesAsync();
+
+        var keyHoldersToSave = incidentKeyHolders.Select(x => new IncidentKeyholder
+        {
+            CompanyID = companyId,
+            IncidentID = incidentId,
+            ActiveIncidentID = activeIncidentId,
+            UserID = x
+        }).ToList();
+
+        _context.AddRange(keyHoldersToSave);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task ProcessImpactedLocation(int[] locationIds, int incidentActivationId, int companyId, string action)
     {
         var locations = await _context.Set<Location>()

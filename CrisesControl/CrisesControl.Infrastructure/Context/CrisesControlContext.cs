@@ -3,12 +3,11 @@ using CrisesControl.Core.Communication;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
-using CrisesControl.Core.Reports;
+using CrisesControl.Core.Queues;
 using CrisesControl.Core.Users;
-using CrisesControl.Core.Communication;
 using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
-using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Reports;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -30,6 +29,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrisesControlContext).Assembly);
 
             modelBuilder.Entity<NewIncident>().HasNoKey();
+            modelBuilder.Entity<MessageQueueItem>().HasNoKey();
             modelBuilder.Entity<CompanySubscribedMethod>().HasNoKey();
             modelBuilder.Entity<UserMessageList>().HasNoKey().Ignore("SentBy");
             modelBuilder.Entity<UserFullName>().HasNoKey();
