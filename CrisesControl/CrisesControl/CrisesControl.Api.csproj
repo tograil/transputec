@@ -33,12 +33,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CrisesControl.Core\CrisesControl.Core.csproj" />
-    <ProjectReference Include="..\CrisesControl.Infrastructure\CrisesControl.Infrastructure.csproj" />
-    <ProjectReference Include="..\CrisesControl.SharedKernel\CrisesControl.SharedKernel.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Application\Commands\Incidents\AddCompanyIncident\" />
     <Folder Include="Application\Commands\Common\" />
     <Folder Include="Application\Commands\Incidents\CloneIncident\" />
@@ -51,6 +45,12 @@
 
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CrisesControl.Core\CrisesControl.Core.csproj" />
+    <ProjectReference Include="..\CrisesControl.Infrastructure\CrisesControl.Infrastructure.csproj" />
+    <ProjectReference Include="..\CrisesControl.SharedKernel\CrisesControl.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>

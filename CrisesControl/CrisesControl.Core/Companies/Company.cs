@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 
 namespace CrisesControl.Core.Companies
 {
     public class Company
     {
+        public StdTimeZone StdTimeZone { get; set; }
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = null!;
         public int? TimeZone { get; set; }

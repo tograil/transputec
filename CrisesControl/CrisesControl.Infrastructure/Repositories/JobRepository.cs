@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using CrisesControl.Core.Models;
 using Serilog;
 
 namespace CrisesControl.Infrastructure.Repositories

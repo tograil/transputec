@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.SharedKernel.Enums;
 
-public enum LogoType
+public enum MessageType
 {
-    EMAILLOGO,
-    PHONELOGO
-    
+    Email,
+    Phone ,
+    Push,
+    Text,
 }

@@ -23,6 +23,7 @@ using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Communication.Repositories;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.ExTriggers.Repositories;
+using CrisesControl.Core.Jobs.Services;
 
 namespace CrisesControl.Infrastructure
 {
