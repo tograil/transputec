@@ -33,20 +33,20 @@ namespace CrisesControl.Infrastructure.Repositories
                 CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
                 var pUserId = new SqlParameter("@UserID", UserID);
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
-                var result = _context.Set<ExTriggerList>().FromSqlRaw("EXEC Pro_Get_Ex_Trigger @CompanyID,@UserID", pCompanyId, pUserId);
+               var result=  _context.Set<ExTriggerList>().FromSqlRaw("EXEC Pro_Get_Ex_Trigger @CompanyID,@UserID", pCompanyId, pUserId);
 
                 var resultlist = await result.ToListAsync();
                 if (resultlist != null)
                 {
                     return resultlist;
                 }
-
+                
 
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-
+               
             }
             return new List<ExTriggerList>();
         }
@@ -99,7 +99,7 @@ namespace CrisesControl.Infrastructure.Repositories
          * 
          * 
          */
-
+        
 
         public async Task<IEnumerable<ExTriggerList>> GetExTrigger(int ExTriggerID, int CompanyID)
         {
@@ -107,7 +107,7 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
                 var pExTriggerID = new SqlParameter("@ExTriggerID", ExTriggerID);
-                var result = await _context.Set<ExTriggerList>().FromSqlRaw("EXEC Pro_Get_1_Ex_Trigger @ExTriggerID, @CompanyID", pCompanyID, pExTriggerID).ToListAsync();
+                var result= await _context.Set<ExTriggerList>().FromSqlRaw("EXEC Pro_Get_1_Ex_Trigger @ExTriggerID, @CompanyID", pCompanyID, pExTriggerID).ToListAsync();
                 if (result != null)
                 {
                     return result;
@@ -116,13 +116,13 @@ namespace CrisesControl.Infrastructure.Repositories
                 {
                     return new List<ExTriggerList>();
                 }
-            }
+           }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 return null;
             }
-
+          
         }
 
         public async Task<IEnumerable<ExTriggerList>> GetImpTrigger()

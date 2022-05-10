@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Models;
 
 namespace CrisesControl.Core.Messages.Repositories;
 
@@ -17,17 +19,24 @@ public interface IMessageRepository
 
     Task DeleteMessageMethod(int messageId = 0, int activeIncidentId = 0);
 
-    Task<int> CreateMessage(int companyId, string msgText, string messageType, int incidentActivationId, int priority,
+    Task<int> CreateMessage(int companyId, string? msgText, string messageType, int incidentActivationId, int priority,
         int currentUserId,
         int source, DateTimeOffset localTime, bool multiResponse, ICollection<AckOption> ackOptions, int status = 0,
         int assetId = 0, int activeIncidentTaskId = 0, bool trackUser = false, bool silentMessage = false,
         int[] messageMethod = null, ICollection<MediaAttachment> mediaAttachments = null, int parentId = 0,
         int messageActionType = 0);
-
+    Task<UserMessageCount> GetNotificationsCount(int currentUserId);
+    Task<CompanyMessageResponse> GetMessageResponse(int responseID, string messageType);
+    Task<List<CompanyMessageResponse>> GetMessageResponses(string messageType, int Status);
     Task CreateIncidentNotificationList(int incidentActivationId, int messageId,
         ICollection<IncidentNotificationObjLst> launchIncidentNotificationObjLst,
         int currentUserId, int companyId);
 
     Task CreateIncidentNotificationList(int messageId, int incidentActivationId, int mappingId, int sourceId,
         int currentUserId, int companyId);
+
+    Task<List<LibMessageResponse>> GetLibMessageResponse();
+
+    Task CopyMessageResponse(int CompanyID, int CurrentUserId, string TimeZoneID, CancellationToken token);
+    Task<List<UserMessageList>> GetMessages(int targetUserId, string? messageType, int incidentActivationId);
 }

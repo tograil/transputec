@@ -1,5 +1,4 @@
-﻿using CrisesControl.Core.Jobs;
-using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

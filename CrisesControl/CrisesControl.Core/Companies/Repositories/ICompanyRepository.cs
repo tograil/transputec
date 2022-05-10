@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using CrisesControl.Core.Models;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,4 +13,8 @@ public interface ICompanyRepository
     Task<int> CreateCompany(Company company, CancellationToken token);
 
     Task<string> GetTimeZone(int companyId);
+    Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token);
+    Task<List<CommsMethod>> GetCommsMethod();
+    Task<int> UpdateCompany(Company company);
+    Task<Company> GetCompanyByID(int companyId);
 }
