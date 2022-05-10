@@ -24,6 +24,7 @@
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="10.3.6" />
     <PackageReference Include="MediatR" Version="10.0.1" />
     <PackageReference Include="MediatR.Extensions.Autofac.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="MongoDB.Bson" Version="2.15.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,8 +32,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Compatibility\Jobs\" />
     <Folder Include="Incidents\Services\" />
     <Folder Include="Incidents\Repositories\" />
+    <Folder Include="Jobs\Services\" />
+    <Folder Include="Jobs\Repositories\" />
+    <Folder Include="Messages\Services\" />
+    <Folder Include="Messages\Repositories\" />
+    <Folder Include="Queues\Maps\" />
+    <Folder Include="Queues\Repositories\" />
+    <Folder Include="Settings\Repositories\" />
   </ItemGroup>
 
 </Project>

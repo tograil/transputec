@@ -39,19 +39,23 @@ builder.Services.AddSwaggerGen(c => {
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);
 
-    c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme {
-            Flows = new OpenApiOAuthFlows {
-                Password = new OpenApiOAuthFlow {
-                    Scopes = new Dictionary<string, string> {
-                        ["api"] = "api scope description"
-                    },
-                    TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
+    c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+    {
+        Flows = new OpenApiOAuthFlows
+        {
+            Password = new OpenApiOAuthFlow
+            {
+                Scopes = new Dictionary<string, string>
+                {
+                    ["api"] = "api scope description"
                 },
+                TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
             },
-            In = ParameterLocation.Header,
-            Name = HeaderNames.Authorization,
-            Type = SecuritySchemeType.OAuth2
-        }
+        },
+        In = ParameterLocation.Header,
+        Name = HeaderNames.Authorization,
+        Type = SecuritySchemeType.OAuth2
+    }
     );
     c.AddSecurityRequirement(
         new OpenApiSecurityRequirement

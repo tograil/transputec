@@ -11,36 +11,34 @@ namespace CrisesControl.Core.Jobs
     public class JobList
     {
         public int JobID { get; set; }
-        public string Jobs_JobType { get; set; }
-        public string Jobs_JobName { get; set; }
-        public string Jobs_JobDescription { get; set; }
-        public string Jobs_CommandLine { get; set; }
-        public string Jobs_CommandLineParams { get; set; }
-        public string Jobs_ActionType { get; set; }
-        public DateTimeOffset Jobs_NextRunDate { get; set; }
-        public string Jobs_NextRunTime { get; set; }
-        public bool Jobs_IsEnabled { get; set; }
-        public bool Jobs_Locked { get; set; }
-        public string Jobs_LockedBy { get; set; }
-        public DateTimeOffset Jobs_CreatedDate { get; set; }
-        public DateTimeOffset Jobs_UpdatedDate { get; set; }
-        public int Jobs_UpdatedBy { get; set; }
-        public int JobSchedule_ScheduleID { get; set; }
-        public string JobSchedule_FrequencyType { get; set; }
-        public int JobSchedule_FrequencyInterval { get; set; }
-        public string JobSchedule_FrequencySubDayType { get; set; }
-        public int JobSchedule_FrequencySubDayInterval { get; set; }
-        public int JobSchedule_RecurrenceFactor { get; set; }
-        public DateTimeOffset JobSchedule_ActiveStartDate { get; set; }
-        public string JobSchedule_ActiveStartTime { get; set; }
+        public string JobType { get; set; }
+        public string JobName { get; set; }
+        public string JobDescription { get; set; }
+        public string CommandLine { get; set; }
+        public string CommandLineParams { get; set; }
+        public string ActionType { get; set; }
+        public DateTimeOffset NextRunDate { get; set; }
+        public string NextRunTime { get; set; }
+        public bool IsEnabled { get; set; }
+        public bool Locked { get; set; }
+        public string LockedBy { get; set; }
+        public DateTimeOffset CreatedDate { get; set; }
+        public DateTimeOffset UpdatedDate { get; set; }
+        public int UpdatedBy { get; set; }
+        public int ScheduleID { get; set; }
+        public string FrequencyType { get; set; }
+        public int FrequencyInterval { get; set; }
+        public string FrequencySubDayType { get; set; }
+        public int FrequencySubDayInterval { get; set; }
+        public int RecurrenceFactor { get; set; }
+        public DateTimeOffset ActiveStartDate { get; set; }
+        public string ActiveStartTime { get; set; }
+        public DateTimeOffset SchedulerNextRunDate { get; set; }
+        public string SchedulerNextRunTime { get; set; }
 
-        public DateTimeOffset JobSchedule_ActiveEndDate { get; set; }
-        public string JobSchedule_ActiveEndTime { get; set; }
-
-        public DateTimeOffset JobSchedule_NextRunDate { get; set; }
-
-        public string JobSchedule_NextRunTime { get; set; }
-        public bool JobSchedule_IsActive { get; set; }
+        public DateTimeOffset JActiveEndDate { get; set; }
+        public string ActiveEndTime { get; set; }
+        public bool IsActive { get; set; }
         public List<User> Users { get; set; }
         public List<Group> Groups { get; set; }
 
