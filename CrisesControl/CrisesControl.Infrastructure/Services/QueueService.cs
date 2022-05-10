@@ -55,7 +55,7 @@ public class QueueService : IQueueService
     public async Task<ICollection<MessageQueueItem>> GetMessageQueue(int messageId, MessageMethod method, int messageDeviceId = 0, int priority = 1)
     {
         var pMessageId = new SqlParameter("@MessageID", messageId);
-        var pMethod = new SqlParameter("@Method", method.ToDbString());
+        var pMethod = new SqlParameter("@Method", method.ToString());
         var pMessageDeviceId = new SqlParameter("@MessageDeviceID", messageDeviceId);
         var pPriority = new SqlParameter("@Priority", priority);
 
@@ -75,7 +75,7 @@ public class QueueService : IQueueService
             return x;
         }).ToList();
 
-        _logger.LogInformation($"Queue count for {method.ToDbString()} is {messageQueue.Count}");
+        _logger.LogInformation($"Queue count for {method.ToString()} is {messageQueue.Count}");
 
         return messageQueue;
     }
@@ -170,7 +170,7 @@ public class QueueService : IQueueService
                 };
                 var tmpMessage = JsonConvert.SerializeObject(tmpItem);
                 var tmpBody = Encoding.UTF8.GetBytes(tmpMessage);
-                tmpRoutingKey = method.ToDbString().ToLower() + "_" + queueCount;
+                tmpRoutingKey = method.ToString().ToLower() + "_" + queueCount;
                 model.QueueDeclare(queue: tmpRoutingKey, durable: true, exclusive: false, autoDelete: false);
                 model.QueueBind(queue: tmpRoutingKey, exchange: exchangeName, routingKey: tmpRoutingKey);
                 model.BasicPublish(exchange: exchangeName, routingKey: tmpRoutingKey, basicProperties: properties, body: tmpBody);
@@ -318,7 +318,7 @@ public class QueueService : IQueueService
                 }
                 else
                 {
-                    routingKey = method.ToDbString().ToLower();
+                    routingKey = method.ToString().ToLower();
                 }
 
                 if (currentPushType != pushType)

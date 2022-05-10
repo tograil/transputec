@@ -1,6 +1,7 @@
 ﻿using System;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Compatibility.Jobs;
+using CrisesControl.Core.Models;
 using CrisesControl.SharedKernel.Enums;
 
 namespace CrisesControl.Core.Jobs;

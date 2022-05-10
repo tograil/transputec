@@ -10,8 +10,6 @@ using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Repositories;
 using CrisesControl.Core.AssetAggregate.Respositories;
 using CrisesControl.Core.Incidents.Services;
-using CrisesControl.Core.Jobs.Repositories;
-using CrisesControl.Core.Jobs.Services;
 using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Queues.Repositories;
 using CrisesControl.Core.Queues.Services;
@@ -23,6 +21,9 @@ using CrisesControl.Core.Communication.Repositories;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Communication.Repositories;
+using CrisesControl.Core.Jobs.Repositories;
+using CrisesControl.Core.ExTriggers.Repositories;
+using CrisesControl.Core.Jobs.Services;
 
 namespace CrisesControl.Infrastructure
 {
@@ -53,8 +54,6 @@ namespace CrisesControl.Infrastructure
         {
             builder.RegisterAutoMapper(ThisAssembly);
 
-            builder.RegisterType<MemoryCache>().As<IMemoryCache>().SingleInstance();
-
             builder.RegisterType<CompanyRepository>().As<ICompanyRepository>();
             builder.RegisterType<RegisterCompanyRepository>().As<IRegisterCompanyRepository>();
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
@@ -84,6 +83,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<QueueMessageService>().As<IQueueMessageService>();
             builder.RegisterType<IncidentService>().As<IIncidentService>();
             builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
+            builder.RegisterType<ExTriggerRepository>().As<IExTriggerRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

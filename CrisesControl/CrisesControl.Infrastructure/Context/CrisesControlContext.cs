@@ -9,6 +9,11 @@ using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.Reports;
 
+using CrisesControl.Core.ExTriggers;
+using CrisesControl.Core.Jobs;
+using CrisesControl.Core.Models.Common;
+using CrisesControl.Core.Reports.Repositories;
+
 namespace CrisesControl.Infrastructure.Context
 {
     public class CrisesControlContext : DbContext
@@ -33,11 +38,20 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanySubscribedMethod>().HasNoKey();
             modelBuilder.Entity<UserMessageList>().HasNoKey().Ignore("SentBy");
             modelBuilder.Entity<UserFullName>().HasNoKey();
+            modelBuilder.Entity<PhoneNumber>().HasNoKey();
             modelBuilder.Entity<SOSItem>().HasNoKey();
             modelBuilder.Entity<ConferenceDetails>().HasNoKey();
             modelBuilder.Entity<CompanySecurityGroup>().HasNoKey();
             modelBuilder.Entity<CommsMethodPriority>().HasNoKey();
             modelBuilder.Entity<CascadingPlanReturn>().HasNoKey();
+            modelBuilder.Entity<JobList>().HasNoKey();
+            modelBuilder.Entity<ExTriggerList>().HasNoKey();
+            modelBuilder.Entity<MessageAcknowledgements>().HasNoKey().Ignore("AcknowledgedUser").Ignore("UserMobile").Ignore("UserLandLine"); 
+            modelBuilder.Entity<Order>().HasNoKey();
+            modelBuilder.Entity<Search>().HasNoKey();
+            modelBuilder.Entity<ResponseSummary>().HasNoKey();
+            modelBuilder.Entity<MessageReporting>().HasNoKey();
+
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();

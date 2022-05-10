@@ -29,16 +29,7 @@
     <PackageReference Include="OpenIddict.Abstractions" Version="3.1.1" />
     <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="3.1.1" />
     <PackageReference Include="OpenIddict.Validation.SystemNetHttp" Version="3.1.1" />
-    <PackageReference Include="Serilog" Version="2.10.0" />
-    <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
-    <PackageReference Include="Serilog.Sinks.MSSqlServer" Version="5.7.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\CrisesControl.Core\CrisesControl.Core.csproj" />
-    <ProjectReference Include="..\CrisesControl.Infrastructure\CrisesControl.Infrastructure.csproj" />
-    <ProjectReference Include="..\CrisesControl.SharedKernel\CrisesControl.SharedKernel.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,13 +39,18 @@
     <Folder Include="Application\Commands\Incidents\CopyIncident\" />
     <Folder Include="Application\Commands\Incidents\InitiateCompanyIncident\" />
     <Folder Include="Application\Commands\Incidents\LaunchCompanyIncident\" />
-    <Folder Include="Application\Commands\Scheduler\AddJob\" />
     <Folder Include="Application\Helpers\" />
     <Folder Include="Application\ViewModels\Company\" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CrisesControl.Core\CrisesControl.Core.csproj" />
+    <ProjectReference Include="..\CrisesControl.Infrastructure\CrisesControl.Infrastructure.csproj" />
+    <ProjectReference Include="..\CrisesControl.SharedKernel\CrisesControl.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>
