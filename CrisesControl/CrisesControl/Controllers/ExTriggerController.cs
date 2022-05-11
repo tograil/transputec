@@ -28,7 +28,7 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
         [HttpGet]
-        [Route("GetExTrigger/{ExTriggerID:int}/{CompanyID}")]
+        [Route("GetExTrigger/{ExTriggerID:int}/{CompanyID:int}")]
         public async Task<IActionResult> GetExTrigger([FromRoute] GetExTriggerRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
