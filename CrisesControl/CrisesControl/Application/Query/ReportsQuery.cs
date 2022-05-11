@@ -40,7 +40,7 @@ namespace CrisesControl.Api.Application.Query {
 
         public async Task<GetIndidentMessageNoAckResponse> GetIndidentMessageNoAck(GetIndidentMessageNoAckRequest request)
         {
-            var stats = await _reportRepository.GetIndidentMessageNoAck(request.draw,request.IncidentActivationId, request.RecordStart, request.RecordLength,request.SearchString,request.OrderBy, request.OrderDir);
+            var stats = await _reportRepository.GetIndidentMessageNoAck(request.draw,request.IncidentActivationId, request.RecordStart, request.RecordLength,request.SearchString, request.UniqueKey);
 
             var response = _mapper.Map<List<DataTablePaging>>(stats);
             var result = new GetIndidentMessageNoAckResponse();

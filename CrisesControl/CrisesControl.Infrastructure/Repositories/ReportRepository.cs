@@ -22,6 +22,7 @@ namespace CrisesControl.Infrastructure.Repositories {
 
         private int UserID;
         private int CompanyID;
+        private string UniqueKey;
 
         public ReportRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<ReportRepository> logger) {
             _context = context;
@@ -60,12 +61,12 @@ namespace CrisesControl.Infrastructure.Repositories {
             return new List<IncidentPingStatsCount>();
         }
 
-        public async Task<List<DataTablePaging>> GetIndidentMessageNoAck(int draw, int IncidentActivationId, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir)
+        public async Task<List<DataTablePaging>> GetIndidentMessageNoAck(int draw, int IncidentActivationId, int RecordStart, int RecordLength, string? SearchString, string? UniqueKey)
         {
             try
             {
-                const string order = "UserId";
-                const string dir = "asc";
+                const string OrderBy = "UserId";
+                const string OrderDir = "asc";
                 UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
                 CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
                 var pIncidentActivationId = new SqlParameter("@ActiveIncidentID", IncidentActivationId);
@@ -74,16 +75,14 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var pSearchString = new SqlParameter("@SearchString", SearchString);
                 var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
                 var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+                 var pUserID = new SqlParameter("@UserID", UserID);
+                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pUniqueKey = new SqlParameter("@UniqueKey", UniqueKey);
 
-               var result = await _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_No_Ack_Users @ActiveIncidentID, @UserID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
-                   pIncidentActivationId, UserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, CompanyID).ToListAsync();
+                var result = await _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_No_Ack_Users @ActiveIncidentID, @UserID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                   pIncidentActivationId, pUserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey).ToListAsync();
 
-                if (string.IsNullOrEmpty(OrderBy))
-                    OrderBy = order;
-
-                if (string.IsNullOrEmpty(OrderDir))
-                    OrderDir = dir;
-                int totalRecord = 0;
+                 int totalRecord = 0;
                 totalRecord = result.Count;
 
                List<DataTablePaging> rtn = new List<DataTablePaging>(await _context.Set<DataTablePaging>().Where(x=>x.draw== draw).Select(n=>
@@ -99,9 +98,11 @@ namespace CrisesControl.Infrastructure.Repositories {
             {
                 Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                           ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
-                return null;
+               
             }
-          
+            return new List<DataTablePaging>();
+
+
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Core.Users;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,6 +16,7 @@ public class MessageAcknowledgements
     public DateTimeOffset MessageAcknowledge { get; set; }
     public string MessageLat { get; set; }
     public string MessageLng { get; set; }
+    [NotMapped]
     public UserFullName AcknowledgedUser
     {
         get { return new UserFullName { Firstname = FirstName, Lastname = LastName }; }
@@ -26,6 +28,7 @@ public class MessageAcknowledgements
     public string PrimaryEmail { get; set; }
     public string ISDCode { get; set; }
     public string MobileNo { get; set; }
+    [NotMapped] 
     public PhoneNumber UserMobile
     {
         get { return new PhoneNumber { ISD = ISDCode, Number = MobileNo }; }
@@ -33,6 +36,7 @@ public class MessageAcknowledgements
     }
     public string LLISDCode { get; set; }
     public string Landline { get; set; }
+    [NotMapped] 
     public PhoneNumber UserLandLine
     {
         get { return new PhoneNumber { ISD = LLISDCode, Number = Landline }; }

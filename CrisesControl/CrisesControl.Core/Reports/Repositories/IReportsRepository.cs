@@ -11,6 +11,6 @@ namespace CrisesControl.Core.Reports.Repositories {
         public Task<List<SOSItem>> GetSOSItems();
         public Task<List<IncidentPingStatsCount>> GetIncidentPingStats(int CompanyID, int NoOfMonth);
         Task<List<DataTablePaging>> GetIndidentMessageNoAck(int draw, int IncidentActivationId
-        ,int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir);
+        ,int RecordStart, int RecordLength, string? SearchString, string? UniqueKey);
     }
 }

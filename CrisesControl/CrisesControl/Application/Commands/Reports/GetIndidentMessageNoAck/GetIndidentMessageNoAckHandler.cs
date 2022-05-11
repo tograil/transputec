@@ -1,6 +1,8 @@
-﻿using CrisesControl.Api.Application.Query;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Query;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Reports.Repositories;
+using FluentValidation;
 using MediatR;
 using Serilog;
 
@@ -20,7 +22,10 @@ public class GetIndidentMessageNoAckHandler: IRequestHandler<GetIndidentMessageN
     {
         try
         {
-            var result = await _reportRepository.GetIndidentMessageNoAck(request.draw, request.IncidentActivationId, request.RecordStart, request.RecordLength, request.SearchString, request.OrderBy, request.OrderDir);
+            Guard.Against.Null(request, nameof(GetIndidentMessageNoAckRequest));
+            await _getIndidentMessageNoAckValidator.ValidateAndThrowAsync(request, cancellationToken);
+
+            var result = await _reportRepository.GetIndidentMessageNoAck(request.draw, request.IncidentActivationId, request.RecordStart, request.RecordLength, request.SearchString, request.UniqueKey);
 
             
 

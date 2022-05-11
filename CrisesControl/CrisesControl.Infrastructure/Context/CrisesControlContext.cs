@@ -8,6 +8,7 @@ using CrisesControl.Core.Users;
 using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.Reports;
+using CrisesControl.Core.Compatibility;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -41,6 +42,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
+            modelBuilder.Entity<MessageAcknowledgements>().HasNoKey();
+            modelBuilder.Entity<DataTablePaging>().HasNoKey().Ignore("data");
 
         }
     }

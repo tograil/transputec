@@ -9,12 +9,22 @@
     }
   },
   "profiles": {
+    "CrisesControlConfi": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "CrisesControlConfi"
+      },
+      "applicationUrl": "http://localhost:7010;http://localhost:5010",
+      "dotnetRunMessages": true
+    },
     "CrisesControl": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Debug"
       },
       "applicationUrl": "http://localhost:7010;http://localhost:5010",
       "dotnetRunMessages": true
