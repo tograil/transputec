@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Query;
 using MediatR;
@@ -41,6 +42,14 @@ namespace CrisesControl.Api.Controllers {
         [HttpGet]
         [Route("GetIncidentPingStats/{CompanyId:int}/{NoOfMonth:int}")]
         public async Task<IActionResult> GetIncidentPingStats([FromRoute] GetIncidentPingStatsRequest request, CancellationToken cancellationToken) {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetIndidentMessageNoAck/{IncidentActivationId:int}/{RecordStart:int}/{RecordLength:int}")]
+        public async Task<IActionResult> GetIndidentMessageNoAck([FromRoute] GetIndidentMessageNoAckRequest request, CancellationToken cancellationToken)
+        {
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);

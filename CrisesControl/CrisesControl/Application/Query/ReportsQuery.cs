@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 
@@ -8,7 +10,7 @@ namespace CrisesControl.Api.Application.Query {
     public class ReportsQuery : IReportsQuery {
         private readonly IReportsRepository _reportRepository;
         private readonly IMapper _mapper;
-        private readonly ILogger<BillingQuery> _logger;
+        private readonly ILogger<ReportsQuery> _logger;
 
         public ReportsQuery(IReportsRepository reportRepository, IMapper mapper,
             ILogger<BillingQuery> logger) {
@@ -36,5 +38,15 @@ namespace CrisesControl.Api.Application.Query {
             return result;
         }
 
+        public async Task<GetIndidentMessageNoAckResponse> GetIndidentMessageNoAck(GetIndidentMessageNoAckRequest request)
+        {
+            var stats = await _reportRepository.GetIndidentMessageNoAck(request.draw,request.IncidentActivationId, request.RecordStart, request.RecordLength,request.SearchString,request.OrderBy, request.OrderDir);
+
+            var response = _mapper.Map<List<DataTablePaging>>(stats);
+            var result = new GetIndidentMessageNoAckResponse();
+            result.data = response;
+            result.StatusCode =System.Net.HttpStatusCode.OK ;
+            return result;
+        }
     }
 }
