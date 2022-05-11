@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Reports;
+﻿using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Reports;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;

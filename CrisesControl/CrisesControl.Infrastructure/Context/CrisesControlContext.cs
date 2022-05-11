@@ -12,7 +12,6 @@ using CrisesControl.Core.Compatibility;
 
 using CrisesControl.Core.ExTriggers;
 using CrisesControl.Core.Jobs;
-using CrisesControl.Core.Models.Common;
 using CrisesControl.Core.Reports.Repositories;
 
 namespace CrisesControl.Infrastructure.Context

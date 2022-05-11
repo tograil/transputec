@@ -21,7 +21,7 @@ namespace CrisesControl.Infrastructure.Repositories {
         private readonly CrisesControlContext _context;
         private readonly ILogger<ReportRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly ILogger<ReportRepository> _logger;
+      
 
         private int UserID;
         private int CompanyID;

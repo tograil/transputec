@@ -6,6 +6,7 @@ using CrisesControl.Core.Compatibility;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 
 namespace CrisesControl.Api.Application.Query
 {

@@ -52,6 +52,6 @@ namespace CrisesControl.Core.Reports;
         public int ActiveIncidentID { get; set; }
         public string Channels { get; set; }
     }
-}
+
 
 
