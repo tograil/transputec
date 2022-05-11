@@ -1,6 +1,8 @@
 ﻿using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
+using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -49,6 +51,35 @@ namespace CrisesControl.Api.Controllers {
         [HttpGet]
         [Route("GetIndidentMessageNoAck/{IncidentActivationId:int}/{RecordStart:int}/{RecordLength:int}")]
         public async Task<IActionResult> GetIndidentMessageNoAck([FromRoute] GetIndidentMessageNoAckRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get the indident message Acknowledgement
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet]     
+        [Route("GetIndidentMessageAck/{CompanyID:int}/{MessageId:int}/{MessageAckStatus:int}/{MessageSentStatus:int}/{RecordStart:int}/{RecordLength:int}/{SearchString:string}")]
+        public async Task<IActionResult> GetIndidentMessageAck([FromRoute] GetIndidentMessageAckRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        /// <summary>
+        /// Get the response summary
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("ResponseSummary/{MessageID:int}")]
+        public async Task<IActionResult> ResponseSummary([FromQuery] ResponseSummaryRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 

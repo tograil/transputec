@@ -7,11 +7,10 @@ namespace CrisesControl.Core.Companies
 {
     public class Company
     {
+        public StdTimeZone StdTimeZone { get; set; }
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = null!;
         public int? TimeZone { get; set; }
-
-        public StdTimeZone StdTimeZone { get; set; }
         public string? CompanyProfile { get; set; }
         public string? SwitchBoardPhone { get; set; }
         public string? Fax { get; set; }

@@ -21,7 +21,7 @@ namespace CrisesControl.Api.Application.Query
         }
         public async Task<GetAllJobsResponse> GetAllJobs(GetAllJobsRequest request)
         {
-            var jobs = await _schedulerRepository.GetAllJobs(request.CompanyID, request.UserID);
+            var jobs = await _schedulerRepository.GetAllJobs();
 
             var response = _mapper.Map<List<JobList>>(jobs);
             var result = new GetAllJobsResponse();

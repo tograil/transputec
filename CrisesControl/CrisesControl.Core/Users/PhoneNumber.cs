@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Users
 {
-    public class PhoneNumber
-    {
-        public string ISD { get; set; }
-        public string Number { get; set; }
-    }
+   
+        public class PhoneNumber
+        {
+            public string ISD { get; set; }
+            public string Number { get; set; }
+        }
+
 }

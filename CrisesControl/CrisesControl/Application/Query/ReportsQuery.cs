@@ -1,13 +1,16 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
-using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Core.Compatibility;
+using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 
-namespace CrisesControl.Api.Application.Query {
-    public class ReportsQuery : IReportsQuery {
+namespace CrisesControl.Api.Application.Query
+{
+    public class ReportsQuery : IReportsQuery 
+    {
         private readonly IReportsRepository _reportRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<ReportsQuery> _logger;
@@ -37,7 +40,31 @@ namespace CrisesControl.Api.Application.Query {
             result.ErrorCode = "0";
             return result;
         }
+        public async Task<GetIndidentMessageAckResponse> GetIndidentMessageAck(GetIndidentMessageAckRequest request)
+        {
+            var stats = await _reportRepository.GetIndidentMessageAck(request.MessageId, request.MessageAckStatus= 2, request.MessageSentStatus, request.RecordStart=0, request.RecordLength, request.SearchString, "U.UserId", request.OrderDir, request.CurrentUserId, request.Filters, request.CompanyKey, request.Source);
 
+            var response = _mapper.Map<List<MessageAcknowledgements>>(stats);
+            var result = new GetIndidentMessageAckResponse();
+            result.Data = response;
+            result.ErrorCode =System.Net.HttpStatusCode.OK;
+            return result;
+
+        }
+
+        public async Task<ResponseSummaryResponse> ResponseSummary(ResponseSummaryRequest request)
+        {
+            var stats = await _reportRepository.ResponseSummary(request.MessageID);
+            var response = _mapper.Map<List<ResponseSummary>>(stats);
+            var result = new ResponseSummaryResponse();                     
+            result.Data = response;
+            result.ErrorCode = System.Net.HttpStatusCode.OK;
+            return result;
+           
+          
+
+
+        }
         public async Task<GetIndidentMessageNoAckResponse> GetIndidentMessageNoAck(GetIndidentMessageNoAckRequest request)
         {
             var stats = await _reportRepository.GetIndidentMessageNoAck(request.draw,request.IncidentActivationId, request.RecordStart, request.RecordLength,request.SearchString, request.UniqueKey);
