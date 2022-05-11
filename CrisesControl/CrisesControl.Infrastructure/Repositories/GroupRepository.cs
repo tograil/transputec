@@ -1,5 +1,5 @@
-﻿using CrisesControl.Core.GroupAggregate;
-using CrisesControl.Core.GroupAggregate.Repositories;
+﻿using CrisesControl.Core.Groups;
+using CrisesControl.Core.Groups.Repositories;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using System;

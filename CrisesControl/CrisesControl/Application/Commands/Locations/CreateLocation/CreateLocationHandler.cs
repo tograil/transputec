@@ -1,8 +1,8 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
 using CrisesControl.Api.Application.ViewModels.Company;
-using CrisesControl.Core.LocationAggregate;
-using CrisesControl.Core.LocationAggregate.Services;
+using CrisesControl.Core.Locations;
+using CrisesControl.Core.Locations.Services;
 using FluentValidation;
 using MediatR;
 

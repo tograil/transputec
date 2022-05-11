@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Locations.GetLocation;
 using CrisesControl.Api.Application.Commands.Locations.GetLocations;
-using CrisesControl.Core.LocationAggregate;
-using CrisesControl.Core.LocationAggregate.Services;
+using CrisesControl.Core.Locations;
+using CrisesControl.Core.Locations.Services;
 
 namespace CrisesControl.Api.Application.Query
 {

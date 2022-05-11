@@ -1,10 +1,7 @@
-﻿using CrisesControl.Core.GroupAggregate;
+﻿using CrisesControl.Core.Groups;
 using CrisesControl.Core.Users;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Jobs
 {

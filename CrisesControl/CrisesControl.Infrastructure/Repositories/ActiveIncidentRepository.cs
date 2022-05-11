@@ -11,7 +11,7 @@ using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
-using Location = CrisesControl.Core.LocationAggregate.Location;
+using Location = CrisesControl.Core.Locations.Location;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
