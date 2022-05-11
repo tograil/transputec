@@ -14,8 +14,8 @@ public class GetIndidentMessageNoAckHandler: IRequestHandler<GetIndidentMessageN
     private readonly GetIndidentMessageNoAckValidator _getIndidentMessageNoAckValidator;
     public GetIndidentMessageNoAckHandler(IReportsRepository reportRepository, GetIndidentMessageNoAckValidator getIndidentMessageNoAckValidator)
     {
-        this._reportRepository = reportRepository;
-        this._getIndidentMessageNoAckValidator=getIndidentMessageNoAckValidator;
+        _reportRepository = reportRepository;
+        _getIndidentMessageNoAckValidator=getIndidentMessageNoAckValidator;
     }
 
     public async Task<GetIndidentMessageNoAckResponse> Handle(GetIndidentMessageNoAckRequest request, CancellationToken cancellationToken)
