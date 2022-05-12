@@ -459,13 +459,13 @@ public class UserRepository : IUserRepository
     }
 
  
-    public async Task<ValidateEmailReponseModel> ValidateLoginEmail(string UserName)
+    public async Task<ValidateEmailReponseModel> ValidateLoginEmail(string userName)
     {
         try
         {
             var user = (from U in _context.Set<User>()
                         join C in _context.Set<Company>() on U.CompanyId equals C.CompanyId
-                        where U.PrimaryEmail == UserName && U.Status == 1
+                        where U.PrimaryEmail == userName && U.Status == 1
                         select new { U.UserId, U.Password, C.CompanyId }).FirstOrDefault();
             if (user != null)
             {
