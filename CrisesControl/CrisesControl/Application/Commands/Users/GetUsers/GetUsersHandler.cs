@@ -21,7 +21,7 @@ namespace CrisesControl.Api.Application.Commands.Users.GetUsers
 
         public async Task<GetUsersResponse> Handle(GetUsersRequest request, CancellationToken cancellationToken)
         {
-            //Guard.Against.Null(request, nameof(GetUsersRequest));
+            Guard.Against.Null(request, nameof(GetUsersRequest));
             
             await _userValidator.ValidateAndThrowAsync(request, cancellationToken);
             
