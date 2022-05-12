@@ -39,7 +39,7 @@ namespace CrisesControl.Api.Application.Query
         public async Task<LoginResponse> GetLoggedInUserInfo(LoginRequest request, CancellationToken cancellationToken)
         {
             var loginRequest = _mapper.Map<LoginInfo>(request);
-            var LoginInfo = _UserRepository.GetLoggedInUserInfo(loginRequest, cancellationToken);
+            var LoginInfo = await _UserRepository.GetLoggedInUserInfo(loginRequest, cancellationToken);
             var result = _mapper.Map<LoginResponse>(LoginInfo);
             return result;
         }

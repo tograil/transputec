@@ -1,7 +1,9 @@
 ﻿using System.Data.SqlTypes;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
+using CrisesControl.Core.Incidents.Services;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -16,20 +18,20 @@ public class InitiateCompanyIncidentHandler : IRequestHandler<InitiateCompanyInc
     private readonly IIncidentRepository _incidentRepository;
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyRepository _companyRepository;
-    private readonly IMessageRepository _messageRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IIncidentService _incidentService;
 
     public InitiateCompanyIncidentHandler(IIncidentRepository incidentRepository,
         ICurrentUser currentUser,
         ICompanyRepository companyRepository,
-        IMessageRepository messageRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IIncidentService incidentService)
     {
         _incidentRepository = incidentRepository;
         _currentUser = currentUser;
         _companyRepository = companyRepository;
-        _messageRepository = messageRepository;
         _userRepository = userRepository;
+        _incidentService = incidentService;
     }
 
     public async Task<InitiateCompanyIncidentResponse> Handle(InitiateCompanyIncidentRequest request,
@@ -73,45 +75,21 @@ public class InitiateCompanyIncidentHandler : IRequestHandler<InitiateCompanyInc
                 HasTask = incidentToVerify.HasTask,
                 LaunchMode = request.LaunchMode,
                 SocialHandle = string.Join(",", request.SocialHandle),
-                CascadePlanId = request.CascadePlanId
+                CascadePlanId = request.CascadePlanId,
             };
 
-            await _incidentRepository.AddIncidentActivation(incidentActivation, cancellationToken);
-
-            if (request.MessageMethod.Length > 0)
+            var incidentSubset = new IncidentSubset
             {
-                var pushAdded = false;
-                var pushMethodId = 1;
-                if (request.TrackUser)
-                {
-                    pushMethodId = _messageRepository.GetPushMethodId();
-                }
+                AckOptions = request.AckOptions,
+                MessageMethod = request.MessageMethod,
+                MultiResponse = request.MultiResponse,
+                TrackUser = request.TrackUser,
+                UsersToNotify = request.UsersToNotify,
+                ImpactedLocationIds = request.ImpactedLocationId,
+                AffectedLocations = request.AffectedLocations
+            };
 
-                foreach (var method in request.MessageMethod)
-                {
-                    await _messageRepository.CreateMessageMethod(0, method, incidentActivation.IncidentActivationId);
-                    if (pushMethodId == method)
-                        pushAdded = true;
-                }
-
-                if (request.TrackUser && !pushAdded)
-                {
-                    await _messageRepository.CreateMessageMethod(0, pushMethodId,
-                        incidentActivation.IncidentActivationId);
-                }
-            }
-
-            if (request.UsersToNotify.Length > 0)
-            {
-                await _messageRepository.AddUserToNotify(0, request.UsersToNotify,
-                    incidentActivation.IncidentActivationId);
-            }
-
-            if (request.MultiResponse)
-            {
-                await _messageRepository.SaveActiveMessageResponse(0, request.AckOptions,
-                    incidentActivation.IncidentActivationId);
-            }
+            await _incidentService.InitiateIncident(incidentActivation, incidentSubset, cancellationToken);
 
             var incidentToReturn = await _incidentRepository.GetIncidentActivation(_currentUser.CompanyId,
                 incidentActivation.IncidentActivationId);

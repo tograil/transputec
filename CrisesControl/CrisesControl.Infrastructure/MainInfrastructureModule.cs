@@ -11,7 +11,19 @@ using CrisesControl.Infrastructure.Repositories;
 using CrisesControl.Core.AssetAggregate.Respositories;
 using CrisesControl.Core.Incidents.Services;
 using CrisesControl.Core.Messages.Services;
+using CrisesControl.Core.Queues.Repositories;
+using CrisesControl.Core.Queues.Services;
+using CrisesControl.Core.Settings.Repositories;
 using CrisesControl.Infrastructure.Services;
+using Microsoft.Extensions.Caching.Memory;
+using CrisesControl.Core.Reports.Repositories;
+using CrisesControl.Core.Communication.Repositories;
+using CrisesControl.Core.Security;
+using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.Communication.Repositories;
+using CrisesControl.Core.Jobs.Repositories;
+using CrisesControl.Core.ExTriggers.Repositories;
+using CrisesControl.Core.Jobs.Services;
 
 namespace CrisesControl.Infrastructure
 {
@@ -54,10 +66,24 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<ActiveIncidentRepository>().As<IActiveIncidentRepository>();
             builder.RegisterType<MessageRepository>().As<IMessageRepository>();
             builder.RegisterType<AssetRespository>().As<IAssetRepository>();
+            builder.RegisterType<JobRepository>().As<IJobRepository>();
+            builder.RegisterType<JobScheduleRepository>().As<IJobScheduleRepository>();
+            builder.RegisterType<SettingsRepository>().As<ISettingsRepository>().SingleInstance();
+            builder.RegisterType<QueueRepository>().As<IQueueRepository>();
 
 
             builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<ActiveIncidentTaskService>().As<IActiveIncidentTaskService>();
+            builder.RegisterType<ReportRepository>().As<IReportsRepository>();
+            builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
+            builder.RegisterType<SecurityRepository>().As<ISecurityRepository>();
+            builder.RegisterType<CompanyParametersRepository>().As<ICompanyParametersRepository>();
+            builder.RegisterType<ScheduleService>().As<IScheduleService>();
+            builder.RegisterType<QueueService>().As<IQueueService>();
+            builder.RegisterType<QueueMessageService>().As<IQueueMessageService>();
+            builder.RegisterType<IncidentService>().As<IIncidentService>();
+            builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
+            builder.RegisterType<ExTriggerRepository>().As<IExTriggerRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

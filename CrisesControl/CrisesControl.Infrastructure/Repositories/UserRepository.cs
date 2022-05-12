@@ -299,158 +299,106 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public LoginInfoReturnModel GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken)
+    public async Task<LoginInfoReturnModel> GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken)
     {
         try
         {
-            try
-            {
-                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
 
-                var deviceinfo = (from D in _context.Set<UserDevice>()
-                                  where (D.DeviceSerial == request.DeviceSerial && D.CompanyId == CompanyID && D.UserId == UserID) ||
-                                      (D.DeviceModel == request.DeviceModel && D.DeviceType == request.DeviceType && D.CompanyId == CompanyID && D.UserId == UserID)
-                                  select D).FirstOrDefault();
-                
-                if (deviceinfo != null)
-                {
-                    //if(!string.IsNullOrEmpty(IP.PushDeviceId.Trim())) {
-                    deviceinfo.UserId = UserID;
-                    deviceinfo.DeviceId = request.PushDeviceId;
-                    deviceinfo.DeviceModel = request.DeviceModel;
-                    deviceinfo.DeviceOs = request.DeviceOS;
-                    deviceinfo.DeviceType = request.DeviceType;
-                    deviceinfo.DeviceSerial = request.DeviceSerial;
-                    deviceinfo.UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId);
-                    deviceinfo.UpdatedBy = UserID;
-                    deviceinfo.DeviceToken = Guid.NewGuid().ToString();
-                    _context.SaveChangesAsync(cancellationToken);
+            var CompanyInfo = await (from C in _context.Set<Company>()
+                               join TZ in _context.Set<StdTimeZone>() on C.TimeZone equals TZ.TimeZoneId
+                               where C.CompanyId == CompanyID
+                                     select new { C, TZ }).FirstOrDefaultAsync();
+
+            string strCompanyName = "";
+
+            if (CompanyInfo != null) {
+                strCompanyName = CompanyInfo.C.CompanyName;
+                UserLoginLog TblUserLog = new UserLoginLog();
+                TblUserLog.CompanyId = CompanyID;
+                TblUserLog.UserId = UserID;
+                TblUserLog.DeviceType = request.DeviceType;
+                TblUserLog.Ipaddress = request.IPAddress;
+                TblUserLog.LoggedInTime = GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                await _context.AddAsync(TblUserLog);
+                await _context.SaveChangesAsync(cancellationToken);
 
 
-                    UserLoginLog TblUserLog = new UserLoginLog();
-                    TblUserLog.CompanyId = CompanyID;
-                    TblUserLog.UserId = UserID;
-                    TblUserLog.DeviceType = request.DeviceType;
-                    TblUserLog.Ipaddress = Left(request.DeviceModel, 15);
-                    TblUserLog.LoggedInTime = GetDateTimeOffset(DateTime.Now, TimeZoneId);
-
-                    _context.AddAsync(TblUserLog, cancellationToken);
-
-                    _context.SaveChangesAsync(cancellationToken);
-                   
-                    //}
+                if (!string.IsNullOrEmpty(request.Language)) {
+                    var user = await (from Usersval in _context.Set<User>()
+                                where Usersval.CompanyId == CompanyID && Usersval.UserId == UserID
+                                      select Usersval).FirstOrDefaultAsync();
+                    if (user != null) {
+                        user.UserLanguage = request.Language;
+                        await _context.SaveChangesAsync(cancellationToken);
+                    }
                 }
+
+                var RegUserInfo = await (from U in _context.Set<User>()
+                                   join TZ in _context.Set<StdTimeZone>() on U.TimezoneId equals TZ.TimeZoneId into ps
+                                   from p in ps.DefaultIfEmpty()
+                                   where U.CompanyId == CompanyID && U.UserId == UserID
+                                         select new LoginInfoReturnModel {
+                                       CompanyId = U.CompanyId,
+                                       CompanyName = strCompanyName,
+                                       CompanyLogo = CompanyInfo.C.CompanyLogoPath,
+                                       CompanyProfile = CompanyInfo.C.CompanyProfile,
+                                       AnniversaryDate = CompanyInfo.C.AnniversaryDate,
+                                       UserId = U.UserId,
+                                       CustomerId = CompanyInfo.C.CustomerId,
+                                       First_Name = U.FirstName,
+                                       Last_Name = U.LastName,
+                                       UserMobileISD = U.Isdcode,
+                                       MobileNo = U.MobileNo,
+                                       Primary_Email = U.PrimaryEmail,
+                                       UserPassword = U.Password,
+                                       UserPhoto = U.UserPhoto,
+                                       UniqueGuiId = U.UniqueGuiId,
+                                       RegisterUser = U.RegisteredUser,
+                                       UserRole = U.UserRole,
+                                       UserLanguage = U.UserLanguage,
+                                       Status = U.Status,
+                                       FirstLogin = U.FirstLogin,
+                                       CompanyPlanId = (int)CompanyInfo.C.PackagePlanId,
+                                       CompanyStatus = CompanyInfo.C.Status,
+                                       UniqueKey = CompanyInfo.C.UniqueKey,
+                                       PortalTimeZone = p != null ? p.PortalTimeZone : CompanyInfo.TZ.PortalTimeZone,
+                                       ActiveOffDuty = U.ActiveOffDuty,
+                                       TimeZoneId = CompanyInfo.TZ.TimeZoneId,
+                                       SecItems = (from PF in _context.Set<CompanyPackageFeature>()
+                                                   join SO in _context.Set<SecurityObject>() on PF.SecurityObjectId equals SO.SecurityObjectId
+                                                   join SOT in _context.Set<SecurityObjectType>() on SO.TypeId equals SOT.SecurityObjectTypeId
+                                                   join ASG in
+                                                       (from USG in _context.Set<UserSecurityGroup>()
+                                                        join SG in _context.Set<SecurityGroup>() on USG.SecurityGroupId equals SG.SecurityGroupId
+                                                        join GSO in _context.Set<GroupSecuityObject>() on USG.SecurityGroupId equals GSO.SecurityGroupId
+                                                        join SO1 in _context.Set<SecurityObject>() on GSO.SecurityObjectId equals SO1.SecurityObjectId
+                                                        where USG.UserId == U.UserId && SO1.Status == 1 && SG.CompanyId == CompanyID
+                                                        select new { USG.SecurityGroupId, SO1.SecurityObjectId })
+                                                   on SO.SecurityObjectId equals ASG.SecurityObjectId
+                                                   into ASGS
+                                                   from ASG in ASGS.DefaultIfEmpty()
+                                                   where SO.Status == 1 && PF.Status == 1 && PF.CompanyId == U.CompanyId
+                                                   //&& SO.Target.Contains("Client")
+                                                   select new SecItemModel {
+                                                       Code = SOT.Code,
+                                                       SecurityKey = SO.SecurityKey,
+                                                       Name = SO.Name,
+                                                       UpdatedOn = SO.UpdatedOn,
+                                                       Target = SO.Target,
+                                                       ShowOnTrial = (bool)SO.ShowOnTrial,
+                                                       HasAccess = ASG.SecurityGroupId == null ||
+                                                       (U.UserRole == "USER" && SO.RequireKeyHolder == true) ||
+                                                       ((U.UserRole == "USER" || U.UserRole == "KEYHOLDER") && SO.RequireAdmin == true)
+                                                       ? "false" : "true"
+                                                   }).ToList(),
+                                       ErrorId = 0,
+                                       Message = "OK"
+                                   }).FirstOrDefaultAsync();
+                return RegUserInfo;
             }
-            catch (Exception ex)
-            {
-                return null;
-            }
-            string webpath = LookupWithKey("PORTAL");
-            string SupportPhone = LookupWithKey("APP_SUPPORT_PHONE");
-            string SupportEmail = LookupWithKey("APP_SUPPORT_EMAIL");
-            string IncidentSirenPath = LookupWithKey("INCIDENT_SIREN_AUDIO_PATH");
-            string PingSirenPath = LookupWithKey("PING_SIREN_AUDIO_PATH");
-            string FBPage = LookupWithKey("CC_FB_PAGE");
-            string LinkedInPage = LookupWithKey("CC_LINKEDIN_PAGE");
-            string TwitterPage = LookupWithKey("CC_TWITTER_PAGE");
-            string ForceUpdate = LookupWithKey("FORCE_UPDATE");
-            bool DevAPIEnabled = false;
-            bool.TryParse(LookupWithKey("API_DEV_MODE"), out DevAPIEnabled);
-            string DevAPIURL = LookupWithKey("DEV_API_URL");
-            string DevUsers = LookupWithKey("DEV_MODE_USERS");
-            string MessageLength = LookupWithKey("MESSAGE_LENGTH");
-            string AudioRecordMaxDuration = LookupWithKey("AUDIO_MAX_RECORD_DURATION");
-
-            
-
-            string ig = LookupWithKey("INITIALS_GENERATOR_URL");
-
-            string[] roles = CCRoles();
-            string AppVersion = GetAppVersion(request.DeviceType);
-            string TrackingInterval = GetCompanyParameter("USER_TRACKING_INTERVAL", CompanyID);
-
-
-
-            var thisuser = (from users in _context.Set<User>()
-                            join userdevice in _context.Set<UserDevice>() on users.UserId equals userdevice.UserId
-                            join company in _context.Set<Company>() on users.CompanyId equals company.CompanyId
-                            where users.UserId == UserID && userdevice.DeviceSerial == request.DeviceSerial
-                            select new { users, userdevice, company }).ToList();
-
-            string userrole = thisuser.FirstOrDefault().users.UserRole.ToString().ToUpper();
-            userrole = userrole.Replace("SUPERADMIN", "ADMIN");
-            bool twofactor = Convert.ToBoolean(GetCompanyParameter("FORCE_2_FACTOR_AUTH_" + userrole, CompanyID));
-
-            var getuserlogin = (from user in thisuser
-                                select new LoginInfoReturnModel
-                                {
-                                    CompanyId = user.users.CompanyId,
-                                    UserId = user.users.UserId,
-                                    CustomerId = user.company.CustomerId,
-                                    Portal = webpath,
-                                    First_Name = user.users.FirstName,
-                                    Last_Name = user.users.LastName,
-                                    Primary_Email = user.users.PrimaryEmail,
-                                    CompanyName = user.company.CompanyName,
-                                    UploadPath = webpath + "uploads/" + CompanyID.ToString(),
-                                    CompanyMasterPlan = (user.company.PlanDrdoc == null || user.company.PlanDrdoc == "") ? "" : webpath + "uploads/" + CompanyID.ToString() + "/companyplan/" + user.company.PlanDrdoc,
-                                    CompanyLoginLogo = (user.company.CompanyLogoPath == null || user.company.CompanyLogoPath == "") ? "" : webpath + "uploads/" + CompanyID.ToString() + "/companylogos/" + user.company.IOslogo,
-                                    iOSLogo = (user.company.IOslogo == null || user.company.IOslogo == "") ? "" : webpath + "uploads/" + CompanyID.ToString() + "/companylogos/" + user.company.IOslogo,
-                                    AndroidLogo = (user.company.AndroidLogo == null || user.company.AndroidLogo == "") ? "" : webpath + "uploads/" + CompanyID.ToString() + "/companylogos/" + user.company.AndroidLogo,
-                                    WindowsLogo = (user.company.WindowsLogo == null || user.company.WindowsLogo == "") ? "" : webpath + "uploads/" + CompanyID.ToString() + "/companylogos/" + user.company.WindowsLogo,
-                                    UserDeviceID = user.userdevice.UserDeviceId,
-                                    Token = user.userdevice.DeviceToken,
-                                    UniqueGuiID = user.users.UniqueGuiId,
-                                    UserStatus = user.users.Status,
-                                    DeviceStatus = user.userdevice.Status,
-                                    SupportPhone = SupportPhone,
-                                    SupportEmail = SupportEmail,
-                                    IncidentSiren = IncidentSirenPath,
-                                    PingSiren = PingSirenPath,
-                                    OverrideSilent = user.userdevice.OverrideSilent,
-                                    SirenOn = user.userdevice.SirenOn,
-                                    SoundFile = user.userdevice.SoundFile,
-                                    FBPage = FBPage,
-                                    TwitterPage = TwitterPage,
-                                    LinkedInPage = LinkedInPage,
-                                    AppVersion = AppVersion,
-                                    ForceUpdate = ForceUpdate,
-                                    FirstLogin = user.users.FirstLogin,
-                                    UserRole = user.users.UserRole,
-                                    UserLanguage = user.users.UserLanguage,
-                                    TrackingStartTime = user.users.TrackingStartTime,
-                                    TrackingEndTime = user.users.TrackingEndTime,
-                                    TrackingInterval = TrackingInterval,
-                                    DevMode = DevAPIEnabled,
-                                    DevAPI = DevAPIURL,
-                                    MessageLength = MessageLength,
-                                    ActiveOffDuty = user.users.ActiveOffDuty,
-                                    AudioRecordMaxDuration = AudioRecordMaxDuration,
-                                    UniqueKey = user.company.UniqueKey,
-                                    TwoFactorLogin = twofactor,
-                                    UserPhoto = string.IsNullOrEmpty(user.users.UserPhoto) ? "" : user.users.UserPhoto,
-                                    SecItems = (from PF in _context.Set<CompanyPackageFeature>()
-                                                join SO in _context.Set<SecurityObject>() on PF.SecurityObjectId equals SO.SecurityObjectId
-                                                join SOT in _context.Set<SecurityObjectType>() on SO.TypeId equals SOT.SecurityObjectTypeId
-                                                join ASG in
-                                                    (from USG in _context.Set<UserSecurityGroup>()
-                                                     join SG in _context.Set<SecurityGroup>() on USG.SecurityGroupId equals SG.SecurityGroupId
-                                                     join GSO in _context.Set<GroupSecuityObject>() on USG.SecurityGroupId equals GSO.SecurityGroupId
-                                                     join SO1 in _context.Set<SecurityObject>() on GSO.SecurityObjectId equals SO1.SecurityObjectId
-                                                     where USG.UserId == user.users.UserId && SO1.Status == 1 && SG.CompanyId == CompanyID
-                                                     select new { USG.SecurityGroupId, SO1.SecurityObjectId })
-                                                on SO.SecurityObjectId equals ASG.SecurityObjectId
-                                                into ASGS
-                                                from ASG in ASGS.DefaultIfEmpty()
-                                                where SO.Status == 1 && PF.Status == 1 && PF.CompanyId == user.users.CompanyId
-                                                select new SecItemModel
-                                                {
-                                                    SecurityKey = SO.SecurityKey,
-                                                    HasAccess = ASG.SecurityGroupId == null && !roles.Contains(user.users.UserRole) ? "false" : "true"
-                                                }).FirstOrDefault(),
-                                }).FirstOrDefault();
-            return getuserlogin;
+            return null;
         }
         catch (Exception ex)
         {

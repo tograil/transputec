@@ -12,6 +12,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using OpenIddict.Validation.AspNetCore;
+using Serilog;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,28 +24,38 @@ builder.Services.AddDbContext<CrisesControlContext>(options =>
 
 // Add services to the container.
 
-builder.Services.AddControllers();
-var serverCredentials = builder.Configuration.GetSection(ServerCredentialsOptions.ServerCredentials)
-            .Get<ServerCredentialsOptions>();
+builder.Services.AddControllers()
+                .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
+
+var serverCredentials = builder.Configuration
+                               .GetSection(ServerCredentialsOptions.ServerCredentials)
+                               .Get<ServerCredentialsOptions>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crises Control API", Version = "v1" });
-    c.AddSecurityDefinition(
-        "oauth2",
-        new OpenApiSecurityScheme {
-            Flows = new OpenApiOAuthFlows {
-                Password = new OpenApiOAuthFlow {
-                    Scopes = new Dictionary<string, string> {
-                        ["api"] = "api scope description"
-                    },
-                    TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+
+    c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+    {
+        Flows = new OpenApiOAuthFlows
+        {
+            Password = new OpenApiOAuthFlow
+            {
+                Scopes = new Dictionary<string, string>
+                {
+                    ["api"] = "api scope description"
                 },
+                TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
             },
-            In = ParameterLocation.Header,
-            Name = HeaderNames.Authorization,
-            Type = SecuritySchemeType.OAuth2
-        }
+        },
+        In = ParameterLocation.Header,
+        Name = HeaderNames.Authorization,
+        Type = SecuritySchemeType.OAuth2
+    }
     );
     c.AddSecurityRequirement(
         new OpenApiSecurityRequirement
@@ -88,15 +100,16 @@ builder.Services.AddOpenIddict()
         options.UseAspNetCore();
     });
 
-builder.Services.AddControllers(o =>
- {
-     var policy = new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .Build();
+//builder.Services.AddControllers(o =>
+// {
+//     var policy = new AuthorizationPolicyBuilder()
+//                .RequireAuthenticatedUser()
+//                .Build();
 
-     o.Filters.Add(new AuthorizeFilter(policy));
- }
-);
+//     o.Filters.Add(new AuthorizeFilter(policy));
+// }
+//);
+builder.Services.AddControllers();
 
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 builder.Services.AddAuthorization();
@@ -107,7 +120,8 @@ app.UseSwagger();
 app.UseSwaggerUI(setupAction => {
     setupAction.OAuthClientId(serverCredentials.ClientId);
     setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
-    setupAction.SwaggerEndpoint(builder.Configuration.GetSection("AppName").Value + "/swagger/v1/swagger.json", "CC Core API V1");
+    setupAction.SwaggerEndpoint(builder.Configuration.GetSection("AppName")
+               .Value + "/swagger/v1/swagger.json", "CC Core API V1");
 });
 //// Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment()) {
