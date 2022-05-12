@@ -1,8 +1,12 @@
-﻿using MediatR;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace CrisesControl.Api.Application.Commands.Users.GetUsers
+namespace CrisesControl.Core.Users
 {
-    public class GetUsersRequest : IRequest<GetUsersResponse>
+    public class GetAllUserRequest
     {
         public int RecordStart { get; set; }
         public int RecordLength { get; set; }

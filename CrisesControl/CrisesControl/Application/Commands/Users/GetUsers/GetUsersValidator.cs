@@ -6,8 +6,6 @@ namespace CrisesControl.Api.Application.Commands.Users.GetUsers
     {
         public GetUsersValidator()
         {
-            RuleFor(x => x.CompanyId)
-                .GreaterThan(0);
 
         }
     }
