@@ -405,6 +405,12 @@ public class UserRepository : IUserRepository
         }
     }
 
+    private string GetCompanyName(int companyId)
+    {
+        string companyName =  _context.Set<Company>().Where(c=>c.CompanyId == companyId).Select(c=>c.CompanyName).FirstOrDefault();
+        return companyName;
+    }
+
     public async Task<User> ReactivateUser(int queriedUserId, CancellationToken cancellationToken)
     {
         try
@@ -415,15 +421,12 @@ public class UserRepository : IUserRepository
             {
                 userRecord.Status = 1;
                 await _context.SaveChangesAsync(cancellationToken);
-
-                var ActivatedUser = (from U in _context.Set<User>()
-                                     where U.UserId == queriedUserId
-                                     select new
+                var ActivatedUser = _context.Set<User>().Where(u=> u.UserId == queriedUserId).Select(u=> new
                                      {
-                                         UserId = U.UserId,
-                                         UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
-                                         UserEmail = U.PrimaryEmail,
-                                         CompanyName = (from C in _context.Set<Company>() where C.CompanyId == U.CompanyId select C.CompanyName).FirstOrDefault()
+                                         UserId = u.UserId,
+                                         UserName = new UserFullName { Firstname = u.FirstName, Lastname = u.LastName },
+                                         UserEmail = u.PrimaryEmail,
+                                         CompanyName = GetCompanyName(u.CompanyId)
                                      }).FirstOrDefault();
                 if (ActivatedUser != null)
                 {

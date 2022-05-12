@@ -27,9 +27,5 @@ namespace CrisesControl.Api.Application.Commands.Users.ActivateUser
             return result;
         }
 
-        public Task<Unit> Handle(ActivateUserResponse request, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
