@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace CrisesControl.Core.Reports.Repositories {
         public Task<List<SOSItem>> GetSOSItems();
         public Task<List<IncidentPingStatsCount>> GetIncidentPingStats(int CompanyID, int NoOfMonth);
         Task<List<ResponseSummary>> ResponseSummary(int MessageID);
-        Task<List<MessageAcknowledgements>> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int RecordStart, int RecordLength, string SearchString,
-            string OrderBy, string OrderDir, int CurrentUserId, string Filters, string CompanyKey, string Source);
+        Task<dynamic> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int start, int length, string search,
+             List<Order>? order, int draw, string Filters, string CompanyKey, string Source);
     }
 }
