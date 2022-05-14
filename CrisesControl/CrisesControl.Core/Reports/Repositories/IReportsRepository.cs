@@ -13,5 +13,7 @@ namespace CrisesControl.Core.Reports.Repositories {
         Task<List<ResponseSummary>> ResponseSummary(int MessageID);
         Task<dynamic> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int start, int length, string search,
              List<Order>? order, int draw, string Filters, string CompanyKey, string Source);
+        Task<List<DataTablePaging>> GetIndidentMessageNoAck(int draw, int IncidentActivationId
+            , int RecordStart, int RecordLength, string? SearchString, string? UniqueKey);
     }
 }

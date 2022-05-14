@@ -76,11 +76,12 @@ namespace CrisesControl.Infrastructure.Repositories {
         }
 
         public async Task<dynamic> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int start, int length, string search,
-             List<Core.Reports.Order>? order, int draw, string Filters, string CompanyKey,  string Source="WEB")
+             List<Order>? order, int draw, string Filters, string CompanyKey,  string Source="WEB")
         {
             try
             {
                 const string ord = "PrimaryEmail";
+                const string dir = "asc";
                 UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
                 var RecordStart = start == 0 ? 0 : start;
                 var RecordLength = length == 0 ? int.MaxValue : length;
@@ -92,7 +93,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     OrderBy = ord;
 
                 if (string.IsNullOrEmpty(OrderDir))
-                    OrderDir = "asc";
+                    OrderDir = dir;
 
                 var pMessageId = new SqlParameter("@MessageID", MessageId);
                 var pMessageAckStatus = new SqlParameter("@MessageAckStatus", MessageAckStatus);
