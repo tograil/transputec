@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.GroupAggregate;
+﻿using CrisesControl.Core.Groups;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

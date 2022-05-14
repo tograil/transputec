@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using CrisesControl.Core.AssetAggregate.Respositories;
+using CrisesControl.Core.Assets.Respositories;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Assets = CrisesControl.Core.AssetAggregate.Assets;
+using Assets = CrisesControl.Core.Assets.Assets;
 
 
 namespace CrisesControl.Infrastructure.Repositories
