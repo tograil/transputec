@@ -61,6 +61,16 @@ namespace CrisesControl.Api.Controllers {
         {
             GetIndidentMessageAckRequest request = new GetIndidentMessageAckRequest();
             request.MessageId = requestRoute.MessageId;
+            request.MessageAckStatus = requestRoute.MessageAckStatus;
+            request.MessageSentStatus = requestRoute.MessageSentStatus;
+            request.Start= requestQuery.Start;
+            request.Length= requestQuery.Length;
+            request.SearchString= requestQuery.SearchString;
+            request.Source= requestQuery.Source;
+            request.draw = requestQuery.draw;
+            request.CompanyKey= requestQuery.CompanyKey;
+            request.Filters= requestQuery.Filters;
+
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);
