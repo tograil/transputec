@@ -2,6 +2,7 @@
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
+using CrisesControl.Api.Application.Commands.Messaging.MessageAcknowledged;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -68,6 +69,15 @@ namespace CrisesControl.Api.Controllers {
         [HttpGet]
         [Route("GetMessages/{TargetUserId:int}/{MessageType}/{IncidentActivationId:int}")]
         public async Task<IActionResult> GetMessages([FromRoute] GetMessagesRequest request, CancellationToken cancellationToken) {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("MessageAcknowledge/{CompanyId:int}/{CurrentUserId:int}/{MsgListId:int}/ResponseID")]
+        public async Task<IActionResult> MessageAcknowledge([FromRoute] MessageAcknowledgeRequest request, CancellationToken cancellationToken)
+        {
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);
