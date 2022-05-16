@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
@@ -9,10 +10,12 @@ using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 
 namespace CrisesControl.Infrastructure.Repositories;
@@ -332,4 +335,104 @@ public class MessageRepository : IMessageRepository {
             throw;
         }
     }
+
+    public async Task<dynamic> GetMessageDetails(string CloudMsgId, int MessageId = 0)
+    {
+        CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+        UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+        var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+        var pUserId = new SqlParameter("@UserID", UserID);
+
+        //int MsgListid = Base64Decode(CloudMsgId);
+        var MsgListid = await _context.Set<MessageDevice>().FirstOrDefaultAsync(ml => ml.CloudMessageId == CloudMsgId);
+        try {
+            if (MessageId > 0)
+            {
+                var msglistid= await _context.Set<MessageList>().FirstOrDefaultAsync(ml => ml.MessageListId == MsgListid.MessageListId);
+                if (msglistid != null)
+                {
+                    var newmsglistid= await _context.Set<MessageList>().FirstOrDefaultAsync(ML => ML.MessageId == MessageId && ML.RecepientUserId == msglistid.RecepientUserId && ML.MessageAckStatus == 0);
+
+                    if (newmsglistid != null)
+                    {
+                        MsgListid.MessageListId = newmsglistid.MessageListId;
+                    }
+
+                    var CheckType = await _context.Set<MessageList>().Include(ML => ML.Message).FirstOrDefaultAsync(ML => ML.MessageListId == MsgListid.MessageListId && ML.MessageId== ML.Message.MessageId);
+
+                    //Read sql parameters
+
+                    var ActiveIncidentID = new SqlParameter("@ActiveIncidentID", CheckType.Message.IncidentActivationId);
+                    var RecepientUserId = new SqlParameter("@UserID", CheckType.RecepientUserId);
+                    var CompanyId = new SqlParameter("@CompanyID", CheckType.Message.CompanyId);
+                    var messageId = new SqlParameter("@MessageID", CheckType.MessageId);
+
+
+                    if (CheckType != null)
+                    {
+                        if (CheckType.Message.MessageType == Enum.GetName(typeof(MessageCheckType), MessageCheckType.Incident))
+                        {
+                            var IncidentMessageDetails = _context.Set<UserMessageList>().FromSqlRaw("exec Pro_Get_Incident_Message_List @ActiveIncidentID,@UserID, @CompanyID", ActiveIncidentID, RecepientUserId, CompanyId).FirstOrDefaultAsync();
+                            return IncidentMessageDetails;
+                        }
+                        else if (CheckType.Message.MessageType == Enum.GetName(typeof(MessageCheckType), MessageCheckType.Ping))
+                        {
+                            var PingMessageDetails = _context.Set<UserMessageList>().FromSqlRaw("exec Pro_Get_Ping_Message_List @UserID,@CompanyID, @MessageID", RecepientUserId, CompanyId, messageId).FirstOrDefaultAsync();
+                            return PingMessageDetails;
+                        }
+                        
+
+                    }
+
+                }
+            }
+            
+        
+        }
+        catch (Exception ex)
+        {
+            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                     ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+        }
+        return null;
+    }
+
+    public async Task<List<MessageAttachment>> GetMessageAttachment( int MessageListID,int MessageID)
+    {
+        try
+        {
+            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var messageListId = new SqlParameter("@MessageListID", MessageListID);
+            var messageId = new SqlParameter("@MessageID", MessageID);
+            var attachment = await _context.Set<MessageAttachment>().FromSqlRaw("exec Pro_Get_Message_Attachment @MessageListID,@MessageID,@CompanyID", messageListId, messageId, pCompanyID).ToListAsync();
+            return attachment;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                    ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+        }
+        return new List<MessageAttachment>();
+
+    }
+
+    public async Task<List<MessageAttachment>> GetAttachment(int MessageAttachmentID)
+    {
+      
+        try
+        {
+            var attachemntId = new SqlParameter("@MessageAttachmentID", MessageAttachmentID);
+            var attachment = await _context.Set<MessageAttachment>().FromSqlRaw("exec Pro_Get_Attachment @MessageAttachmentID", attachemntId).ToListAsync();
+            return attachment;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                    ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+        }
+        return new List<MessageAttachment>();
+
+    }
+
 }
