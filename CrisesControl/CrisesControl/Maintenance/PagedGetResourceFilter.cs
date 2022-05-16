@@ -38,7 +38,7 @@ namespace CrisesControl.Api.Maintenance
                 _paging.PageNumber = PagingConstants.DefaultPageNumber;
             }
 
-            if (pageSize.Any() && int.TryParse(pageSize.First(), out var iPageSize) && iPageSize > 0)
+            if (pageSize.Any() && int.TryParse(pageSize.First(), out var iPageSize) && iPageSize >= 0)
             {
                 _paging.PageSize = iPageSize;
             }
