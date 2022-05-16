@@ -31,6 +31,15 @@ namespace CrisesControl.Api.Maintenance
                     Required = false,
                     Schema = new OpenApiSchema { Type = "Int" }
                 });
+
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = "orderBy",
+                    Description = "Order by field",
+                    In = ParameterLocation.Query,
+                    Required = false,
+                    Schema = new OpenApiSchema { Type = "String" }
+                });
             }
         }
     }

@@ -28,6 +28,7 @@ namespace CrisesControl.Api.Maintenance
 
             var pageNumber = context.HttpContext.Request.Query["pageNumber"];
             var pageSize = context.HttpContext.Request.Query["pageSize"];
+            var orderBy = context.HttpContext.Request.Query["orderBy"];
 
             if (pageNumber.Any() && int.TryParse(pageNumber.First(), out var iPageNumber) && iPageNumber > 0)
             {
@@ -45,6 +46,15 @@ namespace CrisesControl.Api.Maintenance
             else
             {
                 _paging.PageSize = PagingConstants.DefaultPageSize;
+            }
+
+            if (orderBy.Any())
+            {
+                _paging.OrderBy = orderBy.First();
+            }
+            else
+            {
+                _paging.OrderBy = string.Empty;
             }
 
             _paging.Apply = true;
