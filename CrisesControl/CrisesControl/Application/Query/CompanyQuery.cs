@@ -25,31 +25,42 @@ public class CompanyQuery : ICompanyQuery {
 
         _logger.LogInformation("Company list return requested");
 
-        return companies.Select(c => {
-            var user = c.Users.First();
-            var companyPaymentProfile = c.CompanyPaymentProfiles?.FirstOrDefault();
+        try
+        {
+            return companies.Select(c => {
+                var user = c.Users.First();
+                var companyPaymentProfile = c.CompanyPaymentProfiles?.FirstOrDefault();
 
-            return new CompanyInfo {
-                CompanyId = c.CompanyId,
-                CompanyName = c.CompanyName,
-                FirstName = user.FirstName,
-                LastName = user.LastName ?? string.Empty,
-                PrimaryEmail = user.PrimaryEmail,
-                AgreementNo = companyPaymentProfile?.AgreementNo ?? string.Empty,
-                CompanyLogo = c.CompanyLogoPath ?? string.Empty,
-                CompanyProfile = c.CompanyProfile ?? string.Empty,
-                ContractAnniversary = companyPaymentProfile?.ContractAnniversary ?? c.RegistrationDate,
-                RegistrationDate = c.RegistrationDate,
-                CustomerId = c.CustomerId ?? string.Empty,
-                InvitationCode = c.InvitationCode ?? string.Empty,
-                IsdCode = c.Isdcode ?? string.Empty,
-                MobileNo = c.SwitchBoardPhone ?? string.Empty,
-                OnTrial = c.OnTrial,
-                PlanName = c.PackagePlan.PlanName,
-                Status = c.Status,
-                SwitchBoardPhone = c.SwitchBoardPhone ?? string.Empty,
-            };
-        }).ToArray();
+                return new CompanyInfo
+                {
+                    CompanyId = c.CompanyId,
+                    CompanyName = c.CompanyName,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName ?? string.Empty,
+                    PrimaryEmail = user.PrimaryEmail,
+                    AgreementNo = companyPaymentProfile?.AgreementNo ?? string.Empty,
+                    CompanyLogo = c.CompanyLogoPath ?? string.Empty,
+                    CompanyProfile = c.CompanyProfile ?? string.Empty,
+                    ContractAnniversary = companyPaymentProfile?.ContractAnniversary ?? c.RegistrationDate,
+                    RegistrationDate = c.RegistrationDate,
+                    CustomerId = c.CustomerId ?? string.Empty,
+                    InvitationCode = c.InvitationCode ?? string.Empty,
+                    IsdCode = c.Isdcode ?? string.Empty,
+                    MobileNo = c.SwitchBoardPhone ?? string.Empty,
+                    OnTrial = c.OnTrial,
+                    PlanName = c.PackagePlan.PlanName,
+                    Status = c.Status,
+                    SwitchBoardPhone = c.SwitchBoardPhone ?? string.Empty,
+                };
+            }).ToArray();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+
+        
     }
 
     public async Task<GetCompanyResponse> GetCompany(GetCompanyRequest request, CancellationToken cancellationToken) {
