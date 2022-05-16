@@ -128,6 +128,7 @@ builder.Services.AddControllers(o =>
 {
     o.Filters.Add<PagedGetResourceFilter>();
     o.Filters.Add<PagedGetResultFilter>();
+    o.Filters.Add<ErrorFilter>();
 });
 
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
@@ -165,23 +166,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-app.UseExceptionHandler(exceptionHandlerApps =>
-{
-    exceptionHandlerApps.Run(async context =>
-    {
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-
-
-        var exceptionHandlerFeature =
-            context.Features.Get<IExceptionHandlerFeature>();
-
-        var logger = app.Services.GetService<ILogger<Program>>();
-
-        logger.LogError(exceptionHandlerFeature?.Error, "Error in controller happened");
-
-        await context.Response.WriteAsync("Exception happened. Please look in log");
-    });
-});
 
 app.Run();

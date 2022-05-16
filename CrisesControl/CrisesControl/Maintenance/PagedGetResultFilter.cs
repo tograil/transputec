@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Api.Maintenance.Interfaces;
 using CrisesControl.SharedKernel.Utils;
 using Dynamitey;
+using Humanizer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Newtonsoft.Json.Linq;
@@ -22,9 +23,7 @@ namespace CrisesControl.Api.Maintenance
                 && context.Result is OkObjectResult { Value: IEnumerable<dynamic> result } okResult)
             {
                 var enumerable = result as dynamic[] ?? result.ToArray();
-                var orderName = _paging.OrderBy.Length > 1 
-                    ? char.ToUpper(_paging.OrderBy[0]) + _paging.OrderBy[1..] 
-                    : string.Empty;
+                var orderName = _paging.OrderBy.Dehumanize();
                 var resultToReturn =
                     orderName == string.Empty 
                                     || !enumerable.Any()
