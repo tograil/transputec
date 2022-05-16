@@ -166,22 +166,22 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-//app.UseExceptionHandler(exceptionHandlerApps =>
-//{
-//    exceptionHandlerApps.Run(async context =>
-//    {
-//        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+app.UseExceptionHandler(exceptionHandlerApps =>
+{
+    exceptionHandlerApps.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
 
-//        var exceptionHandlerFeature =
-//            context.Features.Get<IExceptionHandlerFeature>();
+        var exceptionHandlerFeature =
+            context.Features.Get<IExceptionHandlerFeature>();
 
-//        var logger = app.Services.GetService<ILogger<Program>>();
+        var logger = app.Services.GetService<ILogger<Program>>();
 
-//        logger.LogError(exceptionHandlerFeature?.Error, "Error in controller happened");
+        logger.LogError(exceptionHandlerFeature?.Error, "Error in controller happened");
 
-//        await context.Response.WriteAsync("Exception happened. Please look in log");
-//    });
-//});
+        await context.Response.WriteAsync("Exception happened. Please look in log");
+    });
+});
 
 app.Run();
