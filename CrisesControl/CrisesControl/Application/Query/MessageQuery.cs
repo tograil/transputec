@@ -55,7 +55,7 @@ namespace CrisesControl.Api.Application.Query {
         public async Task<GetMessageDetailsResponse> GetMessageDetails(GetMessageDetailsRequest request)
         {
             var msgresponse = await _messageRepository.GetMessageDetails(request.CloudMsgId, request.MessageId);
-            var response = _mapper.Map<DataTablePaging>(msgresponse);
+            var response = _mapper.Map<object>(msgresponse);
             var result = new GetMessageDetailsResponse();
             result.Data = response;
             result.ErrorCode = System.Net.HttpStatusCode.OK;

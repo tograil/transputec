@@ -6,7 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails
 {
     public class GetMessageDetailsResponse
     {
-        public UserMessageList Data { get; set; }
+        public object Data { get; set; }
         public HttpStatusCode ErrorCode { get; set; }
         public string Message { get; set; }
     }

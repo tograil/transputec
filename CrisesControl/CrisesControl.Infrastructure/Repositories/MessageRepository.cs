@@ -15,6 +15,7 @@ using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 
@@ -28,6 +29,7 @@ public class MessageRepository : IMessageRepository {
 
     private readonly CrisesControlContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger<MessageRepository> _logger;
 
     public MessageRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor) {
         _context = context;
@@ -336,7 +338,7 @@ public class MessageRepository : IMessageRepository {
         }
     }
 
-    public async Task<dynamic> GetMessageDetails(string CloudMsgId, int MessageId = 0)
+    public async Task<IncidentMessageDetails> GetMessageDetails(string CloudMsgId, int MessageId = 0)
     {
         CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
@@ -372,12 +374,12 @@ public class MessageRepository : IMessageRepository {
                     {
                         if (CheckType.Message.MessageType == Enum.GetName(typeof(MessageCheckType), MessageCheckType.Incident))
                         {
-                            var IncidentMessageDetails = _context.Set<UserMessageList>().FromSqlRaw("exec Pro_Get_Incident_Message_List @ActiveIncidentID,@UserID, @CompanyID", ActiveIncidentID, RecepientUserId, CompanyId).FirstOrDefaultAsync();
+                            var IncidentMessageDetails = await  _context.Set<IncidentMessageDetails>().FromSqlRaw("exec Pro_Get_Incident_Message_List @ActiveIncidentID,@UserID, @CompanyID", ActiveIncidentID, RecepientUserId, CompanyId).FirstOrDefaultAsync();
                             return IncidentMessageDetails;
                         }
                         else if (CheckType.Message.MessageType == Enum.GetName(typeof(MessageCheckType), MessageCheckType.Ping))
                         {
-                            var PingMessageDetails = _context.Set<UserMessageList>().FromSqlRaw("exec Pro_Get_Ping_Message_List @UserID,@CompanyID, @MessageID", RecepientUserId, CompanyId, messageId).FirstOrDefaultAsync();
+                            var PingMessageDetails = await _context.Set<IncidentMessageDetails>().FromSqlRaw("exec Pro_Get_Ping_Message_List @UserID,@CompanyID, @MessageID, @IncidentActivationID", RecepientUserId, CompanyId, messageId, ActiveIncidentID).FirstOrDefaultAsync();
                             return PingMessageDetails;
                         }
                         
@@ -391,10 +393,10 @@ public class MessageRepository : IMessageRepository {
         }
         catch (Exception ex)
         {
-            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
         }
-        return null;
+        return new IncidentMessageDetails { };
     }
 
     public async Task<List<MessageAttachment>> GetMessageAttachment( int MessageListID,int MessageID)
@@ -410,8 +412,8 @@ public class MessageRepository : IMessageRepository {
         }
         catch (Exception ex)
         {
-            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
-                                    ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                       ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
         }
         return new List<MessageAttachment>();
 
@@ -428,7 +430,7 @@ public class MessageRepository : IMessageRepository {
         }
         catch (Exception ex)
         {
-            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                     ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
         }
         return new List<MessageAttachment>();
