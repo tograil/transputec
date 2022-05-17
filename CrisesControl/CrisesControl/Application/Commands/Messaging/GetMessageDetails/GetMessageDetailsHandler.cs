@@ -25,7 +25,7 @@ namespace CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails
             {
 
                 var msgResponse = await _messageRepository.GetMessageDetails(request.CloudMsgId, request.MessageId);
-                var response = _mapper.Map<UserMessageList>(msgResponse);
+                var response = _mapper.Map<IncidentMessageDetails>(msgResponse);
                 if(msgResponse != null) { 
                 return new GetMessageDetailsResponse {
                     Data = response,
