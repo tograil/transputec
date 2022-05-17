@@ -76,8 +76,18 @@ namespace CrisesControl.Api.Controllers {
 
         [HttpGet]
         [Route("MessageAcknowledge/{CompanyId:int}/{CurrentUserId:int}/{MsgListId:int}/ResponseID")]
-        public async Task<IActionResult> MessageAcknowledge([FromRoute] MessageAcknowledgeRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> MessageAcknowledge([FromRoute] MessageAcknowledgeRequestRoute requestRoute, [FromQuery] MessageAcknowledgeRequestNullable requestNullable, CancellationToken cancellationToken)
         {
+           
+            MessageAcknowledgeRequest request = new MessageAcknowledgeRequest();
+            request.AckMethod = requestNullable.AckMethod;
+            request.UserLocationLat = requestNullable.UserLocationLat;
+            request.UserLocationLong=requestNullable.UserLocationLong;
+            request.CompanyId = requestRoute.CompanyId;
+            request.CurrentUserId = requestRoute.CurrentUserId;
+            request.ResponseID = requestRoute.ResponseID;
+            request.MsgListId=requestRoute.MsgListId;
+
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);

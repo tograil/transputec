@@ -44,4 +44,11 @@ public interface IMessageRepository
     Task<List<IIncidentMessages>> _get_incident_message(int CompanyId, int CurrentUserId);
     Task<List<IPingMessage>> _get_ping_message(int CompanyId, int CurrentUserId);
     Task<List<NotificationDetails>> MessageNotifications(int CompanyId, int CurrentUserId);
+    Task<string> LookupWithKey(string Key, string Default = "");
+    Task<int> GetCallbackOption(string AckMethod);
+    void CreateSOSAlert(int UserID, string SOSType, int MessageId, int MessageListId, int ResponseID, int IncidentActivationId,
+            string ResponseLabel, DateTimeOffset UpdatedOn, DateTimeOffset ResponseTimeGMT, string Lat, string Lng, int CallbackOption);
+    void CheckSOSAlert(int MessageListID, string SOSType, int CallbackOption);
+    Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
+
 }

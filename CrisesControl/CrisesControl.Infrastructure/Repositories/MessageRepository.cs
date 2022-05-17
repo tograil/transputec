@@ -32,6 +32,7 @@ public class MessageRepository : IMessageRepository
     private readonly CrisesControlContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<MessageRepository> _logger;
+ 
 
     public MessageRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<MessageRepository> logger)
     {
@@ -402,30 +403,31 @@ public class MessageRepository : IMessageRepository
     {
         try
         {
-
+           
             DateTimeOffset dtNow = DateTime.Now.GetDateTimeOffset(TimeZoneId);
             var pUserID = new SqlParameter("@UserID", UserID);
             var pMessageID = new SqlParameter("@MessageID", MessageID);
             var pMessageListID = new SqlParameter("@MessageListID", MessageListID);
-            var pLatitude = new SqlParameter("@Latitude", SharedKernel.Utils.StringExtensions.Left(Latitude, 15));
-            var pLongitude = new SqlParameter("@Longitude", SharedKernel.Utils.StringExtensions.Left(Longitude, 15));
+            var pLatitude = new SqlParameter("@Latitude", Latitude);
+            var pLongitude = new SqlParameter("@Longitude", Longitude);
             var pMode = new SqlParameter("@Mode", AckMethod);
             var pTimestamp = new SqlParameter("@Timestamp", dtNow);
             var pResponseID = new SqlParameter("@ResponseID", ResponseID);
 
-
-            var MessageData = await _context.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID, @MessageID, @MessageListID, @Latitude, @Longitude, @Mode, @Timestamp, @ResponseID",
-                pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode, pTimestamp, pResponseID).FirstOrDefaultAsync();
+            string query = $@"exec Pro_Message_Acknowledge 
+                                            {pUserID},{pMessageID},{pMessageListID},{pLatitude},{pLongitude},{pMode},{pTimestamp},{pResponseID}";
+            var MessageData = await _context.Set<AcknowledgeReturn>().FromSqlRaw(query).FirstAsync();
 
             return MessageData;
         }
         catch (Exception ex)
         {
-            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
-            return null;
+            
 
         }
+        return new AcknowledgeReturn { };
     }
 
     public async Task<MessageAckDetails> MessageAcknowledged(int CompanyId, int MsgListId, string TimeZoneId, string UserLocationLat, string UserLocationLong, int CurrentUserId, int ResponseID = 0, string AckMethod = "WEB")
@@ -440,7 +442,7 @@ public class MessageRepository : IMessageRepository
 
                 if (ResponseID > 0)
                 {
-                    int CallbackOption = GetCallbackOption(AckMethod);
+                    int CallbackOption = await GetCallbackOption(AckMethod);
                      CheckSOSAlert(MsgListId, "ACKNOWLEGE", CallbackOption);
                 }
 
@@ -474,21 +476,21 @@ public class MessageRepository : IMessageRepository
         }
         catch (Exception ex)
         {
-            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
-                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                     ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
 
         }
         return new MessageAckDetails();
     }
 
-    public int GetCallbackOption(string AckMethod)
+    public async Task<int> GetCallbackOption(string AckMethod)
     {
         int CallbackOption = 3;
-        if (AckMethod == Enum.GetName(typeof(MessageType), MessageType.Email))
+        if (AckMethod == MessageType.Email.ToDbString())
         {
             CallbackOption = 1;
         }
-        else if (AckMethod == Enum.GetName(typeof(MessageType), MessageType.Text))
+        else if (AckMethod ==  MessageType.Text.ToString())
         {
             CallbackOption = 1;
         }
@@ -504,7 +506,7 @@ public class MessageRepository : IMessageRepository
                 AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, MessageListID);
         }
     }
-    public void AddTrackingDevice(int CompanyID, int UserDeviceID, string DeviceAddress, string DeviceType, int MessageListID = 0)
+    public async void AddTrackingDevice(int CompanyID, int UserDeviceID, string DeviceAddress, string DeviceType, int MessageListID = 0)
     {
         const string messageText= "Track Device";
         try
@@ -522,20 +524,20 @@ public class MessageRepository : IMessageRepository
             MessageDev.Status = "PENDING";
             MessageDev.SirenOn = false;
             MessageDev.OverrideSilent = false;
-            MessageDev.CreatedOn = SharedKernel.Utils.DateTimeExtensions.GetDateTimeOffset(DateTime.Now);
-            MessageDev.UpdatedOn = SharedKernel.Utils.DateTimeExtensions.GetDateTimeOffset(DateTime.Now);
+            MessageDev.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+            MessageDev.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
             MessageDev.CreatedBy = 0;
             MessageDev.UpdatedBy = 0;
             MessageDev.DateSent = SqlDateTime.MinValue.Value;
             MessageDev.DateDelivered = SqlDateTime.MinValue.Value;
             MessageDev.DeviceAddress = DeviceAddress;
             MessageDev.DeviceType = DeviceType;
-            _context.AddAsync(MessageDev);
+           await _context.AddAsync(MessageDev);
             _context.SaveChanges();
         }
         catch (Exception ex)
         {
-            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
         }
     }
@@ -559,9 +561,9 @@ public class MessageRepository : IMessageRepository
                     if (check != null)
                     {
                         check.ActiveIncidentId = sos.Message.IncidentActivationId;
-                        check.AlertType = SOSType;
-                        check.Latitude = SharedKernel.Utils.StringExtensions.Left(sos.UserLocationLat, 15);
-                        check.Longitude = SharedKernel.Utils.StringExtensions.Left(sos.UserLocationLong, 15);
+                        check.AlertType = SOSType ?? string.Empty;
+                        check.Latitude = sos.UserLocationLat.Left(15) ?? string.Empty.Left(0);
+                        check.Longitude = (sos.UserLocationLong.Left(15) ?? string.Empty.Left(0)) ;
                         check.MessageId = sos.Message.MessageId;
                         check.MessageListId = sos.MessageListId;
                         check.ResponseId = sos.ResponseId;
@@ -573,7 +575,7 @@ public class MessageRepository : IMessageRepository
                     else
                     {
                         CreateSOSAlert(sos.RecepientUserId, SOSType, sos.Message.MessageId, sos.MessageListId, sos.ResponseId, (int)sos.Message.IncidentActivationId,
-                            sos.ActiveMessageResponse.ResponseLabel, sos.UpdatedOn, DateTime.Now, sos.UserLocationLat, sos.UserLocationLong, CallbackOption);
+                            sos.ActiveMessageResponse.ResponseLabel ??  string.Empty, sos.UpdatedOn, DateTime.Now, sos.UserLocationLat ??  string.Empty, sos.UserLocationLong ?? String.Empty, CallbackOption);
                     }
                 }
             }
@@ -610,8 +612,8 @@ public class MessageRepository : IMessageRepository
         }
         catch (Exception ex)
         {
-            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
-                                     ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                  ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
         }
     }
     public async Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "")
@@ -664,13 +666,13 @@ public class MessageRepository : IMessageRepository
         }
         catch (Exception ex)
         {
-            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
-                                    ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                  ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
             return Default;
         }
     }
 
-    private async Task<string> LookupWithKey(string Key, string Default = "")
+    public async Task<string> LookupWithKey(string Key, string Default = "")
     {
         try
         {
@@ -690,7 +692,7 @@ public class MessageRepository : IMessageRepository
         }
         catch (Exception ex)
         {
-            Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                     ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
             return Default;
         }
@@ -712,8 +714,10 @@ public class MessageRepository : IMessageRepository
         var pTargetUserId = new SqlParameter("@UserID", CurrentUserId);
         var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
 
-        var result = new List<IIncidentMessages>((IEnumerable<IIncidentMessages>)_context.Set<IIncidentMessages>().FromSqlRaw(" exec Pro_User_Incident_Notifications @UserID, @CompanyID",
-            pTargetUserId, pCompanyID).ToList().Select(async c => {
+        var result = await _context.Set<IIncidentMessages>().FromSqlRaw(" exec Pro_User_Incident_Notifications @UserID, @CompanyID",
+            pTargetUserId, pCompanyID).ToListAsync();
+
+        result.Select(async c => {
                 c.AckOptions = new List<AckOption>(await _context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
                        new AckOption()
                        {
@@ -721,7 +725,7 @@ public class MessageRepository : IMessageRepository
                            ResponseLabel = n.ResponseLabel,
                        }).ToListAsync());
                 return c;
-                 }).ToList());
+                 }).ToList();
         return  result;
 
         
@@ -736,8 +740,10 @@ public class MessageRepository : IMessageRepository
         var pTargetUserId = new SqlParameter("@UserID", CurrentUserId);
         var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
 
-        List<IPingMessage> result = new List<IPingMessage>((IEnumerable<IPingMessage>) _context.Set<IPingMessage>().FromSqlRaw("exec Pro_User_Ping_Notifications @UserID, @CompanyID",
-            pTargetUserId, pCompanyID).ToList().Select(async c => {
+        var result = await _context.Set<IPingMessage>().FromSqlRaw("exec Pro_User_Ping_Notifications @UserID, @CompanyID",
+            pTargetUserId, pCompanyID).ToListAsync();
+            
+            result.Select(async c => {
                 c.AckOptions = new List<AckOption>(await _context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
                       new AckOption()
                       {
@@ -745,7 +751,7 @@ public class MessageRepository : IMessageRepository
                           ResponseLabel = n.ResponseLabel,
                       }).ToListAsync());
                 return c;
-            }).ToList());
+            }).ToList();
         return result;
 
     }
