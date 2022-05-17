@@ -403,22 +403,28 @@ public class MessageRepository : IMessageRepository
     {
         try
         {
-           
+           if (string.IsNullOrEmpty(Longitude))
+            {
+                
+            }
             DateTimeOffset dtNow = DateTime.Now.GetDateTimeOffset(TimeZoneId);
             var pUserID = new SqlParameter("@UserID", UserID);
             var pMessageID = new SqlParameter("@MessageID", MessageID);
             var pMessageListID = new SqlParameter("@MessageListID", MessageListID);
-            var pLatitude = new SqlParameter("@Latitude", Latitude);
-            var pLongitude = new SqlParameter("@Longitude", Longitude);
-            var pMode = new SqlParameter("@Mode", AckMethod);
-            var pTimestamp = new SqlParameter("@Timestamp", dtNow);
+            var pLatitude = new SqlParameter("@Latitude", Latitude ?? string.Empty);
+            var pLongitude = new SqlParameter("@Longitude", Longitude ?? string.Empty);
+            var pMode = new SqlParameter("@Mode", AckMethod ?? string.Empty);
+            var pTimestamp = new SqlParameter("@Timestamp", dtNow );
             var pResponseID = new SqlParameter("@ResponseID", ResponseID);
 
-            string query = $@"exec Pro_Message_Acknowledge 
-                                            {pUserID},{pMessageID},{pMessageListID},{pLatitude},{pLongitude},{pMode},{pTimestamp},{pResponseID}";
-            var MessageData = await _context.Set<AcknowledgeReturn>().FromSqlRaw(query).FirstAsync();
-
-            return MessageData;
+          
+            var  MessageData =  _context.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID,@MessageID,@MessageListID, @Latitude, @Longitude,@Mode,@Timestamp,@ResponseID",
+                                             pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode,pTimestamp, pResponseID).AsEnumerable<AcknowledgeReturn>();
+            if (MessageData != null) { 
+                  var message= MessageData.FirstOrDefault();
+                 return message;
+            }
+          
         }
         catch (Exception ex)
         {
