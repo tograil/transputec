@@ -418,7 +418,7 @@ public class MessageRepository : IMessageRepository
             var pResponseID = new SqlParameter("@ResponseID", ResponseID);
 
           
-            var  MessageData =  _context.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID,@MessageID,@MessageListID, @Latitude, @Longitude,@Mode,@Timestamp,@ResponseID",
+            var  MessageData = _context.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID,@MessageID,@MessageListID, @Latitude, @Longitude,@Mode,@Timestamp,@ResponseID",
                                              pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode,pTimestamp, pResponseID).AsEnumerable<AcknowledgeReturn>();
             if (MessageData != null) { 
                   var message= MessageData.FirstOrDefault();
