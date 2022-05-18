@@ -49,6 +49,5 @@ public interface IMessageRepository
     void CreateSOSAlert(int UserID, string SOSType, int MessageId, int MessageListId, int ResponseID, int IncidentActivationId,
             string ResponseLabel, DateTimeOffset UpdatedOn, DateTimeOffset ResponseTimeGMT, string Lat, string Lng, int CallbackOption);
     void CheckSOSAlert(int MessageListID, string SOSType, int CallbackOption);
-    Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
-
+  
 }

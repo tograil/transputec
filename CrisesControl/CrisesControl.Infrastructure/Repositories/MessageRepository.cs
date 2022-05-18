@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
@@ -32,7 +33,8 @@ public class MessageRepository : IMessageRepository
     private readonly CrisesControlContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<MessageRepository> _logger;
- 
+    private readonly ICompanyParametersRepository _companyParameters;
+
 
     public MessageRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<MessageRepository> logger)
     {
@@ -557,7 +559,7 @@ public class MessageRepository : IMessageRepository
             if (sos != null)
             {
                 bool IsSOSEnabled = false;
-                bool.TryParse(await GetCompanyParameter(key, sos.Message.CompanyId), out IsSOSEnabled);
+                bool.TryParse(await _companyParameters.GetCompanyParameter(key, sos.Message.CompanyId), out IsSOSEnabled);
 
                 if (sos.ActiveMessageResponse.IsSafetyResponse && IsSOSEnabled)
                 {
@@ -601,8 +603,8 @@ public class MessageRepository : IMessageRepository
             SA.UserId = UserID;
             SA.ActiveIncidentId = IncidentActivationId;
             SA.AlertType = SOSType;
-            SA.Latitude = SharedKernel.Utils.StringExtensions.Left(Lat, 15);
-            SA.Longitude = SharedKernel.Utils.StringExtensions.Left(Lng, 15);
+            SA.Latitude = Lat.Left(15);
+            SA.Longitude = Lng.Left(15);
             SA.MessageId = MessageId;
             SA.MessageListId = MessageListId;
             SA.ResponseId = ResponseID;
@@ -622,62 +624,19 @@ public class MessageRepository : IMessageRepository
                                   ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
         }
     }
-    public async Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "")
+
+
+   
+    public async Task<List<NotificationDetails>> MessageNotifications(int CompanyId, int CurrentUserId)
     {
-        try
-        {
-            Key = Key.ToUpper();
+        List<NotificationDetails> NDL = new List<NotificationDetails>();
 
-            if (CompanyId > 0)
-            {
-                var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
-                if (LKP != null)
-                {
-                    Default = LKP.Value;
-                }
-                else
-                {
-                   
-                    var LPR = await _context.Set<LibCompanyParameter>().Where(CP => CP.Name == Key).FirstOrDefaultAsync();
-                    if (LPR != null)
-                    {
-                        Default = LPR.Value;
-                    }
-                    else
-                    {
-                        Default = await LookupWithKey(Key, Default);
-                    }
-                }
-            }
+        List<IIncidentMessages> IM = await _get_incident_message(CompanyId, CurrentUserId);
+        List<IPingMessage> PM = await _get_ping_message(CompanyId, CurrentUserId);
 
-            if (!string.IsNullOrEmpty(CustomerId) && !string.IsNullOrEmpty(Key))
-            {
-               
-                var cmp = await _context.Set<Company>().Where(w => w.CustomerId == CustomerId).FirstOrDefaultAsync();
-                if (cmp != null)
-                {
-                    var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
-                    if (LKP != null)
-                    {
-                        Default = LKP.Value;
-                    }
-                }
-                else
-                {
-                    Default = "NOT_EXIST";
-                }
-            }
-
-            return Default;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
-                                  ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
-            return Default;
-        }
+        NDL.Add(new NotificationDetails { IncidentMessages = IM, PingMessage = PM });
+        return NDL;
     }
-
     public async Task<string> LookupWithKey(string Key, string Default = "")
     {
         try
@@ -688,7 +647,7 @@ public class MessageRepository : IMessageRepository
                 return Globals[Key];
             }
 
-        
+
             var LKP = await _context.Set<SysParameter>().Where(w => w.Name == Key).FirstOrDefaultAsync();
             if (LKP != null)
             {
@@ -702,20 +661,9 @@ public class MessageRepository : IMessageRepository
                                     ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
             return Default;
         }
-
-    }
-    public async Task<List<NotificationDetails>> MessageNotifications(int CompanyId, int CurrentUserId)
-    {
-        List<NotificationDetails> NDL = new List<NotificationDetails>();
-
-        List<IIncidentMessages> IM = await _get_incident_message(CompanyId, CurrentUserId);
-        List<IPingMessage> PM = await _get_ping_message(CompanyId, CurrentUserId);
-
-        NDL.Add(new NotificationDetails { IncidentMessages = IM, PingMessage = PM });
-        return NDL;
     }
 
-    public async Task<List<IIncidentMessages>> _get_incident_message(int CompanyId, int CurrentUserId)
+        public async Task<List<IIncidentMessages>> _get_incident_message(int CompanyId, int CurrentUserId)
     {
         var pTargetUserId = new SqlParameter("@UserID", CurrentUserId);
         var pCompanyID = new SqlParameter("@CompanyID", CompanyId);

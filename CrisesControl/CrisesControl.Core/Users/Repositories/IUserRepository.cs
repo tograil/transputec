@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Models;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,5 +21,9 @@ public interface IUserRepository
     Task<User> DeleteUser(User user, CancellationToken token);
     bool CheckDuplicate(User user);
     Task<LoginInfoReturnModel> GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken);
-
+    Task<int> UpdateProfile(User user);
+    Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
+    void CreateSMSTriggerRight(int CompanyId, int UserId, string UserRole, bool SMSTrigger, string ISDCode, string MobileNo, bool Self = false);
+    void UserCommsPriority(int UserID, List<CommsMethodPriority> CommsMethod, int CurrentUserID, int CompanyID, CancellationToken token);
+    void UserCommsMethods(int UserId, string MethodType, int[] MethodId, int CurrentUserID, int CompanyID, string TimeZoneId);
 }

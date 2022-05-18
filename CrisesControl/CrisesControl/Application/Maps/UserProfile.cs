@@ -3,6 +3,7 @@ using CrisesControl.Api.Application.Commands.Users.CreateUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
+using CrisesControl.Api.Application.Commands.Users.UpdateProfile;
 using CrisesControl.Api.Application.Commands.Users.UpdateUser;
 using CrisesControl.Api.Application.ViewModels.User;
 using CrisesControl.Core.Models;
@@ -25,6 +26,8 @@ namespace CrisesControl.Api.Application.Maps
             CreateMap<LoginRequest, LoginInfo>();
             CreateMap<LoginInfoReturnModel, LoginResponse>();
             CreateMap<GetUsersRequest, GetAllUserRequest>();
+
+            CreateMap<UpdateProfileRequest, User>();
         }
     }
 }
