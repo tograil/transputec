@@ -404,4 +404,45 @@ public class UserRepository : IUserRepository
             return null;
         }
     }
+
+    private string GetCompanyName(int companyId)
+    {
+        string companyName =  _context.Set<Company>().Where(c=>c.CompanyId == companyId).Select(c=>c.CompanyName).FirstOrDefault();
+        return companyName;
+    }
+
+    public async Task<User> ReactivateUser(int queriedUserId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userRecord = await _context.Set<User>().Where(t => t.UserId == queriedUserId).FirstOrDefaultAsync();
+
+            if (userRecord != null)
+            {
+                userRecord.Status = 1;
+                await _context.SaveChangesAsync(cancellationToken);
+                var ActivatedUser = _context.Set<User>().Where(u=> u.UserId == queriedUserId).Select(u=> new
+                                     {
+                                         UserId = u.UserId,
+                                         UserName = new UserFullName { Firstname = u.FirstName, Lastname = u.LastName },
+                                         UserEmail = u.PrimaryEmail,
+                                         CompanyName = GetCompanyName(u.CompanyId)
+                                     }).FirstOrDefault();
+                if (ActivatedUser != null)
+                {
+                    return userRecord;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+           
+           return null;
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+    }
 }
