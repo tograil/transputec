@@ -20,9 +20,7 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
         private readonly IMapper _mapper;
         private readonly IUserRepository _userRepository;
         private readonly string timeZoneId = "GMT Standard Time";
-        private readonly CrisesControlContext _context;
-
-        private readonly ICompanyParametersRepository _companyParRepository;
+   
         public UpdateProfileHandler(ICurrentUser currentUser, IMapper mapper, ILogger<UpdateProfileHandler> logger,
         IUserRepository userRepository, ICompanyParametersRepository companyParRepository, CrisesControlContext context)
         {
@@ -30,13 +28,11 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
             this._logger = logger;
             this._userRepository = userRepository;
             this._mapper = mapper;
-            this._companyParRepository=companyParRepository;
-            this._context = context;    
+             
         }
 
         public async Task<UpdateProfileResponse> Handle(UpdateProfileRequest request, CancellationToken cancellationToken)
         {
-            const string key = "ALLOW_CHANGE_CHANNEL_USER";
             Guard.Against.Null(request, nameof(UpdateProfileRequest));
 
             try
@@ -88,7 +84,6 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
                     }
 
 
-
                     _userRepository.CreateSMSTriggerRight(request.CompanyId, user.UserId, user.UserRole ?? string.Empty, true, user.Isdcode, user.MobileNo, true);
 
                     string comppriority = await _userRepository.GetCompanyParameter(KeyType.ALLOWCHANNELPRIORITY.ToDbKeyString(), request.CompanyId);
@@ -100,53 +95,7 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
                             _userRepository.UserCommsPriority(user.UserId, request.CommsMethod, _currentUser.UserId, _currentUser.CompanyId, cancellationToken);
                     }
 
-                    var RegUserInfo = (from Usersval in _context.Set<User>()
-                                       where Usersval.CompanyId == request.CompanyId && Usersval.UserId == _currentUser.UserId
-                                       select new
-                                       {
-                                           CompanyId = request.CompanyId,
-                                           CurrentUserId = _currentUser.UserId,
-                                           UserId = Usersval.UserId,
-                                           First_Name = Usersval.FirstName,
-                                           Last_Name = Usersval.LastName,
-                                           MobileISDCode = Usersval.Isdcode,
-                                           MobileNo = Usersval.MobileNo,
-                                           LLISDCode = Usersval.Llisdcode,
-                                           Landline = request.Landline,
-                                           Primary_Email = Usersval.PrimaryEmail,
-                                           UserPassword = Usersval.Password,
-                                           UserPhoto = Usersval.UserPhoto,
-                                           UserRole = Usersval.UserRole,
-                                           UniqueGuiID = Usersval.UniqueGuiId,
-                                           RegisterUser = Usersval.RegisteredUser,
-                                           Status = Usersval.Status,
-                                           CommsMethod = (from UC in _context.Set<UserComm>()
-                                                          where UC.UserId == Usersval.UserId && UC.Status == 1
-                                                          select new
-                                                          {
-                                                              MethodId = UC.MethodId,
-                                                              MessageType = UC.MessageType,
-                                                              UC.Priority
-                                                          }),
-                                           SecGroup = (from SG in _context.Set<SecurityGroup>()
-                                                       join USG in _context.Set<UserSecurityGroup>() on SG.SecurityGroupId equals USG.SecurityGroupId
-                                                       where SG.CompanyId == request.CompanyId && USG.UserId == Usersval.UserId
-                                                       select new
-                                                       {
-                                                           SecUserId = USG.UserId,
-                                                           SecurityGroupId = SG.SecurityGroupId
-                                                       }),
-                                           OBJMap = (from UOR in _context.Set<ObjectRelation>()
-                                                     join OBM in _context.Set<ObjectMapping>() on UOR.ObjectMappingId equals OBM.ObjectMappingId
-                                                     join OBJ in _context.Set<Object>() on OBM.TargetObjectId equals OBJ.ObjectId
-                                                     where (OBM.CompanyId == request.CompanyId || OBM.CompanyId == null) && UOR.TargetObjectPrimaryId == Usersval.UserId
-                                                     select new
-                                                     {
-                                                         ObjectTableName = OBJ.ObjectTableName,
-                                                         SourceObjectPrimaryId = UOR.SourceObjectPrimaryId,
-                                                         ObjectMappingId = OBM.ObjectMappingId
-                                                     }),
-                                       });
+                    var RegUserInfo = _userRepository.GetRegisteredUserInfo(request.CompanyId,_currentUser.UserId);
 
                     if (RegUserInfo != null)
                     {

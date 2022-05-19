@@ -26,7 +26,7 @@ public class UserRepository : IUserRepository
     private int userID;
     private int companyID;
     private readonly ILogger<UserRepository> _logger;
-
+    
 
     public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<UserRepository> logger)
     {
@@ -128,7 +128,7 @@ public class UserRepository : IUserRepository
     {
         var searchString = firstName + " " + lastName + "|" + primaryEmail + "|" + isdCode + mobileNo;
 
-        var comp = await _context.Set<Company>().Include(std=>std.StdTimeZone).FirstOrDefaultAsync(x => x.CompanyId == companyId);
+        var comp = await _context.Set<Company>().FirstOrDefaultAsync(x => x.CompanyId == companyId);
         if (comp != null)
         {
             var memberUser = _context.Set<MemberUser>().FromSqlRaw(" exec Pro_Create_User_Search {0}, {1}, {2}",
@@ -605,6 +605,22 @@ public class UserRepository : IUserRepository
         catch (Exception ex)
         {
             throw ex;
+        }
+    }
+    public async Task<User> GetRegisteredUserInfo(int CompanyId, int userId)
+    {
+        try { 
+        var RegUserInfo = await _context.Set<User>()./*Include(uc => uc.UserComm).Include(usg=>usg.UserSecurityGroup)*/Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
+
+        if (RegUserInfo != null)
+        {
+            return RegUserInfo;
+        }
+        return null;
+        }
+        catch(Exception ex)
+        {
+         return null;
         }
     }
     
