@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.Users.CreateUser;
+﻿using CrisesControl.Api.Application.Commands.Users.ActivateUser;
+using CrisesControl.Api.Application.Commands.Users.CreateUser;
 using CrisesControl.Api.Application.Commands.Users.DeleteUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
@@ -49,6 +50,13 @@ namespace CrisesControl.Api.Controllers
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest UserModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(UserModel, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpGet("ReactivateUser")]
+        public async Task<IActionResult> ReactivateUser([FromQuery] ActivateUserRequest activateUserRequest, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(activateUserRequest, cancellationToken);
             return Ok(result);
         }
 

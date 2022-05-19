@@ -21,6 +21,8 @@ public interface IUserRepository
     Task<User> DeleteUser(User user, CancellationToken token);
     bool CheckDuplicate(User user);
     Task<LoginInfoReturnModel> GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken);
+    Task<User> ReactivateUser(int qureiedUserId, CancellationToken cancellationToken);
+
     Task<int> UpdateProfile(User user);
     Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
     void CreateSMSTriggerRight(int CompanyId, int UserId, string UserRole, bool SMSTrigger, string ISDCode, string MobileNo, bool Self = false);
