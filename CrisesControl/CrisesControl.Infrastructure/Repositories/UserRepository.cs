@@ -10,6 +10,7 @@ using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -504,7 +505,7 @@ public class UserRepository : IUserRepository
         try
         {
 
-            string PriorityChangeAllowed = await GetCompanyParameter("ALLOW_CHANGE_PRIORITY_USER", CompanyID);
+            string PriorityChangeAllowed = await GetCompanyParameter(KeyType.ALLOWCHANGEPRIORITYUSER.ToDbKeyString(), CompanyID);
 
             if (CommsMethod.Count() > 0 && PriorityChangeAllowed == "true")
             {
