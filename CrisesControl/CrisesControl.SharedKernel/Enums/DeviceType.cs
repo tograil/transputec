@@ -9,7 +9,8 @@ namespace CrisesControl.SharedKernel.Enums
     public enum DeviceType
     {
         ANDROID,
-        IOS,
-        WINDOWS
+        APPLE_VERSION,
+        WINDOWS,
+        BLACKBERRY
     }
 }

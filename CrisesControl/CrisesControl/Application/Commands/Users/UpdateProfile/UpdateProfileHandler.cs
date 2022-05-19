@@ -60,8 +60,8 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
                         user.UserLanguage = request.UserLanguage;
                     if (!string.IsNullOrEmpty(request.UserPhoto))
                         user.UserPhoto = request.UserPhoto;
-                    if (request.TimezoneId > 0)
-                        user.TimezoneId = request.TimezoneId;
+                    if (request.TimeZoneID > 0)
+                        user.TimezoneId = request.TimeZoneID;
                     user.UpdatedBy = request.UserId;
                     user.UpdatedOn = DateTime.Now.GetDateTimeOffset(timeZoneId);
 
@@ -69,8 +69,8 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
                     _mapper.Map<UpdateProfileRequest, User>(request);
                     _userRepository.CreateUserSearch(user.UserId, user.FirstName, user.LastName, user.Isdcode, user.MobileNo, user.PrimaryEmail, request.CompanyId);
 
-                    string userchannelallowed = await _userRepository.GetCompanyParameter(key, request.CompanyId);
-                    if (userchannelallowed == "true")
+                    string userchannelallowed = await _userRepository.GetCompanyParameter(KeyType.ALLOWCHANGECHANNELUSER.ToDbKeyString(), request.CompanyId);
+                    if (userchannelallowed == true.ToString())
                     {
                         //Adding Ping Methods
                         if (request.PingMethod != null)
@@ -94,7 +94,7 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
                     string comppriority = await _userRepository.GetCompanyParameter(KeyType.ALLOWCHANNELPRIORITY.ToDbKeyString(), request.CompanyId);
                     string userpriority = await _userRepository.GetCompanyParameter(KeyType.ALLOWCHANGEPRIORITYUSER.ToDbKeyString(), request.CompanyId);
 
-                    if (comppriority == "true" && userpriority == "true")
+                    if (comppriority == true.ToString() && userpriority == true.ToString())
                     {
                         if (request.CommsMethod != null)
                             _userRepository.UserCommsPriority(user.UserId, request.CommsMethod, _currentUser.UserId, _currentUser.CompanyId, cancellationToken);

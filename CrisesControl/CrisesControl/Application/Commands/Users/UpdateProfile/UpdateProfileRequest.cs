@@ -18,7 +18,7 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
         //[Required(ErrorMessage = "At least one incident comm method is required")]
         public int[] IncidentMethod { get; set; }
         public List<CommsMethodPriority> CommsMethod { get; set; }
-        public int TimezoneId { get; set; }
+        public int TimeZoneID { get; set; }
         public string? MobileNo { get; set; }
     }
 }
