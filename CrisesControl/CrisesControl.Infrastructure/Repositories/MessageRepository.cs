@@ -34,13 +34,15 @@ public class MessageRepository : IMessageRepository
     private readonly CrisesControlContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<MessageRepository> _logger;
+    private readonly ICompanyParametersRepository _companyParameters;
 
 
-    public MessageRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<MessageRepository> logger)
+    public MessageRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<MessageRepository> logger, ICompanyParametersRepository companyParameters)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
+        _companyParameters = companyParameters; 
     }
 
     public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0)
