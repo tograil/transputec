@@ -10,7 +10,7 @@ namespace CrisesControl.Api.Application.Query
         //List<IncidentList> GetAllCompanyIncident(int userId);
         Task<List<TaskDetails>> GetIncidentTask(int incidentId, int incidentTaskId, bool single, CancellationToken cancellationToken);
         Task<List<TaskDetails>> GetTaskDetail(int incidentId, int incidentTaskId, int taskHeaderId, CancellationToken cancellationToken);
-        List<Core.AssetAggregate.Assets> GetTaskAsset(int incidentTaskId, int companyId);
+        List<CrisesControl.Core.Assets.Assets> GetTaskAsset(int incidentTaskId, int companyId);
         List<CheckListOption> GetChkResponseOptions();
         CheckListUpsert GetTaskCheckList(int incidentTaskId);
     }

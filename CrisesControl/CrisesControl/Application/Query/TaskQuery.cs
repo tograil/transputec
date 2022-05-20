@@ -34,7 +34,7 @@ public class TaskQuery : ITaskQuery
         return await _taskRepository.GetTasks(incidentId, incidentTaskId, true, _currentUser.CompanyId, taskHeaderId, cancellationToken);
     }
 
-    public List<Core.AssetAggregate.Assets> GetTaskAsset(int incidentTaskId, int companyId)
+    public List<CrisesControl.Core.Assets.Assets> GetTaskAsset(int incidentTaskId, int companyId)
     {
         return _taskRepository.GetTaskAsset(incidentTaskId, companyId);
     }

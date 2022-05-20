@@ -1,9 +1,8 @@
-﻿using CrisesControl.Core.AssetAggregate;
-using MediatR;
+﻿using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Tasks.SaveTaskAsset;
 
-public class SaveTaskAssetRequest : IRequest<List<Assets>>
+public class SaveTaskAssetRequest : IRequest<List<CrisesControl.Core.Assets.Assets>>
 {
     public int IncidentTaskId { get; set; }
     public int[] TaskAssets { get; set; }

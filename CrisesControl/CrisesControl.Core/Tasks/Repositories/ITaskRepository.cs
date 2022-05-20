@@ -21,7 +21,7 @@ public interface ITaskRepository
     Task IncidentTaskParticipants(int incidentTaskId, int[] actionUsers, int[] actionGroups, int[] escalationUsers, int[] escalationGroups, CancellationToken cancellationToken);
     Task IncidentTaskPredecessors(int incidentTaskId, int[] predecessors, CancellationToken cancellationToken);
     Task ReorderTask(int incidentId, int taskHeaderId, List<TaskSequence> taskSequences, CancellationToken cancellationToken);
-    List<Core.AssetAggregate.Assets> GetTaskAsset(int incidentTaskId, int companyId);
+    List<CrisesControl.Core.Assets.Assets> GetTaskAsset(int incidentTaskId, int companyId);
     Task SaveTaskAssets(int incidentTaskId, int[] taskAssets, int currentUserId, int companyId, string timeZoneId, CancellationToken cancellationToken);
     Task DeleteTaskAsset(int incidentTaskId, int[] taskAssets, int currentUserId, int companyId, CancellationToken cancellationToken);
     Task DeleteTask(int incidentTaskId, int taskHeaderId, CancellationToken cancellationToken);

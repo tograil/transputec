@@ -457,11 +457,11 @@ public class TaskRepository : ITaskRepository
         await FixTaskOrder(incidentId, taskHeaderId, cancellationToken);
     }
 
-    public List<Core.AssetAggregate.Assets> GetTaskAsset(int incidentTaskId, int companyId)
+    public List<CrisesControl.Core.Assets.Assets> GetTaskAsset(int incidentTaskId, int companyId)
     {
         var pIncidentTaskID = new SqlParameter("@IncidentTaskID", incidentTaskId);
         var pCompanyID = new SqlParameter("@CompanyID", companyId);
-        return _context.Set<Core.AssetAggregate.Assets>().FromSqlRaw("Pro_Get_Task_Assets @IncidentTaskID, @CompanyID", pIncidentTaskID, pCompanyID).ToList();
+        return _context.Set<CrisesControl.Core.Assets.Assets>().FromSqlRaw("Pro_Get_Task_Assets @IncidentTaskID, @CompanyID", pIncidentTaskID, pCompanyID).ToList();
     }
 
     public async Task SaveTaskAssets(int incidentTaskId, int[] taskAssets, int currentUserId, int companyId, string timeZoneId, CancellationToken cancellationToken)

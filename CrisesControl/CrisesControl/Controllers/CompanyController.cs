@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
+using CrisesControl.Api.Application.Commands.Companies.UpdateCompany;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -46,6 +47,12 @@ public class CompanyController : Controller
         {
             return BadRequest(ex.Message);
         }
+    }
+    [HttpPut]
+    public async Task<IActionResult> UpdateCompany([FromBody] UpdateCompanyRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
     }
 
 }

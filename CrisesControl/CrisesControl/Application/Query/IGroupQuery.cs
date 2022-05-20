@@ -5,7 +5,7 @@ namespace CrisesControl.Api.Application.Query
 {
     public interface IGroupQuery
     {
-        public Task<GetGroupsResponse> GetGroups(GetGroupsRequest request);
-        public Task<GetGroupResponse> GetGroup(GetGroupRequest request);
+        public Task<GetGroupsResponse> GetGroups(GetGroupsRequest request, CancellationToken cancellationToken);
+        public Task<GetGroupResponse> GetGroup(GetGroupRequest request, CancellationToken cancellationToken);
     }
 }

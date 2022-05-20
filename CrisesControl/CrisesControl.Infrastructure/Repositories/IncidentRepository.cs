@@ -371,7 +371,7 @@ public class IncidentRepository : IIncidentRepository
                         LocationName = ILL.LocationName,
                         LocationType = ILL.LocationType
                     }).ToList();
-        var incloc = (from L in _context.Set<CrisesControl.Core.LocationAggregate.Location>().AsEnumerable()
+        var incloc = (from L in _context.Set<CrisesControl.Core.Locations.Location>().AsEnumerable()
                         join IA in _context.Set<IncidentActivation>().AsEnumerable() on L.LocationId equals IA.ImpactedLocationId
                         where IA.IncidentActivationId == IncidentActivationId
                         select new AffectedLocation

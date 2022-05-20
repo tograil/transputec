@@ -7,6 +7,9 @@ namespace CrisesControl.Core.Incidents.Repositories;
 
 public interface IActiveIncidentRepository
 {
+    Task ProcessKeyHolders(int companyId, int incidentId, int activeIncidentId, int currentUserId,
+        int[] incidentKeyHolders);
+
     Task ProcessImpactedLocation(int[] locationIds, int incidentActivationId, int companyId, string action);
 
     Task ProcessAffectedLocation(ICollection<AffectedLocation> affectedLocations, int incidentActivationId,

@@ -21,8 +21,8 @@ namespace CrisesControl.Api.Controllers
             this._securityQuery = securityQuery;
         }
         [HttpGet]
-        [Route("GetCompanySecurityGroup")]
-        public async Task<IActionResult> GetCompanySecurityGroup([FromQuery] GetCompanySecurityGroupRequest request, CancellationToken cancellationToken)
+        [Route("GetCompanySecurityGroup/{CompanyID:int}")]
+        public async Task<IActionResult> GetCompanySecurityGroup([FromRoute] GetCompanySecurityGroupRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

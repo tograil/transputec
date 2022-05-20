@@ -2,7 +2,7 @@
 using CrisesControl.Api.Application.Commands.Locations.CreateLocation;
 using CrisesControl.Api.Application.Commands.Locations.GetLocation;
 using CrisesControl.Api.Application.Commands.Locations.UpdateLocation;
-using CrisesControl.Core.LocationAggregate;
+using CrisesControl.Core.Locations;
 
 namespace CrisesControl.Api.Application.Maps
 {
