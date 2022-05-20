@@ -51,7 +51,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<Search>().HasNoKey();
             modelBuilder.Entity<ResponseSummary>().HasNoKey();
             modelBuilder.Entity<MessageReporting>().HasNoKey();
-
+            modelBuilder.Entity<IncidentMessageDetails>().HasNoKey();
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();

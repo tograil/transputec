@@ -50,4 +50,8 @@ public interface IMessageRepository
             string ResponseLabel, DateTimeOffset UpdatedOn, DateTimeOffset ResponseTimeGMT, string Lat, string Lng, int CallbackOption);
     void CheckSOSAlert(int MessageListID, string SOSType, int CallbackOption);
   
+
+    Task<IncidentMessageDetails> GetMessageDetails(string CloudMsgId, int MessageId = 0);
+    Task<List<MessageAttachment>> GetMessageAttachment(int MessageListID, int MessageID);
+    Task<List<MessageAttachment>> GetAttachment(int MessageAttachmentID = 0);
 }
