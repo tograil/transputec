@@ -1,4 +1,7 @@
-﻿using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
+﻿using CrisesControl.Api.Application.Commands.Messaging.GetAttachment;
+using CrisesControl.Api.Application.Commands.Messaging.GetMessageAttachment;
+using CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails;
+using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
@@ -73,21 +76,32 @@ namespace CrisesControl.Api.Controllers {
 
             return Ok(result);
         }
-
+        /// <summary>
+        /// Get the  message details for a user by cloud message
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
-        [Route("MessageAcknowledge/{CompanyId:int}/{CurrentUserId:int}/{MsgListId:int}/ResponseID")]
-        public async Task<IActionResult> MessageAcknowledge([FromRoute] MessageAcknowledgeRequestRoute requestRoute, [FromQuery] MessageAcknowledgeRequestNullable requestNullable, CancellationToken cancellationToken)
+        [Route("GetMessageDetails/{CloudMsgId}/{MessageId}")]
+        public async Task<IActionResult> GetMessageDetails([FromRoute] GetMessageDetailsRequest request, CancellationToken cancellationToken)
         {
-           
-            MessageAcknowledgeRequest request = new MessageAcknowledgeRequest();
-            request.AckMethod = requestNullable.AckMethod;
-            request.UserLocationLat = requestNullable.UserLocationLat;
-            request.UserLocationLong=requestNullable.UserLocationLong;
-            request.CompanyId = requestRoute.CompanyId;
-            request.CurrentUserId = requestRoute.CurrentUserId;
-            request.ResponseID = requestRoute.ResponseID;
-            request.MsgListId=requestRoute.MsgListId;
+            var result = await _mediator.Send(request, cancellationToken);
 
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetMessageAttachment/{MessageListID}/{MessageID}")]
+        public async Task<IActionResult> GetMessageAttachment([FromRoute]  GetMessageAttachmentRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetAttachment/{MessageAttachmentID}")]
+        public async Task<IActionResult> GetAttachment([FromRoute] GetAttachmentRequest request, CancellationToken cancellationToken)
+        {
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);
