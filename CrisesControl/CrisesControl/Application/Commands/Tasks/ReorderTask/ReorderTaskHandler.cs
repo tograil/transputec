@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Tasks;
 using CrisesControl.Core.Tasks.Repositories;
 using MediatR;
@@ -19,6 +20,7 @@ public class ReorderTaskHandler
 
     public async Task<List<TaskDetails>> Handle(ReorderTaskRequest request, CancellationToken cancellationToken)
     {
+        Guard.Against.Null(request, nameof(ReorderTaskRequest));
         await _taskRepository.ReorderTask(request.IncidentId, request.TaskHeaderId, request.TaskSequences, cancellationToken);
         var taskList = await _taskRepository.GetTasks(request.IncidentId, 0, false, _currentUser.CompanyId, request.TaskHeaderId, cancellationToken);
         return taskList ?? new List<TaskDetails>();

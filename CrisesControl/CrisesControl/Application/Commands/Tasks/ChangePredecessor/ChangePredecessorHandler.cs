@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Tasks;
 using CrisesControl.Core.Tasks.Repositories;
 using MediatR;
@@ -19,6 +20,7 @@ public class ChangePredecessorHandler
 
     public async Task<List<TaskDetails>> Handle(ChangePredecessorRequest request, CancellationToken cancellationToken)
     {
+        Guard.Against.Null(request, nameof(ChangePredecessorRequest));
         await _taskRepository.IncidentTaskPredecessors(request.IncidentTaskId, request.TaskPredecessor, cancellationToken);
         var taskList = await _taskRepository.GetTasks(request.IncidentId, 0, false, _currentUser.CompanyId, request.TaskHeaderId, cancellationToken);
         return taskList ?? new List<TaskDetails>();

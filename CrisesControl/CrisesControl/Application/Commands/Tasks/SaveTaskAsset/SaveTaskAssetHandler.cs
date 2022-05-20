@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.AssetAggregate;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Core.AssetAggregate;
 using CrisesControl.Core.Tasks.Repositories;
 using MediatR;
 
@@ -17,6 +18,7 @@ public class SaveTaskAssetHandler
 
     public async Task<List<Assets>> Handle(SaveTaskAssetRequest request, CancellationToken cancellationToken)
     {
+        Guard.Against.Null(request, nameof(SaveTaskAssetRequest));
         await _taskRepository.SaveTaskAssets(request.IncidentTaskId, request.TaskAssets, request.CurrentUserId, request.CompanyId, _timeZoneId, cancellationToken);
         var assets = _taskRepository.GetTaskAsset(request.IncidentTaskId, request.CompanyId);
         return assets ?? new List<Assets>();

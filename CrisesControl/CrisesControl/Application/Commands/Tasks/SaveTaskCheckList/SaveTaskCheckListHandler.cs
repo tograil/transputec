@@ -19,6 +19,7 @@ public class SaveTaskCheckListHandler
 
     public async Task<bool> Handle(SaveTaskCheckListRequest request, CancellationToken cancellationToken)
     {
+        Guard.Against.Null(request, nameof(SaveTaskCheckListRequest));
         await _taskRepository.SaveTaskCheckLists(request.CheckListItems, request.IncidentTaskId, _currentUser.UserId, _currentUser.CompanyId, _timeZoneId, cancellationToken);
         return true;
     }

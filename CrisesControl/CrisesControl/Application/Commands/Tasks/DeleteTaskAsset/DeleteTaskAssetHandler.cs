@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.AssetAggregate;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Tasks.Repositories;
@@ -19,6 +20,7 @@ public class DeleteTaskAssetHandler
 
     public async Task<List<Assets>> Handle(DeleteTaskAssetRequest request, CancellationToken cancellationToken)
     {
+        Guard.Against.Null(request, nameof(DeleteTaskAssetRequest));
         await _taskRepository.DeleteTaskAsset(request.IncidentTaskId, request.TaskAssets, request.CurrentUserId, request.CompanyId, cancellationToken);
         var assets = _taskRepository.GetTaskAsset(request.IncidentTaskId, request.CompanyId);
         return assets ?? new List<Assets>();

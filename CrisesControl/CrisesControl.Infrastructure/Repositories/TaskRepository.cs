@@ -444,13 +444,13 @@ public class TaskRepository : ITaskRepository
 
     public async Task ReorderTask(int incidentId, int taskHeaderId, List<TaskSequence> taskSequences, CancellationToken cancellationToken)
     {
-        var incident_tasks = (from IT in _context.Set<TaskIncident>().AsEnumerable() where IT.IncidentId == incidentId && IT.TaskHeaderId == taskHeaderId select IT).ToList();
+        var incidentTasks = (from IT in _context.Set<TaskIncident>().AsEnumerable() where IT.IncidentId == incidentId && IT.TaskHeaderId == taskHeaderId select IT).ToList();
         foreach (TaskSequence ts in taskSequences)
         {
-            var get_task = (from I in incident_tasks where I.IncidentTaskId == ts.IncidentTaskId select I).FirstOrDefault();
-            if (get_task != null)
+            var getTask = (from I in incidentTasks where I.IncidentTaskId == ts.IncidentTaskId select I).FirstOrDefault();
+            if (getTask != null)
             {
-                get_task.TaskSequence = ts.NewPosition;
+                getTask.TaskSequence = ts.NewPosition;
             }
         }
         await _context.SaveChangesAsync(cancellationToken);

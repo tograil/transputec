@@ -6,6 +6,7 @@ using CrisesControl.Core.Tasks.Repositories;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.SharedKernel.Utils;
 using MediatR;
+using Ardalis.GuardClauses;
 
 namespace CrisesControl.Api.Application.Commands.Tasks.CreateIncidentTaskHeader;
 
@@ -28,6 +29,7 @@ public class CreateIncidentTaskHeaderHandler
 
     public async Task<CreateIncidentTaskHeaderResponse> Handle(CreateIncidentTaskHeaderRequest request, CancellationToken cancellationToken)
     {
+        Guard.Against.Null(request, nameof(CreateIncidentTaskHeaderRequest));
         int taskHeaderId = await _taskRepository.CreateTaskHeader(request.TaskHeaderId, request.IncidentId, request.Author, request.NextReviewDate, request.ReviewFrequency,
                         request.SendReminder, request.IsActive, request.Rto, request.Rpo, _currentUser.UserId, _currentUser.CompanyId, _timeZoneId, cancellationToken);
 

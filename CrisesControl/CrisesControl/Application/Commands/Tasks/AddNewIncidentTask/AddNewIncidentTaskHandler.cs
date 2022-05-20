@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Tasks.Repositories;
 using MediatR;
@@ -24,6 +25,7 @@ public class AddNewIncidentTaskHandler
 
     public async Task<AddNewIncidentTaskResponse> Handle(AddNewIncidentTaskRequest request, CancellationToken cancellationToken)
     {
+        Guard.Against.Null(request, nameof(AddNewIncidentTaskRequest));
         //Create Incident Task
         int taskId = await _taskRepository.CreateTask(request.IncidentTaskId, request.TaskHeaderId, request.IncidentId, request.TaskTitle, request.TaskDescription,
                         request.Status, request.EscalationDuration, request.ExpectedCompletionTime, request.HasPredecessor, _currentUser.UserId, _currentUser.CompanyId, _timeZoneId, cancellationToken);
