@@ -53,16 +53,16 @@ public class IncidentQuery : IIncidentQuery
 
     public DataTablePaging GetAllActiveCompanyIncident(string? status, PagedRequest pagedRequest)
     {
-        var RecordStart = pagedRequest.start == 0 ? 0 : pagedRequest.start;
-        var RecordLength = pagedRequest.length == 0 ? int.MaxValue : pagedRequest.length;
-        var SearchString = (pagedRequest.search != null) ? pagedRequest.search.value : "";
-        string OrderBy = pagedRequest.order != null ? pagedRequest.order.FirstOrDefault().column : "Name";
-        string OrderDir = pagedRequest.order != null ? pagedRequest.order.FirstOrDefault().dir : "asc";
+        var RecordStart = pagedRequest.Start == 0 ? 0 : pagedRequest.Start;
+        var RecordLength = pagedRequest.Length == 0 ? int.MaxValue : pagedRequest.Length;
+        var SearchString = (pagedRequest.Search != null) ? pagedRequest.Search.value : "";
+        string OrderBy = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().column : "Name";
+        string OrderDir = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().dir : "asc";
         string Status = status != null ? status : "1,2,3,4";
 
         int totalRecord = 0;
         DataTablePaging rtn = new DataTablePaging();
-        rtn.draw = pagedRequest.draw;
+        rtn.draw = pagedRequest.Draw;
 
         var ActIncidentDtl = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, RecordStart, RecordLength, SearchString, OrderBy, OrderDir);
 
