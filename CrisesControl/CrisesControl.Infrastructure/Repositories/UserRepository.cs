@@ -123,12 +123,12 @@ public class UserRepository : IUserRepository
 
     }
 
-    public async void CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
+    public async Task CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
         string primaryEmail, int companyId)
     {
         var searchString = firstName + " " + lastName + "|" + primaryEmail + "|" + isdCode + mobileNo;
 
-        var comp = await _context.Set<Company>().FirstOrDefaultAsync(x => x.CompanyId == companyId);
+        var comp = await _context.Set<Company>().Include(std=>std.StdTimeZone).Include(pk=>pk.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
         if (comp != null)
         {
             var memberUser = _context.Set<MemberUser>().FromSqlRaw(" exec Pro_Create_User_Search {0}, {1}, {2}",
@@ -610,7 +610,7 @@ public class UserRepository : IUserRepository
     public async Task<User> GetRegisteredUserInfo(int CompanyId, int userId)
     {
         try { 
-        var RegUserInfo = await _context.Set<User>()./*Include(uc => uc.UserComm).Include(usg=>usg.UserSecurityGroup)*/Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
+        var RegUserInfo = await _context.Set<User>().Include(uc => uc.UserComm).Include(usg=>usg.UserSecurityGroup).Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
 
         if (RegUserInfo != null)
         {

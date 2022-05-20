@@ -9,22 +9,12 @@
     }
   },
   "profiles": {
-    "CrisesControlAndriy": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Andriy"
-      },
-      "applicationUrl": "http://localhost:7010;http://localhost:5010",
-      "dotnetRunMessages": true
-    },
     "CrisesControlConfi": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "CrisesControlConfi"
+        "ASPNETCORE_ENVIRONMENT": "Confi"
       },
       "applicationUrl": "http://localhost:7010;http://localhost:5010",
       "dotnetRunMessages": true
