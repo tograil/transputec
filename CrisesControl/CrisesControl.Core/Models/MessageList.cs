@@ -27,5 +27,7 @@ namespace CrisesControl.Core.Models
         public bool Phone { get; set; }
         public bool Push { get; set; }
         public bool Email { get; set; }
+
+        public Message Message { get; set; }
     }
 }

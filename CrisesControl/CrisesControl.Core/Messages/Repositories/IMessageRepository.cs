@@ -39,4 +39,8 @@ public interface IMessageRepository
 
     Task CopyMessageResponse(int CompanyID, int CurrentUserId, string TimeZoneID, CancellationToken token);
     Task<List<UserMessageList>> GetMessages(int targetUserId, string? messageType, int incidentActivationId);
+
+    Task<IncidentMessageDetails> GetMessageDetails(string CloudMsgId, int MessageId = 0);
+    Task<List<MessageAttachment>> GetMessageAttachment(int MessageListID, int MessageID);
+    Task<List<MessageAttachment>> GetAttachment(int MessageAttachmentID = 0);
 }
