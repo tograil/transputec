@@ -5,9 +5,9 @@ namespace CrisesControl.Api.Application.Query.Common;
 public class PagedRequest
 {
     // properties are not capital due to json mapping
-    public int draw { get; set; }
-    public int start { get; set; }
-    public int length { get; set; }
-    public Search? search { get; set; }
-    public List<Order>? order { get; set; }
+    public int Draw { get; set; }
+    public int Start { get; set; }
+    public int Length { get; set; }
+    public Search? Search { get; set; }
+    public List<Order>? Order { get; set; }
 }
