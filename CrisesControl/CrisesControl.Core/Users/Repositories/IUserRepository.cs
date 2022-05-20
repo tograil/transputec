@@ -30,4 +30,5 @@ public interface IUserRepository
     void UserCommsMethods(int UserId, string MethodType, int[] MethodId, int CurrentUserID, int CompanyID, string TimeZoneId);
 
     Task<User> GetRegisteredUserInfo(int CompanyId, int userId);
+    Task<bool> UpdateUserMsgGroups(List<UserGroup> UserGroups);
 }

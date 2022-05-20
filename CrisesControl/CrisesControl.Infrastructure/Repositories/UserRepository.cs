@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
@@ -623,5 +624,31 @@ public class UserRepository : IUserRepository
          return null;
         }
     }
-    
+
+    public async Task<bool> UpdateUserMsgGroups(List<UserGroup> UserGroups)
+    {
+        try
+        {
+            StringBuilder usb = new StringBuilder();
+
+            foreach (var UsrGrp in UserGroups)
+            {
+
+                var usg = await _context.Set<ObjectRelation>().Where(grp => grp.ObjectRelationId == UsrGrp.UniqueId).FirstOrDefaultAsync();
+                if (usg != null)
+                    usg.ReceiveOnly = UsrGrp.ReceiveOnly;
+                 usb.AppendLine(_context.Update(usg).ToString());
+                
+            }
+           await _context.SaveChangesAsync();
+            
+            return true;
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(" Error occured while seeding the database {1}", ex.Message);
+            return false;
+        }
+    }
 }
