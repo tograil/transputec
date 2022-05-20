@@ -18,6 +18,7 @@ using CrisesControl.Core.Communication.Repositories;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Communication.Repositories;
+using CrisesControl.Core.Tasks.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -57,6 +58,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<GlobalParametersRepository>().As<IGlobalParametersRepository>();
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
             builder.RegisterType<IncidentRepository>().As<IIncidentRepository>();
+            builder.RegisterType<TaskRepository>().As<ITaskRepository>();
             builder.RegisterType<ActiveIncidentRepository>().As<IActiveIncidentRepository>();
             builder.RegisterType<MessageRepository>().As<IMessageRepository>();
             builder.RegisterType<AssetRespository>().As<IAssetRepository>();

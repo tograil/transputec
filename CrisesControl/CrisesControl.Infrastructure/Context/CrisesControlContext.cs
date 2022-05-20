@@ -11,6 +11,9 @@ using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Tasks;
+using CrisesControl.Core.Tasks.SP_Response;
+using CrisesControl.Core.Common;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -58,6 +61,12 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<IncidentParticipants>().HasNoKey();
             modelBuilder.Entity<UserFullName>().HasNoKey();
 
+            modelBuilder.Entity<Predecessor>().HasNoKey();
+            modelBuilder.Entity<TaskGroup>().HasNoKey();
+            modelBuilder.Entity<TaskUser>().HasNoKey();
+            modelBuilder.Entity<GetCheckListReponseOption>().HasNoKey();
+            modelBuilder.Entity<CheckListUpsert>().HasNoKey();
+            //modelBuilder.Entity<Assets>().HasNoKey();
 
 
 
