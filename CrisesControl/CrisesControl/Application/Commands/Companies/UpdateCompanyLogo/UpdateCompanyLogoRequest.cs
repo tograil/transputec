@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using CrisesControl.SharedKernel.Enums;
+using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyLogo
 {
@@ -9,6 +10,6 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyLogo
         public string iOSLogo { get; set; }
         public string AndroidLogo { get; set; }
         public string WindowsLogo { get; set; }
-        public string LogoType { get; set; }
+        public LogoType LogoType { get; set; }
     }
 }

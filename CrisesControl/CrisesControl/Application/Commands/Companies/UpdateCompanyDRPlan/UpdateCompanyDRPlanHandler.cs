@@ -29,7 +29,7 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyDRPlan
                 {
                     company.CompanyId = request.CompanyId;
                     company.PlanDrdoc = (request.DRPlan == null || request.DRPlan == string.Empty) ? "" : request.DRPlan;
-                    company.UpdatedOn = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone);
+                    company.UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(_currentUser.TimeZone);
                     company.UpdatedBy = _currentUser.UserId;
                     await _companyRepository.UpdateCompanyDRPlan(company);
 

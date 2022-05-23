@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.SharedKernel.Enums;
+using System;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -34,5 +35,15 @@ public static class StringExtensions
         }
         // Return the hexadecimal string.
         return sBuilder.ToString();
+    }
+    public static string ToLTString(this LogoType logoType)
+    {
+        return logoType switch
+        {
+            LogoType.EMAILLOGO => "Email Logo",
+            LogoType.PHONELOGO => "PHONE LOGO",
+          
+            _ => throw new ArgumentOutOfRangeException(nameof(logoType), logoType, null)
+        };
     }
 }

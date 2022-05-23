@@ -24,4 +24,29 @@ public static class DateTimeExtensions
 
         return convertedtime;
     }
+    public static DateTime GetLocalTime(string TimeZoneId, DateTime? ParamTime = null)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(TimeZoneId))
+                TimeZoneId = "GMT Standard Time";
+
+            DateTime retDate = DateTime.Now.ToUniversalTime();
+
+            DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
+
+            DateTime timeUtc = DateTime.UtcNow;
+
+            TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId);
+            retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
+
+            return retDate;
+        }
+        catch (Exception ex) {
+
+            throw ex; 
+        
+        }
+        return DateTime.Now;
+    }
 }

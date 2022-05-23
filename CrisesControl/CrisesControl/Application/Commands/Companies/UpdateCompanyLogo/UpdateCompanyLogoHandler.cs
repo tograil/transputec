@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using MediatR;
 using Serilog;
@@ -25,7 +26,7 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyLogo
                 Company company = await this._companyRepository.GetCompanyByID(request.CompanyId);
                 if (company != null)
                 {
-                    if (request.LogoType.ToUpper() == "EMAILLOGO")
+                    if (request.LogoType.ToLTString().ToUpper() == LogoType.EMAILLOGO.ToLTString().ToUpper() )
                     {
                         company.CompanyLogoPath = request.CompanyLogo;
                         company.IOslogo = request.iOSLogo;
@@ -37,7 +38,7 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyLogo
                         company.ContactLogoPath = request.CompanyLogo;
                     }
                     company.UpdatedBy = _currentUser.UserId;
-                    company.UpdatedOn = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone);
+                    company.UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(_currentUser.TimeZone);
 
                     await _companyRepository.UpdateCompanyLogo(company);
 
