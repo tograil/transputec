@@ -5,9 +5,8 @@ namespace CrisesControl.Core.Jobs.Services;
 
 public interface IScheduleService
 {
-    event Action<Job> OnJobCreated;
-    Task ScheduleIncident(JobSchedule incident);
-    Task<Job> GetNextIncidentJob();
+    event Action<JobQueueData> OnJobCreated;
+    Task ScheduleIncident(JobQueueData incident);
 
     Task StartJobsListener();
 }

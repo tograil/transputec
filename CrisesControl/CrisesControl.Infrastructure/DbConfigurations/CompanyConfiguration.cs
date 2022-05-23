@@ -66,7 +66,7 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.HasMany(e => e.CompanyPaymentProfiles)
             .WithOne().HasForeignKey(x => x.CompanyId);
 
-        builder.HasOne(e => e.StdTimeZone)
-            .WithMany().HasForeignKey(x => x.TimeZone);
+        builder.HasOne(x => x.StdTimeZone)
+            .WithMany().HasForeignKey(x => x.CompanyId);
     }
 }

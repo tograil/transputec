@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.SharedKernel.Enums
+namespace CrisesControl.SharedKernel.Enums;
+
+public enum LogoType
 {
-    public enum LogoType
-    {
-        EMAILLOGO,
-        PHONELOGO
-    }
+    EMAILLOGO,
+    PHONELOGO
+    
 }

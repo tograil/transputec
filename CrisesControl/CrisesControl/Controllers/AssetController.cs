@@ -1,11 +1,11 @@
-﻿using CrisesControl.Api.Application.Commands.MediaAssets.CreateAsset;
-using CrisesControl.Api.Application.Commands.MediaAssets.GetAsset;
-using CrisesControl.Api.Application.Commands.MediaAssets.GetAssets;
-using CrisesControl.Api.Application.Commands.MediaAssets.UpdateAssets;
+﻿using CrisesControl.Api.Application.Commands.Assets.CreateAsset;
+using CrisesControl.Api.Application.Commands.Assets.GetAsset;
+using CrisesControl.Api.Application.Commands.Assets.GetAssets;
+using CrisesControl.Api.Application.Commands.Assets.UpdateAssets;
+using CrisesControl.Api.Application.Query;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using AssetModel = CrisesControl.Core.AssetAggregate.Assets;
+using AssetModel = CrisesControl.Core.Assets.Assets;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -14,23 +14,28 @@ namespace CrisesControl.Api.Controllers
     public class AssetController : Controller
     {
         private readonly IMediator _mediator;
+        private readonly IAssetQuery _assetQuery;
 
-        public AssetController(IMediator mediator)
+        public AssetController(IMediator mediator, IAssetQuery assetQuery)
         {
             _mediator = mediator;
+            _assetQuery = assetQuery;
+
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index([FromQuery] GetAssetsRequest request, CancellationToken cancellationToken)
+        [Route("{CompanyId:int}")]
+        public async Task<IActionResult> Index([FromRoute] GetAssetsRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _assetQuery.GetAssets(request, cancellationToken);
             return Ok(result);
         }
 
-        [HttpGet("detail")]
-        public async Task<IActionResult> GetAsset([FromQuery] GetAssetRequest request, CancellationToken cancellationToken)
+        [HttpGet]
+        [Route("{CompanyId:int}/{AssetId:int}")]
+        public async Task<IActionResult> GetAsset([FromRoute] GetAssetRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _assetQuery.GetAsset(request, cancellationToken);
             return Ok(result);
         }
 

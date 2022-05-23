@@ -1,6 +1,9 @@
-﻿using CrisesControl.Api.Application.Commands.Scheduler.AddJob;
+﻿using CrisesControl.Api.Application.Commands.Scheduler.GetAllJobs;
+using CrisesControl.Api.Application.Commands.Scheduler.GetJob;
+using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CrisesControl.Api.Controllers;
@@ -11,19 +14,25 @@ namespace CrisesControl.Api.Controllers;
 public class SchedulerController : Controller
 {
     private readonly IMediator _mediator;
-
-    public SchedulerController(IMediator mediator)
+    private readonly ISchedulerQuery _schedulerQuery;
+    public SchedulerController(ISchedulerQuery schedulerQuery, IMediator mediator)
     {
-        _mediator = mediator;
+        this._schedulerQuery = schedulerQuery;
+        this._mediator = mediator;
     }
-
-    [HttpPost]
-    [Route("[action]")]
-    public async Task<IActionResult> AddJob([FromBody] AddJobRequest request,
-        CancellationToken cancellationToken)
+    [HttpGet]
+    [Route("GetAllJobs/{CompanyID}/{UserID}")]
+    public async Task<IActionResult> GetAllJobs([FromRoute] GetAllJobsRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
-
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("GetJob/{CompanyID}/{JobId}")]
+    public async Task<IActionResult> GetJob([FromRoute] GetJobRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 }
+

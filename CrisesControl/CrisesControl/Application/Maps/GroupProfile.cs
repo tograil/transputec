@@ -2,7 +2,7 @@
 using CrisesControl.Api.Application.Commands.Groups.CreateGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroup;
 using CrisesControl.Api.Application.Commands.Groups.UpdateGroup;
-using CrisesControl.Core.GroupAggregate;
+using CrisesControl.Core.Groups;
 
 namespace CrisesControl.Api.Application.Maps
 {

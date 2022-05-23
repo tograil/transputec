@@ -15,10 +15,11 @@ public interface IUserRepository
 
     void CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
         string primaryEmail, int companyId);
-    Task<IEnumerable<User>> GetAllUsers(int companyId);
+    Task<IEnumerable<User>> GetAllUsers(GetAllUserRequest userRequest);
     Task<User> GetUser(int companyId, int userId);
     Task<User> DeleteUser(User user, CancellationToken token);
     bool CheckDuplicate(User user);
     Task<LoginInfoReturnModel> GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken);
+    Task<User> ReactivateUser(int qureiedUserId, CancellationToken cancellationToken);
 
 }

@@ -5,7 +5,7 @@ namespace CrisesControl.Api.Application.Query
 {
     public interface ILocationQuery
     {
-        public Task<GetLocationsResponse> GetLocations(GetLocationsRequest request);
-        public Task<GetLocationResponse> GetLocation(GetLocationRequest request);
+        public Task<GetLocationsResponse> GetLocations(GetLocationsRequest request, CancellationToken cancellationToken);
+        public Task<GetLocationResponse> GetLocation(GetLocationRequest request, CancellationToken cancellationToken);
     }
 }

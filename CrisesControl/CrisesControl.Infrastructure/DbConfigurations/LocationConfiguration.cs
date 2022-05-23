@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.LocationAggregate;
+﻿using CrisesControl.Core.Locations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

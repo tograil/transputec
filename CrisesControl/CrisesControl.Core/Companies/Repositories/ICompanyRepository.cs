@@ -19,4 +19,6 @@ public interface ICompanyRepository
     Task<int> UpdateCompanyLogo(Company company);
     Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token);
     Task<List<CommsMethod>> GetCommsMethod();
+    Task<int> UpdateCompany(Company company);
+    Task<Company> GetCompanyByID(int companyId);
 }

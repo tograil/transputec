@@ -30,6 +30,8 @@ public class ApiModule : Module
         builder.RegisterType<CommunicationQuery>().As<ICommunicationQuery>();
         builder.RegisterType<SecurityQuery>().As<ISecurityQuery>();
         builder.RegisterType<CompanyParametersQuery>().As<ICompanyParametersQuery>();
+        builder.RegisterType<SchedulerQuery>().As<ISchedulerQuery>();
+        builder.RegisterType<ExTriggerQuery>().As<IExTriggerQuery>();
         builder.RegisterType<CommunicationQuery>().As<ICommunicationQuery>();
 
 

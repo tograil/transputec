@@ -9,6 +9,7 @@ using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -190,4 +191,23 @@ public class CompanyRepository : ICompanyRepository
         }
         return result;
     }
+
+    public async Task<int> UpdateCompany(Company company)
+    {
+        
+          _context.Update(company);
+         await _context.SaveChangesAsync();
+        _logger.LogInformation($"Company has been updated {company.CompanyId}");
+        return company.CompanyId;
+            
+
+           
+    }
+
+   
+        public async Task<Company> GetCompanyByID(int companyId)
+        {
+            return await _context.Set<Company>().Include(x => x.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
+        }
+    
 }

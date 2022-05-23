@@ -2,7 +2,6 @@
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.ViewModels.Company;
-using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Models;
 
@@ -12,7 +11,6 @@ public class CompanyQuery : ICompanyQuery {
     private readonly ICompanyRepository _companyRepository;
     private readonly ILogger<CompanyQuery> _logger;
     private readonly IMapper _mapper;
-   
 
     public CompanyQuery(ICompanyRepository companyRepository, IMapper mapper,
         ILogger<CompanyQuery> logger) {
@@ -26,8 +24,7 @@ public class CompanyQuery : ICompanyQuery {
 
         _logger.LogInformation("Company list return requested");
 
-        return companies.Select(c =>
-        {
+        return companies.Select(c => {
             var user = c.Users.First();
             var companyPaymentProfile = c.CompanyPaymentProfiles?.FirstOrDefault();
 
