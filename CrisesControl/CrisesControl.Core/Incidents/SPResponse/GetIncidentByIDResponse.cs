@@ -1,4 +1,4 @@
-﻿namespace CrisesControl.Core.Incidents.SP_Response;
+﻿namespace CrisesControl.Core.Incidents.SPResponse;
 
 public class GetIncidentByIDResponse : IncidentDetails
 {

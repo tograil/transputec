@@ -12,7 +12,7 @@ public interface ITaskRepository
     TaskHeader? GeTaskHeader(int incidentId, int taskHeaderId);
     Task<List<TaskDetails>> GetTasks(int incidentId, int incidentTaskId, bool single = false, int companyId = 0, int? taskHeaderId = null, CancellationToken cancellationToken = default);
     List<CheckListOption> GetChkResponseOptions(int companyId, int userId);
-    CheckListUpsert GetTaskCheckList(int incidentTaskId, int companyId, int userId);
+    List<CheckListUpsert> GetTaskCheckList(int incidentTaskId, int companyId, int userId);
     Task<int> CreateTaskHeader(int taskHeaderId, int incidentId, int author, DateTimeOffset nextReviewDate, string reviewFrequency,
                         bool sendReminder, bool isActive, decimal rto, decimal rpo, int currentUserId, int companyId, string timeZoneId, CancellationToken cancellationToken);
     Task<int> CreateTask(int incidentTaskId, int taskHeaderId, int incidentId, string taskTitle, string taskDescription, int taskStatus, double escalationDuration, double expectedCompletionTime,

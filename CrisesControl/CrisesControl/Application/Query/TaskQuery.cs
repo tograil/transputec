@@ -44,7 +44,7 @@ public class TaskQuery : ITaskQuery
         return _taskRepository.GetChkResponseOptions(_currentUser.CompanyId, _currentUser.UserId);
     }
 
-    public CheckListUpsert GetTaskCheckList(int incidentTaskId)
+    public List<CheckListUpsert> GetTaskCheckList(int incidentTaskId)
     {
         return _taskRepository.GetTaskCheckList(incidentTaskId, _currentUser.CompanyId, _currentUser.UserId);
     }

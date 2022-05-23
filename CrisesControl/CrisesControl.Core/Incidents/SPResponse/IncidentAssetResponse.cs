@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace CrisesControl.Core.Incidents.SP_Response;
+namespace CrisesControl.Core.Incidents.SPResponse;
 
 public class IncidentAssetResponse : IncidentAssets
 {

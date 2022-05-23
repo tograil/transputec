@@ -1,20 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using CrisesControl.Core.Common;
+using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Models;
 using CrisesControl.Core.Tasks;
 using CrisesControl.Core.Tasks.Repositories;
-using CrisesControl.Core.Models;
+using CrisesControl.Core.Tasks.SP_Response;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using CrisesControl.Core.Incidents;
-using CrisesControl.Core.Tasks.SP_Response;
-using CrisesControl.Core.Common;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -75,9 +77,9 @@ public class TaskRepository : ITaskRepository
             taskHeaderIdInt = Convert.ToInt32(taskHeaderId);
         }
 
-        var pt_type = (from PT in _context.Set<TaskParticipantType>().AsEnumerable() select PT).ToList();
-        int action_type = pt_type.Where(w => w.TaskParticipantTypeName == "ACTION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
-        int escal_type = pt_type.Where(w => w.TaskParticipantTypeName == "ESCALATION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
+        var ptType = (from PT in _context.Set<TaskParticipantType>().AsEnumerable() select PT).ToList();
+        int actionType = ptType.Where(w => w.TaskParticipantTypeName == "ACTION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
+        int escalType = ptType.Where(w => w.TaskParticipantTypeName == "ESCALATION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
 
         if (!single)
         {
@@ -102,10 +104,10 @@ public class TaskRepository : ITaskRepository
                                 .Select(s =>
                                 {
                                     s.TaskPredecessor = GetTaskPredecessor(s.IncidentTaskId, s.IncidentId);
-                                    s.ActionGroups = GetTaskGroup(s.IncidentTaskId, s.TaskHeaderId, action_type);
-                                    s.EscalationGroups = GetTaskGroup(s.IncidentTaskId, s.TaskHeaderId, escal_type);
-                                    s.ActionUsers = GetTaskUsers(s.IncidentTaskId, s.TaskHeaderId, action_type);
-                                    s.EscalationUsers = GetTaskUsers(s.IncidentTaskId, s.TaskHeaderId, escal_type);
+                                    s.ActionGroups = GetTaskGroup(s.IncidentTaskId, s.TaskHeaderId, actionType);
+                                    s.EscalationGroups = GetTaskGroup(s.IncidentTaskId, s.TaskHeaderId, escalType);
+                                    s.ActionUsers = GetTaskUsers(s.IncidentTaskId, s.TaskHeaderId, actionType);
+                                    s.EscalationUsers = GetTaskUsers(s.IncidentTaskId, s.TaskHeaderId, escalType);
                                     return s;
                                 }).ToList();
         }
@@ -130,10 +132,10 @@ public class TaskRepository : ITaskRepository
                                 .Select(s =>
                                 {
                                     s.TaskPredecessor = GetTaskPredecessor(s.IncidentTaskId, s.IncidentId);
-                                    s.ActionGroups = GetTaskGroup(s.IncidentTaskId, s.TaskHeaderId, action_type);
-                                    s.EscalationGroups = GetTaskGroup(s.IncidentTaskId, s.TaskHeaderId, escal_type);
-                                    s.ActionUsers = GetTaskUsers(s.IncidentTaskId, s.TaskHeaderId, action_type);
-                                    s.EscalationUsers = GetTaskUsers(s.IncidentTaskId, s.TaskHeaderId, escal_type);
+                                    s.ActionGroups = GetTaskGroup(s.IncidentTaskId, s.TaskHeaderId, actionType);
+                                    s.EscalationGroups = GetTaskGroup(s.IncidentTaskId, s.TaskHeaderId, escalType);
+                                    s.ActionUsers = GetTaskUsers(s.IncidentTaskId, s.TaskHeaderId, actionType);
+                                    s.EscalationUsers = GetTaskUsers(s.IncidentTaskId, s.TaskHeaderId, escalType);
                                     return s;
                                 }).ToList();
         }
@@ -153,14 +155,15 @@ public class TaskRepository : ITaskRepository
         return result;
     }
 
-    public CheckListUpsert GetTaskCheckList(int incidentTaskId, int companyId, int userId)
+    public List<CheckListUpsert> GetTaskCheckList(int incidentTaskId, int companyId, int userId)
     {
         var pIncidentTaskID = new SqlParameter("@IncidentTaskID", incidentTaskId);
         var pCompanyID = new SqlParameter("@CompanyID", companyId);
         var pUserID = new SqlParameter("@UserID", userId);
-        //TODO: JsonConvert the following line
-        var qResult = _context.Set<CheckListUpsert>().FromSqlRaw("Pro_Get_TaskCheckList @IncidentTaskID, @CompanyID, @UserID", pIncidentTaskID, pCompanyID, pUserID).ToList();
-        return qResult?.FirstOrDefault();
+        var qResult = _context.Set<JsonResult>().FromSqlRaw("Pro_Get_TaskCheckList @IncidentTaskID, @CompanyID, @UserID", pIncidentTaskID, pCompanyID, pUserID).ToList()?.FirstOrDefault();
+        return qResult?.Result != null ?
+            JsonConvert.DeserializeObject<List<CheckListUpsert>>(qResult.Result)
+            : new List<CheckListUpsert>();
     }
 
     public async Task<int> CreateTaskHeader(int taskHeaderId, int incidentId, int author, DateTimeOffset nextReviewDate, string reviewFrequency,
@@ -191,26 +194,26 @@ public class TaskRepository : ITaskRepository
         }
         else
         {
-            var task_header = (from TH in _context.Set<TaskHeader>().AsEnumerable()
+            var taskHeader = (from TH in _context.Set<TaskHeader>().AsEnumerable()
                                join I in _context.Set<Incident>().AsEnumerable() on TH.IncidentId equals I.IncidentId
                                where I.CompanyId == companyId && TH.TaskHeaderId == taskHeaderId
                                select TH).FirstOrDefault();
-            if (task_header != null)
+            if (taskHeader != null)
             {
-                task_header.Author = author;
-                task_header.NextReviewDate = nextReviewDate;
-                task_header.ReviewFrequency = reviewFrequency;
-                task_header.ReminderCount = 0;
-                task_header.SendReminder = sendReminder;
-                task_header.IsActive = isActive;
-                task_header.UpdatedBy = currentUserId;
-                task_header.UpdatedOn = DateTime.Now.GetDateTimeOffset(timeZoneId);
-                task_header.Rto = rto;
-                task_header.Rpo = rpo;
+                taskHeader.Author = author;
+                taskHeader.NextReviewDate = nextReviewDate;
+                taskHeader.ReviewFrequency = reviewFrequency;
+                taskHeader.ReminderCount = 0;
+                taskHeader.SendReminder = sendReminder;
+                taskHeader.IsActive = isActive;
+                taskHeader.UpdatedBy = currentUserId;
+                taskHeader.UpdatedOn = DateTime.Now.GetDateTimeOffset(timeZoneId);
+                taskHeader.Rto = rto;
+                taskHeader.Rpo = rpo;
                 await _context.SaveChangesAsync(cancellationToken);
                 //TODO: Save in audit log
                 //db.SaveChanges(currentUserId, companyId);
-                reminderCount = task_header.ReminderCount;
+                reminderCount = taskHeader.ReminderCount;
             }
         }
 
@@ -231,7 +234,7 @@ public class TaskRepository : ITaskRepository
     public async Task<int> CreateTask(int incidentTaskId, int taskHeaderId, int incidentId, string taskTitle, string taskDescription, int taskStatus, double escalationDuration, double expectedCompletionTime,
                         bool hasPredecessor, int updateUserId, int companyId, string timeZoneId, CancellationToken cancellationToken)
     {
-        int current_sequence = (from T in _context.Set<TaskIncident>().AsEnumerable()
+        int currentSequence = (from T in _context.Set<TaskIncident>().AsEnumerable()
                                 where T.TaskHeaderId == taskHeaderId && T.Status == 1
                                 select T).Count();
         if (incidentTaskId <= 0)
@@ -243,7 +246,7 @@ public class TaskRepository : ITaskRepository
             T.TaskTitle = taskTitle;
             T.TaskDescription = taskDescription;
             T.HasPredecessor = hasPredecessor;
-            T.TaskSequence = current_sequence + 1;
+            T.TaskSequence = currentSequence + 1;
             T.EscalationDuration = escalationDuration;
             T.ExpectedCompletionTime = expectedCompletionTime;
             T.Status = taskStatus;
@@ -558,13 +561,13 @@ public class TaskRepository : ITaskRepository
     
     private async Task FixTaskOrder(int incidentId, int taskHeaderId, CancellationToken cancellationToken)
     {
-        var rearrange_tasks = (from IT in _context.Set<TaskIncident>().AsEnumerable()
+        var rearrangeTasks = (from IT in _context.Set<TaskIncident>().AsEnumerable()
                                where IT.IncidentId == incidentId &&
                                 IT.TaskHeaderId == taskHeaderId
                                orderby IT.TaskSequence
                                select IT).ToList();
         int newseq = 1;
-        foreach (var rtask in rearrange_tasks)
+        foreach (var rtask in rearrangeTasks)
         {
             if (rtask.TaskSequence != newseq)
                 rtask.TaskSequence = newseq;
@@ -575,7 +578,7 @@ public class TaskRepository : ITaskRepository
         var inci = (from I in _context.Set<Incident>().AsEnumerable() where I.IncidentId == incidentId select I).FirstOrDefault();
         if (inci != null)
         {
-            if (rearrange_tasks.Count <= 0)
+            if (rearrangeTasks.Count <= 0)
             {
                 inci.HasTask = false;
             }

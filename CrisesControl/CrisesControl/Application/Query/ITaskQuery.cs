@@ -12,6 +12,6 @@ namespace CrisesControl.Api.Application.Query
         Task<List<TaskDetails>> GetTaskDetail(int incidentId, int incidentTaskId, int taskHeaderId, CancellationToken cancellationToken);
         List<CrisesControl.Core.Assets.Assets> GetTaskAsset(int incidentTaskId, int companyId);
         List<CheckListOption> GetChkResponseOptions();
-        CheckListUpsert GetTaskCheckList(int incidentTaskId);
+        List<CheckListUpsert> GetTaskCheckList(int incidentTaskId);
     }
 }

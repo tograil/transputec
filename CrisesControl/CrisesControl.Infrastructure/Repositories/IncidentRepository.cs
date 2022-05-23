@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
-using CrisesControl.Core.Incidents.SP_Response;
+using CrisesControl.Core.Incidents.SPResponse;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;

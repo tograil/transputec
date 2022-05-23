@@ -6,7 +6,7 @@ using CrisesControl.Core.Messages;
 using CrisesControl.Core.Queues;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Communication;
-using CrisesControl.Core.Incidents.SP_Response;
+using CrisesControl.Core.Incidents.SPResponse;
 using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
@@ -84,6 +84,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<TaskUser>().HasNoKey();
             modelBuilder.Entity<GetCheckListReponseOption>().HasNoKey();
             modelBuilder.Entity<CheckListUpsert>().HasNoKey();
+            modelBuilder.Entity<JsonResult>().HasNoKey();
             //modelBuilder.Entity<Assets>().HasNoKey();
 
 
