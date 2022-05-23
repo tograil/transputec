@@ -203,11 +203,5 @@ public class CompanyRepository : ICompanyRepository
 
            
     }
-
-   
-        public async Task<Company> GetCompanyByID(int companyId)
-        {
-            return await _context.Set<Company>().Include(x => x.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
-        }
     
 }
