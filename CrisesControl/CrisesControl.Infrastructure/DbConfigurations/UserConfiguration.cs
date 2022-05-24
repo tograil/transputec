@@ -105,5 +105,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(e => e.UserPhoto).HasMaxLength(70);
 
         builder.Property(e => e.UserRole).HasMaxLength(10);
+
     }
 }

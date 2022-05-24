@@ -42,11 +42,11 @@ public static class DateTimeExtensions
 
             return retDate;
         }
-        catch (Exception ex) {
-
-            throw ex; 
-        
-        }
+        catch (Exception ex) { throw ex; }
         return DateTime.Now;
+    }
+    public static DateTime DbDate()
+    {
+        return new DateTime(1900, 01, 01, 0, 0, 0);
     }
 }

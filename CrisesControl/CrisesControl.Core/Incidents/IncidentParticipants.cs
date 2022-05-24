@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Core.Users;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrisesControl.Core.Incidents;
 
@@ -13,6 +14,7 @@ public class IncidentParticipants
     public int ParticipantGroupID { get; set; }
     public int ObjectMappingID { get; set; }
     public int ParticipantUserID { get; set; }
+    [NotMapped]
     public UserFullName UserName
     {
         get { return new UserFullName { Firstname = FirstName, Lastname = LastName }; }
