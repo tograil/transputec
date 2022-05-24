@@ -30,8 +30,8 @@ public static class MessageTypeExtensions
     {
         return methodType switch
         {
-            MethodType.Ping => "Ping",
-            MethodType.Incident => "Incident",
+            MethodType.Ping => "PING",
+            MethodType.Incident => "INCIDENT",
             
             _ => throw new ArgumentOutOfRangeException(nameof(methodType), methodType, null)
         };

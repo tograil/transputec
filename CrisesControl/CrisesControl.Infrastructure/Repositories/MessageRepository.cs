@@ -42,7 +42,7 @@ public class MessageRepository : IMessageRepository
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
-        _companyParameters = companyParameters;
+        _companyParameters = companyParameters; 
     }
 
     public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0)
@@ -138,7 +138,7 @@ public class MessageRepository : IMessageRepository
         int assetId = 0, int activeIncidentTaskId = 0, bool trackUser = false, bool silentMessage = false,
         int[] messageMethod = null, ICollection<MediaAttachment> mediaAttachments = null, int parentId = 0, int messageActionType = 0)
     {
-        if (parentId > 0 && incidentActivationId == 0 && messageType.ToUpper() == "INCIDENT")
+        if (parentId > 0 && incidentActivationId == 0 && messageType.ToUpper() == MethodType.Incident.ToDbMethodString())
         {
             var parentMsg = await _context.Set<Message>().FirstOrDefaultAsync(x => x.MessageId == parentId);
 
