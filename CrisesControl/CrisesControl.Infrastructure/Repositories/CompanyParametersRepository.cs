@@ -1,9 +1,12 @@
-﻿using CrisesControl.Core.CompanyParameters;
+﻿using CrisesControl.Core.Companies;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +16,9 @@ using System.Threading.Tasks;
 namespace CrisesControl.Infrastructure.Repositories {
     public class CompanyParametersRepository : ICompanyParametersRepository {
         private readonly CrisesControlContext _context;
-        public CompanyParametersRepository(CrisesControlContext context)
+        private readonly ILogger<CompanyParametersRepository> _logger;
+        private readonly IMessageRepository _messageRepository;
+        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger)
         {
             this._context = context;
         }
@@ -96,6 +101,61 @@ namespace CrisesControl.Infrastructure.Repositories {
                 return null;
             }
 
+        }
+        public async Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "")
+        {
+            try
+            {
+                Key = Key.ToUpper();
+
+                if (CompanyId > 0)
+                {
+                    var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
+                    if (LKP != null)
+                    {
+                        Default = LKP.Value;
+                    }
+                    else
+                    {
+
+                        var LPR = await _context.Set<LibCompanyParameter>().Where(CP => CP.Name == Key).FirstOrDefaultAsync();
+                        if (LPR != null)
+                        {
+                            Default = LPR.Value;
+                        }
+                        else
+                        {
+                            Default = await _messageRepository.LookupWithKey(Key, Default);
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(CustomerId) && !string.IsNullOrEmpty(Key))
+                {
+
+                    var cmp = await _context.Set<Company>().Where(w => w.CustomerId == CustomerId).FirstOrDefaultAsync();
+                    if (cmp != null)
+                    {
+                        var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
+                        if (LKP != null)
+                        {
+                            Default = LKP.Value;
+                        }
+                    }
+                    else
+                    {
+                        Default = "NOT_EXIST";
+                    }
+                }
+
+                return Default;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+                return Default;
+            }
         }
     }
 }

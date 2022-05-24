@@ -1,8 +1,10 @@
-﻿using CrisesControl.Api.Application.Commands.Users.CreateUser;
+﻿using CrisesControl.Api.Application.Commands.Users.ActivateUser;
+using CrisesControl.Api.Application.Commands.Users.CreateUser;
 using CrisesControl.Api.Application.Commands.Users.DeleteUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
+using CrisesControl.Api.Application.Commands.Users.UpdateProfile;
 using CrisesControl.Api.Application.Commands.Users.MemberShipList;
 using CrisesControl.Api.Application.Commands.Users.UpdateUser;
 using MediatR;
@@ -73,6 +75,13 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
 
+        [HttpGet("ReactivateUser")]
+        public async Task<IActionResult> ReactivateUser([FromQuery] ActivateUserRequest activateUserRequest, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(activateUserRequest, cancellationToken);
+            return Ok(result);
+        }
+
         [HttpPut]
         public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest UserModel, CancellationToken cancellationToken)
         {
@@ -82,6 +91,12 @@ namespace CrisesControl.Api.Controllers
 
         [HttpDelete]
         public async Task<IActionResult> DeleteUser([FromBody] DeleteUserRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpPut ("UpdateProfile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
