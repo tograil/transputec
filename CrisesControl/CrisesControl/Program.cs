@@ -14,14 +14,24 @@ using Microsoft.OpenApi.Models;
 using OpenIddict.Validation.AspNetCore;
 using Serilog;
 using System.Reflection;
+using CrisesControl.Api.Application.Behaviours;
 using CrisesControl.Api.Maintenance;
 using CrisesControl.Api.Maintenance.Interfaces;
+using CrisesControl.Core.AuditLog.Services;
+using CrisesControl.Infrastructure.Context.Misc;
+using CrisesControl.Infrastructure.Services;
+using MediatR.Pipeline;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
 builder.WebHost.UseUrls("http://localhost:7010");
+
+//Register DI which not working with autofac
+builder.Services.AddTransient(typeof(IRequestPostProcessor<,>), typeof(DomainLogBehaviour<,>));
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<AuditingInterceptor>();
 
 builder.Services.AddDbContext<CrisesControlContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlDatabase")));
@@ -92,8 +102,6 @@ builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder => {
     containerBuilder.RegisterModule(new MainCoreModule());
     containerBuilder.RegisterModule(new MainInfrastructureModule(builder.Environment.EnvironmentName == "Development"));
 });
-
-
 
 builder.Services.AddOpenIddict()
     .AddValidation(options => {

@@ -1,9 +1,12 @@
 using Autofac.Extensions.DependencyInjection;
 using CrisesControl.Auth;
+using CrisesControl.Core.AuditLog.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Infrastructure.Identity;
+using CrisesControl.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,6 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<AuditingInterceptor>();
 
 // Add services to the container.
 builder.Services.AddDbContext<CrisesControlContext>(options => {

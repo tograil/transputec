@@ -1,9 +1,11 @@
 ﻿using Autofac;
 using AutoMapper.Contrib.Autofac.DependencyInjection;
+using CrisesControl.Api.Application.Behaviours;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.Query;
 using FluentValidation;
 using MediatR.Extensions.Autofac.DependencyInjection;
+using MediatR.Pipeline;
 
 namespace CrisesControl.Api;
 
