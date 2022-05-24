@@ -5,6 +5,7 @@ using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
+using CrisesControl.Api.Application.Commands.Messaging.MessageAcknowledged;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -101,6 +102,25 @@ namespace CrisesControl.Api.Controllers {
         [Route("GetAttachment/{MessageAttachmentID}")]
         public async Task<IActionResult> GetAttachment([FromRoute] GetAttachmentRequest request, CancellationToken cancellationToken)
         {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("MessageAcknowledge/{CompanyId:int}/{CurrentUserId:int}/{MsgListId:int}/ResponseID")]
+        public async Task<IActionResult> MessageAcknowledge([FromRoute] MessageAcknowledgeRequestRoute requestRoute, [FromQuery] MessageAcknowledgeRequestNullable requestNullable, CancellationToken cancellationToken)
+        {
+           
+            MessageAcknowledgeRequest request = new MessageAcknowledgeRequest();
+            request.AckMethod = requestNullable.AckMethod;
+            request.UserLocationLat = requestNullable.UserLocationLat;
+            request.UserLocationLong=requestNullable.UserLocationLong;
+            request.CompanyId = requestRoute.CompanyId;
+            request.CurrentUserId = requestRoute.CurrentUserId;
+            request.ResponseID = requestRoute.ResponseID;
+            request.MsgListId=requestRoute.MsgListId;
+
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);

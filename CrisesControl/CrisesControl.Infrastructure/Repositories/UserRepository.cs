@@ -5,13 +5,16 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -22,13 +25,16 @@ public class UserRepository : IUserRepository
     private readonly IHttpContextAccessor _httpContextAccessor;
     private int userID;
     private int companyID;
+    private readonly ILogger<UserRepository> _logger;
+    
 
-    public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+    public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<UserRepository> logger)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         userID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
         companyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+        _logger=logger;
     }
 
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
@@ -117,15 +123,15 @@ public class UserRepository : IUserRepository
 
     }
 
-    public void CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
+    public async void CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
         string primaryEmail, int companyId)
     {
         var searchString = firstName + " " + lastName + "|" + primaryEmail + "|" + isdCode + mobileNo;
 
-        var comp = _context.Set<Company>().FirstOrDefault(x => x.CompanyId == companyId);
+        var comp = await _context.Set<Company>().FirstOrDefaultAsync(x => x.CompanyId == companyId);
         if (comp != null)
         {
-            var memberUser = _context.Set<MemberUser>().FromSqlRaw("Pro_Create_User_Search {0}, {1}, {2}",
+            var memberUser = _context.Set<MemberUser>().FromSqlRaw(" exec Pro_Create_User_Search {0}, {1}, {2}",
                 userId, searchString, comp.UniqueKey!).FirstOrDefault();
         }
     }
@@ -243,7 +249,7 @@ public class UserRepository : IUserRepository
         return str.Substring(stpoint, Math.Min(str.Length, lngth));
     }
 
-    private string GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "")
+    public async Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "")
     {
         try
         {
@@ -251,37 +257,33 @@ public class UserRepository : IUserRepository
 
             if (CompanyId > 0)
             {
-                var LKP = (from CP in _context.Set<CompanyParameter>()
-                           where CP.Name == Key && CP.CompanyId == CompanyId
-                           select CP).FirstOrDefault();
+                var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
                 if (LKP != null)
                 {
                     Default = LKP.Value;
                 }
                 else
                 {
-                    var LPR = (from CP in _context.Set<LibCompanyParameter>()
-                               where CP.Name == Key
-                               select CP).FirstOrDefault();
+
+                    var LPR = await _context.Set<LibCompanyParameter>().Where(CP => CP.Name == Key).FirstOrDefaultAsync();
                     if (LPR != null)
                     {
                         Default = LPR.Value;
                     }
                     else
                     {
-                        Default = LookupWithKey(Key, Default);
+                        Default =  LookupWithKey(Key, Default);
                     }
                 }
             }
 
             if (!string.IsNullOrEmpty(CustomerId) && !string.IsNullOrEmpty(Key))
             {
-                var cmp = _context.Set<Company>().Where(w => w.CustomerId == CustomerId).FirstOrDefault();
+
+                var cmp = await _context.Set<Company>().Where(w => w.CustomerId == CustomerId).FirstOrDefaultAsync();
                 if (cmp != null)
                 {
-                    var LKP = (from CP in _context.Set<CompanyParameter>()
-                               where CP.Name == Key && CP.CompanyId == cmp.CompanyId
-                               select CP).FirstOrDefault();
+                    var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
                     if (LKP != null)
                     {
                         Default = LKP.Value;
@@ -297,6 +299,8 @@ public class UserRepository : IUserRepository
         }
         catch (Exception ex)
         {
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                  ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
             return Default;
         }
     }
@@ -445,4 +449,179 @@ public class UserRepository : IUserRepository
             return null;
         }
     }
+
+    public async Task<int> UpdateProfile(User user)
+    {
+       _context.Update(user);
+        await _context.SaveChangesAsync();
+        _logger.LogInformation($"User Profile has been updated {user.UserId}");
+        return user.UserId;
+    }
+    public async void UserCommsMethods(int UserId, string MethodType, int[] MethodId, int CurrentUserID, int CompanyID, string TimeZoneId)
+    {
+        try
+        {
+            if (MethodId.Count() > 0)
+            {
+                var DelCommList = await _context.Set<UserComm>().Where(UC => UC.UserId == UserId && UC.MessageType == MethodType).ToListAsync();
+
+                List<int> ExtComList = new List<int>();
+                foreach (int NewMethodId in MethodId)
+                {
+                    var ISEXsit =  DelCommList.FirstOrDefault(S => S.UserId == UserId && S.MethodId == NewMethodId && S.MessageType == MethodType);
+                    if (ISEXsit == null)
+                    {
+                        CreateUserComms(UserId, CompanyID, NewMethodId, CurrentUserID, TimeZoneId, MethodType);
+                    }
+                    else
+                    {
+                        ExtComList.Add(ISEXsit.UserCommsId);
+                    }
+                }
+
+                foreach (var item in DelCommList)
+                {
+                    bool ISDEL = ExtComList.Any(s => s == item.UserCommsId);
+                    if (!ISDEL)
+                    {
+                        item.Status = 0;
+                    }
+                    else
+                    {
+                        item.Status = 1;
+                    }
+                }
+              await  _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source},{5}",
+                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source, CompanyID) ;
+        }
+      }
+    public async void UserCommsPriority(int UserID, List<CommsMethodPriority> CommsMethod, int CurrentUserID, int CompanyID,CancellationToken token)
+    {
+        try
+        {
+
+            string PriorityChangeAllowed = await GetCompanyParameter(KeyType.ALLOWCHANGEPRIORITYUSER.ToDbKeyString(), CompanyID);
+
+            if (CommsMethod.Count() > 0 && PriorityChangeAllowed == "true")
+            {
+
+                var CommsList = await _context.Set<UserComm>().Where(UC => UC.UserId == UserID).ToListAsync();
+
+                foreach (var Comms in CommsList)
+                {
+                    var priority = CommsMethod.Where(w => w.MessageType == Comms.MessageType && w.MethodId == Comms.MethodId).FirstOrDefault();
+                    if (priority != null)
+                    {
+                        Comms.Priority = priority.Priority;
+                    }
+                }
+               await _context.SaveChangesAsync(token);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source},{5}",
+                               ex.Message, ex.StackTrace, ex.InnerException, ex.Source, CompanyID);
+        }
+    }
+    public async void CreateUserComms(int UserId, int CompanyId, int MethodId, int CreatedUpdatedBy, string TimeZoneId, string CommType)
+    {
+        try
+        {
+            var IsCommExist = await _context.Set<UserComm>().Where(UCMM => UCMM.UserId == UserId && UCMM.CompanyId == CompanyId
+                             && UCMM.MethodId == MethodId
+                            && UCMM.MessageType == CommType).FirstOrDefaultAsync();
+            if (IsCommExist == null)
+            {
+                UserComm NewUserComms = new UserComm()
+                {
+                    UserId = UserId,
+                    CompanyId = CompanyId,
+                    MethodId = MethodId,
+                    MessageType = CommType,
+                    Status = 1,
+                    Priority = 1,
+                    CreatedBy = CreatedUpdatedBy,
+                    UpdatedBy = CreatedUpdatedBy,
+                    CreatedOn = DateTime.Now,
+                    UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                };
+                await _context.AddAsync(NewUserComms);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                IsCommExist.Status = 1;
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex) {
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                           ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+        }
+    }
+    public async void CreateSMSTriggerRight(int CompanyId, int UserId, string UserRole, bool SMSTrigger, string ISDCode, string MobileNo, bool Self = false)
+    {
+        try
+        {
+            var roles = Roles.CcRoles(true); ;
+           var checkusr= await _context.Set<SmsTriggerUser>().FirstOrDefaultAsync(STU=> STU.CompanyId == CompanyId && STU.UserId == UserId);
+            if (checkusr != null)
+            {
+
+                if (roles.Contains(UserRole.ToUpper()))
+                {
+                    checkusr.PhoneNumber = ISDCode + MobileNo;
+                }
+                else
+                {
+                    SMSTrigger = false;
+                }
+
+                if (!SMSTrigger)
+                    _context.Remove(checkusr);
+
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                if (roles.Contains(UserRole.ToUpper()) && SMSTrigger == true)
+                {
+                    SmsTriggerUser STU = new SmsTriggerUser();
+                    STU.CompanyId = CompanyId;
+                    STU.UserId = UserId;
+                    STU.PhoneNumber = ISDCode + MobileNo;
+                    STU.Status = 1;
+                   _context.AddAsync(STU);
+                    _context.SaveChangesAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<User> GetRegisteredUserInfo(int CompanyId, int userId)
+    {
+        try { 
+        var RegUserInfo = await _context.Set<User>()./*Include(uc => uc.UserComm).Include(usg=>usg.UserSecurityGroup)*/Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
+
+        if (RegUserInfo != null)
+        {
+            return RegUserInfo;
+        }
+        return null;
+        }
+        catch(Exception ex)
+        {
+         return null;
+        }
+    }
+    
 }
