@@ -3,6 +3,7 @@ using CrisesControl.Api.Application.Commands.Users.DeleteUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
+using CrisesControl.Api.Application.Commands.Users.MemberShipList;
 using CrisesControl.Api.Application.Commands.Users.UpdateUser;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -40,6 +41,27 @@ namespace CrisesControl.Api.Controllers
         public async Task<IActionResult> GetLoggedinUserInfo([FromQuery] LoginRequest request, CancellationToken cancellationToken)
         {
             //var userId = this.User.FindFirstValue("sub");
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("MemberShipList/{TargetID}/{ObjMapID}/{MemberShipType}")]
+        public async Task<IActionResult> MemberShipList([FromRoute] MembershipListRequestRoute requestRoute,[FromQuery] MemberShipListNullableRequest requestQuery, CancellationToken cancellationToken)
+        {
+            //Get a request after nullable value where assigned
+            MemberShipListRequest request = new MemberShipListRequest();
+            request.Start = requestQuery.Start;
+            request.Draw=requestQuery.Draw;
+            request.search = request.search;
+            request.Action = requestQuery.Action;
+            request.Length = requestQuery.Length;
+            request.ActiveOnly = requestRoute.ActiveOnly;
+            request.CompanyKey=requestQuery.CompanyKey;
+            request.ObjMapID = requestRoute.ObjMapID;
+            request.TargetID = requestRoute.TargetID;
+            request.order = requestQuery.order;
+            request.MemberShipType = requestRoute.MemberShipType;
+
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
