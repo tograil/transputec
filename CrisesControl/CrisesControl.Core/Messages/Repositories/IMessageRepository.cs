@@ -55,5 +55,5 @@ public interface IMessageRepository
     Task<List<MessageAttachment>> GetMessageAttachment(int MessageListID, int MessageID);
     Task<List<MessageAttachment>> GetAttachment(int MessageAttachmentID = 0);
 
->>>>>>>>> Temporary merge branch 2
+
 }
