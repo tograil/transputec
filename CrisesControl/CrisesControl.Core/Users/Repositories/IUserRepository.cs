@@ -16,7 +16,7 @@ public interface IUserRepository
     Task<int> UpdateUser(User user, CancellationToken cancellationToken);
     int AddPwdChangeHistory(int userId, string newPassword, string timeZoneId);
 
-    void CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
+    Task CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
         string primaryEmail, int companyId);
     Task<IEnumerable<User>> GetAllUsers(GetAllUserRequest userRequest);
     Task<User> GetUser(int companyId, int userId);

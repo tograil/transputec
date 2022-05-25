@@ -63,7 +63,7 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
 
                     var Id = await _userRepository.UpdateProfile(user);
                     _mapper.Map<UpdateProfileRequest, User>(request);
-                    _userRepository.CreateUserSearch(user.UserId, user.FirstName, user.LastName, user.Isdcode, user.MobileNo, user.PrimaryEmail, request.CompanyId);
+                   await _userRepository.CreateUserSearch(user.UserId, user.FirstName, user.LastName, user.Isdcode, user.MobileNo, user.PrimaryEmail, request.CompanyId);
 
                     string userchannelallowed = await _userRepository.GetCompanyParameter(KeyType.ALLOWCHANGECHANNELUSER.ToDbKeyString(), request.CompanyId);
                     if (userchannelallowed == true.ToString())
