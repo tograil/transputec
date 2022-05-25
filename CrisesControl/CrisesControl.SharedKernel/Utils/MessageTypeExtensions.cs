@@ -36,4 +36,14 @@ public static class MessageTypeExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(methodType), methodType, null)
         };
     }
+    public static string ToMemString(this MemberShipType membershipType)
+    {
+        return membershipType switch
+        {
+            MemberShipType.NON_MEMBER => "Non-Member",
+            MemberShipType.MEMBER => "Member",
+            
+            _ => throw new ArgumentOutOfRangeException(nameof(membershipType), membershipType, null)
+        };
+    }
 }
