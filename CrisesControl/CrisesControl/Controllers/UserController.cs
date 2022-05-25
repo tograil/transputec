@@ -4,9 +4,11 @@ using CrisesControl.Api.Application.Commands.Users.DeleteUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
+using CrisesControl.Api.Application.Commands.Users.UpdateGroupMember;
 using CrisesControl.Api.Application.Commands.Users.UpdateProfile;
 using CrisesControl.Api.Application.Commands.Users.MemberShipList;
 using CrisesControl.Api.Application.Commands.Users.UpdateUser;
+using CrisesControl.Api.Application.Commands.Users.UpdateUserGroup;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -97,6 +99,19 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPut ("UpdateProfile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPut("UpdateUserGroup")]
+        public async Task<IActionResult> UpdateUserGroup([FromBody] UpdateUserGroupRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpPut("UpdateGroupMember")]
+        public async Task<IActionResult> UpdateGroupMember([FromBody] UpdateGroupMemberRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

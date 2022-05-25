@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
@@ -27,7 +28,8 @@ public class UserRepository : IUserRepository
     private int userID;
     private int companyID;
     private readonly ILogger<UserRepository> _logger;
-    
+    const string action = "ADD";
+
 
     public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<UserRepository> logger)
     {
@@ -243,6 +245,27 @@ public class UserRepository : IUserRepository
         {
             throw ex;
         }
+    }
+    private  DateTime GetLocalTime(string TimeZoneId, DateTime? ParamTime = null)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(TimeZoneId))
+                TimeZoneId = "GMT Standard Time";
+
+            DateTime retDate = DateTime.Now.ToUniversalTime();
+
+            DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
+
+            DateTime timeUtc = DateTime.UtcNow;
+
+            TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId);
+            retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
+
+            return retDate;
+        }
+        catch (Exception ex) { throw ex; }
+        return DateTime.Now;
     }
 
     private string Left(string str, int lngth, int stpoint = 0)
@@ -758,5 +781,122 @@ public class UserRepository : IUserRepository
          return null;
         }
     }
-    
+
+    public async Task<bool> UpdateUserMsgGroups(List<UserGroup> UserGroups)
+    {
+        try
+        {
+            StringBuilder usb = new StringBuilder();
+
+            foreach (var UsrGrp in UserGroups)
+            {
+
+                var usg = await _context.Set<ObjectRelation>().Where(grp => grp.ObjectRelationId == UsrGrp.UniqueId).FirstOrDefaultAsync();
+                if (usg != null)
+                    usg.ReceiveOnly = UsrGrp.ReceiveOnly;
+                 usb.AppendLine(_context.Update(usg).ToString());
+                
+            }
+           await _context.SaveChangesAsync();
+            
+            return true;
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(" Error occured while seeding the database {1}", ex.Message);
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateGroupMember(int TargetID, int UserID, int ObjMapID, string Action)
+    {
+        try
+        {
+            int CurrentUserId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            int CompanyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            if (Action.ToUpper() == action.ToUpper() && ObjMapID > 0)
+            {
+                await CreateNewObjectRelation(TargetID, UserID, ObjMapID, CurrentUserId, timeZoneId);
+            }
+            else if (ObjMapID > 0)
+            {
+                var DelOBjs = await _context.Set<ObjectRelation>().Where(OJR => OJR.ObjectMappingId == ObjMapID
+                                                                  && OJR.SourceObjectPrimaryId == TargetID && OJR.TargetObjectPrimaryId == UserID).FirstOrDefaultAsync();
+
+                if (DelOBjs != null)
+                {
+                    _context.Set<ObjectRelation>().Remove(DelOBjs);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                await UpdateUserDepartment(UserID, TargetID, Action, CurrentUserId, CompanyId, timeZoneId);
+            }
+
+            return true;
+        }
+        catch (Exception ex) {
+            return false;
+        }
+    }
+    public async Task UpdateUserDepartment(int UserID, int DepartmentID, string Action, int CurrentUserId, int CompanyId, string TimeZoneId)
+    {
+        try
+        {
+
+            var user = await _context.Set<User>().Where(U => U.UserId == UserID && U.CompanyId == CompanyId).FirstOrDefaultAsync();
+            if (user != null)
+            {
+                if (Action.ToUpper() ==action.ToUpper())
+                {
+                    user.DepartmentId = DepartmentID;
+                }
+                else
+                {
+                    user.DepartmentId = 0;
+                }
+                user.UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                user.UpdatedBy = CurrentUserId;
+                _context.Update(user);
+               await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error occured while seeding the database {0}, {1}", ex.Message, ex.InnerException);
+        }
+    }
+    public async Task CreateNewObjectRelation(int SourceObjectID, int TargetObjectID, int ObjMapId, int CreatedUpdatedBy, string TimeZoneId)
+    {
+        try
+        {
+           
+            bool IsALLOBJrelationExist = await _context.Set<ObjectRelation>().Where(OBR => OBR.TargetObjectPrimaryId == TargetObjectID
+                                          && OBR.ObjectMappingId == ObjMapId
+                                          && OBR.SourceObjectPrimaryId == SourceObjectID).AnyAsync();
+            if (!IsALLOBJrelationExist)
+            {
+                ObjectRelation tblDepObjRel = new ObjectRelation()
+                {
+                    TargetObjectPrimaryId = TargetObjectID,
+                    ObjectMappingId = ObjMapId,
+                    SourceObjectPrimaryId = SourceObjectID,
+                    CreatedBy = CreatedUpdatedBy,
+                    UpdatedBy = CreatedUpdatedBy,
+                    CreatedOn = System.DateTime.Now,
+                    UpdatedOn = GetLocalTime(TimeZoneId,DateTime.UtcNow),
+                    ReceiveOnly = false
+                };
+               await _context.AddAsync(tblDepObjRel);
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error occured while seeding the database {0}, {1}", ex.Message, ex.InnerException);
+        }
+    }
+
 }
