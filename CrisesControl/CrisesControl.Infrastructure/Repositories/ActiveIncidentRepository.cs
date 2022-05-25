@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
@@ -253,4 +255,34 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         await _context.Database.ExecuteSqlRawAsync("Pro_Create_Incident_Location @ActiveIncidentID, @CompanyID, @LocationID, @ImpactedLocationID, @LocationName, @Lat, @Lng, @Address, @LocationType",
             pActiveIncidentId, pCompanyId, pLocationId, pImpactedLocationId, pLocationName, pLat, pLng, pAddress, pLocationType);
     }
+
+    public List<UpdateIncidentStatusReturn> GetCompanyActiveIncident(int CompanyID, int UserID, string Status, int RecordStart = 0, int RecordLength = 100, string SearchString = "", string OrderBy = "Name", string OrderDir = "asc")
+    {
+        List<UpdateIncidentStatusReturn> result = new();
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pUserID = new SqlParameter("@UserID", UserID);
+            var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+            var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+            var pSearchString = new SqlParameter("@SearchString", SearchString);
+            var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+            var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+            var pStatus = new SqlParameter("@Status", Status);
+
+            result = _context.Set<UpdateIncidentStatusReturn>().FromSqlRaw("Pro_Incident_Active @CompanyID, @UserID, @Status, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir",
+                pCompanyID, pUserID, pStatus, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir).ToList().Select(c =>
+                {
+                    c.InitiatedByName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                    return c;
+                }).ToList();
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+        }
+        return result;
+    }
+
 }
