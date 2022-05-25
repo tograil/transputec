@@ -57,6 +57,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
             modelBuilder.Entity<MessageAcknowledgements>().HasNoKey();
             modelBuilder.Entity<DataTablePaging>().HasNoKey().Ignore("data");
+            modelBuilder.Entity<DeliveryOutput>().HasNoKey();
 
         }
     }
