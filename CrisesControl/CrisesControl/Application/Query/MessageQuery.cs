@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
@@ -47,6 +49,16 @@ namespace CrisesControl.Api.Application.Query {
             var result = new GetMessagesResponse();
             result.Data = response;
             result.ErrorCode = "0";
+            return result;
+        }
+
+        public async Task<GetMessageDetailsResponse> GetMessageDetails(GetMessageDetailsRequest request)
+        {
+            var msgresponse = await _messageRepository.GetMessageDetails(request.CloudMsgId, request.MessageId);
+            var response = _mapper.Map<IncidentMessageDetails>(msgresponse);
+            var result = new GetMessageDetailsResponse();
+            result.Data = response;
+            result.ErrorCode = System.Net.HttpStatusCode.OK;
             return result;
         }
     }

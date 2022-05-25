@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.AssetAggregate;
+﻿using CrisesControl.Core.Assets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

@@ -1,12 +1,13 @@
 ﻿using CrisesControl.Core.Users;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Core.Reports
-{
+namespace CrisesControl.Core.Reports;
+
     public class MessageAcknowledgements
     {
         public DateTimeOffset DateAcknowledge { get; set; }
@@ -15,6 +16,7 @@ namespace CrisesControl.Core.Reports
         public DateTimeOffset MessageAcknowledge { get; set; }
         public string MessageLat { get; set; }
         public string MessageLng { get; set; }
+    [NotMapped]
         public UserFullName AcknowledgedUser
         {
             get { return new UserFullName { Firstname = FirstName, Lastname = LastName }; }
@@ -26,10 +28,20 @@ namespace CrisesControl.Core.Reports
         public string PrimaryEmail { get; set; }
         public string ISDCode { get; set; }
         public string MobileNo { get; set; }
-        public PhoneNumber UserMobile { get; set; }
+    [NotMapped] 
+    public PhoneNumber UserMobile
+    {
+        get { return new PhoneNumber { ISD = ISDCode, Number = MobileNo }; }
+        set { new PhoneNumber { ISD = ISDCode, Number = MobileNo }; }
+    }
         public string LLISDCode { get; set; }
         public string Landline { get; set; }
-        public PhoneNumber UserLandLine { get; set; }
+    [NotMapped] 
+    public PhoneNumber UserLandLine
+    {
+        get { return new PhoneNumber { ISD = LLISDCode, Number = Landline }; }
+        set { new PhoneNumber { ISD = LLISDCode, Number = Landline }; }
+    }
         public int UserId { get; set; }
         public string UserPhoto { get; set; }
         public int MessageAckStatus { get; set; }
@@ -40,6 +52,6 @@ namespace CrisesControl.Core.Reports
         public int ActiveIncidentID { get; set; }
         public string Channels { get; set; }
     }
-}
+
 
 

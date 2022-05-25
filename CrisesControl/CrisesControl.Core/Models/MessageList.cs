@@ -22,10 +22,15 @@ namespace CrisesControl.Core.Models
         public int MessageDelvStatus { get; set; }
         public string? AckMethod { get; set; }
         public bool IsTaskRecepient { get; set; }
+
+        
+
         public int ResponseId { get; set; }
         public bool Text { get; set; }
         public bool Phone { get; set; }
         public bool Push { get; set; }
         public bool Email { get; set; }
+        public Message Message { get; set; }
+        public ActiveMessageResponse ActiveMessageResponse { get; set; }
     }
 }

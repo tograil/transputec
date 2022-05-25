@@ -1,5 +1,5 @@
-﻿using CrisesControl.Core.LocationAggregate;
-using CrisesControl.Core.LocationAggregate.Services;
+﻿using CrisesControl.Core.Locations;
+using CrisesControl.Core.Locations.Services;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using System;

@@ -1,7 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
-using CrisesControl.Core.GroupAggregate;
-using CrisesControl.Core.GroupAggregate.Repositories;
+using CrisesControl.Core.Groups;
+using CrisesControl.Core.Groups.Repositories;
 using FluentValidation;
 using MediatR;
 

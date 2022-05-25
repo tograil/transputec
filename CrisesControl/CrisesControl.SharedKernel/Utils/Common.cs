@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace CrisesControl.SharedKernel.Utils;
 
@@ -15,5 +16,13 @@ public static class Common
         };
 
         return Convert.ToInt32(prio);
+    }
+    public static string Base64Decode(string base64EncodedData)
+    {
+       
+            byte[] base64EncodedBytes = Encoding.ASCII.GetBytes(base64EncodedData);
+            string bytes = BitConverter.ToString(base64EncodedBytes);
+            return bytes;
+        
     }
 }

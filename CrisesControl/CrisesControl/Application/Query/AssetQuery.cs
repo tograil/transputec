@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
-using CrisesControl.Api.Application.Commands.MediaAssets.GetAsset;
-using CrisesControl.Api.Application.Commands.MediaAssets.GetAssets;
-using CrisesControl.Core.AssetAggregate;
-using CrisesControl.Core.AssetAggregate.Respositories;
+using CrisesControl.Api.Application.Commands.Assets.GetAsset;
+using CrisesControl.Api.Application.Commands.Assets.GetAssets;
+using CrisesControl.Core.Assets;
+using CrisesControl.Core.Assets.Respositories;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -17,7 +17,7 @@ namespace CrisesControl.Api.Application.Query
             _mapper = mapper;
         }
 
-        public async Task<GetAssetsResponse> GetAssets(GetAssetsRequest request)
+        public async Task<GetAssetsResponse> GetAssets(GetAssetsRequest request, CancellationToken cancellationToken)
         {
             var assets = await _assetRepository.GetAllAssets(request.CompanyId);
             List<GetAssetResponse> response = _mapper.Map<List<Assets>, List<GetAssetResponse>>(assets.ToList());
@@ -26,7 +26,7 @@ namespace CrisesControl.Api.Application.Query
             return result;
         }
 
-        public async Task<GetAssetResponse> GetAsset(GetAssetRequest request)
+        public async Task<GetAssetResponse> GetAsset(GetAssetRequest request, CancellationToken cancellationToken)
         {
             var asset = await _assetRepository.GetAsset(request.CompanyId, request.AssetId);
             GetAssetResponse response = _mapper.Map<Assets, GetAssetResponse>(asset);

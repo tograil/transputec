@@ -7,8 +7,8 @@ namespace CrisesControl.Api.Application.Query
 {
     public interface IDepartmentQuery
     {
-        public Task<GetDepartmentsResponse> GetDepartments(GetDepartmentsRequest request);
-        public Task<GetDepartmentResponse> GetDepartment(GetDepartmentRequest request);
+        public Task<GetDepartmentsResponse> GetDepartments(GetDepartmentsRequest request, CancellationToken cancellationToken);
+        public Task<GetDepartmentResponse> GetDepartment(GetDepartmentRequest request, CancellationToken cancellationToken);
 
     }
 }
