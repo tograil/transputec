@@ -1,16 +1,22 @@
-﻿using Grpc.Core;
+﻿using EventLogger.Core.AuditLog;
+using EventLogger.Core.AuditLog.Services;
+using Grpc.Core;
+using Newtonsoft.Json;
 
 namespace EventLogger.Grpc.Services
 {
-    public class AuditLogService : AuditLog.AuditLogBase
+    public class AuditLogService : AuditLogGrpc.AuditLogGrpcBase
     {
-        public AuditLogService()
+        private readonly IAuditLogService _auditLogService;
+        public AuditLogService(IAuditLogService auditLogService)
         {
-            
+            _auditLogService = auditLogService;
         }
 
-        public override Task<AuditLogResult> AddLogEntry(AuditLogEntry request, ServerCallContext context)
+        public override Task<AuditLogResult> AddLogEntry(AuditLogValue request, ServerCallContext context)
         {
+            var saveData = JsonConvert.DeserializeObject<ICollection<SaveChangesAudit>>(request.SaveChangesAudit);
+
             return base.AddLogEntry(request, context);
         }
 

@@ -1,6 +1,6 @@
 ﻿syntax = "proto3";
 
-option csharp_namespace = "EventLogger.Grpc";
+option csharp_namespace = "GrpcAuditLogClient";
 
 package auditlog;
 
@@ -11,6 +11,7 @@ service AuditLogGrpc {
 
 
 message AuditLogValue {
+
 	int32 companyId = 1;
 	int32 userId = 2;
 	string request = 3;

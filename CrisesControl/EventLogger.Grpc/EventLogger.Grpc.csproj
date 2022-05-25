@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\greet.proto" GrpcServices="Server" />
     <Protobuf Include="Protos\auditlog.proto" GrpcServices="Server" />
   </ItemGroup>
 
@@ -17,6 +16,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EventLogger.Core\EventLogger.Core.csproj" />
+    <ProjectReference Include="..\EventLogger.Infrastructure\EventLogger.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

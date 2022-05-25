@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using CrisesControl.SharedKernel.Enums;
 
 namespace CrisesControl.Core.AuditLog.Services
@@ -8,5 +9,7 @@ namespace CrisesControl.Core.AuditLog.Services
         void AppendDataAudit(SaveChangesAudit saveChangesAudit);
 
         IReadOnlyCollection<SaveChangesAudit> GetSaveChangesAudit();
+
+        Task SaveAuditData(AuditLogEntry auditLogEntry);
     }
 }

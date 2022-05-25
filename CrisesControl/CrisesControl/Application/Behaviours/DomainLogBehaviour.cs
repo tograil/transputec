@@ -1,5 +1,5 @@
-﻿using CrisesControl.Api.Application.Behaviours.Models;
-using CrisesControl.Api.Application.Helpers;
+﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.AuditLog;
 using CrisesControl.Core.AuditLog.Services;
 using MediatR;
 using MediatR.Pipeline;
@@ -18,7 +18,7 @@ namespace CrisesControl.Api.Application.Behaviours
             _currentUser = currentUser;
         }
 
-        public Task Process(TRequest request, TResponse response, CancellationToken cancellationToken)
+        public async Task Process(TRequest request, TResponse response, CancellationToken cancellationToken)
         {
             var savedData = _auditLogService.GetSaveChangesAudit();
             var userId = _currentUser.UserId;
@@ -33,7 +33,7 @@ namespace CrisesControl.Api.Application.Behaviours
                 Response = response
             };
 
-            return Task.CompletedTask;
+            await _auditLogService.SaveAuditData(auditLogEntry);
         }
     }
 }

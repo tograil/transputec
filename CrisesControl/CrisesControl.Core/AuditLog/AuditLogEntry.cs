@@ -1,6 +1,6 @@
-﻿using CrisesControl.Core.AuditLog;
+﻿using System.Collections.Generic;
 
-namespace CrisesControl.Api.Application.Behaviours.Models
+namespace CrisesControl.Core.AuditLog
 {
     public class AuditLogEntry
     {
