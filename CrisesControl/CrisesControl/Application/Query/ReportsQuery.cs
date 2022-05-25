@@ -89,14 +89,16 @@ namespace CrisesControl.Api.Application.Query
                 {
                     result.Data = response;
                     result.StatusCode = System.Net.HttpStatusCode.OK;
+                    result.Message = "Data Loaded successfully";
                     return result;
                 }
                 return new GetTrackingUserCountResponse
                 {
                     Data = response,
                     StatusCode = System.Net.HttpStatusCode.NotFound,
+                    Message = "No Data Found"
 
-                };
+            };
             }
             catch (Exception ex)
             {

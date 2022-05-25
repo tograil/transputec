@@ -2,6 +2,7 @@
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
+using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Api.Application.Query;
 using MediatR;
@@ -87,7 +88,7 @@ namespace CrisesControl.Api.Controllers {
         }
         [HttpGet]
         [Route("GetTrackingUserCount")]
-        public async Task<IActionResult> GetTrackingUserCount([FromRoute] GetSOSItemsRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetTrackingUserCount([FromRoute] GetTrackingUserCountRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 
