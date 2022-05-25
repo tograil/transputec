@@ -1,5 +1,7 @@
-﻿using CrisesControl.Core.CompanyParameters;
+﻿using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Models;
+using CrisesControl.SharedKernel.Enums;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,6 +24,8 @@ public interface IUserRepository
     bool CheckDuplicate(User user);
     Task<LoginInfoReturnModel> GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken);
     Task<User> ReactivateUser(int qureiedUserId, CancellationToken cancellationToken);
+    Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search, List<Order>? order, bool ActiveOnly, string? CompanyKey);
+    
 
     Task<int> UpdateProfile(User user);
     Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");

@@ -59,6 +59,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ResponseSummary>().HasNoKey();
             modelBuilder.Entity<MessageReporting>().HasNoKey();
             modelBuilder.Entity<IncidentMessageDetails>().HasNoKey();
+            modelBuilder.Entity<MemberUser>().HasNoKey().Ignore("UserFullName");
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
