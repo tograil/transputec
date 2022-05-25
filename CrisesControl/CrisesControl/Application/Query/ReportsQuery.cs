@@ -43,7 +43,7 @@ namespace CrisesControl.Api.Application.Query
         }
         public async Task<GetIndidentMessageAckResponse> GetIndidentMessageAck(GetIndidentMessageAckRequest request)
         {
-            var stats = await _reportRepository.GetIndidentMessageAck(request.MessageId, request.MessageAckStatus= 2, request.MessageSentStatus, request.RecordStart=0, request.RecordLength, request.SearchString, "U.UserId", request.OrderDir, request.CurrentUserId, request.Filters, request.CompanyKey, request.Source);
+            var stats = await _reportRepository.GetIndidentMessageAck(request.MessageId, request.MessageAckStatus, request.MessageSentStatus, request.Start,request.Length,request.SearchString,request.order,request.draw ?? default(int),request.Filters,request.CompanyKey, request.Source="WEB");
 
             var response = _mapper.Map<List<MessageAcknowledgements>>(stats);
             var result = new GetIndidentMessageAckResponse();
