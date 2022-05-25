@@ -5,10 +5,17 @@ using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Queues;
 using CrisesControl.Core.Users;
+using CrisesControl.Core.Communication;
+using CrisesControl.Core.Incidents.SPResponse;
+using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Tasks;
+using CrisesControl.Core.Tasks.SP_Response;
+using CrisesControl.Core.Common;
 
 using CrisesControl.Core.ExTriggers;
 using CrisesControl.Core.Jobs;
@@ -51,14 +58,44 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<Search>().HasNoKey();
             modelBuilder.Entity<ResponseSummary>().HasNoKey();
             modelBuilder.Entity<MessageReporting>().HasNoKey();
-
+            modelBuilder.Entity<IncidentMessageDetails>().HasNoKey();
+            modelBuilder.Entity<MemberUser>().HasNoKey().Ignore("UserFullName");
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
             modelBuilder.Entity<MessageAcknowledgements>().HasNoKey();
             modelBuilder.Entity<DataTablePaging>().HasNoKey().Ignore("data");
+            modelBuilder.Entity<AcknowledgeReturn>().HasNoKey();
+
+
+            modelBuilder.Entity<IncidentList>().HasNoKey();
+            modelBuilder.Entity<AffectedLocation>().HasNoKey();//
+            modelBuilder.Entity<UpdateIncidentStatusReturn>().HasNoKey();
+            modelBuilder.Entity<IncidentDetails>().HasNoKey();
+            modelBuilder.Entity<CommsMethods>().HasNoKey();
+            modelBuilder.Entity<PingGroupChartCount>().HasNoKey();
             modelBuilder.Entity<DeliveryOutput>().HasNoKey();
 
+            modelBuilder.Entity<AckOption>().HasNoKey();
+            modelBuilder.Entity<IncKeyCons>().HasNoKey();
+            modelBuilder.Entity<IncidentAssetResponse>().HasNoKey();
+            modelBuilder.Entity<ActionLsts>().HasNoKey();
+            modelBuilder.Entity<IncidentParticipants>().HasNoKey();
+            modelBuilder.Entity<UserFullName>().HasNoKey();
+
+            modelBuilder.Entity<Predecessor>().HasNoKey();
+            modelBuilder.Entity<TaskGroup>().HasNoKey();
+            modelBuilder.Entity<TaskUser>().HasNoKey();
+            modelBuilder.Entity<GetCheckListReponseOption>().HasNoKey();
+            modelBuilder.Entity<CheckListUpsert>().HasNoKey();
+            modelBuilder.Entity<JsonResult>().HasNoKey();
+            //modelBuilder.Entity<Assets>().HasNoKey();
+
+
+
+
+
+            //modelBuilder.Entity<Location>().HasNoKey();
         }
     }
 }
