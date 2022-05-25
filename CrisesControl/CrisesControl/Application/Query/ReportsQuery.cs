@@ -7,6 +7,7 @@ using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -75,6 +76,34 @@ namespace CrisesControl.Api.Application.Query
             result.data = response;
             result.StatusCode =System.Net.HttpStatusCode.OK ;
             return result;
+        }
+        public async Task<GetTrackingUserCountResponse> GetTrackingUserCount(GetTrackingUserCountRequest request)
+        {
+            try
+            {
+                var trkUser = await _reportRepository.GetTrackingUserCount();
+
+                var response = _mapper.Map<List<TrackUserCount>>(trkUser);
+                var result = new GetTrackingUserCountResponse();
+                if (trkUser != null)
+                {
+                    result.Data = response;
+                    result.StatusCode = System.Net.HttpStatusCode.OK;
+                    return result;
+                }
+                return new GetTrackingUserCountResponse
+                {
+                    Data = response,
+                    StatusCode = System.Net.HttpStatusCode.NotFound,
+
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error occured while trying get data into the database {0},{1}", ex.Message,ex.InnerException);
+            }
+            return new GetTrackingUserCountResponse { };
+
         }
     }
 }
