@@ -13,3 +13,8 @@ public enum MessageType
     Push,
     Text,
 }
+public enum MessageCheckType
+{
+    Ping,
+    Incident
+}

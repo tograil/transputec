@@ -39,4 +39,19 @@ public interface IMessageRepository
 
     Task CopyMessageResponse(int CompanyID, int CurrentUserId, string TimeZoneID, CancellationToken token);
     Task<List<UserMessageList>> GetMessages(int targetUserId, string? messageType, int incidentActivationId);
+    Task<AcknowledgeReturn> AcknowledgeMessage(int UserID, int MessageID, int MessageListID, string Latitude, string Longitude, string AckMethod, int ResponseID, string TimeZoneId);
+    Task<MessageAckDetails> MessageAcknowledged(int CompanyId, int MsgListId, string TimeZoneId, string UserLocationLat, string UserLocationLong, int CurrentUserId, int ResponseID = 0, string AckMethod = "WEB");
+    Task<List<IIncidentMessages>> _get_incident_message(int CompanyId, int CurrentUserId);
+    Task<List<IPingMessage>> _get_ping_message(int CompanyId, int CurrentUserId);
+    Task<List<NotificationDetails>> MessageNotifications(int CompanyId, int CurrentUserId);
+    Task<string> LookupWithKey(string Key, string Default = "");
+    Task<int> GetCallbackOption(string AckMethod);
+    void CreateSOSAlert(int UserID, string SOSType, int MessageId, int MessageListId, int ResponseID, int IncidentActivationId,
+            string ResponseLabel, DateTimeOffset UpdatedOn, DateTimeOffset ResponseTimeGMT, string Lat, string Lng, int CallbackOption);
+    void CheckSOSAlert(int MessageListID, string SOSType, int CallbackOption);
+  
+
+    Task<IncidentMessageDetails> GetMessageDetails(string CloudMsgId, int MessageId = 0);
+    Task<List<MessageAttachment>> GetMessageAttachment(int MessageListID, int MessageID);
+    Task<List<MessageAttachment>> GetAttachment(int MessageAttachmentID = 0);
 }

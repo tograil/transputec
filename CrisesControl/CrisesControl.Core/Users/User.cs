@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.Core.Models;
+using System;
 
 namespace CrisesControl.Core.Users
 {
@@ -40,5 +41,7 @@ namespace CrisesControl.Core.Users
         public int? DepartmentId { get; set; }
         public string? UserHash { get; set; }
         public int? TimezoneId { get; set; }
+        public UserSecurityGroup UserSecurityGroup { get; set; }
+        public UserComm UserComm { get; set; }
     }
 }
