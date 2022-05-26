@@ -1,4 +1,6 @@
-﻿using CrisesControl.Core.Compatibility;
+﻿using CrisesControl.Core.Companies;
+using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Models;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Users;
@@ -161,6 +163,66 @@ namespace CrisesControl.Infrastructure.Repositories {
             return new List<DataTablePaging>();
 
 
+        }
+        public async Task<string> GetTimeZoneVal(int UserId)
+        {
+            return (await _context.Set<User>()
+                .Include(x=>x.Company)
+               // .Include(x => x.StdTimeZone)
+                .FirstOrDefaultAsync(x => x.UserId == UserId))?.Company.StdTimeZone?.ZoneLabel ?? "GMT Standard Time";
+        }
+
+        public async Task<dynamic> GetMessageDeliverySummary(int MessageID)
+        {
+            try
+            {
+
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                var pMessageID = new SqlParameter("@MessageID", MessageID);
+
+                  
+                    var result = await _context.Set<DeliverySummary>().FromSqlRaw(" exec Pro_Report_Delivery_Summary @MessageID", pMessageID).ToListAsync();
+
+                    List<DeliverySummary> DlvRecs = new List<DeliverySummary>();
+                    string TimeZoneId = await GetTimeZoneVal(UserID);
+                    List<DateTimeOffset> endTimes = new List<DateTimeOffset>();
+
+                    foreach (DeliverySummary rec in result)
+                    {
+                        endTimes.Add(rec.EmailEndTime);
+                        endTimes.Add(rec.PhoneEndTime);
+                        endTimes.Add(rec.PushEndTime);
+                        endTimes.Add(rec.TextEndTime);
+
+                        rec.EmailStartTime = rec.EmailStartTime;
+                        rec.EmailEndTime = rec.EmailEndTime;
+                        rec.PhoneStartTime = rec.PhoneStartTime;
+                        rec.PhoneEndTime = rec.PhoneEndTime;
+                        rec.PushStartTime = rec.PushStartTime;
+                        rec.PushEndTime = rec.PushEndTime;
+                        rec.TextStartTime = rec.TextStartTime;
+                        rec.TextEndTime = rec.TextEndTime;
+
+                        DlvRecs.Add(rec);
+                    }
+
+                    var methods = await _context.Set<Message>().Where(M=>M.MessageId == MessageID).Select( M=> new  { M.Phone, M.Text, M.Email, M.Push, M.CreatedOn }).FirstOrDefaultAsync();
+                 
+
+                    endTimes.Add(methods.CreatedOn);
+
+                    DateTimeOffset maxEndTimes = endTimes.Max();
+
+                    return Tuple.Create(DlvRecs, methods, maxEndTimes);
+                
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                           ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+
+                return null;
+            }
         }
     }
 }

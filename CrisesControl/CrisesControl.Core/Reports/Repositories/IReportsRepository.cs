@@ -15,5 +15,6 @@ namespace CrisesControl.Core.Reports.Repositories {
             string OrderBy, string OrderDir, int CurrentUserId, string Filters, string CompanyKey, string Source);
         Task<List<DataTablePaging>> GetIndidentMessageNoAck(int draw, int IncidentActivationId
         ,int RecordStart, int RecordLength, string? SearchString, string? UniqueKey);
+        Task<dynamic> GetMessageDeliverySummary(int MessageID);
     }
 }

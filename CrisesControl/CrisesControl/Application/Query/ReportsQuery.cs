@@ -7,6 +7,7 @@ using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -75,6 +76,26 @@ namespace CrisesControl.Api.Application.Query
             result.data = response;
             result.StatusCode =System.Net.HttpStatusCode.OK ;
             return result;
+        }
+
+        public async Task<GetMessageDeliverySummaryResponse> GetMessageDeliverySummary(GetMessageDeliverySummaryRequest request)
+        {
+            try
+            {
+                var summary = await _reportRepository.GetMessageDeliverySummary(request.MessageID);
+                var response = _mapper.Map<List<DeliverySummary>>(summary);
+                var result = new GetMessageDeliverySummaryResponse();
+                result.Data = response;
+                result.StatusCode = System.Net.HttpStatusCode.OK;
+                result.Message = "Summary has been Loaded";
+                return result;
+            }
+            catch (Exception ex) {
+                _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                          ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+                return new GetMessageDeliverySummaryResponse();
+            }
+
         }
     }
 }

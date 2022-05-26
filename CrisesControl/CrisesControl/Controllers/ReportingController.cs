@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Api.Application.Query;
@@ -85,5 +86,20 @@ namespace CrisesControl.Api.Controllers {
 
             return Ok(result);
         }
+        /// <summary>
+        /// Get Message Delivery Summary
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetMessageDeliverySummary/{MessageID:int}")]
+        public async Task<IActionResult> GetMessageDeliverySummary([FromRoute] GetMessageDeliverySummaryRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+
     }
 }
