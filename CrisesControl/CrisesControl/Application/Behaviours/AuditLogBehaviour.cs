@@ -8,14 +8,14 @@ using Microsoft.Extensions.Options;
 
 namespace CrisesControl.Api.Application.Behaviours
 {
-    public class DomainLogBehaviour<TRequest, TResponse> 
+    public class AuditLogBehaviour<TRequest, TResponse> 
         : IPipelineBehavior<TRequest, TResponse> where TRequest: IRequest<TResponse>
     {
         private readonly IAuditLogService _auditLogService;
         private readonly ICurrentUser _currentUser;
         private readonly AuditLogOptions _options;
 
-        public DomainLogBehaviour(IAuditLogService auditLogService, ICurrentUser currentUser, IOptions<AuditLogOptions> options)
+        public AuditLogBehaviour(IAuditLogService auditLogService, ICurrentUser currentUser, IOptions<AuditLogOptions> options)
         {
             _auditLogService = auditLogService;
             _currentUser = currentUser;

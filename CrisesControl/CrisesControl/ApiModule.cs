@@ -18,7 +18,7 @@ public class ApiModule : Module
 
         builder.RegisterAutoMapper(ThisAssembly);
 
-        builder.RegisterMediatR(ThisAssembly, typeof(DomainLogBehaviour<,>));
+        builder.RegisterMediatR(ThisAssembly, typeof(AuditLogBehaviour<,>));
 
         builder.RegisterType<CompanyQuery>().As<ICompanyQuery>();
         builder.RegisterType<BillingQuery>().As<IBillingQuery>();
