@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -408,6 +409,141 @@ public class UserRepository : IUserRepository
         {
             return null;
         }
+    }
+
+
+    public async Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search, List<Order>? order, bool ActiveOnly, string? CompanyKey)
+    {
+        try
+        {
+            //    var RecordStart = Start == 0 ? 0 : Start;
+            var RecordLength = Length == 0 ? int.MaxValue : Length;
+            var SearchString = (Search != null) ? Search : string.Empty;
+            string OrderBy = order != null ? order.FirstOrDefault().column : "FirstName";
+            string OrderDir = order != null ? order.FirstOrDefault().dir : "asc";
+
+
+            var pCompanyId = new SqlParameter("@CompanyID", companyID);
+            var pUserID = new SqlParameter("@UserID", userID);
+            var pObjMapID = new SqlParameter("@ObjMapID", ObjMapID);
+            var pTargetID = new SqlParameter("@TargetID", TargetID);
+            var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+            var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+            var pSearchString = new SqlParameter("@SearchString", SearchString);
+            var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+            var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+            var pActiveOnly = new SqlParameter("@ActiveOnly", ActiveOnly);
+            var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
+
+            var MainUserlist = new List<MemberUser>();
+            var propertyInfo = typeof(MemberUser).GetProperty(OrderBy);
+            if (memberShipType.ToMemString().ToUpper() == MemberShipType.NON_MEMBER.ToMemString().ToUpper())
+            {
+                if (OrderDir == "desc" && propertyInfo != null)
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_Members,  @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                    .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+                else if (OrderDir == "asc" && propertyInfo != null)
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_Members, @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+                else
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_Members @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey).ToListAsync();
+
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    }).ToList();
+                }
+
+                return MainUserlist;
+            }
+
+            else
+            {
+                if (OrderDir == "desc" && propertyInfo != null)
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_NonMembers,  @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                        .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+                else if (OrderDir == "asc" && propertyInfo != null)
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_NonMembers, @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+                else
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_NonMembers @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    }).ToList();
+                }
+
+                return MainUserlist;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+        return null;
     }
 
     private string GetCompanyName(int companyId)

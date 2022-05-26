@@ -46,6 +46,27 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        [HttpGet]
+        [Route("MemberShipList/{TargetID}/{ObjMapID}")]
+        public async Task<IActionResult> MemberShipList([FromRoute] MembershipListRequestRoute requestRoute,[FromQuery] MemberShipListNullableRequest requestQuery, CancellationToken cancellationToken)
+        {
+            //Get a request after nullable value where assigned
+            MemberShipListRequest request = new MemberShipListRequest();
+            request.Start = requestQuery.Start;
+            request.Draw=requestQuery.Draw;
+            request.search = request.search;
+            request.Action = requestQuery.Action;
+            request.Length = requestQuery.Length;
+            request.ActiveOnly = requestRoute.ActiveOnly;
+            request.CompanyKey=requestQuery.CompanyKey;
+            request.ObjMapID = requestRoute.ObjMapID;
+            request.TargetID = requestRoute.TargetID;
+            request.order = requestQuery.order;
+            request.MemberShipType = requestRoute.MemberShipType;
+
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
 
         [HttpPost]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest UserModel, CancellationToken cancellationToken)
