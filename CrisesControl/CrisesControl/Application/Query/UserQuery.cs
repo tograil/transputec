@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Users.ActivateUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
@@ -21,8 +22,9 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetUsersResponse> GetUsers(GetUsersRequest request)
         {
-            var Users = await _UserRepository.GetAllUsers(request.CompanyId);
-            List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(Users.ToList());
+            var mappedRequest = _mapper.Map<GetAllUserRequest>(request);
+            var users = await _UserRepository.GetAllUsers(mappedRequest);
+            List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(users.ToList());
             var result = new GetUsersResponse();
             result.Data = response;
             return result;
@@ -41,6 +43,13 @@ namespace CrisesControl.Api.Application.Query
             var loginRequest = _mapper.Map<LoginInfo>(request);
             var LoginInfo = await _UserRepository.GetLoggedInUserInfo(loginRequest, cancellationToken);
             var result = _mapper.Map<LoginResponse>(LoginInfo);
+            return result;
+        }
+
+        public async Task<ActivateUserResponse> ReactivateUser(int queriedUserId, CancellationToken cancellationToken)
+        {
+            var reactivate = await _UserRepository.ReactivateUser(queriedUserId, cancellationToken);
+            var result = _mapper.Map<ActivateUserResponse>(reactivate);
             return result;
         }
 

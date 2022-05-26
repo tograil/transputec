@@ -13,5 +13,6 @@ namespace CrisesControl.Core.CompanyParameters.Repositories
         Task<IEnumerable<CascadingPlanReturn>> GetCascading(int PlanID, string PlanType, int CompanyId, bool GetDetails = false);
         List<CommsMethodPriority> GetCascadingDetails(int PlanID, int CompanyId);
         Task<List<CompanyParameterItem>> GetAllCompanyParameters(int companyId);
+        Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
     }
 }
