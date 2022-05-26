@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Users.ActivateUser;
+using CrisesControl.Api.Application.Commands.Users.GetAllUsersDevice;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
@@ -50,6 +51,13 @@ namespace CrisesControl.Api.Application.Query
             var reactivate = await _UserRepository.ReactivateUser(queriedUserId, cancellationToken);
             var result = _mapper.Map<ActivateUserResponse>(reactivate);
             return result;
+        }
+
+        public async Task<GetAllUserDevicesResponse> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken)
+        {
+            GetAllUserDeviceRequest requestMapped = _mapper.Map<GetAllUserDeviceRequest>(request);
+            var getAllUserDevices = await _UserRepository.GetAllUserDeviceList(requestMapped, cancellationToken);
+            return getAllUserDevices;
         }
     }
 }
