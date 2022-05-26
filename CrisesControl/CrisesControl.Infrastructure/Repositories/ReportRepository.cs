@@ -28,13 +28,13 @@ namespace CrisesControl.Infrastructure.Repositories {
 
         private int UserID;
         private int CompanyID;
-        private string UniqueKey;
+     
 
         public ReportRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<ReportRepository> logger)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            this._logger = logger;
+            _logger = logger;
         }
         public async Task<List<SOSItem>> GetSOSItems()
         {
@@ -76,14 +76,30 @@ namespace CrisesControl.Infrastructure.Repositories {
             return new List<IncidentPingStatsCount>();
         }
 
-        public async Task<List<MessageAcknowledgements>> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir, int CurrentUserId, string Filters, string CompanyKey, string Source)
+        public async Task<dynamic> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int start, int length, string search,
+             List<Order>? order, int draw, string Filters, string CompanyKey,  string Source="WEB")
         {
             try
             {
+                const string ord = "PrimaryEmail";
+                const string dir = "asc";
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                var RecordStart = start == 0 ? 0 : start;
+                var RecordLength = length == 0 ? int.MaxValue : length;
+                var SearchString = (search != null) ? search: string.Empty;
+                string OrderDir = order != null ? order.FirstOrDefault().dir : "asc";
+                string OrderBy = order != null ? order.FirstOrDefault().column : "DateAcknowledge";
+
+                if (string.IsNullOrEmpty(OrderBy))
+                    OrderBy = ord;
+
+                if (string.IsNullOrEmpty(OrderDir))
+                    OrderDir = dir;
+
                 var pMessageId = new SqlParameter("@MessageID", MessageId);
                 var pMessageAckStatus = new SqlParameter("@MessageAckStatus", MessageAckStatus);
                 var pMessageSentStatus = new SqlParameter("@MessageSentStatus", MessageSentStatus);
-                var pUserID = new SqlParameter("@UserID", CurrentUserId);
+                var pUserID = new SqlParameter("@UserID", UserID);
                 var pSource = new SqlParameter("@Source", Source);
                 var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
                 var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
@@ -93,9 +109,19 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var pFilters = new SqlParameter("@Filters", Filters);
                 var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                var ack_list = await  _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_Message_Acknowledgements @MessageID, @MessageAckStatus, @MessageSentStatus, @UserID,@Source, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@Filters,@UniqueKey",
+                var ackList = await  _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_Message_Acknowledgements @MessageID, @MessageAckStatus, @MessageSentStatus, @UserID,@Source, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@Filters,@UniqueKey",
                     pMessageId, pMessageAckStatus, pMessageSentStatus, pUserID, pSource, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pFilters, pUniqueKey).ToListAsync();
-                return ack_list;
+                int totalRecord = 0;
+                totalRecord = ackList.Count;
+
+                DataTablePaging rtn = new DataTablePaging();
+                rtn.draw = draw;
+                rtn.recordsTotal = totalRecord;
+                rtn.recordsFiltered = ackList.Count;
+                rtn.data = ackList;
+
+
+                return rtn;
             }
             catch (Exception ex)
             {

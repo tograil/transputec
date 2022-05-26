@@ -66,9 +66,22 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]     
-        [Route("GetIndidentMessageAck/{CompanyID:int}/{MessageId:int}/{MessageAckStatus:int}/{MessageSentStatus:int}/{RecordStart:int}/{RecordLength:int}/{SearchString}")]
-        public async Task<IActionResult> GetIndidentMessageAck([FromRoute] GetIndidentMessageAckRequest request, CancellationToken cancellationToken)
+        [Route("GetIndidentMessageAck/{MessageId:int}/{MessageAckStatus:int}/{MessageSentStatus:int}")]
+        public async Task<IActionResult> GetIndidentMessageAck([FromRoute] IncidentMsgAckRequestRoute requestRoute,
+            [FromQuery] IncidentMsgAckRequestQuery requestQuery, CancellationToken cancellationToken)
         {
+            GetIndidentMessageAckRequest request = new GetIndidentMessageAckRequest();
+            request.MessageId = requestRoute.MessageId;
+            request.MessageAckStatus = requestRoute.MessageAckStatus;
+            request.MessageSentStatus = requestRoute.MessageSentStatus;
+            request.Start= requestQuery.Start;
+            request.Length= requestQuery.Length;
+            request.SearchString= requestQuery.SearchString;
+            request.Source= requestQuery.Source;
+            request.draw = requestQuery.draw;
+            request.CompanyKey= requestQuery.CompanyKey;
+            request.Filters= requestQuery.Filters;
+
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);
@@ -81,7 +94,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("ResponseSummary/{MessageID:int}")]
-        public async Task<IActionResult> ResponseSummary([FromQuery] ResponseSummaryRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> ResponseSummary([FromRoute] ResponseSummaryRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 
