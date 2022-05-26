@@ -17,5 +17,6 @@ namespace CrisesControl.Core.Reports.Repositories {
         ,int RecordStart, int RecordLength, string? SearchString, string? UniqueKey);
         Task<List<PingGroupChartCount>> GetPingReportChart(DateTime StartDate, DateTime EndDate, int GroupID, string MessageType, int ObjectMappingID);
         Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
+        Task<List<DeliveryOutput>> GetMessageDeliveryReport(DateTimeOffset StartDate, DateTimeOffset EndDate, int start, int length, string search, List<Order> order, string CompanyKey);
     }
 }

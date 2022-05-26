@@ -2,6 +2,7 @@
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetPingReportChart;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Api.Application.Query;
@@ -90,6 +91,30 @@ namespace CrisesControl.Api.Controllers {
         [Route("GetUserPingReportBarChart/{StartDate}/{EndDate}")]
         public async Task<IActionResult> GetUserPingReportBarChart([FromRoute] GetPingReportChartRequest request, CancellationToken cancellationToken)
         {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get the response summary
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetMessageDeliveryReport/{StartDate}/{EndDate}")]
+        public async Task<IActionResult> GetMessageDeliveryReport([FromRoute] GetMessageDeliveryReportRouteRequest routeRequest,[FromQuery] GetMessageDeliveryReportQueryRequest queryRequest, CancellationToken cancellationToken)
+        {
+            GetMessageDeliveryReportRequest request = new GetMessageDeliveryReportRequest();
+            request.CompanyKey=queryRequest.CompanyKey;
+            request.draw=queryRequest.draw;
+            request.start=queryRequest.start;
+            request.search=queryRequest.search;
+            request.length=queryRequest.length;
+            request.order=queryRequest.order;
+            request.StartDate=routeRequest.StartDate;
+            request.EndDate=routeRequest.EndDate;
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);
