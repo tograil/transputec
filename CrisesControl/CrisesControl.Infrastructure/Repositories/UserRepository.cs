@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -14,6 +15,7 @@ using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -27,7 +29,8 @@ public class UserRepository : IUserRepository
     private int userID;
     private int companyID;
     private readonly ILogger<UserRepository> _logger;
-    
+    const string action = "ADD";
+
 
     public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<UserRepository> logger)
     {
@@ -244,6 +247,27 @@ public class UserRepository : IUserRepository
             throw ex;
         }
     }
+    private  DateTime GetLocalTime(string TimeZoneId, DateTime? ParamTime = null)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(TimeZoneId))
+                TimeZoneId = "GMT Standard Time";
+
+            DateTime retDate = DateTime.Now.ToUniversalTime();
+
+            DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
+
+            DateTime timeUtc = DateTime.UtcNow;
+
+            TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId);
+            retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
+
+            return retDate;
+        }
+        catch (Exception ex) { throw ex; }
+        return DateTime.Now;
+    }
 
     private string Left(string str, int lngth, int stpoint = 0)
     {
@@ -408,6 +432,138 @@ public class UserRepository : IUserRepository
         {
             return null;
         }
+    }   
+
+
+    public async Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search, string orderBy, string orderDir, bool ActiveOnly, string? CompanyKey)
+    {
+        try
+        {
+
+            var SearchString = (Search != null) ? Search : string.Empty;           
+
+
+            var pCompanyId = new SqlParameter("@CompanyID", companyID);
+            var pUserID = new SqlParameter("@UserID", userID);
+            var pObjMapID = new SqlParameter("@ObjMapID", ObjMapID);
+            var pTargetID = new SqlParameter("@TargetID", TargetID);
+            var pRecordStart = new SqlParameter("@RecordStart", Start);
+            var pRecordLength = new SqlParameter("@RecordLength", Length);
+            var pSearchString = new SqlParameter("@SearchString", SearchString);
+            var pOrderBy = new SqlParameter("@OrderBy", orderBy);
+            var pOrderDir = new SqlParameter("@OrderDir", orderDir);
+            var pActiveOnly = new SqlParameter("@ActiveOnly", ActiveOnly);
+            var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
+
+            var MainUserlist = new List<MemberUser>();
+            var propertyInfo = typeof(MemberUser).GetProperty(orderBy);
+            if (memberShipType.ToMemString().ToUpper() == MemberShipType.NON_MEMBER.ToMemString().ToUpper())
+            {
+                if (orderDir == "desc" && propertyInfo != null)
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_Members,  @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                    .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+                else if (orderDir == "asc" && propertyInfo != null)
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_Members, @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+                else
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_Members @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey).ToListAsync();
+
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    }).ToList();
+                }
+
+                return MainUserlist;
+            }
+
+            else
+            {
+                if (orderDir == "desc" && propertyInfo != null)
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_NonMembers,  @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                        .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+                else if (orderDir == "asc" && propertyInfo != null)
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_NonMembers, @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+                else
+                {
+                    MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_NonMembers @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                           pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                        .ToListAsync();
+
+
+                    MainUserlist.Select(c =>
+                    {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    }).ToList();
+                }
+
+                return MainUserlist;
+            }
+
+           
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+        
     }
 
     private string GetCompanyName(int companyId)
@@ -651,4 +807,95 @@ public class UserRepository : IUserRepository
             return false;
         }
     }
+
+    public async Task<bool> UpdateGroupMember(int TargetID, int UserID, int ObjMapID, string Action)
+    {
+        try
+        {
+            int CurrentUserId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            int CompanyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            if (Action.ToUpper() == action.ToUpper() && ObjMapID > 0)
+            {
+                await CreateNewObjectRelation(TargetID, UserID, ObjMapID, CurrentUserId, timeZoneId);
+            }
+            else if (ObjMapID > 0)
+            {
+                var DelOBjs = await _context.Set<ObjectRelation>().Where(OJR => OJR.ObjectMappingId == ObjMapID
+                                                                  && OJR.SourceObjectPrimaryId == TargetID && OJR.TargetObjectPrimaryId == UserID).FirstOrDefaultAsync();
+
+                if (DelOBjs != null)
+                {
+                    _context.Set<ObjectRelation>().Remove(DelOBjs);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                await UpdateUserDepartment(UserID, TargetID, Action, CurrentUserId, CompanyId, timeZoneId);
+            }
+
+            return true;
+        }
+        catch (Exception ex) {
+            return false;
+        }
+    }
+    public async Task UpdateUserDepartment(int UserID, int DepartmentID, string Action, int CurrentUserId, int CompanyId, string TimeZoneId)
+    {
+        try
+        {
+
+            var user = await _context.Set<User>().Where(U => U.UserId == UserID && U.CompanyId == CompanyId).FirstOrDefaultAsync();
+            if (user != null)
+            {
+                if (Action.ToUpper() ==action.ToUpper())
+                {
+                    user.DepartmentId = DepartmentID;
+                }
+                else
+                {
+                    user.DepartmentId = 0;
+                }
+                user.UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                user.UpdatedBy = CurrentUserId;
+                _context.Update(user);
+               await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error occured while seeding the database {0}, {1}", ex.Message, ex.InnerException);
+        }
+    }
+    public async Task CreateNewObjectRelation(int SourceObjectID, int TargetObjectID, int ObjMapId, int CreatedUpdatedBy, string TimeZoneId)
+    {
+        try
+        {
+           
+            bool IsALLOBJrelationExist = await _context.Set<ObjectRelation>().Where(OBR => OBR.TargetObjectPrimaryId == TargetObjectID
+                                          && OBR.ObjectMappingId == ObjMapId
+                                          && OBR.SourceObjectPrimaryId == SourceObjectID).AnyAsync();
+            if (!IsALLOBJrelationExist)
+            {
+                ObjectRelation tblDepObjRel = new ObjectRelation()
+                {
+                    TargetObjectPrimaryId = TargetObjectID,
+                    ObjectMappingId = ObjMapId,
+                    SourceObjectPrimaryId = SourceObjectID,
+                    CreatedBy = CreatedUpdatedBy,
+                    UpdatedBy = CreatedUpdatedBy,
+                    CreatedOn = System.DateTime.Now,
+                    UpdatedOn = GetLocalTime(TimeZoneId,DateTime.UtcNow),
+                    ReceiveOnly = false
+                };
+               await _context.AddAsync(tblDepObjRel);
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error occured while seeding the database {0}, {1}", ex.Message, ex.InnerException);
+        }
+    }
+
 }

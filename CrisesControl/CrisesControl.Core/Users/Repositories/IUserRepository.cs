@@ -1,5 +1,8 @@
-﻿using CrisesControl.Core.CompanyParameters;
+﻿using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Models;
+using CrisesControl.SharedKernel.Enums;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,7 +31,8 @@ public interface IUserRepository
     void CreateSMSTriggerRight(int CompanyId, int UserId, string UserRole, bool SMSTrigger, string ISDCode, string MobileNo, bool Self = false);
     void UserCommsPriority(int UserID, List<CommsMethodPriority> CommsMethod, int CurrentUserID, int CompanyID, CancellationToken token);
     void UserCommsMethods(int UserId, string MethodType, int[] MethodId, int CurrentUserID, int CompanyID, string TimeZoneId);
-
+    Task<bool> UpdateGroupMember(int TargetID, int UserID, int ObjMapID, string Action);
     Task<User> GetRegisteredUserInfo(int CompanyId, int userId);
     Task<bool> UpdateUserMsgGroups(List<UserGroup> UserGroups);
+    Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search,string orderBy,string orderDir, bool ActiveOnly, string? CompanyKey);
 }

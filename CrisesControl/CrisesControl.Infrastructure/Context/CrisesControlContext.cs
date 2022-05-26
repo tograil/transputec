@@ -59,6 +59,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ResponseSummary>().HasNoKey();
             modelBuilder.Entity<MessageReporting>().HasNoKey();
             modelBuilder.Entity<IncidentMessageDetails>().HasNoKey();
+            modelBuilder.Entity<MemberUser>().HasNoKey().Ignore("UserFullName");
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
@@ -72,6 +73,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<UpdateIncidentStatusReturn>().HasNoKey();
             modelBuilder.Entity<IncidentDetails>().HasNoKey();
             modelBuilder.Entity<CommsMethods>().HasNoKey();
+            modelBuilder.Entity<PingGroupChartCount>().HasNoKey();
+            modelBuilder.Entity<DeliveryOutput>().HasNoKey();
 
             modelBuilder.Entity<AckOption>().HasNoKey();
             modelBuilder.Entity<IncKeyCons>().HasNoKey();
