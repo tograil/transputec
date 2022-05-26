@@ -16,11 +16,13 @@ using CrisesControl.Core.Queues.Services;
 using CrisesControl.Core.Settings.Repositories;
 using CrisesControl.Infrastructure.Services;
 using Microsoft.Extensions.Caching.Memory;
+using CrisesControl.Core.Billing.Repositories;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Communication.Repositories;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Communication.Repositories;
+using Microsoft.Extensions.Caching.Memory;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.ExTriggers.Repositories;
 using CrisesControl.Core.Jobs.Services;
@@ -86,6 +88,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<IncidentService>().As<IIncidentService>();
             builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
             builder.RegisterType<ExTriggerRepository>().As<IExTriggerRepository>();
+            builder.RegisterType<ScheduleService>().As<IScheduleService>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

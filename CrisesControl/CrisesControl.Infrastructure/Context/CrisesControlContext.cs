@@ -74,6 +74,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<IncidentDetails>().HasNoKey();
             modelBuilder.Entity<CommsMethods>().HasNoKey();
             modelBuilder.Entity<PingGroupChartCount>().HasNoKey();
+            modelBuilder.Entity<DeliveryOutput>().HasNoKey();
             modelBuilder.Entity<TrackUserCount>().HasNoKey();
 
             modelBuilder.Entity<AckOption>().HasNoKey();
