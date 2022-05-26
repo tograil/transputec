@@ -46,8 +46,6 @@ namespace CrisesControl.Api.Application.Behaviours
             await _auditLogService.SaveAuditData(auditLogEntry);
 
             return response;
-
-            //throw new NotImplementedException();
         }
     }
 }
