@@ -10,6 +10,7 @@ using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Compatibility;
+using CrisesControl.Api.Maintenance.Interfaces;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -19,13 +20,15 @@ namespace CrisesControl.Api.Application.Query
         private readonly IMapper _mapper;
         private readonly ILogger<ReportsQuery> _logger;
         private readonly ICurrentUser _currentUser;
+        private readonly IPaging _paging;
 
         public ReportsQuery(IReportsRepository reportRepository, IMapper mapper,
-            ILogger<ReportsQuery> logger, ICurrentUser currentUser) {
+            ILogger<ReportsQuery> logger, ICurrentUser currentUser, IPaging paging) {
             _mapper = mapper;
             _reportRepository = reportRepository;
             _currentUser = currentUser;
             _logger= logger;
+            _paging= paging;
         }
 
         public async Task<GetSOSItemsResponse> GetSOSItems(GetSOSItemsRequest request) {
@@ -49,7 +52,7 @@ namespace CrisesControl.Api.Application.Query
         }
         public async Task<GetIndidentMessageAckResponse> GetIndidentMessageAck(GetIndidentMessageAckRequest request)
         {
-            var stats = await _reportRepository.GetIndidentMessageAck(request.MessageId, request.MessageAckStatus, request.MessageSentStatus, request.Start,request.Length,request.SearchString,request.order,request.draw ?? default(int),request.Filters,request.CompanyKey, request.Source="WEB");
+            var stats = await _reportRepository.GetIndidentMessageAck(request.MessageId, request.MessageAckStatus, request.MessageSentStatus, _paging.PageNumber, _paging.PageSize, request.SearchString,_paging.OrderBy,request.OrderDir,request.draw ?? default(int),request.Filters,request.CompanyKey, request.Source="WEB");
 
             var response = _mapper.Map<List<MessageAcknowledgements>>(stats);
             var result = new GetIndidentMessageAckResponse();
@@ -94,7 +97,7 @@ namespace CrisesControl.Api.Application.Query
                 GetMessageDeliveryReportResponse rtn = new GetMessageDeliveryReportResponse();
                 rtn.draw = request.draw;
 
-                var Report = await _reportRepository.GetMessageDeliveryReport(request.StartDate, request.EndDate, request.start ?? 0, request.length ?? 0, request.search ?? string.Empty, request.order , request.CompanyKey ?? string.Empty);
+                var Report = await _reportRepository.GetMessageDeliveryReport(request.StartDate, request.EndDate, _paging.PageNumber, _paging.PageSize, request.search ?? string.Empty,_paging.OrderBy, request.OrderDir , request.CompanyKey ?? string.Empty);
                 var response = _mapper.Map<List<DeliveryOutput>>(Report);
                 if (Report != null)
                 {
@@ -102,12 +105,9 @@ namespace CrisesControl.Api.Application.Query
                     rtn.recordsFiltered = Report.Count;
                     rtn.data = response;
                 }
-                request.order= new List<Order>()
-                {
-                 new Order {column = "M.MessageId", dir = "desc"}
-                };
+                
 
-                var TotalList = await _reportRepository.GetMessageDeliveryReport(request.StartDate, request.EndDate, 0, int.MaxValue, "",request.order, request.CompanyKey);
+                var TotalList = await _reportRepository.GetMessageDeliveryReport(request.StartDate, request.EndDate, 0, int.MaxValue, "", "M.MessageId", "desc", request.CompanyKey);
                 var responseTotal = _mapper.Map<List<DeliveryOutput>>(TotalList);
                 if (TotalList != null)
                 {

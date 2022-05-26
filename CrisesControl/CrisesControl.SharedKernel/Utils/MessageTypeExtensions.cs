@@ -42,7 +42,7 @@ public static class MessageTypeExtensions
         {
             MemberShipType.NON_MEMBER => "Non-Member",
             MemberShipType.MEMBER => "Member",
-            
+
             _ => throw new ArgumentOutOfRangeException(nameof(membershipType), membershipType, null)
         };
     }

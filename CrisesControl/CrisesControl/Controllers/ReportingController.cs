@@ -65,7 +65,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpGet]     
+        [HttpGet]
         [Route("GetIndidentMessageAck/{MessageId:int}/{MessageAckStatus:int}/{MessageSentStatus:int}")]
         public async Task<IActionResult> GetIndidentMessageAck([FromRoute] IncidentMsgAckRequestRoute requestRoute,
             [FromQuery] IncidentMsgAckRequestQuery requestQuery, CancellationToken cancellationToken)
@@ -74,13 +74,12 @@ namespace CrisesControl.Api.Controllers {
             request.MessageId = requestRoute.MessageId;
             request.MessageAckStatus = requestRoute.MessageAckStatus;
             request.MessageSentStatus = requestRoute.MessageSentStatus;
-            request.Start= requestQuery.Start;
-            request.Length= requestQuery.Length;
-            request.SearchString= requestQuery.SearchString;
-            request.Source= requestQuery.Source;
+            request.SearchString = requestQuery.SearchString;
+            request.OrderDir = requestQuery.OrderDir;
+            request.Source = requestQuery.Source;
             request.draw = requestQuery.draw;
-            request.CompanyKey= requestQuery.CompanyKey;
-            request.Filters= requestQuery.Filters;
+            request.CompanyKey = requestQuery.CompanyKey;
+            request.Filters = requestQuery.Filters;
 
             var result = await _mediator.Send(request, cancellationToken);
 
@@ -117,17 +116,15 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetMessageDeliveryReport/{StartDate}/{EndDate}")]
-        public async Task<IActionResult> GetMessageDeliveryReport([FromRoute] GetMessageDeliveryReportRouteRequest routeRequest,[FromQuery] GetMessageDeliveryReportQueryRequest queryRequest, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetMessageDeliveryReport([FromRoute] GetMessageDeliveryReportRouteRequest routeRequest, [FromQuery] GetMessageDeliveryReportQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             GetMessageDeliveryReportRequest request = new GetMessageDeliveryReportRequest();
-            request.CompanyKey=queryRequest.CompanyKey;
-            request.draw=queryRequest.draw;
-            request.start=queryRequest.start;
-            request.search=queryRequest.search;
-            request.length=queryRequest.length;
-            request.order=queryRequest.order;
-            request.StartDate=routeRequest.StartDate;
-            request.EndDate=routeRequest.EndDate;
+            request.CompanyKey = queryRequest.CompanyKey;
+            request.draw = queryRequest.draw;
+            request.search = queryRequest.search;
+            request.OrderDir = queryRequest.OrderDir;
+            request.StartDate = routeRequest.StartDate;
+            request.EndDate = routeRequest.EndDate;
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);

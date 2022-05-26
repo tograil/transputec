@@ -11,12 +11,12 @@ namespace CrisesControl.Core.Reports.Repositories {
         public Task<List<SOSItem>> GetSOSItems();
         public Task<List<IncidentPingStatsCount>> GetIncidentPingStats(int CompanyID, int NoOfMonth);
         Task<List<ResponseSummary>> ResponseSummary(int MessageID);
-        Task<dynamic> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int start, int length, string search,
-             List<Order>? order, int draw, string Filters, string CompanyKey, string Source);
+        Task<DataTablePaging> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int RecordStart, int RecordLength, string search,
+             string OrderBy, string OrderDir, int draw, string Filters, string CompanyKey, string Source = "WEB");
         Task<List<DataTablePaging>> GetIndidentMessageNoAck(int draw, int IncidentActivationId
         ,int RecordStart, int RecordLength, string? SearchString, string? UniqueKey);
         Task<List<PingGroupChartCount>> GetPingReportChart(DateTime StartDate, DateTime EndDate, int GroupID, string MessageType, int ObjectMappingID);
         Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
-        Task<List<DeliveryOutput>> GetMessageDeliveryReport(DateTimeOffset StartDate, DateTimeOffset EndDate, int start, int length, string search, List<Order> order, string CompanyKey);
+        Task<List<DeliveryOutput>> GetMessageDeliveryReport(DateTimeOffset StartDate, DateTimeOffset EndDate, int start, int length, string search, string OrderBy,string OrderDir, string CompanyKey);
     }
 }
