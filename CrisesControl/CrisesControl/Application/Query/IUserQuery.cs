@@ -9,8 +9,8 @@ namespace CrisesControl.Api.Application.Query
 {
     public interface IUserQuery
     {
-        public Task<GetUsersResponse> GetUsers(GetUsersRequest request);
-        public Task<GetUserResponse> GetUser(GetUserRequest request);
+        public Task<GetUsersResponse> GetUsers(GetUsersRequest request, CancellationToken cancellationToken);
+        public Task<GetUserResponse> GetUser(GetUserRequest request, CancellationToken cancellationToken);
         public Task<LoginResponse> GetLoggedInUserInfo(LoginRequest request, CancellationToken cancellationToken);
         public Task<ActivateUserResponse> ReactivateUser(int queriedUserId, CancellationToken cancellationToken);
 
