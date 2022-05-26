@@ -9,11 +9,9 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck
        
         public int MessageId { get; set; }
         public int MessageAckStatus { get; set; }
-        public int MessageSentStatus { get; set; }
-        public int Start { get; set; }
-        public int Length { get; set; }
+        public int MessageSentStatus { get; set; }       
         public string? SearchString { get; set; }
-        public List<Order>? order { get; set; }
+        public string OrderDir { get; set; }
         public int? draw { get; set; }
         public string? Filters { get; set; }
         public string? CompanyKey { get; set; }
@@ -33,7 +31,7 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck
         public int Start { get; set; }
         public int Length { get; set; }
         public string? SearchString { get; set; }
-        public List<Order>? order { get; set; }
+        public string OrderDir { get; set; }
         public int? draw { get; set; }
         public string? Filters { get; set; }
         public string? CompanyKey { get; set; }

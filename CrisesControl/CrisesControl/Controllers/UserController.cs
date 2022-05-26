@@ -6,7 +6,6 @@ using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.UpdateGroupMember;
 using CrisesControl.Api.Application.Commands.Users.UpdateProfile;
-using CrisesControl.Api.Application.Commands.Users.MemberShipList;
 using CrisesControl.Api.Application.Commands.Users.UpdateUser;
 using CrisesControl.Api.Application.Commands.Users.UpdateUserGroup;
 using MediatR;
@@ -14,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using UserModel = CrisesControl.Core.Models.EmptyUser;
+using CrisesControl.Api.Application.Commands.Users.MembershipList;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -96,8 +96,8 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet("MembershipList")]       
-        public async Task<IActionResult> MembershipList([FromRoute] MembershipRequest request, CancellationToken cancellationToken)
+        [HttpGet("MembershipList")]
+        public async Task<IActionResult> MembershipList([FromQuery] MembershipRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

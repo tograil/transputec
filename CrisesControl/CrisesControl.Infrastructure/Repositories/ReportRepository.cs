@@ -76,20 +76,16 @@ namespace CrisesControl.Infrastructure.Repositories {
             return new List<IncidentPingStatsCount>();
         }
 
-        public async Task<dynamic> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int start, int length, string search,
-             List<Order>? order, int draw, string Filters, string CompanyKey,  string Source="WEB")
+        public async Task<DataTablePaging> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int RecordStart, int RecordLength, string search,
+             string OrderBy, string OrderDir, int draw, string Filters, string CompanyKey, string Source="WEB")
         {
             try
             {
                 const string ord = "PrimaryEmail";
                 const string dir = "asc";
                 UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-                var RecordStart = start == 0 ? 0 : start;
-                var RecordLength = length == 0 ? int.MaxValue : length;
                 var SearchString = (search != null) ? search: string.Empty;
-                string OrderDir = order != null ? order.FirstOrDefault().dir : "asc";
-                string OrderBy = order != null ? order.FirstOrDefault().column : "DateAcknowledge";
-
+                
                 if (string.IsNullOrEmpty(OrderBy))
                     OrderBy = ord;
 
@@ -302,15 +298,13 @@ namespace CrisesControl.Infrastructure.Repositories {
                 return Default;
             }
         }
-        public async Task<List<DeliveryOutput>> GetMessageDeliveryReport(DateTimeOffset StartDate, DateTimeOffset EndDate, int start, int length, string search, List<Order>order, string CompanyKey)
+        public async Task<List<DeliveryOutput>> GetMessageDeliveryReport(DateTimeOffset StartDate, DateTimeOffset EndDate, int start, int length, string search, string OrderBy, string OrderDir, string CompanyKey)
         {
             try
             {
-                var RecordStart = start == 0 ? 0 : start;
-                var RecordLength = length == 0 ? int.MaxValue : length;
+           
                 var SearchString = (search != null) ? search : string.Empty;
-                string OrderBy = order != null ? order.FirstOrDefault().column : "M.MessageId";
-                string OrderDir = order != null ? order.FirstOrDefault().dir : "desc";
+                
 
                 UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
                 CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
@@ -318,8 +312,8 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var pEndDate = new SqlParameter("@EndDate", EndDate);
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
                 var pUserID = new SqlParameter("@UserID", UserID);
-                var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
-                var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+                var pRecordStart = new SqlParameter("@RecordStart", start);
+                var pRecordLength = new SqlParameter("@RecordLength", length);
                 var pSearchString = new SqlParameter("@SearchString", SearchString);
                 var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
                 var pOrderDir = new SqlParameter("@OrderDir", OrderDir);

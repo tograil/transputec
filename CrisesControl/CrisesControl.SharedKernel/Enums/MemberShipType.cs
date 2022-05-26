@@ -12,4 +12,4 @@ public enum MemberShipType
     NON_MEMBER,
     MEMBER
 }
-}
+
