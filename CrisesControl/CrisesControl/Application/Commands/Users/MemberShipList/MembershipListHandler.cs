@@ -12,7 +12,7 @@ namespace CrisesControl.Api.Application.Commands.Users.MembershipList
          _userQuery= userQuery;
         }
         public async Task<MembershipResponse> Handle(MembershipRequest request, CancellationToken cancellationToken)
-        {          
+        {
             var usersMember = await _userQuery.MembershipList(request);
             return usersMember;
         }

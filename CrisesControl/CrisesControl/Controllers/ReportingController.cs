@@ -1,6 +1,8 @@
 ﻿using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetPingReportChart;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Api.Application.Query;
@@ -64,9 +66,22 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]     
-        [Route("GetIndidentMessageAck/{CompanyID:int}/{MessageId:int}/{MessageAckStatus:int}/{MessageSentStatus:int}/{RecordStart:int}/{RecordLength:int}/{SearchString}")]
-        public async Task<IActionResult> GetIndidentMessageAck([FromRoute] GetIndidentMessageAckRequest request, CancellationToken cancellationToken)
+        [Route("GetIndidentMessageAck/{MessageId:int}/{MessageAckStatus:int}/{MessageSentStatus:int}")]
+        public async Task<IActionResult> GetIndidentMessageAck([FromRoute] IncidentMsgAckRequestRoute requestRoute,
+            [FromQuery] IncidentMsgAckRequestQuery requestQuery, CancellationToken cancellationToken)
         {
+            GetIndidentMessageAckRequest request = new GetIndidentMessageAckRequest();
+            request.MessageId = requestRoute.MessageId;
+            request.MessageAckStatus = requestRoute.MessageAckStatus;
+            request.MessageSentStatus = requestRoute.MessageSentStatus;
+            request.Start= requestQuery.Start;
+            request.Length= requestQuery.Length;
+            request.SearchString= requestQuery.SearchString;
+            request.Source= requestQuery.Source;
+            request.draw = requestQuery.draw;
+            request.CompanyKey= requestQuery.CompanyKey;
+            request.Filters= requestQuery.Filters;
+
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);
@@ -79,8 +94,40 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("ResponseSummary/{MessageID:int}")]
-        public async Task<IActionResult> ResponseSummary([FromQuery] ResponseSummaryRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> ResponseSummary([FromRoute] ResponseSummaryRequest request, CancellationToken cancellationToken)
         {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetUserPingReportBarChart/{StartDate}/{EndDate}")]
+        public async Task<IActionResult> GetUserPingReportBarChart([FromRoute] GetPingReportChartRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get the response summary
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetMessageDeliveryReport/{StartDate}/{EndDate}")]
+        public async Task<IActionResult> GetMessageDeliveryReport([FromRoute] GetMessageDeliveryReportRouteRequest routeRequest,[FromQuery] GetMessageDeliveryReportQueryRequest queryRequest, CancellationToken cancellationToken)
+        {
+            GetMessageDeliveryReportRequest request = new GetMessageDeliveryReportRequest();
+            request.CompanyKey=queryRequest.CompanyKey;
+            request.draw=queryRequest.draw;
+            request.start=queryRequest.start;
+            request.search=queryRequest.search;
+            request.length=queryRequest.length;
+            request.order=queryRequest.order;
+            request.StartDate=routeRequest.StartDate;
+            request.EndDate=routeRequest.EndDate;
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);

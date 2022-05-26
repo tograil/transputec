@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.SharedKernel.Enums
-{
-    public enum MemberShipType
-    {
+namespace CrisesControl.SharedKernel.Enums;
 
-        NON_MEMBER,
-        MEMBER
-    }
+public enum MemberShipType
+{ 
+
+    NON_MEMBER,
+    MEMBER
+}
 }

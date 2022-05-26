@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.CompanyParameters;
+﻿using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Models;
 using CrisesControl.SharedKernel.Enums;

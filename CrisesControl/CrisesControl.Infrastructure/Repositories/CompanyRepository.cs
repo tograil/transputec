@@ -40,7 +40,7 @@ public class CompanyRepository : ICompanyRepository
             .Include(x => x.Users.Where(u => u.UserRole == "SUPERADMIN"))
             .Include(x => x.PackagePlan)
             .Include(x => x.CompanyPaymentProfiles)
-            .Where(x => 
+            .Where(x =>
                 (currentStatus > 0 && currentCompanyProfile == "ON_TRIAL" && x.OnTrial && x.Status == currentStatus)
                 || (currentStatus > 0 && currentCompanyProfile == "ALL" && x.Users.Any(y => y.RegisteredUser) && x.Status == currentStatus)
                 || (currentStatus > 0 && currentCompanyProfile == "" && x.Users.Any(y => y.RegisteredUser) && x.Status == currentStatus)
@@ -63,7 +63,7 @@ public class CompanyRepository : ICompanyRepository
         {
             var lkp = await _context.Set<CompanyParameter>()
                 .FirstOrDefaultAsync(x => x.Name == key && x.CompanyId == companyId);
-            
+
             if (lkp != null)
             {
                 @default = lkp.Value;
@@ -112,6 +112,30 @@ public class CompanyRepository : ICompanyRepository
         return (await _context.Set<Company>()
             .Include(x => x.StdTimeZone)
             .FirstOrDefaultAsync(x => x.CompanyId == companyId))?.StdTimeZone?.ZoneLabel ?? "GMT Standard Time";
+    }
+    public async Task<Company> GetCompanyByID(int companyId)        
+    {
+        return await _context.Set<Company>().Include(x=>x.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
+    }
+    public async Task<int> UpdateCompanyDRPlan(Company company)
+    {
+      
+        _context.Entry(company).State = EntityState.Modified;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation($"Updated Company DR Plan {company.CompanyId}");
+
+        return company.CompanyId;
+    }
+
+    public async Task<int> UpdateCompanyLogo(Company company)
+    {
+        _context.Entry(company).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+        _logger.LogInformation($"Updated Company logo for {company.CompanyId}");
+
+        return company.CompanyId;
     }
 
     public async Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token)
@@ -179,11 +203,5 @@ public class CompanyRepository : ICompanyRepository
 
            
     }
-
-   
-        public async Task<Company> GetCompanyByID(int companyId)
-        {
-            return await _context.Set<Company>().Include(x => x.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
-        }
     
 }
