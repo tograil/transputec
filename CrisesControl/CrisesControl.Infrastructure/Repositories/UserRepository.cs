@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
@@ -410,7 +411,7 @@ public class UserRepository : IUserRepository
         }
     }
 
-   
+
     public async Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search, List<Order>? order, bool ActiveOnly, string? CompanyKey)
     {
         try
@@ -535,7 +536,7 @@ public class UserRepository : IUserRepository
 
                 return MainUserlist;
             }
-        }
+        
             return null;
         }
         catch (Exception ex)
