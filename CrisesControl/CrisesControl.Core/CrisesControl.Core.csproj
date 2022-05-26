@@ -40,6 +40,8 @@
     <Folder Include="Messages\Repositories\" />
     <Folder Include="Queues\Maps\" />
     <Folder Include="Queues\Repositories\" />
+    <Folder Include="Queues\Services\" />
+    <Folder Include="Settings\Repositories\" />
   </ItemGroup>
 
 </Project>

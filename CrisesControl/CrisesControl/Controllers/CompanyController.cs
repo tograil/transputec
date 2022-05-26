@@ -1,4 +1,7 @@
-﻿using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
+﻿using CrisesControl.Api.Application.Commands.Companies.UpdateCompanyDRPlan;
+using CrisesControl.Api.Application.Commands.Companies.UpdateCompanyLogo;
+using CrisesControl.Api.Application.Query;
+using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.Commands.Companies.UpdateCompany;
 using MediatR;
@@ -54,5 +57,21 @@ public class CompanyController : Controller
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
+    [HttpPut]
+    [Route("UpdateCompanyDRP")]
+    public async Task<IActionResult> UpdateCompanyDRP([FromBody] UpdateCompanyDRPlanRequest request,
+    CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
 
+        return Ok(result);
+    }
+    [HttpPut]
+    [Route("UpdateCompanyLogo")]
+    public async Task<IActionResult> UpdateCompanyLogo([FromBody] UpdateCompanyLogoRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
 }
