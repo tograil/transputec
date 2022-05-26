@@ -27,6 +27,14 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
+    "IIS Express Denish": {
+      "commandName": "IISExpress",
+      "launchBrowser": false,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Denish"
+      }
+    },
     "Docker": {
       "commandName": "Docker",
       "launchBrowser": true,
