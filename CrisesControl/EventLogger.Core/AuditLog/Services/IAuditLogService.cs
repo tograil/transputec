@@ -2,6 +2,6 @@
 {
     public interface IAuditLogService
     {
-        Task SaveAuditLog();
+        Task SaveAuditLog(AuditLogEntry auditLogEntry);
     }
 }

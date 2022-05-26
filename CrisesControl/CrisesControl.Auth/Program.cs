@@ -1,5 +1,6 @@
 using Autofac.Extensions.DependencyInjection;
 using CrisesControl.Auth;
+using CrisesControl.Auth.Config;
 using CrisesControl.Core.AuditLog.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
@@ -7,6 +8,7 @@ using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Infrastructure.Identity;
 using CrisesControl.Infrastructure.Services;
+using GrpcAuditLogClient;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -76,6 +78,13 @@ builder.Services.AddOpenIddict()
 builder.Services.AddIdentity<User, IdentityRole>()
     .AddUserStore<UserStore>()
     .AddUserManager<CrisesControlUserManager>();
+
+var auditLogSettings = builder.Configuration.GetSection("AuditLog").Get<AuditLogOptions>();
+
+builder.Services.AddGrpcClient<AuditLogGrpc.AuditLogGrpcClient>(o =>
+{
+    o.Address = new Uri(auditLogSettings.ServerAddress);
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

@@ -14,7 +14,13 @@ namespace CrisesControl.Infrastructure.Services
 {
     public class AuditLogService : IAuditLogService
     {
-        private readonly List<SaveChangesAudit> _changes = new List<SaveChangesAudit>();
+        private readonly List<SaveChangesAudit> _changes = new();
+        private readonly AuditLogGrpc.AuditLogGrpcClient _auditLogGrpcClient;
+
+        public AuditLogService(AuditLogGrpc.AuditLogGrpcClient auditLogGrpcClient)
+        {
+            _auditLogGrpcClient = auditLogGrpcClient;
+        }
 
         public void AppendDataAudit(SaveChangesAudit saveChangesAudit)
         {
@@ -28,17 +34,14 @@ namespace CrisesControl.Infrastructure.Services
 
         public async Task SaveAuditData(AuditLogEntry auditLogEntry)
         {
-            var channel = GrpcChannel.ForAddress("http://localhost:5005");
-
-            var client = new AuditLogGrpc.AuditLogGrpcClient(channel);
-
-            await client.AddLogEntryAsync(new AuditLogValue
+            await _auditLogGrpcClient.AddLogEntryAsync(new AuditLogValue
             {
                 CompanyId = auditLogEntry.CompanyId,
                 UserId = auditLogEntry.UserId,
                 Request = JsonConvert.SerializeObject(auditLogEntry.Request),
                 Response = JsonConvert.SerializeObject(auditLogEntry.Response),
-                SaveChangesAudit = JsonConvert.SerializeObject(auditLogEntry.SaveChangesAuditCollection)
+                SaveChangesAudit = JsonConvert.SerializeObject(auditLogEntry.SaveChangesAuditCollection),
+                RequestName = auditLogEntry.RequestName
             });
         }
     }

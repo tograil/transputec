@@ -1,9 +1,16 @@
 using EventLogger.Core.AuditLog.Services;
+using EventLogger.Core.Mongo.Repositories;
+using EventLogger.Core.Mongo.Settings;
 using EventLogger.Grpc.Services;
+using EventLogger.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.Configure<AuditLogMongoOptions>(
+    builder.Configuration.GetSection(AuditLogMongoOptions.AuditLogMongo));
+
 builder.Services.AddTransient<IAuditLogService, EventLogger.Infrastructure.Services.AuditLogService>();
+builder.Services.AddTransient<IMongoRepositoryFactory, MongoRepositoryFactory>();
 
 // Add services to the container.
 builder.Services.AddGrpc();

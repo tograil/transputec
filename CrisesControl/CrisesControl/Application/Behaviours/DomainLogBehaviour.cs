@@ -7,7 +7,7 @@ using MediatR.Pipeline;
 namespace CrisesControl.Api.Application.Behaviours
 {
     public class DomainLogBehaviour<TRequest, TResponse> 
-        : IRequestPostProcessor<TRequest, TResponse> where TRequest: IRequest<TResponse>
+        : IPipelineBehavior<TRequest, TResponse> where TRequest: IRequest<TResponse>
     {
         private readonly IAuditLogService _auditLogService;
         private readonly ICurrentUser _currentUser;
@@ -18,8 +18,10 @@ namespace CrisesControl.Api.Application.Behaviours
             _currentUser = currentUser;
         }
 
-        public async Task Process(TRequest request, TResponse response, CancellationToken cancellationToken)
+        public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken, RequestHandlerDelegate<TResponse> next)
         {
+            var response = await next();
+
             var savedData = _auditLogService.GetSaveChangesAudit();
             var userId = _currentUser.UserId;
             var companyId = _currentUser.CompanyId;
@@ -28,12 +30,17 @@ namespace CrisesControl.Api.Application.Behaviours
             {
                 CompanyId = companyId,
                 UserId = userId,
+                RequestName = request.GetType().Name,
                 SaveChangesAuditCollection = savedData.ToArray(),
                 Request = request,
                 Response = response
             };
 
             await _auditLogService.SaveAuditData(auditLogEntry);
+
+            return response;
+
+            //throw new NotImplementedException();
         }
     }
 }

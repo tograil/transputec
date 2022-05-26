@@ -1,6 +1,7 @@
 ﻿using EventLogger.Core.AuditLog;
 using EventLogger.Core.AuditLog.Services;
 using Grpc.Core;
+using MongoDB.Bson;
 using Newtonsoft.Json;
 
 namespace EventLogger.Grpc.Services
@@ -13,11 +14,21 @@ namespace EventLogger.Grpc.Services
             _auditLogService = auditLogService;
         }
 
-        public override Task<AuditLogResult> AddLogEntry(AuditLogValue request, ServerCallContext context)
+        public override async Task<AuditLogResult> AddLogEntry(AuditLogValue request, ServerCallContext context)
         {
-            var saveData = JsonConvert.DeserializeObject<ICollection<SaveChangesAudit>>(request.SaveChangesAudit);
+            var entry = new AuditLogEntry
+                {
+                    SaveChangesAuditCollection = BsonDocument.Parse($"{{ \"DatabaseChanges\": {request.SaveChangesAudit} }}"),
+                    CommandName = request.RequestName,
+                    CompanyId = request.CompanyId,
+                    Response = BsonDocument.Parse(request.Request),
+                    Request = BsonDocument.Parse(request.Request),
+                    UserId = request.UserId
+                };
 
-            return base.AddLogEntry(request, context);
+            await _auditLogService.SaveAuditLog(entry);
+
+            return new AuditLogResult();
         }
 
         public override Task<AuditLogListResponse> GetLogsByCompany(AuditLogListRequest request, ServerCallContext context)

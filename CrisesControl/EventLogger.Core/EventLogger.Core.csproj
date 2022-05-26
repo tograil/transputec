@@ -8,6 +8,13 @@
 
   <ItemGroup>
     <Folder Include="AuditLog\Services\" />
+    <Folder Include="Mongo\Settings\" />
+    <Folder Include="Mongo\Repositories\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Bson" Version="2.15.1" />
+    <PackageReference Include="MongoDB.Driver" Version="2.15.1" />
   </ItemGroup>
 
   <ItemGroup>

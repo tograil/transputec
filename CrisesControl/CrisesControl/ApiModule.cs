@@ -13,12 +13,14 @@ public class ApiModule : Module
 {
     protected override void Load(ContainerBuilder builder)
     {
-        builder.RegisterMediatR(ThisAssembly);
-
         builder.RegisterAssemblyTypes(ThisAssembly)
             .AsClosedTypesOf(typeof(AbstractValidator<>));
 
         builder.RegisterAutoMapper(ThisAssembly);
+
+        //builder.RegisterGeneric(typeof(DomainLogBehaviour<,>)).As(typeof(IRequestPostProcessor<,>)).InstancePerDependency();
+
+        builder.RegisterMediatR(ThisAssembly, typeof(DomainLogBehaviour<,>));
 
         builder.RegisterType<CompanyQuery>().As<ICompanyQuery>();
         builder.RegisterType<BillingQuery>().As<IBillingQuery>();
