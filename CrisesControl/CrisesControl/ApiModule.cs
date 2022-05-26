@@ -18,8 +18,6 @@ public class ApiModule : Module
 
         builder.RegisterAutoMapper(ThisAssembly);
 
-        //builder.RegisterGeneric(typeof(DomainLogBehaviour<,>)).As(typeof(IRequestPostProcessor<,>)).InstancePerDependency();
-
         builder.RegisterMediatR(ThisAssembly, typeof(DomainLogBehaviour<,>));
 
         builder.RegisterType<CompanyQuery>().As<ICompanyQuery>();
