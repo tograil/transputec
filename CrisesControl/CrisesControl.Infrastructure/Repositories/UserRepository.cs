@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
@@ -559,13 +560,12 @@ public class UserRepository : IUserRepository
                 return MainUserlist;
             }
         }
-            return null;
-        }
         catch (Exception ex)
         {
             return null;
         }
-    }
+            return null;
+       }
 
     private string GetCompanyName(int companyId)
     {
@@ -899,4 +899,16 @@ public class UserRepository : IUserRepository
         }
     }
 
+    public async Task<List<GetUserComms>> GetUserComms(int commsUserId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _context.Set<UserComm>().Where(uc => uc.UserId == commsUserId).Select(uc => new GetUserComms { MessageType = uc.MessageType, MethodId = uc.MethodId }).ToListAsync();
+            return response;
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+    }
 }

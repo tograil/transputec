@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Users.ActivateUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
+using CrisesControl.Api.Application.Commands.Users.GetUserComms;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Core.Models;
@@ -49,6 +50,13 @@ namespace CrisesControl.Api.Application.Query
         {
             var reactivate = await _UserRepository.ReactivateUser(queriedUserId, cancellationToken);
             var result = _mapper.Map<ActivateUserResponse>(reactivate);
+            return result;
+        }
+
+        public async Task<IEnumerable<GetUserCommsResponse>> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken)
+        {
+            List<GetUserComms> response = await _UserRepository.GetUserComms(request.CommsUserId, cancellationToken);
+            var result = _mapper.Map<IEnumerable<GetUserCommsResponse>>(response);
             return result;
         }
     }

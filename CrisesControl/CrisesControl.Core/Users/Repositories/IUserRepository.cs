@@ -24,6 +24,7 @@ public interface IUserRepository
     bool CheckDuplicate(User user);
     Task<LoginInfoReturnModel> GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken);
     Task<User> ReactivateUser(int qureiedUserId, CancellationToken cancellationToken);
+    Task<List<GetUserComms>> GetUserComms(int commsUserId, CancellationToken cancellationToken);
     Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search, List<Order>? order, bool ActiveOnly, string? CompanyKey);
     
 
