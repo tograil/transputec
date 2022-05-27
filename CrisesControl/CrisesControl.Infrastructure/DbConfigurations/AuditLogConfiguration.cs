@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.AuditLog;
+using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
