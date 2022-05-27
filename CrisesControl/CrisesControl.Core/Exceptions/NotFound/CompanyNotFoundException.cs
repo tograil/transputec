@@ -7,6 +7,9 @@ namespace CrisesControl.Core.Exceptions.NotFound
         public CompanyNotFoundException(int companyId, int userId) 
             : base(companyId, userId)
         {
+
         }
+
+        public override string Message => "Company not found";
     }
 }
