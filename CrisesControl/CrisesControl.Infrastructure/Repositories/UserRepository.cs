@@ -619,10 +619,10 @@ public class UserRepository : IUserRepository
                         select new { U.UserId, U.Password, C.CompanyId }).FirstOrDefault();
             if (user != null)
             {
-                string sso_type = GetCompanyParameter("SSO_PROVIDER", user.CompanyId);
-                string sso_enabled = GetCompanyParameter("SINGLE_SIGNON_ENABLED", user.CompanyId);
-                string sso_issuer = GetCompanyParameter("AAD_SSO_TENANT_ID", user.CompanyId);
-                string sso_client_secret = GetCompanyParameter("SSO_CLIENT_SECRET", user.CompanyId); 
+                string sso_type = await GetCompanyParameter("SSO_PROVIDER", user.CompanyId);
+                string sso_enabled = await GetCompanyParameter("SINGLE_SIGNON_ENABLED", user.CompanyId);
+                string sso_issuer = await GetCompanyParameter("AAD_SSO_TENANT_ID", user.CompanyId);
+                string sso_client_secret = await GetCompanyParameter("SSO_CLIENT_SECRET", user.CompanyId); 
                 return new ValidateEmailReponseModel 
                 { 
                     SSOType = sso_type, 

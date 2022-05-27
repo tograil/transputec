@@ -47,10 +47,6 @@ namespace CrisesControl.Api.Controllers
             var result = await _userQuery.GetUser(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPost]
-        [Route("[action]")]
-        public async Task<IActionResult> GetLoggedinUserInfo([FromQuery] LoginRequest request, CancellationToken cancellationToken)
-
         [HttpGet("ValidateLoginEmail")]
         public async Task<IActionResult> ValidateLoginEmail([FromQuery] ValidateEmailRequest request, CancellationToken cancellationToken)
         {
