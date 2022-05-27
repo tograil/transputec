@@ -6,7 +6,6 @@ using CrisesControl.Core;
 using CrisesControl.Infrastructure;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.MongoSettings;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
@@ -16,6 +15,10 @@ using Serilog;
 using System.Reflection;
 using CrisesControl.Api.Maintenance;
 using CrisesControl.Api.Maintenance.Interfaces;
+using CrisesControl.Core.AuditLog.Services;
+using CrisesControl.Infrastructure.Context.Misc;
+using CrisesControl.Infrastructure.Services;
+using GrpcAuditLogClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,11 +26,16 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
 builder.WebHost.UseUrls("http://localhost:7010");
 
+//Register DI which not working with autofac
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<AuditingInterceptor>();
+
 builder.Services.AddDbContext<CrisesControlContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlDatabase")));
 
 builder.Services.Configure<JobsMongoSettings>(
     builder.Configuration.GetSection("JobsMongoSettings"));
+builder.Services.Configure<AuditLogOptions>(builder.Configuration.GetSection("AuditLog"));
 
 // Add services to the container.
 
@@ -82,6 +90,13 @@ builder.Services.AddSwaggerGen(c =>
     }
 );
 
+var auditLogSettings = builder.Configuration.GetSection("AuditLog").Get<AuditLogOptions>();
+
+builder.Services.AddGrpcClient<AuditLogGrpc.AuditLogGrpcClient>(o =>
+{
+    o.Address = new Uri(auditLogSettings.ServerAddress);
+});
+
 builder.Host.UseSerilog((ctx, lc) =>
 {
     lc.ReadFrom.Configuration(ctx.Configuration);
@@ -92,8 +107,6 @@ builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder => {
     containerBuilder.RegisterModule(new MainCoreModule());
     containerBuilder.RegisterModule(new MainInfrastructureModule(builder.Environment.EnvironmentName == "Development"));
 });
-
-
 
 builder.Services.AddOpenIddict()
     .AddValidation(options => {
