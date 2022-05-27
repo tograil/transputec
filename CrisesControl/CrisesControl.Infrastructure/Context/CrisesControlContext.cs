@@ -20,6 +20,7 @@ using CrisesControl.Core.Common;
 using CrisesControl.Core.ExTriggers;
 using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Reports.Repositories;
+using CrisesControl.Core.Reports.SP_Response;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -85,13 +86,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<GetCheckListReponseOption>().HasNoKey();
             modelBuilder.Entity<CheckListUpsert>().HasNoKey();
             modelBuilder.Entity<JsonResult>().HasNoKey();
-            //modelBuilder.Entity<Assets>().HasNoKey();
 
-
-
-
-
-            //modelBuilder.Entity<Location>().HasNoKey();
+            modelBuilder.Entity<IncidentData>().HasNoKey().Ignore("KeyContacts").Ignore("IncidentAssets");
+            modelBuilder.Entity<GetIncidentDataByActivationRefKeyContactsResponse>().HasNoKey();
+            modelBuilder.Entity<GetIncidentDataByActivationRefIncidentAssetsResponse>().HasNoKey();
         }
     }
 }

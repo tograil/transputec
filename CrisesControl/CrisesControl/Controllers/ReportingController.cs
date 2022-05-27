@@ -3,6 +3,7 @@ using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -15,10 +16,12 @@ namespace CrisesControl.Api.Controllers {
     public class ReportingController : Controller {
         private readonly IMediator _mediator;
         private readonly IReportsQuery _reportQuery;
+        private readonly ICurrentUser _currentUser;
 
-        public ReportingController(IMediator mediator, IReportsQuery reportQuery) {
+        public ReportingController(IMediator mediator, IReportsQuery reportQuery, ICurrentUser currentUser) {
             _mediator = mediator;
             _reportQuery = reportQuery;
+            _currentUser = currentUser;
         }
 
         /// <summary>
@@ -48,6 +51,7 @@ namespace CrisesControl.Api.Controllers {
 
             return Ok(result);
         }
+        
         [HttpGet]
         [Route("GetIndidentMessageNoAck/{IncidentActivationId:int}/{RecordStart:int}/{RecordLength:int}")]
         public async Task<IActionResult> GetIndidentMessageNoAck([FromRoute] GetIndidentMessageNoAckRequest request, CancellationToken cancellationToken)
@@ -71,6 +75,7 @@ namespace CrisesControl.Api.Controllers {
 
             return Ok(result);
         }
+        
         /// <summary>
         /// Get the response summary
         /// </summary>
@@ -85,5 +90,22 @@ namespace CrisesControl.Api.Controllers {
 
             return Ok(result);
         }
+
+        [HttpGet]
+        [Route("[action]")]
+        public IActionResult GetCurrentIncidentStats()
+        {
+            var result = _reportQuery.GetCurrentIncidentStats();
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("[action]/{incidentActivationId:int}")]
+        public IActionResult GetIncidentData(int incidentActivationId)
+        {
+            var result = _reportQuery.GetIncidentData(incidentActivationId, _currentUser.UserId, _currentUser.CompanyId);
+            return Ok(result);
+        }
+
     }
 }

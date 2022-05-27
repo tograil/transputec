@@ -1,8 +1,10 @@
 ﻿using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
+using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -161,6 +163,120 @@ namespace CrisesControl.Infrastructure.Repositories {
             return new List<DataTablePaging>();
 
 
+        }
+
+        public GetCurrentIncidentStatsResponse GetCurrentIncidentStats(string timeZoneId)
+        {
+            DateTimeOffset baseDate = GetLocalTime(timeZoneId, DateTime.Now.Date);
+            var today = baseDate;
+            var startDate = GetLocalTime(timeZoneId, DateTime.Now.Date.AddDays(1 - DateTime.Now.Day));
+
+            var pStartDate = new SqlParameter("@StartDate", startDate);
+            var pEndDate = new SqlParameter("@EndDate", today);
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var result = _context.Set<GetCurrentIncidentStatsResponse>().FromSqlRaw("Pro_Report_GetCurrentIncidentStats @StartDate, @EndDate, @CompanyID",
+                pStartDate,
+                pEndDate,
+                pCompanyID).ToList()?.FirstOrDefault();
+            return result;
+        }
+        
+        public IncidentData GetIncidentData(int incidentActivationId, int userId, int companyId)
+        {
+            var pIncidentActivationID = new SqlParameter("@IncidentActivationID", incidentActivationId);
+            var pCompanyID = new SqlParameter("@CompanyID", companyId);
+            var pUserID = new SqlParameter("@UserID", userId);
+            var incidentReportData = _context.Set<IncidentData>().FromSqlRaw(
+                "Pro_Report_GetIncidentData_ByActivationRef @IncidentActivationID, @CompanyID, @UserID",
+                pIncidentActivationID,
+                pCompanyID, pUserID).FirstOrDefault();
+            if (incidentReportData != null)
+            {
+                var pIncidentActivationID2 = new SqlParameter("@IncidentActivationID", incidentActivationId);
+                var pCompanyID2 = new SqlParameter("@CompanyID", companyId);
+                incidentReportData.KeyContacts = _context.Set<GetIncidentDataByActivationRefKeyContactsResponse>().FromSqlRaw(
+                    "Pro_Report_GetIncidentData_ByActivationRef_KeyContacts @IncidentActivationID, @CompanyID",
+                    pIncidentActivationID2,
+                    pCompanyID2).ToList();
+                var pIncidentActivationID3 = new SqlParameter("@IncidentActivationID", incidentActivationId);
+                var pCompanyID3 = new SqlParameter("@CompanyID", companyId);
+                incidentReportData.IncidentAssets = _context.Set<GetIncidentDataByActivationRefIncidentAssetsResponse>().FromSqlRaw(
+                    "Pro_Report_GetIncidentData_ByActivationRef_IncidentAssets @IncidentActivationID, @CompanyID",
+                    pIncidentActivationID3,
+                    pCompanyID3).ToList();
+                return incidentReportData;
+            }
+            else
+            {
+                return incidentReportData;
+            }
+        }
+
+        public DateTime GetLocalTime(string timeZoneId, DateTime? paramTime = null)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(timeZoneId))
+                    timeZoneId = "GMT Standard Time";
+
+                DateTime retDate = DateTime.Now.ToUniversalTime();
+
+                DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
+
+                DateTime timeUtc = DateTime.UtcNow;
+
+                TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+                retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
+
+                return retDate;
+            }
+            catch (Exception ex) { }
+            return DateTime.Now;
+        }
+
+        public List<PingReportGrid> GetPingReport(int companyId, DateTime startDate, DateTime endDate, string messageType, int drillOpt, int groupId, int objectMappingId,
+                        int recordStart, int recordLength, string searchString, string orderBy, string orderDir, string companyKey)
+        {
+            var pStartDate = new SqlParameter("@StartDate", startDate);
+            var pEndDate = new SqlParameter("@EndDate", endDate);
+            var pCompanyID = new SqlParameter("@CompanyID", companyId);
+            var pMessageType = new SqlParameter("@MessageType", messageType);
+            var pDrillOption = new SqlParameter("@DrillOption", drillOpt);
+            var pGroupID = new SqlParameter("@GroupID", groupId);
+            var pObjectMappingID = new SqlParameter("@ObjectMappingID", objectMappingId);
+            var pRecordStart = new SqlParameter("@RecordStart", recordStart);
+            var pRecordLength = new SqlParameter("@RecordLength", recordLength);
+            var pSearchString = new SqlParameter("@SearchString", searchString);
+            var pOrderBy = new SqlParameter("@OrderBy", orderBy);
+            var pOrderDir = new SqlParameter("@OrderDir", orderDir);
+            var pUniqueKey = new SqlParameter("@UniqueKey", companyKey);
+
+            var result = new List<PingReportGrid>();
+            var propertyInfo = typeof(PingReportGrid).GetProperty(orderBy);
+
+            if (orderDir == "desc")
+            {
+                result = _context.Set<PingReportGrid>().FromSqlRaw("Pro_Report_Ping @StartDate, @EndDate, @CompanyID, @MessageType, @DrillOption, @GroupID, @ObjectMappingID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                    pStartDate, pEndDate, pCompanyID, pMessageType, pDrillOption, pGroupID, pObjectMappingID, pRecordStart, pRecordLength,
+                    pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                    .ToList().Select(c => {
+                        c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        return c;
+                    })
+                    .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+            }
+            else
+            {
+                result = _context.Set<PingReportGrid>().FromSqlRaw("Pro_Report_Ping @StartDate, @EndDate, @CompanyID, @MessageType, @DrillOption, @GroupID, @ObjectMappingID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                    pStartDate, pEndDate, pCompanyID, pMessageType, pDrillOption, pGroupID, pObjectMappingID, pRecordStart, pRecordLength,
+                    pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                    .ToList().Select(c => {
+                        c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        return c;
+                    })
+                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+            }
+            return result;
         }
     }
 }
