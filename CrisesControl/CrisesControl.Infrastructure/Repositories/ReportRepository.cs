@@ -1,4 +1,6 @@
-﻿using CrisesControl.Core.Compatibility;
+﻿using CrisesControl.Core.Companies;
+using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Models;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Reports.SP_Response;
@@ -27,13 +29,13 @@ namespace CrisesControl.Infrastructure.Repositories {
 
         private int UserID;
         private int CompanyID;
-        private string UniqueKey;
+     
 
         public ReportRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<ReportRepository> logger)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            this._logger = logger;
+            _logger = logger;
         }
         public async Task<List<SOSItem>> GetSOSItems()
         {
@@ -75,14 +77,26 @@ namespace CrisesControl.Infrastructure.Repositories {
             return new List<IncidentPingStatsCount>();
         }
 
-        public async Task<List<MessageAcknowledgements>> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir, int CurrentUserId, string Filters, string CompanyKey, string Source)
+        public async Task<DataTablePaging> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int RecordStart, int RecordLength, string search,
+             string OrderBy, string OrderDir, int draw, string Filters, string CompanyKey, string Source="WEB")
         {
             try
             {
+                const string ord = "PrimaryEmail";
+                const string dir = "asc";
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                var SearchString = (search != null) ? search: string.Empty;
+                
+                if (string.IsNullOrEmpty(OrderBy))
+                    OrderBy = ord;
+
+                if (string.IsNullOrEmpty(OrderDir))
+                    OrderDir = dir;
+
                 var pMessageId = new SqlParameter("@MessageID", MessageId);
                 var pMessageAckStatus = new SqlParameter("@MessageAckStatus", MessageAckStatus);
                 var pMessageSentStatus = new SqlParameter("@MessageSentStatus", MessageSentStatus);
-                var pUserID = new SqlParameter("@UserID", CurrentUserId);
+                var pUserID = new SqlParameter("@UserID", UserID);
                 var pSource = new SqlParameter("@Source", Source);
                 var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
                 var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
@@ -92,9 +106,19 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var pFilters = new SqlParameter("@Filters", Filters);
                 var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                var ack_list = await  _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_Message_Acknowledgements @MessageID, @MessageAckStatus, @MessageSentStatus, @UserID,@Source, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@Filters,@UniqueKey",
+                var ackList = await  _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_Message_Acknowledgements @MessageID, @MessageAckStatus, @MessageSentStatus, @UserID,@Source, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@Filters,@UniqueKey",
                     pMessageId, pMessageAckStatus, pMessageSentStatus, pUserID, pSource, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pFilters, pUniqueKey).ToListAsync();
-                return ack_list;
+                int totalRecord = 0;
+                totalRecord = ackList.Count;
+
+                DataTablePaging rtn = new DataTablePaging();
+                rtn.draw = draw;
+                rtn.recordsTotal = totalRecord;
+                rtn.recordsFiltered = ackList.Count;
+                rtn.data = ackList;
+
+
+                return rtn;
             }
             catch (Exception ex)
             {
@@ -277,6 +301,149 @@ namespace CrisesControl.Infrastructure.Repositories {
                     .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
             }
             return result;
+        }
+
+        public async Task<List<PingGroupChartCount>> GetPingReportChart(DateTime StartDate, DateTime EndDate, int GroupID, string MessageType, int ObjectMappingID)
+        {
+            try
+            {
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+
+                var pStartDate = new SqlParameter("@StartDate", StartDate);
+                    var pEndDate = new SqlParameter("@EndDate", EndDate);
+                    var pGroupID = new SqlParameter("@GroupID", GroupID);
+                    var pMessageType = new SqlParameter("@MessageType", MessageType);
+                    var pObjectMappingID = new SqlParameter("@ObjectMappingID", ObjectMappingID);
+                    var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                    var pUserID = new SqlParameter("@UserID", UserID);
+
+                    var result = await _context.Set<PingGroupChartCount>().FromSqlRaw("exec Pro_Report_Ping_Chart @StartDate, @EndDate, @GroupID, @MessageType, @ObjectMappingID, @CompanyID,@UserID",
+                    pStartDate, pEndDate, pGroupID, pMessageType, pObjectMappingID, pCompanyID, pUserID).ToListAsync();
+                   
+
+
+                    return result;
+                
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error occure while trying to seeding into the database {0},{1},{2}",ex.Message, ex.InnerException, ex.StackTrace);
+                
+            }
+            return new List<PingGroupChartCount>();
+        }
+        public async Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "")
+        {
+            try
+            {
+                Key = Key.ToUpper();
+
+                if (CompanyId > 0)
+                {
+                    var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
+                    if (LKP != null)
+                    {
+                        Default = LKP.Value;
+                    }
+                    else
+                    {
+
+                        var LPR = await _context.Set<LibCompanyParameter>().Where(CP => CP.Name == Key).FirstOrDefaultAsync();
+                        if (LPR != null)
+                        {
+                            Default = LPR.Value;
+                        }
+                        else
+                        {
+                            Default = await LookupWithKey(Key, Default);
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(CustomerId) && !string.IsNullOrEmpty(Key))
+                {
+
+                    var cmp = await _context.Set<Company>().Where(w => w.CustomerId == CustomerId).FirstOrDefaultAsync();
+                    if (cmp != null)
+                    {
+                        var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
+                        if (LKP != null)
+                        {
+                            Default = LKP.Value;
+                        }
+                    }
+                    else
+                    {
+                        Default = "NOT_EXIST";
+                    }
+                }
+
+                return Default;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+                return Default;
+            }
+        }
+        private async Task<string> LookupWithKey(string Key, string Default = "")
+        {
+            try
+            {
+                Dictionary<string, string> Globals = CCConstants.GlobalVars;
+                if (Globals.ContainsKey(Key))
+                {
+                    return Globals[Key];
+                }
+
+
+                var LKP = await _context.Set<SysParameter>().Where(w => w.Name == Key).FirstOrDefaultAsync();
+                if (LKP != null)
+                {
+                    Default = LKP.Value;
+                }
+                return Default;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                        ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+                return Default;
+            }
+        }
+        public async Task<List<DeliveryOutput>> GetMessageDeliveryReport(DateTimeOffset StartDate, DateTimeOffset EndDate, int start, int length, string search, string OrderBy, string OrderDir, string CompanyKey)
+        {
+            try
+            {
+           
+                var SearchString = (search != null) ? search : string.Empty;
+                
+
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+                var pStartDate = new SqlParameter("@StartDate", StartDate);
+                var pEndDate = new SqlParameter("@EndDate", EndDate);
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pUserID = new SqlParameter("@UserID", UserID);
+                var pRecordStart = new SqlParameter("@RecordStart", start);
+                var pRecordLength = new SqlParameter("@RecordLength", length);
+                var pSearchString = new SqlParameter("@SearchString", SearchString);
+                var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+                var pCompanyKey = new SqlParameter("@UniqueKey", CompanyKey);
+
+                var result = await _context.Set<DeliveryOutput>().FromSqlRaw(" exec Pro_Report_Message_Delivery @CompanyID, @UserID, @StartDate, @EndDate, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                 pCompanyID, pUserID, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey).ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error occurred while seeding into database {0},{1},{2},{3}", ex.Message, ex.InnerException, ex.StackTrace, ex.Source);
+                return null;
+            }
         }
     }
 }

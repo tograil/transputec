@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CrisesControl.Core.Models
+namespace CrisesControl.Core.AuditLog
 {
     public partial class AuditLog
     {

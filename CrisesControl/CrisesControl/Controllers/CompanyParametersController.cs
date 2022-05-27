@@ -20,7 +20,7 @@ namespace CrisesControl.Api.Controllers {
             this._companyParametersQuery = companyParametersQuery;
         }
         [HttpGet]
-        [Route("GetCascading/{CompanyID:int}/{PlanType}/{PlanID:int}")]
+        [Route("GetCascading/{CompanyID:int}/{PlanID:int}")]
         public async Task<IActionResult> GetCascading([FromRoute] GetCascadingRequest request, CancellationToken cancellationToken) {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

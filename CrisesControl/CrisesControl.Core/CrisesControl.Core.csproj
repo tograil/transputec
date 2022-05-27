@@ -32,6 +32,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="AuditLog\Misc\" />
+    <Folder Include="AuditLog\Services\" />
     <Folder Include="Compatibility\Jobs\" />
     <Folder Include="Incidents\Services\" />
     <Folder Include="Incidents\Repositories\" />
@@ -40,6 +42,8 @@
     <Folder Include="Messages\Repositories\" />
     <Folder Include="Queues\Maps\" />
     <Folder Include="Queues\Repositories\" />
+    <Folder Include="Queues\Services\" />
+    <Folder Include="Settings\Repositories\" />
   </ItemGroup>
 
 </Project>

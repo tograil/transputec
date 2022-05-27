@@ -2,12 +2,16 @@
 using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
-using CrisesControl.Core.Compatibility;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Core.Reports.SP_Response;
+
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
+using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Compatibility;
+using CrisesControl.Api.Maintenance.Interfaces;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -17,16 +21,22 @@ namespace CrisesControl.Api.Application.Query
         private readonly IMapper _mapper;
         private readonly string _timeZoneId = "GMT Standard Time";
         private readonly ILogger<ReportsQuery> _logger;
+        private readonly ICurrentUser _currentUser;
+        private readonly IPaging _paging;
 
         public ReportsQuery(IReportsRepository reportRepository,
                             IMapper mapper,
                             string timeZoneId,
-                            ILogger<ReportsQuery> logger)
+                            ILogger<ReportsQuery> logger,
+                            IPaging paging,
+                            ICurrentUser currentUser)
         {
             _reportRepository = reportRepository;
             _mapper = mapper;
             _timeZoneId = timeZoneId;
             _logger = logger;
+            _paging = paging;
+            _currentUser = currentUser;
         }
 
         public async Task<GetSOSItemsResponse> GetSOSItems(GetSOSItemsRequest request) {
@@ -50,7 +60,7 @@ namespace CrisesControl.Api.Application.Query
         }
         public async Task<GetIndidentMessageAckResponse> GetIndidentMessageAck(GetIndidentMessageAckRequest request)
         {
-            var stats = await _reportRepository.GetIndidentMessageAck(request.MessageId, request.MessageAckStatus = 2, request.MessageSentStatus, request.RecordStart = 0, request.RecordLength, request.SearchString, "U.UserId", request.OrderDir, request.CurrentUserId, request.Filters, request.CompanyKey, request.Source);
+            var stats = await _reportRepository.GetIndidentMessageAck(request.MessageId, request.MessageAckStatus, request.MessageSentStatus, _paging.PageNumber, _paging.PageSize, request.SearchString,_paging.OrderBy,request.OrderDir,request.draw ?? default(int),request.Filters,request.CompanyKey, request.Source="WEB");
 
             var response = _mapper.Map<List<MessageAcknowledgements>>(stats);
             var result = new GetIndidentMessageAckResponse();
@@ -94,5 +104,41 @@ namespace CrisesControl.Api.Application.Query
             return _reportRepository.GetIncidentData(incidentActivationId, userId, companyId);
         }
 
+        public async Task<GetMessageDeliveryReportResponse> GetMessageDeliveryReport(GetMessageDeliveryReportRequest request)
+        {
+            try
+            {
+
+
+                int totalRecord = 0;
+                GetMessageDeliveryReportResponse rtn = new GetMessageDeliveryReportResponse();
+                rtn.draw = request.draw;
+
+                var Report = await _reportRepository.GetMessageDeliveryReport(request.StartDate, request.EndDate, _paging.PageNumber, _paging.PageSize, request.search ?? string.Empty,_paging.OrderBy, request.OrderDir , request.CompanyKey ?? string.Empty);
+                var response = _mapper.Map<List<DeliveryOutput>>(Report);
+                if (Report != null)
+                {
+                    totalRecord = Report.Count;
+                    rtn.recordsFiltered = Report.Count;
+                    rtn.data = response;
+                }
+                
+
+                var TotalList = await _reportRepository.GetMessageDeliveryReport(request.StartDate, request.EndDate, 0, int.MaxValue, "", "M.MessageId", "desc", request.CompanyKey);
+                var responseTotal = _mapper.Map<List<DeliveryOutput>>(TotalList);
+                if (TotalList != null)
+                {
+                    totalRecord = TotalList.Count;
+                }
+
+                rtn.recordsTotal = totalRecord;
+                return rtn;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error Occured while seeding into the database {0},{1},{2},{3},{4}",ex.Message,ex.StackTrace, ex.InnerException, ex.Source, ex.Data);
+                return null;
+            }
+        }
     }
 }

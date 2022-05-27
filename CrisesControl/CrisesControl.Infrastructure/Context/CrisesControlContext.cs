@@ -1,4 +1,6 @@
-﻿using CrisesControl.Core.Billing;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using CrisesControl.Core.Billing;
 using CrisesControl.Core.Communication;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Incidents;
@@ -20,19 +22,32 @@ using CrisesControl.Core.Common;
 using CrisesControl.Core.ExTriggers;
 using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Reports.Repositories;
+using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Core.Reports.SP_Response;
 
 namespace CrisesControl.Infrastructure.Context
 {
     public class CrisesControlContext : DbContext
     {
-        public CrisesControlContext()
+        private readonly AuditingInterceptor _auditingInterceptor;
+
+        public CrisesControlContext(AuditingInterceptor auditingInterceptor)
         {
+            _auditingInterceptor = auditingInterceptor;
         }
 
-        public CrisesControlContext(DbContextOptions<CrisesControlContext> options)
+        public CrisesControlContext(DbContextOptions<CrisesControlContext> options,
+            AuditingInterceptor auditingInterceptor)
             : base(options)
         {
+            _auditingInterceptor = auditingInterceptor;
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.AddInterceptors(_auditingInterceptor);
+
+            base.OnConfiguring(optionsBuilder);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -60,11 +75,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ResponseSummary>().HasNoKey();
             modelBuilder.Entity<MessageReporting>().HasNoKey();
             modelBuilder.Entity<IncidentMessageDetails>().HasNoKey();
+            modelBuilder.Entity<MemberUser>().HasNoKey().Ignore("UserFullName");
             modelBuilder.Entity<CompanyParameterItem>().HasNoKey();
             modelBuilder.Entity<UserConferenceItem>().HasNoKey();
             modelBuilder.Entity<IncidentPingStatsCount>().HasNoKey();
             modelBuilder.Entity<MessageAcknowledgements>().HasNoKey();
             modelBuilder.Entity<DataTablePaging>().HasNoKey().Ignore("data");
+            modelBuilder.Entity<AcknowledgeReturn>().HasNoKey();
 
 
             modelBuilder.Entity<IncidentList>().HasNoKey();
@@ -72,6 +89,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<UpdateIncidentStatusReturn>().HasNoKey();
             modelBuilder.Entity<IncidentDetails>().HasNoKey();
             modelBuilder.Entity<CommsMethods>().HasNoKey();
+            modelBuilder.Entity<PingGroupChartCount>().HasNoKey();
+            modelBuilder.Entity<DeliveryOutput>().HasNoKey();
 
             modelBuilder.Entity<AckOption>().HasNoKey();
             modelBuilder.Entity<IncKeyCons>().HasNoKey();
@@ -90,6 +109,11 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<IncidentData>().HasNoKey().Ignore("KeyContacts").Ignore("IncidentAssets");
             modelBuilder.Entity<GetIncidentDataByActivationRefKeyContactsResponse>().HasNoKey();
             modelBuilder.Entity<GetIncidentDataByActivationRefIncidentAssetsResponse>().HasNoKey();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        {
+            return base.SaveChangesAsync(cancellationToken);
         }
     }
 }

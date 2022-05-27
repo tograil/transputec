@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Core.Reports;
@@ -15,5 +16,6 @@ namespace CrisesControl.Api.Application.Query {
         Task<GetIndidentMessageNoAckResponse> GetIndidentMessageNoAck(GetIndidentMessageNoAckRequest request);
         GetCurrentIncidentStatsResponse GetCurrentIncidentStats();
         IncidentData GetIncidentData(int incidentActivationId, int userId, int companyId);
+        Task<GetMessageDeliveryReportResponse> GetMessageDeliveryReport(GetMessageDeliveryReportRequest request);
     }
 }

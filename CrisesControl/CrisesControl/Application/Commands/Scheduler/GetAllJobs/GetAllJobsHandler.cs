@@ -11,10 +11,11 @@ namespace CrisesControl.Api.Application.Commands.Scheduler.GetAllJobs
         private readonly GetAllJobsValidator _exTriggertValidator;
         private readonly ISchedulerQuery _schedulerQuery;
         private readonly IMapper _mapper;
-        public GetAllJobsHandler(ISchedulerQuery schedulerQuery, IMapper mapper)
+        public GetAllJobsHandler(ISchedulerQuery schedulerQuery, IMapper mapper, GetAllJobsValidator exTriggertValidator)
         {
             this._mapper = mapper;
             this._schedulerQuery= schedulerQuery;
+            this._exTriggertValidator= exTriggertValidator;
         }
         public async Task<GetAllJobsResponse> Handle(GetAllJobsRequest request, CancellationToken cancellationToken)
         {
