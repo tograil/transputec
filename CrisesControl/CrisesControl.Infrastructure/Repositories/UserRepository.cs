@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
@@ -432,37 +433,34 @@ public class UserRepository : IUserRepository
         {
             return null;
         }
-    }
+    }   
 
-   
-    public async Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search, List<Order>? order, bool ActiveOnly, string? CompanyKey)
+
+    public async Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search, string orderBy, string orderDir, bool ActiveOnly, string? CompanyKey)
     {
         try
         {
-            var RecordStart = Start == 0 ? 0 : Start;
-            var RecordLength = Length == 0 ? int.MaxValue : Length;
-            var SearchString = (Search != null) ? Search : string.Empty;
-            string OrderBy = order != null ? order.FirstOrDefault().column : "FirstName";
-            string OrderDir = order != null ? order.FirstOrDefault().dir : "asc";
+
+            var SearchString = (Search != null) ? Search : string.Empty;           
 
 
             var pCompanyId = new SqlParameter("@CompanyID", companyID);
             var pUserID = new SqlParameter("@UserID", userID);
             var pObjMapID = new SqlParameter("@ObjMapID", ObjMapID);
             var pTargetID = new SqlParameter("@TargetID", TargetID);
-            var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
-            var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+            var pRecordStart = new SqlParameter("@RecordStart", Start);
+            var pRecordLength = new SqlParameter("@RecordLength", Length);
             var pSearchString = new SqlParameter("@SearchString", SearchString);
-            var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
-            var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+            var pOrderBy = new SqlParameter("@OrderBy", orderBy);
+            var pOrderDir = new SqlParameter("@OrderDir", orderDir);
             var pActiveOnly = new SqlParameter("@ActiveOnly", ActiveOnly);
             var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
             var MainUserlist = new List<MemberUser>();
-            var propertyInfo = typeof(MemberUser).GetProperty(OrderBy);
+            var propertyInfo = typeof(MemberUser).GetProperty(orderBy);
             if (memberShipType.ToMemString().ToUpper() == MemberShipType.NON_MEMBER.ToMemString().ToUpper())
             {
-                if (OrderDir == "desc" && propertyInfo != null)
+                if (orderDir == "desc" && propertyInfo != null)
                 {
                     MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_Members,  @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
                            pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
@@ -477,7 +475,7 @@ public class UserRepository : IUserRepository
                     })
                     .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
                 }
-                else if (OrderDir == "asc" && propertyInfo != null)
+                else if (orderDir == "asc" && propertyInfo != null)
                 {
                     MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_Members, @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
                            pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
@@ -513,7 +511,7 @@ public class UserRepository : IUserRepository
 
             else
             {
-                if (OrderDir == "desc" && propertyInfo != null)
+                if (orderDir == "desc" && propertyInfo != null)
                 {
                     MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_NonMembers,  @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
                            pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
@@ -527,7 +525,7 @@ public class UserRepository : IUserRepository
                     })
                         .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
                 }
-                else if (OrderDir == "asc" && propertyInfo != null)
+                else if (orderDir == "asc" && propertyInfo != null)
                 {
                     MainUserlist = await _context.Set<MemberUser>().FromSqlRaw("exec Pro_Get_Group_NonMembers, @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
                            pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
@@ -559,13 +557,14 @@ public class UserRepository : IUserRepository
 
                 return MainUserlist;
             }
-        }
-            return null;
+
+           
         }
         catch (Exception ex)
         {
             return null;
         }
+        
     }
 
     private string GetCompanyName(int companyId)

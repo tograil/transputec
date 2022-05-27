@@ -1,8 +1,8 @@
 ﻿using FluentValidation;
 
-namespace CrisesControl.Api.Application.Commands.Users.MemberShipList
+namespace CrisesControl.Api.Application.Commands.Users.MembershipList
 {
-    public class MemberShipListValidator: AbstractValidator<MemberShipListRequest>
+    public class MemberShipListValidator: AbstractValidator<MembershipRequest>
     {
         public MemberShipListValidator()
         {

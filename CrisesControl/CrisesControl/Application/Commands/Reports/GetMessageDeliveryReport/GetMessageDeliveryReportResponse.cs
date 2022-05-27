@@ -1,6 +1,6 @@
-﻿namespace CrisesControl.Api.Application.Commands.Users.MemberShipList
+﻿namespace CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport
 {
-    public class MemberShipListResponse
+    public class GetMessageDeliveryReportResponse
     {
         public int draw { get; set; }
         public int recordsTotal { get; set; }
