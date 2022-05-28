@@ -12,6 +12,9 @@ using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Api.Maintenance.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Abstractions;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -22,14 +25,15 @@ namespace CrisesControl.Api.Application.Query
         private readonly ILogger<ReportsQuery> _logger;
         private readonly ICurrentUser _currentUser;
         private readonly IPaging _paging;
-
+        private readonly IExceptionFilter _errorFilter;
         public ReportsQuery(IReportsRepository reportRepository, IMapper mapper,
-            ILogger<ReportsQuery> logger, ICurrentUser currentUser, IPaging paging) {
+            ILogger<ReportsQuery> logger, ICurrentUser currentUser, IPaging paging, IExceptionFilter errorFilter) {
             _mapper = mapper;
             _reportRepository = reportRepository;
             _currentUser = currentUser;
             _logger= logger;
             _paging= paging;
+            _errorFilter= errorFilter;
         }
 
         public async Task<GetSOSItemsResponse> GetSOSItems(GetSOSItemsRequest request) {
@@ -126,8 +130,7 @@ namespace CrisesControl.Api.Application.Query
         }
         public async Task<GetTrackingUserCountResponse> GetTrackingUserCount(GetTrackingUserCountRequest request)
         {
-            try
-            {
+           
                 var trkUser = await _reportRepository.GetTrackingUserCount();
 
                 var response = _mapper.Map<List<TrackUserCount>>(trkUser);
@@ -139,18 +142,25 @@ namespace CrisesControl.Api.Application.Query
                     result.Message = "Data Loaded successfully";
                     return result;
                 }
-                return new GetTrackingUserCountResponse
-                {
-                    Data = response,
-                    StatusCode = System.Net.HttpStatusCode.NotFound,
-                    Message = "No Data Found"
+             
+          
+            
+                var producesContentAttribute = new ProducesAttribute("application/json");
 
-            };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Error occured while trying get data into the database {0},{1}", ex.Message,ex.InnerException);
-            }
+                var actionContext = new ActionContext()
+                {
+                    HttpContext = new DefaultHttpContext(),
+                    RouteData = new RouteData(),
+                    ActionDescriptor = new ActionDescriptor()
+                };
+                IList<IFilterMetadata> filterMetadatas = new List<IFilterMetadata>()
+                {
+                    producesContentAttribute
+
+                };
+                ExceptionContext custException = new ExceptionContext(actionContext, filterMetadatas);
+                _errorFilter.OnException(custException);
+            
             return new GetTrackingUserCountResponse { };
 
         }
