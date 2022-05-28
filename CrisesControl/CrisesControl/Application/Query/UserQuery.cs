@@ -7,6 +7,7 @@ using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.MembershipList;
 using CrisesControl.Api.Maintenance.Interfaces;
 using CrisesControl.Core.Compatibility;
+using CrisesControl.Api.Application.Commands.Users.ValidateEmail;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -107,6 +108,13 @@ namespace CrisesControl.Api.Application.Query
                 _logger.LogError("Error occured whikle trying to seed the database {0},{1},{2},{3}", ex.Message, ex.InnerException, ex.StackTrace, ex.Source);
             }
             return new MembershipResponse { };
+        }
+
+        public async Task<ValidateEmailResponse> ValidateLoginEmail(ValidateEmailRequest request)
+        {
+            var validateEmail = _UserRepository.ValidateLoginEmail(request.UserEmail);
+            var result = _mapper.Map<ValidateEmailResponse>(validateEmail.Result);
+            return result;
         }
     }
 }

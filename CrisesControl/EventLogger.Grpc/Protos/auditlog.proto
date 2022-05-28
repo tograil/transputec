@@ -1,0 +1,32 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "EventLogger.Grpc";
+
+package auditlog;
+
+service AuditLogGrpc {
+	rpc AddLogEntry(AuditLogValue) returns (AuditLogResult);
+	rpc GetLogsByCompany(AuditLogListRequest) returns (AuditLogListResponse);
+}
+
+
+message AuditLogValue {
+	int32 companyId = 1;
+	int32 userId = 2;
+	string request = 3;
+	string response = 4;
+	string saveChangesAudit = 5;
+	string requestName = 6;
+}
+
+message AuditLogResult {
+
+}
+
+message AuditLogListRequest {
+	int32 companyId = 1;
+}
+
+message AuditLogListResponse {
+
+}

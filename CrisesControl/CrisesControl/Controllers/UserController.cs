@@ -9,6 +9,7 @@ using CrisesControl.Api.Application.Commands.Users.UpdateProfile;
 using CrisesControl.Api.Application.Commands.Users.UpdateUser;
 using CrisesControl.Api.Application.Query;
 using CrisesControl.Api.Application.Commands.Users.UpdateUserGroup;
+using CrisesControl.Api.Application.Commands.Users.ValidateEmail;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -46,9 +47,15 @@ namespace CrisesControl.Api.Controllers
             var result = await _userQuery.GetUser(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPost]
-        [Route("[action]")]
-        public async Task<IActionResult> GetLoggedinUserInfo([FromQuery] LoginRequest request, CancellationToken cancellationToken)
+        [HttpGet("ValidateLoginEmail")]
+        public async Task<IActionResult> ValidateLoginEmail([FromQuery] ValidateEmailRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost("getUserInfo")]
+        public async Task<IActionResult> GetLoggedinUserInfo([FromForm] LoginRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetLoggedInUserInfo(request, cancellationToken);
             return Ok(result);
