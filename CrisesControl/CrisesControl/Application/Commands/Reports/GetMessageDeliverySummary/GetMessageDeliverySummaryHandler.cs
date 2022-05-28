@@ -1,9 +1,13 @@
 ﻿
 using Ardalis.GuardClauses;
 using CrisesControl.Api.Application.Query;
-using CrisesControl.Core.Reports.Repositories;
+using CrisesControl.Api.Maintenance;
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Moq;
 
 namespace CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary
 {
@@ -12,11 +16,13 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySumma
         private readonly GetMessageDeliverySummaryValidator _getMessageDeliverySummaryValidator;
         private readonly ILogger<GetMessageDeliverySummaryHandler> _logger;
         private readonly IReportsQuery _reportsQuery;
-        public GetMessageDeliverySummaryHandler(GetMessageDeliverySummaryValidator getMessageDeliverySummaryValidator, ILogger<GetMessageDeliverySummaryHandler> logger, IReportsQuery reportsQuery)
+        private readonly IExceptionFilter _errorFilter;
+        public GetMessageDeliverySummaryHandler(GetMessageDeliverySummaryValidator getMessageDeliverySummaryValidator, ILogger<GetMessageDeliverySummaryHandler> logger, IReportsQuery reportsQuery, ErrorFilter errorFilter)
         {
             this._getMessageDeliverySummaryValidator = getMessageDeliverySummaryValidator;
             this._reportsQuery=reportsQuery;
             this._logger = logger;
+            this._errorFilter = errorFilter;
         }
         public async Task<GetMessageDeliverySummaryResponse> Handle(GetMessageDeliverySummaryRequest request, CancellationToken cancellationToken)
         {
@@ -30,9 +36,24 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySumma
             }
             catch (Exception ex)
             {
-                _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
-                                           ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+                var producesContentAttribute = new ProducesAttribute("application/json");
+               
+                var actionContext = new ActionContext()
+                {
+                    HttpContext = new DefaultHttpContext(),
+                    RouteData = new RouteData(),
+                    ActionDescriptor = new ActionDescriptor()
+                };
+                IList<IFilterMetadata> filterMetadatas = new List<IFilterMetadata>()
+                { 
+                    producesContentAttribute
+                
+                };
+                ExceptionContext custException = new ExceptionContext(actionContext, filterMetadatas);
+                _errorFilter.OnException(custException);
+
                 return new GetMessageDeliverySummaryResponse { };
+
             }
         }
     }
