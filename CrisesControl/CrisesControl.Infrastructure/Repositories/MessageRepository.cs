@@ -811,4 +811,27 @@ public class MessageRepository : IMessageRepository
 
     }
 
+    public async Task<List<MessageGroupObject>> GetMessageGroupList(int MessageID)
+    {
+        try
+        {
+
+            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            var pMessageID = new SqlParameter("@MessageID", MessageID);
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pUserID = new SqlParameter("@UserID", UserID);
+
+                var result = await _context.Set<MessageGroupObject>().FromSqlRaw("Exec Pro_Get_Message_User_Groups @MessageID, @CompanyID, @UserID",
+                    pMessageID, pCompanyID, pUserID).ToListAsync();
+
+                return result;
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return new List<MessageGroupObject>();
+        }
+    }
 }

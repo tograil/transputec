@@ -54,4 +54,5 @@ public interface IMessageRepository
     Task<IncidentMessageDetails> GetMessageDetails(string CloudMsgId, int MessageId = 0);
     Task<List<MessageAttachment>> GetMessageAttachment(int MessageListID, int MessageID);
     Task<List<MessageAttachment>> GetAttachment(int MessageAttachmentID = 0);
+    Task<List<MessageGroupObject>> GetMessageGroupList(int MessageID);
 }

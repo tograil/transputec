@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails;
+using CrisesControl.Api.Application.Commands.Messaging.GetMessageGroupList;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
@@ -13,10 +14,12 @@ namespace CrisesControl.Api.Application.Query {
     public class MessageQuery : IMessageQuery {
         private readonly IMessageRepository _messageRepository;
         private readonly IMapper _mapper;
+        private readonly ILogger<MessageQuery> _logger;
 
-        public MessageQuery(IMessageRepository messageRepository, IMapper mapper) {
+        public MessageQuery(IMessageRepository messageRepository, IMapper mapper, ILogger<MessageQuery> logger) {
             _mapper = mapper;
             _messageRepository = messageRepository;
+            _logger = logger;
         }
 
         public async Task<GetNotificationsCountResponse> GetNotificationsCount(GetNotificationsCountRequest request) {
@@ -59,6 +62,16 @@ namespace CrisesControl.Api.Application.Query {
             var result = new GetMessageDetailsResponse();
             result.Data = response;
             result.ErrorCode = System.Net.HttpStatusCode.OK;
+            return result;
+        }
+
+        public async Task<GetMessageGroupListResponse> GetMessageGroupList(GetMessageGroupListRequest request)
+        {
+            var msgresponse = await _messageRepository.GetMessageGroupList(request.MessageID);
+            var response = _mapper.Map<List<MessageGroupObject>>(msgresponse);
+            var result = new GetMessageGroupListResponse();
+            result.data = response;
+            result.Message = "Data Loaded Successfully";
             return result;
         }
     }
