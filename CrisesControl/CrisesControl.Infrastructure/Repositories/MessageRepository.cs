@@ -811,7 +811,7 @@ public class MessageRepository : IMessageRepository
         return new List<MessageAttachment>();
 
     }
-    public async Task<List<IMessageDetails>> GetReplies(int ParentID,  string Source = "WEB")
+    public async Task<List<MessageDetails>> GetReplies(int ParentID,  string Source = "WEB")
     {
         
         try
@@ -823,7 +823,7 @@ public class MessageRepository : IMessageRepository
             var pUserID = new SqlParameter("@UserID", UserID);
             var pSource = new SqlParameter("@Source", Source);
 
-            var result =  _context.Set<IMessageDetails>().FromSqlRaw("Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
+            var result =  _context.Set<MessageDetails>().FromSqlRaw("Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
                 pParentID, pCompanyID, pUserID, pSource).AsEnumerable();
 
             var replies=result.Select(c => {

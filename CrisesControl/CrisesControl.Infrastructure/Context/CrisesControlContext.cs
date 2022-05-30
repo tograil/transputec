@@ -104,7 +104,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<GetCheckListReponseOption>().HasNoKey();
             modelBuilder.Entity<CheckListUpsert>().HasNoKey();
             modelBuilder.Entity<JsonResult>().HasNoKey();
-            modelBuilder.Entity<IMessageDetails>().HasNoKey();
+            modelBuilder.Entity<MessageDetails>().HasNoKey();
 
 
 

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Messages
 {
-    public class IMessageDetails
+    public class MessageDetails
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
