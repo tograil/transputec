@@ -21,22 +21,17 @@ namespace CrisesControl.Api.Application.Query
         private readonly IMapper _mapper;
         private readonly string _timeZoneId = "GMT Standard Time";
         private readonly ILogger<ReportsQuery> _logger;
-        private readonly ICurrentUser _currentUser;
         private readonly IPaging _paging;
 
         public ReportsQuery(IReportsRepository reportRepository,
                             IMapper mapper,
-                            string timeZoneId,
                             ILogger<ReportsQuery> logger,
-                            IPaging paging,
-                            ICurrentUser currentUser)
+                            IPaging paging)
         {
             _reportRepository = reportRepository;
             _mapper = mapper;
-            _timeZoneId = timeZoneId;
             _logger = logger;
             _paging = paging;
-            _currentUser = currentUser;
         }
 
         public async Task<GetSOSItemsResponse> GetSOSItems(GetSOSItemsRequest request) {
@@ -94,9 +89,9 @@ namespace CrisesControl.Api.Application.Query
             return result;
         }
 
-        public CurrentIncidentStatsResponse GetCurrentIncidentStats()
+        public CurrentIncidentStatsResponse GetCurrentIncidentStats(int companyId)
         {
-            return _reportRepository.GetCurrentIncidentStats(_timeZoneId);
+            return _reportRepository.GetCurrentIncidentStats(_timeZoneId, companyId);
         }
 
         public IncidentData GetIncidentData(int incidentActivationId, int userId, int companyId)

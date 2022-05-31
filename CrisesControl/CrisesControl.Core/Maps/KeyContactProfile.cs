@@ -8,8 +8,8 @@ public class KeyContactProfile : Profile
     public KeyContactProfile()
     {
         CreateMap<IncidentDataByActivationRefKeyContactsResponse, KeyContact>()
-            .ForMember(x => x.KeyContactName.Firstname, m => m.MapFrom(x => x.KeyContactFirstName))
-            .ForMember(x => x.KeyContactName.Lastname, m => m.MapFrom(x => x.KeyContactLastName))
+            .ForPath(x => x.KeyContactName.Firstname, m => m.MapFrom(x => x.KeyContactFirstName))
+            .ForPath(x => x.KeyContactName.Lastname, m => m.MapFrom(x => x.KeyContactLastName))
             .ForMember(x => x.KeyContactMob, m => m.MapFrom(x => x.KeyContactMobileNo))
             .ForMember(x => x.KeyLat, m => m.MapFrom(x => x.Lat))
             .ForMember(x => x.KeyLng, m => m.MapFrom(x => x.Lng));

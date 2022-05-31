@@ -14,7 +14,7 @@ namespace CrisesControl.Core.Reports.Repositories
              string OrderBy, string OrderDir, int draw, string Filters, string CompanyKey, string Source = "WEB");
         Task<List<DataTablePaging>> GetIndidentMessageNoAck(int draw, int IncidentActivationId
         ,int RecordStart, int RecordLength, string? SearchString, string? UniqueKey);
-        CurrentIncidentStatsResponse GetCurrentIncidentStats(string timeZoneId);
+        CurrentIncidentStatsResponse GetCurrentIncidentStats(string timeZoneId, int companyId);
         IncidentData GetIncidentData(int incidentActivationId, int userId, int companyId);
         Task<List<PingGroupChartCount>> GetPingReportChart(DateTime StartDate, DateTime EndDate, int GroupID, string MessageType, int ObjectMappingID);
         Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");

@@ -141,7 +141,7 @@ namespace CrisesControl.Api.Controllers
         [Route("[action]")]
         public IActionResult GetCurrentIncidentStats()
         {
-            var result = _reportQuery.GetCurrentIncidentStats();
+            var result = _reportQuery.GetCurrentIncidentStats(_currentUser.CompanyId);
             return Ok(result);
         }
 
@@ -154,7 +154,7 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpGet]
-        [Route("[action]/{incidentActivationId:int}")]
+        [Route("[action]")]
         public IActionResult GetResponseReportByGroup([FromQuery] MessageReportRequest request)
         {
             var result = _reportQuery.GetResponseReportByGroup(request, _currentUser.CompanyId);

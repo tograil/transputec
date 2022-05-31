@@ -17,7 +17,7 @@ namespace CrisesControl.Api.Application.Query
         Task<GetIndidentMessageAckResponse> GetIndidentMessageAck(GetIndidentMessageAckRequest request);
         Task<ResponseSummaryResponse> ResponseSummary(ResponseSummaryRequest request);
         Task<GetIndidentMessageNoAckResponse> GetIndidentMessageNoAck(GetIndidentMessageNoAckRequest request);
-        CurrentIncidentStatsResponse GetCurrentIncidentStats();
+        CurrentIncidentStatsResponse GetCurrentIncidentStats(int companyId);
         IncidentData GetIncidentData(int incidentActivationId, int userId, int companyId);
         Task<GetMessageDeliveryReportResponse> GetMessageDeliveryReport(GetMessageDeliveryReportRequest request);
         DataTablePaging GetResponseReportByGroup(MessageReportRequest request, int companyId);
