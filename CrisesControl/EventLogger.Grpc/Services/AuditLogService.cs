@@ -21,7 +21,7 @@ namespace EventLogger.Grpc.Services
                     SaveChangesAuditCollection = BsonDocument.Parse($"{{ \"DatabaseChanges\": {request.SaveChangesAudit} }}"),
                     CommandName = request.RequestName,
                     CompanyId = request.CompanyId,
-                    Response = BsonDocument.Parse(request.Request),
+                    Response = BsonDocument.Parse(request.Response),
                     Request = BsonDocument.Parse(request.Request),
                     UserId = request.UserId
                 };

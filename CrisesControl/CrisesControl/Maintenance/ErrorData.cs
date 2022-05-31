@@ -2,6 +2,8 @@
 {
     public class ErrorData
     {
+        public int UserId { get; set; }
+        public int CompanyId { get; set; }
         public string Message { get; set; }
         public string StackTrace { get; set; }
     }
