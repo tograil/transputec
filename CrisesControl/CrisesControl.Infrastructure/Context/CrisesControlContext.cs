@@ -23,6 +23,7 @@ using CrisesControl.Core.ExTriggers;
 using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Infrastructure.Context.Misc;
+using CrisesControl.Core.Groups;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -106,6 +107,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<JsonResult>().HasNoKey();
             //modelBuilder.Entity<Assets>().HasNoKey();
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
+            modelBuilder.Entity<GroupLink>().HasNoKey();
 
 
 
