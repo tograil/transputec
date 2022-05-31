@@ -36,7 +36,6 @@
     <Folder Include="AuditLog\Services\" />
     <Folder Include="Compatibility\Jobs\" />
     <Folder Include="Exceptions\Error\Base\" />
-    <Folder Include="Exceptions\NotFound\Base\" />
     <Folder Include="Incidents\Services\" />
     <Folder Include="Incidents\Repositories\" />
     <Folder Include="Jobs\Services\" />

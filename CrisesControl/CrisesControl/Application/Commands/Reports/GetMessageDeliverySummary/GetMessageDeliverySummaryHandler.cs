@@ -1,7 +1,9 @@
 ﻿
 using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.Query;
 using CrisesControl.Api.Maintenance;
+using CrisesControl.Core.Exceptions.NotFound;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -16,45 +18,27 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySumma
         private readonly GetMessageDeliverySummaryValidator _getMessageDeliverySummaryValidator;
         private readonly ILogger<GetMessageDeliverySummaryHandler> _logger;
         private readonly IReportsQuery _reportsQuery;
-        private readonly IExceptionFilter _errorFilter;
-        public GetMessageDeliverySummaryHandler(GetMessageDeliverySummaryValidator getMessageDeliverySummaryValidator, ILogger<GetMessageDeliverySummaryHandler> logger, IReportsQuery reportsQuery, ErrorFilter errorFilter)
+        private readonly ICurrentUser _currentUser;   
+    
+        public GetMessageDeliverySummaryHandler(GetMessageDeliverySummaryValidator getMessageDeliverySummaryValidator, ILogger<GetMessageDeliverySummaryHandler> logger, IReportsQuery reportsQuery, ICurrentUser currentUser)
         {
             this._getMessageDeliverySummaryValidator = getMessageDeliverySummaryValidator;
             this._reportsQuery=reportsQuery;
             this._logger = logger;
-            this._errorFilter = errorFilter;
+            this._currentUser = currentUser;
+          
         }
         public async Task<GetMessageDeliverySummaryResponse> Handle(GetMessageDeliverySummaryRequest request, CancellationToken cancellationToken)
         {
-            try
-            {
+            
                 Guard.Against.Null(request, nameof(GetMessageDeliverySummaryRequest));
                 await _getMessageDeliverySummaryValidator.ValidateAndThrowAsync(request, cancellationToken);
-
                 var result = await _reportsQuery.GetMessageDeliverySummary(request);
+            if(result!= null) {
                 return result;
             }
-            catch (Exception ex)
-            {
-                var producesContentAttribute = new ProducesAttribute("application/json");
-               
-                var actionContext = new ActionContext()
-                {
-                    HttpContext = new DefaultHttpContext(),
-                    RouteData = new RouteData(),
-                    ActionDescriptor = new ActionDescriptor()
-                };
-                IList<IFilterMetadata> filterMetadatas = new List<IFilterMetadata>()
-                { 
-                    producesContentAttribute
-                
-                };
-                ExceptionContext custException = new ExceptionContext(actionContext, filterMetadatas);
-                _errorFilter.OnException(custException);
+            throw new MessageNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
 
-                return new GetMessageDeliverySummaryResponse { };
-
-            }
         }
     }
 }

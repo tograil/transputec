@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Core.Companies;
 using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
@@ -385,8 +386,9 @@ namespace CrisesControl.Infrastructure.Repositories {
             }
             catch (Exception ex)
             {
-                _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
-                                           ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+                throw new MessageNotFoundException(CompanyID, UserID);
 
                 return null;
             }
