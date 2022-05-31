@@ -1,17 +1,17 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
+using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Api.Application.Query.Requests;
+using CrisesControl.Api.Maintenance.Interfaces;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
-using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Core.Reports.SP_Response;
-
-using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
-using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.Compatibility;
-using CrisesControl.Api.Maintenance.Interfaces;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -94,7 +94,7 @@ namespace CrisesControl.Api.Application.Query
             return result;
         }
 
-        public GetCurrentIncidentStatsResponse GetCurrentIncidentStats()
+        public CurrentIncidentStatsResponse GetCurrentIncidentStats()
         {
             return _reportRepository.GetCurrentIncidentStats(_timeZoneId);
         }
@@ -139,6 +139,26 @@ namespace CrisesControl.Api.Application.Query
                 _logger.LogError("Error Occured while seeding into the database {0},{1},{2},{3},{4}",ex.Message,ex.StackTrace, ex.InnerException, ex.Source, ex.Data);
                 return null;
             }
+        }
+
+        public DataTablePaging GetResponseReportByGroup(MessageReportRequest request, int companyId)
+        {
+            return _reportRepository.GetResponseReportByGroup((DataTableAjaxPostModel)request, request.StartDate, request.EndDate, request.MessageType, request.DrillOpt, request.GroupId, request.ObjectMappingId, request.CompanyKey, request.IsThisWeek, request.IsThisMonth, request.IsLastMonth, companyId);
+        }
+
+        public List<IncidentMessageAuditResponse> GetIndidentMessagesAudit(int incidentActivationId, int companyId)
+        {
+            return _reportRepository.GetIndidentMessagesAudit(incidentActivationId, companyId);
+        }
+
+        public List<IncidentUserLocationResponse> GetIncidentUserLocation(int incidentActivationId, int companyId)
+        {
+            return _reportRepository.GetIncidentUserLocation(incidentActivationId, companyId);
+        }
+
+        public List<TrackUsers> GetTrackingUsers(string status, int userId, int companyId)
+        {
+            return _reportRepository.GetTrackingUsers(status, userId, companyId);
         }
     }
 }

@@ -107,8 +107,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<JsonResult>().HasNoKey();
 
             modelBuilder.Entity<IncidentData>().HasNoKey().Ignore("KeyContacts").Ignore("IncidentAssets");
-            modelBuilder.Entity<GetIncidentDataByActivationRefKeyContactsResponse>().HasNoKey();
-            modelBuilder.Entity<GetIncidentDataByActivationRefIncidentAssetsResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentDataByActivationRefKeyContactsResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentDataByActivationRefIncidentAssetsResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentMessageAuditResponse>().HasNoKey().Ignore("SentBy");
+            modelBuilder.Entity<IncidentUserLocationResponse>().HasNoKey().Ignore("UserName").Ignore("UserMobile");
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())

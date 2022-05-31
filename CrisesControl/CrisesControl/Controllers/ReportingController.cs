@@ -1,17 +1,19 @@
 ﻿using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
-using CrisesControl.Api.Application.Commands.Reports.GetPingReportChart;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
+using CrisesControl.Api.Application.Commands.Reports.GetPingReportChart;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.Query;
+using CrisesControl.Api.Application.Query.Requests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CrisesControl.Api.Controllers {
+namespace CrisesControl.Api.Controllers
+{
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
@@ -145,9 +147,41 @@ namespace CrisesControl.Api.Controllers {
 
         [HttpGet]
         [Route("[action]/{incidentActivationId:int}")]
-        public IActionResult GetIncidentData(int incidentActivationId)
+        public IActionResult GetIncidentData([FromRoute] int incidentActivationId)
         {
             var result = _reportQuery.GetIncidentData(incidentActivationId, _currentUser.UserId, _currentUser.CompanyId);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("[action]/{incidentActivationId:int}")]
+        public IActionResult GetResponseReportByGroup([FromQuery] MessageReportRequest request)
+        {
+            var result = _reportQuery.GetResponseReportByGroup(request, _currentUser.CompanyId);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("[action]/{incidentActivationId:int}/{companyId:int}")]
+        public IActionResult GetIndidentMessagesAudit([FromRoute] int incidentActivationId, [FromRoute] int companyId)
+        {
+            var result = _reportQuery.GetIndidentMessagesAudit(incidentActivationId, companyId);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("[action]/{incidentActivationId:int}/{companyId:int}")]
+        public IActionResult GetIncidentUserLocation([FromRoute] int incidentActivationId, [FromRoute] int companyId)
+        {
+            var result = _reportQuery.GetIncidentUserLocation(incidentActivationId, companyId);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("[action]/{status}")]
+        public IActionResult GetTrackingUsers([FromRoute] string status)
+        {
+            var result = _reportQuery.GetTrackingUsers(status, _currentUser.UserId, _currentUser.CompanyId);
             return Ok(result);
         }
 

@@ -1,6 +1,5 @@
 ﻿using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
-using CrisesControl.Core.Reports.SP_Response;
 using System;
 using System.Collections.Generic;
 
@@ -33,6 +32,6 @@ public class IncidentData
     public bool HasNotes { get; set; }
     public bool HasTask { get; set; }
     public bool IsKeyContact { get; set; }
-    public List<GetIncidentDataByActivationRefKeyContactsResponse> KeyContacts { get; set; }
-    public List<GetIncidentDataByActivationRefIncidentAssetsResponse> IncidentAssets { get; set; }
+    public List<KeyContact>? KeyContacts { get; set; }
+    public List<IncidentAssets>? IncidentAssets { get; set; }
 }

@@ -1,9 +1,6 @@
 ﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Api.Application.Query.Common;
 using CrisesControl.Core.Tasks;
 using CrisesControl.Core.Tasks.Repositories;
-using CrisesControl.Core.Paging;
-using CrisesControl.Core.Models;
 
 namespace CrisesControl.Api.Application.Query;
 

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Reports.SP_Response
 {
-    public class GetCurrentIncidentStatsResponse
+    public class CurrentIncidentStatsResponse
     {
         public int ActivatedCount { get; set; }
         public int LaunchedCount { get; set; }

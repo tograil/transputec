@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Reports.SP_Response
 {
-    public class GetIncidentDataByActivationRefKeyContactsResponse
+    public class IncidentDataByActivationRefKeyContactsResponse
     {
         public int UserId { get; set; }
         public string KeyContactFirstName { get; set; }
