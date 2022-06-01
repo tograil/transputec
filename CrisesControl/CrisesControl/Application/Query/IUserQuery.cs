@@ -7,6 +7,7 @@ using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.ValidateEmail;
 using CrisesControl.Api.Application.Commands.Users.MembershipList;
 using CrisesControl.Api.Application.ViewModels.User;
+using CrisesControl.Core.Users;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -16,8 +17,7 @@ namespace CrisesControl.Api.Application.Query
         public Task<GetUserResponse> GetUser(GetUserRequest request, CancellationToken cancellationToken);
         public Task<LoginResponse> GetLoggedInUserInfo(LoginRequest request, CancellationToken cancellationToken);
         public Task<ActivateUserResponse> ReactivateUser(int queriedUserId, CancellationToken cancellationToken);
-        public Task<GetAllUserDevicesResponse> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken);
-        public Task<GetAllUserDevicesResponse> GetAllUserDeviceList(GetAllUserDeviceRequest request, CancellationToken cancellationToken)
+        public Task<List<GetAllUserDevicesResponse>> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken);
 
         Task<MembershipResponse> MembershipList(MembershipRequest request);
 

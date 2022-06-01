@@ -118,11 +118,12 @@ namespace CrisesControl.Api.Application.Query
             return result;
         }
 
-        public async Task<GetAllUserDevicesResponse> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken)
+        public async Task<List<GetAllUserDevicesResponse>> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken)
         {
             GetAllUserDeviceRequest requestMapped = _mapper.Map<GetAllUserDeviceRequest>(request);
             var getAllUserDevices = await _UserRepository.GetAllUserDeviceList(requestMapped, cancellationToken);
-            return getAllUserDevices;
+            var result = _mapper.Map<List<GetAllUserDevicesResponse>>(getAllUserDevices);
+            return result;
         }
     }
 }

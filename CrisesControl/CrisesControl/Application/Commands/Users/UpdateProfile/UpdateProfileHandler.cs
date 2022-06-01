@@ -2,6 +2,7 @@
 using AutoMapper;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -121,7 +122,7 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
             {
                 _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                           ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
-                return null;
+                throw new UserNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
             }
 
         }

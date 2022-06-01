@@ -801,11 +801,11 @@ public class UserRepository : IUserRepository
         }
         catch (Exception ex)
         {
-            return null;
+            throw ex;
         }
     }
 
-    public async Task<List<GetAllUserDevicesResponse>> GetAllUserDeviceList(GetAllUserDeviceRequest request, CancellationToken cancellation)
+    public async Task<List<GetAllUserDevices>> GetAllUserDeviceList(GetAllUserDeviceRequest request, CancellationToken cancellation)
     {
         try
         {
@@ -818,12 +818,12 @@ public class UserRepository : IUserRepository
             var pOrderDir = new SqlParameter("@OrderDir", request.OrderDir);
             var pUniqueKey = new SqlParameter("@UniqueKey", request.CompanyKey);
 
-            var UserDeviceList = new List<GetAllUserDevicesResponse>();
+            var UserDeviceList = new List<GetAllUserDevices>();
             var propertyInfo = typeof(GetAllUserDeviceRequest).GetProperty(request.OrderBy);
 
             if (request.OrderDir == "desc" && propertyInfo != null)
             {
-                UserDeviceList = await _context.Set<GetAllUserDevicesResponse>().FromSqlRaw("EXEC Pro_Get_User_Devices_SelectAll @CompanyId,@UserID,@RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
+                UserDeviceList = await _context.Set<GetAllUserDevices>().FromSqlRaw("EXEC Pro_Get_User_Devices_SelectAll @CompanyId,@UserID,@RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
                     pCompanyId, pUserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
                     .ToListAsync();
                 UserDeviceList.Select(c =>
@@ -834,7 +834,7 @@ public class UserRepository : IUserRepository
             }
             else if (request.OrderDir == "asc" && propertyInfo != null)
             {
-                UserDeviceList = await _context.Set<GetAllUserDevicesResponse>().FromSqlRaw("EXEC Pro_Get_User_Devices_SelectAll @CompanyId,@UserID,@RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
+                UserDeviceList = await _context.Set<GetAllUserDevices>().FromSqlRaw("EXEC Pro_Get_User_Devices_SelectAll @CompanyId,@UserID,@RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
                     pCompanyId, pUserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
                     .ToListAsync();
                 UserDeviceList.Select(c =>
@@ -846,7 +846,7 @@ public class UserRepository : IUserRepository
             }
             else
             {
-                UserDeviceList = await _context.Set<GetAllUserDevicesResponse>().FromSqlRaw("EXEC Pro_Get_User_Devices_SelectAll @CompanyId,@UserID,@RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
+                UserDeviceList = await _context.Set<GetAllUserDevices>().FromSqlRaw("EXEC Pro_Get_User_Devices_SelectAll @CompanyId,@UserID,@RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
                     pCompanyId, pUserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
                     .ToListAsync();
                 UserDeviceList.Select(c =>

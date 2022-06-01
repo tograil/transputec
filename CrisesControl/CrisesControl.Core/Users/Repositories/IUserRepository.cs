@@ -25,7 +25,7 @@ public interface IUserRepository
     bool CheckDuplicate(User user);
     Task<LoginInfoReturnModel> GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken);
     Task<User> ReactivateUser(int qureiedUserId, CancellationToken cancellationToken);
-    Task<List<GetAllUserDevicesResponse>> GetAllUserDeviceList(GetAllUserDeviceRequest request, CancellationToken cancellation);
+    Task<List<GetAllUserDevices>> GetAllUserDeviceList(GetAllUserDeviceRequest request, CancellationToken cancellation);
 
     Task<ValidateEmailReponseModel> ValidateLoginEmail(string UserName);
     Task<int> UpdateProfile(User user);

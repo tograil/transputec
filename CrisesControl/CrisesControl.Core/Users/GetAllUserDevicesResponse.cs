@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Users
 {
-    public class GetAllUserDevicesResponse
+    public class GetAllUserDevices
     {
         public int UserID { get; set; }
         public string FirstName { get; set; }
