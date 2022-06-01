@@ -162,7 +162,7 @@ public class CompleteRegistrationHandler : IRequestHandler<CompleteRegistrationR
 
         _userRepository.AddPwdChangeHistory(newUsers.UserId, password, timeZoneId);
 
-        _userRepository.CreateUserSearch(newUsers.UserId, firstName, lastName, isdCode, mobileNo, primaryEmail, companyId);
+        await _userRepository.CreateUserSearch(newUsers.UserId, firstName, lastName, isdCode, mobileNo, primaryEmail, companyId);
 
         //TODO: Add sms trigger logic
 

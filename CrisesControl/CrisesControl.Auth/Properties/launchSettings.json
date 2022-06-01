@@ -19,12 +19,30 @@
       "applicationUrl": "https://localhost:7078;http://localhost:5078",
       "dotnetRunMessages": true
     },
+    "Andriy": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Andriy"
+      },
+      "applicationUrl": "https://localhost:7078;http://localhost:5078",
+      "dotnetRunMessages": true
+    },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "IIS Express Denish": {
+      "commandName": "IISExpress",
+      "launchBrowser": false,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Denish"
       }
     },
     "Docker": {
