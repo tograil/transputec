@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrisesControl.Core.Compatibility;
 
@@ -16,36 +17,13 @@ public class DataTableAjaxPostModel
     public bool SkipInActive { get; set; }
     public bool KeyHolderOnly { get; set; }
     // properties are not capital due to json mapping
-    public int draw { get; set; }
-    public int start { get; set; }
-    public int length { get; set; }
-    public List<Column>? columns { get; set; }
-    public Search? search { get; set; }
-    public List<Order>? order { get; set; }
+    public int Draw { get; set; }
+    public int Start { get; set; }
+    public int Length { get; set; }
+    public List<Column>? Columns { get; set; }
+    [NotMapped]
+    public Search? Search { get; set; }
+    public List<Order>? Order { get; set; }
     public string UniqueKey { get; set; }
     public string Filters { get; set; }
-}
-
-[Obsolete("Added for compatibility with old portal")]
-public class Column
-{
-    public string data { get; set; }
-    public string name { get; set; }
-    public bool searchable { get; set; }
-    public bool orderable { get; set; }
-    public Search search { get; set; }
-}
-
-[Obsolete("Added for compatibility with old portal")]
-public class Search
-{
-    public string value { get; set; }
-    public string regex { get; set; }
-}
-
-[Obsolete("Added for compatibility with old portal")]
-public class Order
-{
-    public string column { get; set; }
-    public string dir { get; set; }
 }
