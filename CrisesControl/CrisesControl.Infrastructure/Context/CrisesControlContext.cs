@@ -106,7 +106,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<JsonResult>().HasNoKey();
             modelBuilder.Entity<MessageDetails>().HasNoKey();
 
-
+            modelBuilder.Entity<LibIncident>().HasNoKey();
 
 
 
