@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrisesControl.Core.Assets
 {
@@ -12,6 +13,8 @@ namespace CrisesControl.Core.Assets
         public string? AssetDescription { get; set; }
         public string? AssetType { get; set; }
         public string? AssetPath { get; set; }
+        [NotMapped]
+        public string? FilePath { get; set; }
         public int CreatedBy { get; set; }
         public DateTimeOffset CreatedOn { get; set; }
         public int UpdatedBy { get; set; }
