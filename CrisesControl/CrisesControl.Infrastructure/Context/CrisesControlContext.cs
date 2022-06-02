@@ -108,6 +108,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<IncidentMessageAuditResponse>().HasNoKey().Ignore("SentBy");
             modelBuilder.Entity<IncidentUserLocationResponse>().HasNoKey().Ignore("UserName").Ignore("UserMobile");
             modelBuilder.Entity<TrackUsers>().HasNoKey();
+            modelBuilder.Entity<MessageDetails>().HasNoKey();
+
+            modelBuilder.Entity<LibIncident>().HasNoKey();
+
+
+
+            //modelBuilder.Entity<Location>().HasNoKey();
             //modelBuilder.Entity<Assets>().HasNoKey();
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
 

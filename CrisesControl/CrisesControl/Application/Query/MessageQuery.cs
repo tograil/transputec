@@ -5,6 +5,7 @@ using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
+using CrisesControl.Api.Application.Commands.Messaging.GetReplies;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
@@ -63,6 +64,13 @@ namespace CrisesControl.Api.Application.Query {
             result.Data = response;
             result.ErrorCode = System.Net.HttpStatusCode.OK;
             return result;
+        }
+
+        public async Task<GetRepliesResponse> GetReplies(GetRepliesRequest request)
+        {
+            var result = await _messageRepository.GetReplies(request.MessageId);
+            var response =  _mapper.Map<GetRepliesResponse>(result);
+            return response;
         }
 
         public async Task<GetMessageGroupListResponse> GetMessageGroupList(GetMessageGroupListRequest request)

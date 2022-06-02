@@ -12,6 +12,7 @@ using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
@@ -809,6 +810,39 @@ public class MessageRepository : IMessageRepository
         }
         return new List<MessageAttachment>();
 
+    }
+    public async Task<List<MessageDetails>> GetReplies(int ParentID,  string Source = "WEB")
+    {
+        
+        try
+        {
+            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            var pParentID = new SqlParameter("@ParentID", ParentID);
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pUserID = new SqlParameter("@UserID", UserID);
+            var pSource = new SqlParameter("@Source", Source);
+
+            var result =  _context.Set<MessageDetails>().FromSqlRaw("Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
+                pParentID, pCompanyID, pUserID, pSource).AsEnumerable();
+
+            var replies=result.Select(c => {
+                c.SentBy = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                c.AckOptions = (from AK in _context.Set<ActiveMessageResponse>().AsEnumerable() where AK.MessageId == c.MessageId
+
+                                    orderby AK.ResponseCode
+                                    select new AckOption { ResponseId = AK.ResponseId, ResponseLabel = AK.ResponseLabel }).ToList();
+                return c;
+             }).ToList();
+
+        return replies;
+    
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
     }
 
     public async Task<List<MessageGroupObject>> GetMessageGroupList(int MessageID)
