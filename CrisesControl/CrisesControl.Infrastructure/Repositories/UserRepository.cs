@@ -15,7 +15,6 @@ using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -931,16 +930,16 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task<List<GetUserComms>> GetUserComms(int commsUserId, CancellationToken cancellationToken)
+    public async Task<List<UserComm>> GetUserComms(int commsUserId, CancellationToken cancellationToken)
     {
         try
         {
-            var response = await _context.Set<UserComm>().Where(uc => uc.UserId == commsUserId).Select(uc => new GetUserComms { MessageType = uc.MessageType, MethodId = uc.MethodId }).ToListAsync();
+            var response = await _context.Set<UserComm>().Where(uc => uc.UserId == commsUserId).ToListAsync();
             return response;
         }
         catch (Exception ex)
         {
-            return null;
+            throw ex;
         }
     }
 }

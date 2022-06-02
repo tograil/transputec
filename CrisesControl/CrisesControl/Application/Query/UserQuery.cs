@@ -120,8 +120,8 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<IEnumerable<GetUserCommsResponse>> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken)
         {
-            List<GetUserComms> response = await _UserRepository.GetUserComms(request.CommsUserId, cancellationToken);
-            var result = _mapper.Map<IEnumerable<GetUserCommsResponse>>(response);
+            var response = await _UserRepository.GetUserComms(request.CommsUserId, cancellationToken);
+            var result = _mapper.Map<List<UserComm>, List<GetUserCommsResponse>>(response);
             return result;
         }
     }
