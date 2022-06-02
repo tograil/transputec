@@ -6,11 +6,8 @@ namespace CrisesControl.Api.Application.Commands.Users.GetUserComms
     {
         public GetUserCommsValidator()
         {
-            RuleFor(x => x.UserId)
+            RuleFor(x => x.CommsUserId)
                 .GreaterThan(0);
-            RuleFor(x => x.CompanyId)
-                .GreaterThan(0);
-
         }
     }
 }

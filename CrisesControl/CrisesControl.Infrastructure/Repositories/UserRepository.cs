@@ -441,7 +441,7 @@ public class UserRepository : IUserRepository
         try
         {
 
-            var SearchString = (Search != null) ? Search : string.Empty;           
+            var SearchString = (Search != null) ? Search : string.Empty;
 
 
             var pCompanyId = new SqlParameter("@CompanyID", companyID);
@@ -558,16 +558,11 @@ public class UserRepository : IUserRepository
                 return MainUserlist;
             }
         }
-
-           
-        }
         catch (Exception ex)
         {
             return null;
         }
             return null;
-       }
-        
     }
 
     private string GetCompanyName(int companyId)

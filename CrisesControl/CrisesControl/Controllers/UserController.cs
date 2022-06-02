@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using UserModel = CrisesControl.Core.Models.EmptyUser;
 using CrisesControl.Api.Application.Commands.Users.MembershipList;
+using CrisesControl.Api.Application.Commands.Users.GetUserComms;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -112,6 +113,14 @@ namespace CrisesControl.Api.Controllers
         public async Task<IActionResult> MembershipList([FromQuery] MembershipRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetUserComms")]
+        public async Task<IActionResult> GetUserComms([FromBody] GetUserCommsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _userQuery.GetUserComms(request, cancellationToken);
             return Ok(result);
         }
     }
