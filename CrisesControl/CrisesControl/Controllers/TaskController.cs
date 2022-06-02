@@ -7,7 +7,6 @@ using CrisesControl.Api.Application.Commands.Tasks.ReorderTask;
 using CrisesControl.Api.Application.Commands.Tasks.SaveTaskAsset;
 using CrisesControl.Api.Application.Commands.Tasks.SaveTaskCheckList;
 using CrisesControl.Api.Application.Query;
-using CrisesControl.Api.Application.Query.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

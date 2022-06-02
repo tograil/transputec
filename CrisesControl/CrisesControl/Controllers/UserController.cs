@@ -6,14 +6,16 @@ using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.UpdateGroupMember;
 using CrisesControl.Api.Application.Commands.Users.UpdateProfile;
-using CrisesControl.Api.Application.Commands.Users.MemberShipList;
 using CrisesControl.Api.Application.Commands.Users.UpdateUser;
+using CrisesControl.Api.Application.Query;
 using CrisesControl.Api.Application.Commands.Users.UpdateUserGroup;
+using CrisesControl.Api.Application.Commands.Users.ValidateEmail;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using UserModel = CrisesControl.Core.Models.EmptyUser;
+using CrisesControl.Api.Application.Commands.Users.MembershipList;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -22,53 +24,43 @@ namespace CrisesControl.Api.Controllers
     public class UserController : Controller
     {
         private readonly IMediator _mediator;
+        private readonly IUserQuery _userQuery;
 
-        public UserController(IMediator mediator)
+        public UserController(IMediator mediator, IUserQuery userQuery)
         {
             _mediator = mediator;
+            _userQuery = userQuery;
+        }
+
+        [HttpPost]
+        [Route("[action]")]
+        public async Task<IActionResult> Index([FromForm] GetUsersRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _userQuery.GetUsers(request, cancellationToken);
+            return Ok(result);
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index([FromQuery] GetUsersRequest request, CancellationToken cancellationToken)
+        [Route("{CompanyId:int}/{UserId:int}")]
+        public async Task<IActionResult> GetUser([FromRoute] GetUserRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _userQuery.GetUser(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet("ValidateLoginEmail")]
+        public async Task<IActionResult> ValidateLoginEmail([FromQuery] ValidateEmailRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 
-        [HttpGet("detail")]
-        public async Task<IActionResult> GetUser([FromQuery] GetUserRequest request, CancellationToken cancellationToken)
+        [HttpPost("getUserInfo")]
+        public async Task<IActionResult> GetLoggedinUserInfo([FromForm] LoginRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _userQuery.GetLoggedInUserInfo(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet("getlogininfo")]
-        public async Task<IActionResult> GetLoggedinUserInfo([FromQuery] LoginRequest request, CancellationToken cancellationToken)
-        {
-            //var userId = this.User.FindFirstValue("sub");
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpGet]
-        [Route("MemberShipList/{TargetID}/{ObjMapID}/{MemberShipType}")]
-        public async Task<IActionResult> MemberShipList([FromRoute] MembershipListRequestRoute requestRoute,[FromQuery] MemberShipListNullableRequest requestQuery, CancellationToken cancellationToken)
-        {
-            //Get a request after nullable value where assigned
-            MemberShipListRequest request = new MemberShipListRequest();
-            request.Start = requestQuery.Start;
-            request.Draw=requestQuery.Draw;
-            request.search = request.search;
-            request.Action = requestQuery.Action;
-            request.Length = requestQuery.Length;
-            request.ActiveOnly = requestRoute.ActiveOnly;
-            request.CompanyKey=requestQuery.CompanyKey;
-            request.ObjMapID = requestRoute.ObjMapID;
-            request.TargetID = requestRoute.TargetID;
-            request.order = requestQuery.order;
-            request.MemberShipType = requestRoute.MemberShipType;
-
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
+        
 
         [HttpPost]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest UserModel, CancellationToken cancellationToken)
@@ -112,6 +104,12 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPut("UpdateGroupMember")]
         public async Task<IActionResult> UpdateGroupMember([FromBody] UpdateGroupMemberRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet("MembershipList")]
+        public async Task<IActionResult> MembershipList([FromQuery] MembershipRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

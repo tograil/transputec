@@ -21,14 +21,14 @@ public class SchedulerController : Controller
         this._mediator = mediator;
     }
     [HttpGet]
-    [Route("GetAllJobs/{CompanyID}/{UserID}")]
+    [Route("GetAllJobs")]
     public async Task<IActionResult> GetAllJobs([FromRoute] GetAllJobsRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
     [HttpGet]
-    [Route("GetJob/{CompanyID}/{JobId}")]
+    [Route("GetJob/{CompanyID:int}/{JobId:int}")]
     public async Task<IActionResult> GetJob([FromRoute] GetJobRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
