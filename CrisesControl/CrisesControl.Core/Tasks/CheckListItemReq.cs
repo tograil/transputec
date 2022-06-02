@@ -1,7 +1,7 @@
-﻿using CrisesControl.Core.Common;
+﻿using CrisesControl.Core.Compatibility;
 
 namespace CrisesControl.Core.Tasks;
-public class CheckListItemReq : CCBase
+public class CheckListItemReq : CcBase
 {
     public int ActiveCheckListId { get; set; }
 }

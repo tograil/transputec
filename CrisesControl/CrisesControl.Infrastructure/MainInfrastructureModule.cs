@@ -76,7 +76,7 @@ namespace CrisesControl.Infrastructure
 
             builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<ActiveIncidentTaskService>().As<IActiveIncidentTaskService>();
-            builder.RegisterType<ReportRepository>().As<IReportsRepository>();
+            builder.RegisterType<ReportsRepository>().As<IReportsRepository>();
             builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
             builder.RegisterType<SecurityRepository>().As<ISecurityRepository>();
             builder.RegisterType<CompanyParametersRepository>().As<ICompanyParametersRepository>();
