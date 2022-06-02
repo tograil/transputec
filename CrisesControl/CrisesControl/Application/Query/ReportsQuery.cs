@@ -33,6 +33,7 @@ namespace CrisesControl.Api.Application.Query
         private readonly string _timeZoneId = "GMT Standard Time";
         private readonly ILogger<ReportsQuery> _logger;
         private readonly IPaging _paging;
+        private readonly ICurrentUser _currentUser;
      
         public ReportsQuery(IReportsRepository reportRepository, IMapper mapper,
             ILogger<ReportsQuery> logger, ICurrentUser currentUser, IPaging paging) {
