@@ -15,6 +15,15 @@ using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
 
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
+using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Compatibility;
+using CrisesControl.Api.Maintenance.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using CrisesControl.Core.Exceptions.NotFound;
+
 namespace CrisesControl.Api.Application.Query
 {
     public class ReportsQuery : IReportsQuery
@@ -24,15 +33,15 @@ namespace CrisesControl.Api.Application.Query
         private readonly string _timeZoneId = "GMT Standard Time";
         private readonly ILogger<ReportsQuery> _logger;
         private readonly IPaging _paging;
-        private readonly IExceptionFilter _errorFilter;
+     
         public ReportsQuery(IReportsRepository reportRepository, IMapper mapper,
-            ILogger<ReportsQuery> logger, ICurrentUser currentUser, IPaging paging, IExceptionFilter errorFilter) {
+            ILogger<ReportsQuery> logger, ICurrentUser currentUser, IPaging paging) {
             _mapper = mapper;
             _reportRepository = reportRepository;
             _currentUser = currentUser;
             _logger= logger;
             _paging= paging;
-            _errorFilter= errorFilter;
+           
         }
 
         public async Task<GetSOSItemsResponse> GetSOSItems(GetSOSItemsRequest request) {
@@ -170,26 +179,8 @@ namespace CrisesControl.Api.Application.Query
                     result.Message = "Data Loaded successfully";
                     return result;
                 }
-             
-          
-            
-                var producesContentAttribute = new ProducesAttribute("application/json");
 
-                var actionContext = new ActionContext()
-                {
-                    HttpContext = new DefaultHttpContext(),
-                    RouteData = new RouteData(),
-                    ActionDescriptor = new ActionDescriptor()
-                };
-                IList<IFilterMetadata> filterMetadatas = new List<IFilterMetadata>()
-                {
-                    producesContentAttribute
-
-                };
-                ExceptionContext custException = new ExceptionContext(actionContext, filterMetadatas);
-                _errorFilter.OnException(custException);
-            
-            return new GetTrackingUserCountResponse { };
+            throw new ReportingNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
 
         }
     }
