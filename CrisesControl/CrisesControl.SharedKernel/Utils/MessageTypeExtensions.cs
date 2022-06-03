@@ -23,6 +23,17 @@ public static class MessageTypeExtensions
             KeyType.ALLOWCHANGECHANNELUSER => "ALLOW_CHANGE_CHANNEL_USER",
             KeyType.ALLOWCHANNELPRIORITY => "ALLOW_CHANNEL_PRIORITY",
             KeyType.ALLOWCHANGEPRIORITYUSER => "ALLOW_CHANGE_PRIORITY_USER",
+            KeyType.PHONEVALIDATIONMETHOD=> "PHONE_VALIDATION_METHOD",
+            KeyType.TWILIOUSEINDIRECTCONNECTION=> "TWILIO_USE_INDIRECT_CONNECTION",
+            KeyType.TWILIOROUTINGAPI=> "TWILIO_ROUTING_API",
+            KeyType.PHONEVALIDATIONMSG=> "PHONE_VALIDATION_MSG",
+            KeyType.TWILIOFROMNUMBER=> "TWILIO_FROM_NUMBER",
+            KeyType.MESSAGINGCOPILOTSID=> "MESSAGING_COPILOT_SID",
+            KeyType.USEMESSAGINGCOPILOT => "USE_MESSAGING_COPILOT",
+            KeyType.MESSAGERETRYCOUNT=> "_MESSAGE_RETRY_COUNT",
+            KeyType.APICLASS=> "_API_CLASS",
+            KeyType._CLIENTID=> "_CLIENTID",
+            KeyType.CLIENTSECRET=> "_CLIENT_SECRET",
             _ => throw new ArgumentOutOfRangeException(nameof(keyType), keyType, null)
         };
     }
