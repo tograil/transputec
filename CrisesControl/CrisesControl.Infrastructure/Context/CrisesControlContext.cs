@@ -23,6 +23,7 @@ using CrisesControl.Core.ExTriggers;
 using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Infrastructure.Context.Misc;
+using CrisesControl.Core.Reports.SP_Response;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -81,32 +82,35 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<MessageAcknowledgements>().HasNoKey();
             modelBuilder.Entity<DataTablePaging>().HasNoKey().Ignore("data");
             modelBuilder.Entity<AcknowledgeReturn>().HasNoKey();
-
-
             modelBuilder.Entity<IncidentList>().HasNoKey();
-            modelBuilder.Entity<AffectedLocation>().HasNoKey();//
+            modelBuilder.Entity<AffectedLocation>().HasNoKey();
             modelBuilder.Entity<UpdateIncidentStatusReturn>().HasNoKey();
             modelBuilder.Entity<IncidentDetails>().HasNoKey();
             modelBuilder.Entity<CommsMethods>().HasNoKey();
             modelBuilder.Entity<PingGroupChartCount>().HasNoKey();
             modelBuilder.Entity<DeliveryOutput>().HasNoKey();
-
             modelBuilder.Entity<AckOption>().HasNoKey();
             modelBuilder.Entity<IncKeyCons>().HasNoKey();
             modelBuilder.Entity<IncidentAssetResponse>().HasNoKey();
             modelBuilder.Entity<ActionLsts>().HasNoKey();
             modelBuilder.Entity<IncidentParticipants>().HasNoKey();
             modelBuilder.Entity<UserFullName>().HasNoKey();
-
             modelBuilder.Entity<Predecessor>().HasNoKey();
             modelBuilder.Entity<TaskGroup>().HasNoKey();
             modelBuilder.Entity<TaskUser>().HasNoKey();
             modelBuilder.Entity<GetCheckListReponseOption>().HasNoKey();
             modelBuilder.Entity<CheckListUpsert>().HasNoKey();
             modelBuilder.Entity<JsonResult>().HasNoKey();
-            //modelBuilder.Entity<Assets>().HasNoKey();
+            modelBuilder.Entity<CurrentIncidentStatsResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentData>().HasNoKey().Ignore("KeyContacts").Ignore("IncidentAssets");
+            modelBuilder.Entity<IncidentDataByActivationRefKeyContactsResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentDataByActivationRefIncidentAssetsResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentMessageAuditResponse>().HasNoKey().Ignore("SentBy");
+            modelBuilder.Entity<IncidentUserLocationResponse>().HasNoKey().Ignore("UserName").Ignore("UserMobile");
+            modelBuilder.Entity<TrackUsers>().HasNoKey();
+            modelBuilder.Entity<MessageDetails>().HasNoKey();
 
-
+            modelBuilder.Entity<LibIncident>().HasNoKey();
 
 
 

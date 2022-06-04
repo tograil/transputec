@@ -87,19 +87,19 @@ namespace CrisesControl.Api.Application.Query
 
                 var membership = await _UserRepository.MembershipList(request.ObjMapID, request.MemberShipType, request.TargetID, _paging.PageNumber, _paging.PageSize, request.search, _paging.OrderBy, request.OrderDir, _paging.Apply, request.CompanyKey);
                 DataTablePaging rtn = new DataTablePaging();
-                rtn.recordsFiltered = membership.Count();
-                rtn.data = membership;
+                rtn.RecordsFiltered = membership.Count();
+                rtn.Data = membership;
                 int totalRecord = membership.Count();
-                rtn.draw = request.Draw;
-                rtn.recordsTotal = totalRecord;
+                rtn.Draw = request.Draw;
+                rtn.RecordsTotal = totalRecord;
 
 
                 return new MembershipResponse
                 {
-                    recordsFiltered = rtn.recordsFiltered,
-                    data = rtn.data,
+                    recordsFiltered = rtn.RecordsFiltered,
+                    data = rtn.Data,
                     draw = request.Draw,
-                    recordsTotal = rtn.recordsTotal,
+                    recordsTotal = rtn.RecordsTotal,
 
                 };
 

@@ -1,8 +1,7 @@
 ﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Api.Application.Query.Common;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
-using CrisesControl.Core.Paging;
 
 namespace CrisesControl.Api.Application.Query;
 
@@ -51,26 +50,26 @@ public class IncidentQuery : IIncidentQuery
         return _incidentRepository.GetIncidentById(companyId, _currentUser.UserId, incidentId, userStatus);
     }
 
-    public DataTablePaging GetAllActiveCompanyIncident(string? status, PagedRequest pagedRequest)
+    public DataTablePaging GetAllActiveCompanyIncident(string? status, DataTableAjaxPostModel pagedRequest)
     {
         var RecordStart = pagedRequest.Start == 0 ? 0 : pagedRequest.Start;
         var RecordLength = pagedRequest.Length == 0 ? int.MaxValue : pagedRequest.Length;
-        var SearchString = (pagedRequest.Search != null) ? pagedRequest.Search.value : "";
-        string OrderBy = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().column : "Name";
-        string OrderDir = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().dir : "asc";
+        var SearchString = (pagedRequest.Search != null) ? pagedRequest.Search.Value : "";
+        string OrderBy = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().Column : "Name";
+        string OrderDir = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().Dir : "asc";
         string Status = status != null ? status : "1,2,3,4";
 
         int totalRecord = 0;
         DataTablePaging rtn = new DataTablePaging();
-        rtn.draw = pagedRequest.Draw;
+        rtn.Draw = pagedRequest.Draw;
 
         var ActIncidentDtl = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, RecordStart, RecordLength, SearchString, OrderBy, OrderDir);
 
         if (ActIncidentDtl != null)
         {
             totalRecord = ActIncidentDtl.Count;
-            rtn.recordsFiltered = ActIncidentDtl.Count;
-            rtn.data = ActIncidentDtl;
+            rtn.RecordsFiltered = ActIncidentDtl.Count;
+            rtn.Data = ActIncidentDtl;
         }
 
         var TotalList = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, 0, int.MaxValue, "", "IncidentActivationId", "asc");
@@ -80,7 +79,7 @@ public class IncidentQuery : IIncidentQuery
             totalRecord = TotalList.Count;
         }
 
-        rtn.recordsTotal = totalRecord;
+        rtn.RecordsTotal = totalRecord;
 
         return rtn;
     }
