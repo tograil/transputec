@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+using CrisesControl.Api.Application.Commands.Register.ValidateMobile;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -19,6 +20,14 @@ namespace CrisesControl.Api.Controllers
         [HttpGet("CheckCustomer/{CustomerId}")]
        
         public async Task<IActionResult> CheckCustomer([FromRoute] CheckCustomerRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPost("ValidateMobile")]
+
+        public async Task<IActionResult> ValidateMobile([FromBody] VerifyPhoneRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 
