@@ -24,6 +24,7 @@ using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Core.Reports.SP_Response;
+using CrisesControl.Core.Groups;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -111,6 +112,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<IncidentUserLocationResponse>().HasNoKey().Ignore("UserName").Ignore("UserMobile");
             modelBuilder.Entity<TrackUsers>().HasNoKey();
             modelBuilder.Entity<MessageDetails>().HasNoKey();
+            //modelBuilder.Entity<Assets>().HasNoKey();
+            modelBuilder.Entity<MessageGroupObject>().HasNoKey();
+            modelBuilder.Entity<GroupLink>().HasNoKey();
+
 
             modelBuilder.Entity<LibIncident>().HasNoKey();
 
