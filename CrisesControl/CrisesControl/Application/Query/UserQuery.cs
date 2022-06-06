@@ -3,6 +3,7 @@ using AutoMapper;
 using CrisesControl.Api.Application.Commands.Users.ActivateUser;
 using CrisesControl.Api.Application.Commands.Users.GetAllUsersDevice;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
+using CrisesControl.Api.Application.Commands.Users.GetUserComms;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.MembershipList;
@@ -123,6 +124,13 @@ namespace CrisesControl.Api.Application.Query
             GetAllUserDeviceRequest requestMapped = _mapper.Map<GetAllUserDeviceRequest>(request);
             var getAllUserDevices = await _UserRepository.GetAllUserDeviceList(requestMapped, cancellationToken);
             var result = _mapper.Map<List<GetAllUserDevicesResponse>>(getAllUserDevices);
+            return result;
+        }
+
+        public async Task<IEnumerable<GetUserCommsResponse>> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken)
+        {
+            var response = await _UserRepository.GetUserComms(request.CommsUserId, cancellationToken);
+            var result = _mapper.Map<List<UserComm>, List<GetUserCommsResponse>>(response);
             return result;
         }
     }

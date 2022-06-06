@@ -28,6 +28,7 @@ public interface IUserRepository
     Task<List<GetAllUserDevices>> GetAllUserDeviceList(GetAllUserDeviceRequest request, CancellationToken cancellation);
 
     Task<ValidateEmailReponseModel> ValidateLoginEmail(string UserName);
+    Task<List<UserComm>> GetUserComms(int commsUserId, CancellationToken cancellationToken);
     Task<int> UpdateProfile(User user);
     Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
     void CreateSMSTriggerRight(int CompanyId, int UserId, string UserRole, bool SMSTrigger, string ISDCode, string MobileNo, bool Self = false);

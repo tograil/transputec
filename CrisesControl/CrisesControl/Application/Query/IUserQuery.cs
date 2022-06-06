@@ -2,6 +2,7 @@
 using CrisesControl.Api.Application.Commands.Users.ActivateUser;
 using CrisesControl.Api.Application.Commands.Users.GetAllUsersDevice;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
+using CrisesControl.Api.Application.Commands.Users.GetUserComms;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.ValidateEmail;
@@ -22,5 +23,6 @@ namespace CrisesControl.Api.Application.Query
         Task<MembershipResponse> MembershipList(MembershipRequest request);
 
         public Task<ValidateEmailResponse> ValidateLoginEmail(ValidateEmailRequest request);
+        public Task<IEnumerable<GetUserCommsResponse>> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken);
     }
 }

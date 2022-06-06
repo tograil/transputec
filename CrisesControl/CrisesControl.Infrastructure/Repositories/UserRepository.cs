@@ -16,8 +16,6 @@ using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -446,7 +444,7 @@ public class UserRepository : IUserRepository
         try
         {
 
-            var SearchString = (Search != null) ? Search : string.Empty;           
+            var SearchString = (Search != null) ? Search : string.Empty;
 
 
             var pCompanyId = new SqlParameter("@CompanyID", companyID);
@@ -562,14 +560,12 @@ public class UserRepository : IUserRepository
 
                 return MainUserlist;
             }
-
-           
         }
         catch (Exception ex)
         {
             return null;
         }
-        
+            return null;
     }
 
     private string GetCompanyName(int companyId)
@@ -1012,6 +1008,18 @@ public class UserRepository : IUserRepository
         else
         {
             //return null;
+        }
+    }
+    public async Task<List<UserComm>> GetUserComms(int commsUserId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _context.Set<UserComm>().Where(uc => uc.UserId == commsUserId).ToListAsync();
+            return response;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
         }
     }
 }
