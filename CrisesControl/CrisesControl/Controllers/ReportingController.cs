@@ -4,6 +4,7 @@ using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.GetPingReportChart;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
+using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.Query;
@@ -185,5 +186,13 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
 
+        [HttpGet]
+        [Route("GetTrackingUserCount")]
+        public async Task<IActionResult> GetTrackingUserCount([FromRoute] GetTrackingUserCountRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
     }
 }

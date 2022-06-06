@@ -12,6 +12,17 @@ using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Reports.SP_Response;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
+
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
+using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Compatibility;
+using CrisesControl.Api.Maintenance.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using CrisesControl.Core.Exceptions.NotFound;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -22,16 +33,16 @@ namespace CrisesControl.Api.Application.Query
         private readonly string _timeZoneId = "GMT Standard Time";
         private readonly ILogger<ReportsQuery> _logger;
         private readonly IPaging _paging;
-
-        public ReportsQuery(IReportsRepository reportRepository,
-                            IMapper mapper,
-                            ILogger<ReportsQuery> logger,
-                            IPaging paging)
-        {
-            _reportRepository = reportRepository;
+        private readonly ICurrentUser _currentUser;
+     
+        public ReportsQuery(IReportsRepository reportRepository, IMapper mapper,
+            ILogger<ReportsQuery> logger, ICurrentUser currentUser, IPaging paging) {
             _mapper = mapper;
-            _logger = logger;
-            _paging = paging;
+            _reportRepository = reportRepository;
+            _currentUser = currentUser;
+            _logger= logger;
+            _paging= paging;
+           
         }
 
         public async Task<GetSOSItemsResponse> GetSOSItems(GetSOSItemsRequest request) {
@@ -154,6 +165,24 @@ namespace CrisesControl.Api.Application.Query
         public List<TrackUsers> GetTrackingUsers(string status, int userId, int companyId)
         {
             return _reportRepository.GetTrackingUsers(status, userId, companyId);
+        }
+        public async Task<GetTrackingUserCountResponse> GetTrackingUserCount(GetTrackingUserCountRequest request)
+        {
+           
+                var trkUser = await _reportRepository.GetTrackingUserCount();
+
+                var response = _mapper.Map<List<TrackUserCount>>(trkUser);
+                var result = new GetTrackingUserCountResponse();
+                if (trkUser != null)
+                {
+                    result.Data = response;
+                    result.StatusCode = System.Net.HttpStatusCode.OK;
+                    result.Message = "Data Loaded successfully";
+                    return result;
+                }
+
+            throw new ReportingNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+
         }
     }
 }
