@@ -19,6 +19,9 @@ using CrisesControl.Api.Application.Commands.Users.MembershipList;
 using CrisesControl.Api.Application.Commands.Users.GetAllUsersDevice;
 using CrisesControl.Core.Users;
 using CrisesControl.Api.Application.Commands.Users.GetUserComms;
+using CrisesControl.Api.Application.Commands.Users.DeleteRegisteredUser;
+using CrisesControl.Api.Application.Commands.Users.UpdateUserPhoto;
+using CrisesControl.Api.Application.Commands.Users.UpdateUserPhone;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -129,6 +132,31 @@ namespace CrisesControl.Api.Controllers
         public async Task<IActionResult> GetUserComms([FromBody] GetUserCommsRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetUserComms(request, cancellationToken);
+            return Ok(result);
+        }
+
+
+        [HttpPost]
+        [Route("DeleteRegisteredUser")]
+        public async Task<IActionResult> DeleteRegisteredUser([FromBody] DeleteRegisteredUserRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("UpdateUserPhoto")]
+        public async Task<IActionResult> UpdateUserPhoto([FromBody] UpdateUserPhotoRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("UpdateUserPhone")]
+        public async Task<IActionResult> UpdateUserPhone([FromBody] UpdateUserPhoneRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
     }

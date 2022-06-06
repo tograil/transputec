@@ -24,7 +24,7 @@ namespace CrisesControl.Api.Application.Commands.Users.DeleteRegisteredUser
             Guard.Against.Null(request, nameof(DeleteRegisteredUserRequest));
 
             User value = _mappper.Map<DeleteRegisteredUserRequest, User>(request);
-            var user = await _userRepository.DeleteRegisteredUser(request.CustomerId,request.UniqueGuiId, cancellationToken);
+            var user = await _userRepository.DeleteRegisteredUser(request.CustomerId,request.UniqueGUID, cancellationToken);
             var result = new DeleteRegisteredUserResponse();
             //result.UserId = user.UserId;
             return result;
