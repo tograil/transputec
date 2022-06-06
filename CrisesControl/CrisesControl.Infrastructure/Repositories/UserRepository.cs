@@ -1040,4 +1040,29 @@ public class UserRepository : IUserRepository
         return user;
     }
 
+    public async Task<bool> BadEmail(string email)
+    {
+        int indexOfAt = email.IndexOf('@');
+        string domain = email.Substring(indexOfAt + 1).Trim();
+        bool exist = await _context.Set<BadDomain>().Where(w => w.DomainName == domain && w.Status == 1).AnyAsync();
+        return exist;
+    }
+
+    public async Task<bool> DuplicateEmail(string email)
+    {
+        return await _context.Set<User>().Where(t => t.PrimaryEmail == email).AnyAsync();
+    }
+
+    public async Task<string> SendInvites(CancellationToken cancellationToken)
+    {
+        var pendingUsers = _context.Set<User>().Where(t=>t.Status == 2 && t.CompanyId == companyId).ToList();
+
+        if(pendingUsers.Count() > 0)
+        {
+            return "Invitation sent to all pending users";
+        } else
+        {
+            return "No pending users";
+        }
+    }
 }

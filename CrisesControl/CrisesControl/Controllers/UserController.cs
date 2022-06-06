@@ -22,6 +22,8 @@ using CrisesControl.Api.Application.Commands.Users.GetUserComms;
 using CrisesControl.Api.Application.Commands.Users.DeleteRegisteredUser;
 using CrisesControl.Api.Application.Commands.Users.UpdateUserPhoto;
 using CrisesControl.Api.Application.Commands.Users.UpdateUserPhone;
+using CrisesControl.Api.Application.Commands.Users.CheckEmail;
+using CrisesControl.Api.Application.Commands.Users.SendInvites;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -155,6 +157,22 @@ namespace CrisesControl.Api.Controllers
         [HttpPost]
         [Route("UpdateUserPhone")]
         public async Task<IActionResult> UpdateUserPhone([FromBody] UpdateUserPhoneRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("CheckEmail")]
+        public async Task<IActionResult> CheckMail([FromBody] CheckEmailRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("SendInvites")]
+        public async Task<IActionResult> SendInvites([FromBody] SendInvitesRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
