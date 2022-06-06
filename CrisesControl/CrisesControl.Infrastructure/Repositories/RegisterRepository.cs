@@ -6,9 +6,11 @@ using CrisesControl.Core.Register;
 using CrisesControl.Core.Register.Repositories;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -26,16 +28,19 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly ILogger<RegisterRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IMessageService _messageService;
+      
         private readonly ICompanyRepository _companyRepository;
+        private readonly ISenderEmailService _senderEmail;
+    
         private int UserID;
         private int CompanyId;
-        public RegisterRepository(ILogger<RegisterRepository> logger, IMessageService service, CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+        public RegisterRepository(ILogger<RegisterRepository> logger, ISenderEmailService senderEmail,  CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
           this._logger = logger;
           this._context = context;
           this._httpContextAccessor = httpContextAccessor;
-          this._messageService  = service;
+          this._senderEmail=senderEmail;
+      
 
         }
         public async Task<bool> CheckCustomer(string CustomerId)
@@ -62,11 +67,11 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 CommsStatus textrslt = new CommsStatus();
                 string TwilioRoutingApi = string.Empty;
-                string FromNumber = LookupWithKey(KeyType.TWILIOFROMNUMBER.ToDbKeyString());
+                string FromNumber = await LookupWithKey(KeyType.TWILIOFROMNUMBER.ToDbKeyString());
 
-                bool SendInDirect = IsTrue(LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
+                bool SendInDirect = IsTrue(await LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
 
-                TwilioRoutingApi = LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
+                TwilioRoutingApi = await LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
 
                 var Confs = await  _context.Set<SysParameter>().Where(L=> L.Name ==KeyType.USEMESSAGINGCOPILOT.ToDbKeyString() || L.Name == KeyType.MESSAGINGCOPILOTSID.ToDbKeyString()).ToListAsync();
 
@@ -114,12 +119,12 @@ namespace CrisesControl.Infrastructure.Repositories
             try
             {
 
-                string validation_method = LookupWithKey(KeyType.PHONEVALIDATIONMETHOD.ToDbKeyString());
-                bool SendInDirect = IsTrue(LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
-                string TwilioRoutingApi = LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
+                string validation_method = await LookupWithKey(KeyType.PHONEVALIDATIONMETHOD.ToDbKeyString());
+                bool SendInDirect = IsTrue(await LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
+                string TwilioRoutingApi = await LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
 
                 if (string.IsNullOrEmpty(Message))
-                    Message = LookupWithKey(KeyType.PHONEVALIDATIONMSG.ToDbKeyString());
+                    Message = await LookupWithKey(KeyType.PHONEVALIDATIONMSG.ToDbKeyString());
 
                 Message = Message.Replace("{OTP}", Code).Replace("{CODE}", Code);
 
@@ -148,8 +153,8 @@ namespace CrisesControl.Infrastructure.Repositories
             try
             {
 
-                string FromNumber = LookupWithKey("TWILIO_FROM_NUMBER");
-                string MsgXML = LookupWithKey("TWILIO_PHONE_VALIDATION_XML");
+                string FromNumber =await LookupWithKey("TWILIO_FROM_NUMBER");
+                string MsgXML = await LookupWithKey("TWILIO_PHONE_VALIDATION_XML");
                 // TODO: still going to investigate this
                // MsgXML = MsgXML + "?Body=" + _httpContextAccessor.HttpContext.Server.UrlEncode(message);
 
@@ -183,13 +188,13 @@ namespace CrisesControl.Infrastructure.Repositories
                 return Default;
             }
         }
-        private string LookupWithKey(string Key, string Default = "")
+        private async Task<string> LookupWithKey(string Key, string Default = "")
         {
             try
             {
-                var LKP = (from L in _context.Set<SysParameter>()
-                           where L.Name == Key
-                           select L).FirstOrDefault();
+                var LKP = await _context.Set<SysParameter>()
+                           .Where(L=> L.Name == Key
+                           ).FirstOrDefaultAsync();
                 if (LKP != null)
                 {
                     Default = LKP.Value;
@@ -201,23 +206,23 @@ namespace CrisesControl.Infrastructure.Repositories
                 return Default;
             }
         }
-        public dynamic InitComms(string API_CLASS, string APIClass = "", string ClientId = "", string ClientSecret = "")
+        public async Task<dynamic> InitComms(string API_CLASS, string APIClass = "", string ClientId = "", string ClientSecret = "")
         {
             
             try
             {
 
                 int RetryCount = 2;
-                int.TryParse(LookupWithKey(API_CLASS + KeyType.MESSAGERETRYCOUNT.ToDbKeyString()), out RetryCount);
+                int.TryParse(await LookupWithKey(API_CLASS + KeyType.MESSAGERETRYCOUNT.ToDbKeyString()), out RetryCount);
 
                 if (string.IsNullOrEmpty(APIClass))
-                    APIClass = LookupWithKey(API_CLASS + KeyType.APICLASS.ToDbKeyString());
+                    APIClass =await LookupWithKey(API_CLASS + KeyType.APICLASS.ToDbKeyString());
 
                 if (string.IsNullOrEmpty(ClientId))
-                    ClientId = LookupWithKey(API_CLASS + KeyType._CLIENTID.ToDbKeyString());
+                    ClientId = await LookupWithKey(API_CLASS + KeyType._CLIENTID.ToDbKeyString());
 
                 if (string.IsNullOrEmpty(ClientSecret))
-                    ClientSecret = LookupWithKey(API_CLASS + KeyType.CLIENTSECRET.ToDbKeyString());
+                    ClientSecret = await LookupWithKey(API_CLASS + KeyType.CLIENTSECRET.ToDbKeyString());
 
                 string[] TmpClass = APIClass.Trim().Split('|');
 
@@ -373,11 +378,11 @@ namespace CrisesControl.Infrastructure.Repositories
                 string message = Convert.ToString(await ReadHtmlFile("NEW_ACCOUNT_CONFIRMED", "DB", CompanyId,  Subject));
 
                 var CompanyInfo =await  _context.Set<Company>().Where(C=> C.CompanyId == CompanyId ).FirstOrDefaultAsync();
-                string Website = LookupWithKey("DOMAIN");
-                string Portal = LookupWithKey("PORTAL");
-                string ValdiateURL = LookupWithKey("EMAIL_VALIDATE_URL");
-                string hostname = LookupWithKey("SMTPHOST");
-                string fromadd = LookupWithKey("EMAILFROM");
+                string Website = await LookupWithKey("DOMAIN");
+                string Portal = await LookupWithKey("PORTAL");
+                string ValdiateURL = await LookupWithKey("EMAIL_VALIDATE_URL");
+                string hostname =await LookupWithKey("SMTPHOST");
+                string fromadd = await LookupWithKey("EMAILFROM");
                 string sso_login = await _companyRepository.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
 
                 string Verifylink = Portal + ValdiateURL + CompanyId + "/" + guid;
@@ -385,7 +390,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
                 {
-                    CompanyLogo = LookupWithKey("CCLOGO");
+                    CompanyLogo = await LookupWithKey("CCLOGO");
                 }
 
                 if (!string.IsNullOrEmpty(sso_login))
@@ -405,16 +410,16 @@ namespace CrisesControl.Infrastructure.Repositories
                     messagebody = messagebody.Replace("{PORTAL}", Portal);
                     messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
 
-                    messagebody = messagebody.Replace("{TWITTER_LINK}", LookupWithKey("CC_TWITTER_PAGE"));
-                    messagebody = messagebody.Replace("{TWITTER_ICON}", LookupWithKey("CC_TWITTER_ICON"));
-                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", LookupWithKey("CC_FB_PAGE"));
-                    messagebody = messagebody.Replace("{FACEBOOK_ICON}",LookupWithKey("CC_FB_ICON"));
-                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", LookupWithKey("CC_LINKEDIN_PAGE"));
-                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", LookupWithKey("CC_LINKEDIN_ICON"));
+                    messagebody = messagebody.Replace("{TWITTER_LINK}", await LookupWithKey("CC_TWITTER_PAGE"));
+                    messagebody = messagebody.Replace("{TWITTER_ICON}", await LookupWithKey("CC_TWITTER_ICON"));
+                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", await LookupWithKey("CC_FB_PAGE"));
+                    messagebody = messagebody.Replace("{FACEBOOK_ICON}", await LookupWithKey("CC_FB_ICON"));
+                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", await LookupWithKey("CC_LINKEDIN_PAGE"));
+                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", await LookupWithKey("CC_LINKEDIN_ICON"));
 
                     string[] toEmails = { EmailId };
 
-                    bool ismailsend = Email(toEmails, messagebody, fromadd, hostname, Subject);
+                    bool ismailsend =await _senderEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
             }
             catch (Exception ex)
@@ -482,6 +487,86 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             return htmlContent;
         }
+        public async Task<bool> UpgradeRequest(int CompanyId)
+        {
+            try
+            {
+                string Subject = string.Empty;
+                string template = "PLAN_UPGRADE_REQ";
+
+                //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH"));
+
+                var sysparms = await _context.Set<SysParameter>()
+                                .Where(SP=> SP.Name == "DOMAIN" || SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
+                                || SP.Name == "EMAILFROM" || SP.Name == "ADMIN_SITE_URL"
+                                ).ToListAsync();
+
+
+                var Company = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyId).FirstOrDefaultAsync();
+                string Website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
+                string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+                string AdminPortal = sysparms.Where(w => w.Name == "ADMIN_SITE_URL").Select(s => s.Value).FirstOrDefault();
+                string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+                string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
+
+                string message = Convert.ToString(await ReadHtmlFile(template, "DB", CompanyId,  Subject));
+
+                if ((hostname != null) && (fromadd != null))
+                {
+
+                    StringBuilder adminMsg = new StringBuilder();
+
+                    adminMsg.AppendLine("<h2>An upgrade request has been made by customer</h2>");
+                    adminMsg.AppendLine("<p>Below are the company information:</p>");
+                    adminMsg.AppendLine("<strong>Company ID: </strong>CC" + Company.CompanyId + "</br>");
+                    adminMsg.AppendLine("<strong>Company Name: </strong>" + Company.CompanyName + "</br>");
+                    adminMsg.AppendLine("<strong>Registered On: </strong>" + Company.RegistrationDate.ToString("dd-MM-yy HH:mm") + "</br>");
+
+                    adminMsg.AppendLine("<p style=\"color:#ff0000;font-size:18px\"><strong><a href=\"" + AdminPortal + "\">Click here to login to admin portal to view company details</a></p>");
+
+                    string[] AdminEmail = (await LookupWithKey("BILLING_EMAIL")).Split(',');
+
+                    await _senderEmail.Email(AdminEmail, adminMsg.ToString(), fromadd, hostname, "Crises Control: " + Company.CompanyName + " requsted for an upgrade");
+
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return false;
+        }
+        public async Task<int> VerifyTempRegistration(Registration reg)
+        {
+            try
+            {
+               
+                
+                if(reg != null)
+                {
+                    _context.Update(reg);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("The Registration has been verified" + reg.Id);
+                    return reg.Id;
+                }
+               
+               
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error while seeding into database {0},{1},{2}", ex.Message, ex.InnerException, ex.StackTrace);
+            }
+            return 0;
+
+        }
+        public async Task<Registration> GetRegistrationById(string UniqueRef)
+        {
+            var reg = await _context.Set<Registration>().Where(R => R.UniqueReference == UniqueRef).FirstOrDefaultAsync();
+            return reg;
+        }
+
 
     }
 }

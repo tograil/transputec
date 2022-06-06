@@ -1,7 +1,10 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+using CrisesControl.Api.Application.Commands.Register.UpgradeRequest;
 using CrisesControl.Api.Application.Commands.Register.ValidateMobile;
 using CrisesControl.Api.Application.Commands.Register.ValidateUserEmail;
+using CrisesControl.Api.Application.Commands.Register.VerifyTempRegistration;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
@@ -16,8 +19,9 @@ namespace CrisesControl.Api.Application.Query
         private readonly ILogger<RegisterQuery> _logger;
         private readonly IMapper _mapper;
         private readonly ICompanyRepository _companyRepository;
+        private readonly ICurrentUser _currentUser;
         public RegisterQuery(IRegisterRepository registerRepository, IMapper mapper,
-        ILogger<RegisterQuery> logger, ICompanyRepository companyRepository)
+        ILogger<RegisterQuery> logger, ICompanyRepository companyRepository, ICurrentUser currentUser)
         {
            this. _mapper = mapper;
             this._registerRepository = registerRepository;
@@ -34,6 +38,24 @@ namespace CrisesControl.Api.Application.Query
             }
             else
             {
+                result.Message = "No record found.";
+            }
+
+            return result;
+        }
+
+        public async Task<UpgradeResponse> UpgradeRequest(UpgradeRequest request)
+        {
+            var status = await _registerRepository.UpgradeRequest(request.CompanyId);
+            var result = _mapper.Map<UpgradeResponse>(status);
+            if (status)
+            {
+                result.Message = "Company is upgraded";
+                result.Status = status;
+            }
+            else
+            {
+                result.Status = status;
                 result.Message = "No record found.";
             }
 
@@ -113,6 +135,40 @@ namespace CrisesControl.Api.Application.Query
                 return response;
             }
             throw new CompanyNotFoundException(request.CompanyId, UserInfo.UserId);
+        }
+
+        public async Task<VerifyTempRegistrationResponse> VerifyTempRegistration(VerifyTempRegistrationRequest request)
+        {
+            try
+            {
+                Registration registration = await _registerRepository.GetRegistrationById(request.UniqueRef);
+                if (registration != null)
+                {
+                    if(registration.Status==1){
+                        registration.Status = 2;
+                        var result=  await _registerRepository.VerifyTempRegistration(registration);
+                        var response = _mapper.Map<VerifyTempRegistrationResponse>(result);
+                        response.Message = "Data Loaded";
+                        response.RegId = result;
+                        return response;
+                    }
+                  
+                                    
+                }
+                return new VerifyTempRegistrationResponse()
+                {
+                    Message = "Not Found",
+                    RegId = 0
+                }
+                      ;
+
+            }
+            catch (Exception ex)
+            {
+                throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+                return null;
+            }
+
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Users;
+﻿using CrisesControl.Core.Companies;
+using CrisesControl.Core.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,5 +19,8 @@ namespace CrisesControl.Core.Register.Repositories
         Task CreateObjectRelationship(int TargetObjectID, int SourceObjectID, string RelationName, int CompanyId, int CreatedUpdatedBy, string TimeZoneId, string RelatinFilter = "");
         Task CreateNewObjectRelation(int SourceObjectID, int TargetObjectID, int ObjMapId, int CreatedUpdatedBy, string TimeZoneId);
         Task NewUserAccountConfirm(string EmailId, string UserName, string UserPass, int CompanyId, string guid);
+        Task<bool> UpgradeRequest(int CompanyId);
+        Task<int> VerifyTempRegistration(Registration reg);
+        Task<Registration> GetRegistrationById(string UniqueRef);
     }
 }
