@@ -999,4 +999,19 @@ public class UserRepository : IUserRepository
         }
     }
 
+    public async Task DeleteRegisteredUser(int CustomerId, string UniqueGUID, CancellationToken cancellationToken)
+    {
+        var DeleteUser = _context.Set<User>().Where(u => u.CompanyId == CustomerId && u.UniqueGuiId == UniqueGUID && u.RegisteredUser == false)
+            .FirstOrDefault();
+
+        if (DeleteUser != null)
+        {
+            _context.Set<User>().Remove(DeleteUser);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            //return null;
+        }
+    }
 }

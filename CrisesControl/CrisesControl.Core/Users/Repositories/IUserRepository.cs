@@ -37,4 +37,5 @@ public interface IUserRepository
     Task<User> GetRegisteredUserInfo(int CompanyId, int userId);
     Task<bool> UpdateUserMsgGroups(List<UserGroup> UserGroups);
     Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search,string orderBy,string orderDir, bool ActiveOnly, string? CompanyKey);
+    Task DeleteRegisteredUser(int CustomerId, string UniqueGUID, CancellationToken cancellationToken);
 }
