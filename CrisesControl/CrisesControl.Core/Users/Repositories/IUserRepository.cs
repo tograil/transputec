@@ -44,4 +44,6 @@ public interface IUserRepository
     Task<bool> BadEmail(string email);
     Task<bool> DuplicateEmail(string email);
     Task<string> SendInvites(CancellationToken cancellationToken);
+    Task<IEnumerable<UserDeviceListModel>> GetAllOneUserDeviceList(int quiredUserId, CancellationToken cancellationToken);
+    Task<bool> DeleteUserDevice(int userDeviceId, CancellationToken cancellationToken);
 }

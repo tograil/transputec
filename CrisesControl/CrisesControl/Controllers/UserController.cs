@@ -24,6 +24,8 @@ using CrisesControl.Api.Application.Commands.Users.UpdateUserPhoto;
 using CrisesControl.Api.Application.Commands.Users.UpdateUserPhone;
 using CrisesControl.Api.Application.Commands.Users.CheckEmail;
 using CrisesControl.Api.Application.Commands.Users.SendInvites;
+using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
+using CrisesControl.Api.Application.Commands.Users.DeleteUserDevice;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -173,6 +175,22 @@ namespace CrisesControl.Api.Controllers
         [HttpPost]
         [Route("SendInvites")]
         public async Task<IActionResult> SendInvites([FromBody] SendInvitesRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetAllOneUserDeviceList")]
+        public async Task<IActionResult> GetAllOneUserDeviceList([FromBody] GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _userQuery.GetAllOneUserDeviceList(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("DeleteUserDevice")]
+        public async Task<IActionResult> DeleteUserDevice([FromBody] DeleteUserDeviceRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

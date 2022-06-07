@@ -14,6 +14,7 @@ using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using FluentValidation;
+using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -131,6 +132,12 @@ namespace CrisesControl.Api.Application.Query
         {
             var response = await _UserRepository.GetUserComms(request.CommsUserId, cancellationToken);
             var result = _mapper.Map<List<UserComm>, List<GetUserCommsResponse>>(response);
+            return result;
+        }
+        public async Task<IEnumerable<GetAllOneUserDeviceListResponse>> GetAllOneUserDeviceList(GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken)
+        {
+            var response = await _UserRepository.GetAllOneUserDeviceList(request.QueriedUserId, cancellationToken);
+            var result = _mapper.Map<List<GetAllOneUserDeviceListResponse>>(response);
             return result;
         }
     }

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -40,8 +41,6 @@ public class UserRepository : IUserRepository
         _httpContextAccessor = httpContextAccessor;
         userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
         companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-        userID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-        companyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         _logger = logger;
     }
 
@@ -1065,4 +1064,51 @@ public class UserRepository : IUserRepository
             return "No pending users";
         }
     }
+
+    public async Task<IEnumerable<UserDeviceListModel>> GetAllOneUserDeviceList(int quiredUserId, CancellationToken cancellationToken)
+    {
+        var response = (from UD in _context.Set<UserDevice>()
+                        join U in _context.Set<User>() on UD.UserId equals U.UserId
+                        where UD.UserId == quiredUserId
+                        select new UserDeviceListModel()
+                        {
+                            UserId = UD.UserId,
+                            UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                            UserDeviceID = UD.UserDeviceId,
+                            CompanyID = UD.CompanyId,
+                            DeviceId = UD.DeviceId,
+                            DeviceType = UD.DeviceType,
+                            DeviceOs = UD.DeviceOs,
+                            DeviceModel = UD.DeviceModel,
+                            ExtraInfo = UD.ExtraInfo,
+                            Status = UD.Status,
+                            DeviceSerial = UD.DeviceSerial,
+                            SirenOn = UD.SirenOn,
+                            OverrideSilent = UD.OverrideSilent,
+                            LastLoginFrom = UD.UpdatedOn
+                        }).ToList();
+        if (response!=null)
+        {
+            return response;
+        }
+        throw new UserNotFoundException(companyId, userId);
+
+    }
+
+    public async Task<bool> DeleteUserDevice(int userDeviceId, CancellationToken cancellationToken)
+    {
+        var userDevice = _context.Set<UserDevice>().Where(ud => ud.UserDeviceId == userDeviceId).FirstOrDefault();
+        if (userDevice != null)
+        {
+            _context.Set<UserDevice>().Remove(userDevice);
+            _context.SaveChanges();
+
+            var tracking = _context.Set<TrackMe>().Where(tm => tm.UserDeviceId == userDeviceId).ToList();
+            _context.Set<TrackMe>().RemoveRange(tracking);
+            _context.SaveChanges();
+            return true;
+        }
+        throw new UserNotFoundException(companyId, userId);
+    }
+
 }
