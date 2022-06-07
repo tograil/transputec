@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using CrisesControl.SharedKernel.Enums;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,5 +14,6 @@ namespace CrisesControl.Core.Groups.Repositories
         Task<int> DeleteGroup(int groupId, CancellationToken token);
         bool CheckDuplicate(Group group);
         bool CheckForExistance(int groupId);
+        Task<List<GroupLink>> SegregationLinks(int TargetID, MemberShipType MemberShipType, string LinkType);
     }
 }

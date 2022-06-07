@@ -89,7 +89,7 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPut ("UpdateProfile")]
+        [HttpPut("UpdateProfile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

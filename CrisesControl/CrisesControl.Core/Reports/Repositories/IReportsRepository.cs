@@ -24,5 +24,6 @@ namespace CrisesControl.Core.Reports.Repositories
         List<IncidentMessageAuditResponse> GetIndidentMessagesAudit(int incidentActivationId, int companyId);
         List<IncidentUserLocationResponse> GetIncidentUserLocation(int incidentActivationId, int companyId);
         List<TrackUsers> GetTrackingUsers(string status, int userId, int companyId);
+        Task<List<TrackUserCount>> GetTrackingUserCount();
     }
 }
