@@ -171,7 +171,7 @@ namespace CrisesControl.Api.Application.Query
         public async Task<GetTrackingUserCountResponse> GetTrackingUserCount(GetTrackingUserCountRequest request)
         {
            
-                var trkUser = await _reportRepository.GetTrackingUserCount();
+                var trkUser = await _reportRepository.GetTrackingUserCount(_currentUser.CompanyId);
 
                 var response = _mapper.Map<List<TrackUserCount>>(trkUser);
                 var result = new GetTrackingUserCountResponse();
