@@ -21,6 +21,8 @@ namespace CrisesControl.Core.Register.Repositories
         Task NewUserAccountConfirm(string EmailId, string UserName, string UserPass, int CompanyId, string guid);
         Task<bool> UpgradeRequest(int CompanyId);
         Task<int> VerifyTempRegistration(Registration reg);
-        Task<Registration> GetRegistrationById(string UniqueRef);
+        Task<Registration> GetRegistrationByUniqueReference(string UniqueRef);
+        Task<Registration> GetRegistrationDataByEmail(string Email);
+        Task<Registration> TempRegister(Registration reg);
     }
 }

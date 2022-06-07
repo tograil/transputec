@@ -561,10 +561,33 @@ namespace CrisesControl.Infrastructure.Repositories
             return 0;
 
         }
-        public async Task<Registration> GetRegistrationById(string UniqueRef)
+        public async Task<Registration> GetRegistrationByUniqueReference(string UniqueRef)
         {
-            var reg = await _context.Set<Registration>().Where(R => R.UniqueReference == UniqueRef).FirstOrDefaultAsync();
+            var reg = await _context.Set<Registration>().Where(R => R.UniqueReference == UniqueRef ).FirstOrDefaultAsync();
             return reg;
+        }
+        public async Task<Registration> GetRegistrationDataByEmail(string Email)
+        {
+            var reg = await _context.Set<Registration>().Where(R =>  R.Email == Email).OrderBy(a => a.Id).FirstOrDefaultAsync();
+            return reg;
+        }
+        public async Task<Registration> TempRegister(Registration reg)
+        {
+            try
+            {
+
+                
+                   await _context.AddAsync(reg);
+                    await _context.SaveChangesAsync();
+               
+
+                return reg;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+           
         }
 
 
