@@ -628,5 +628,22 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
+
+        public async Task<List<TrackUserCount>> GetTrackingUserCount()
+        {
+            try {
+
+                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var tckusr = await _context.Set<TrackUserCount>().FromSqlRaw("exec Pro_Get_Tracking_Users_Count @CompanyID", pCompanyID).ToListAsync();
+
+                return tckusr;
+
+            }
+            catch (Exception ex) {
+                _logger.LogError("Error occured while seeding the database {0},{1}", ex.Message, ex.InnerException);
+            }
+           return null;
+        }
     }
 }

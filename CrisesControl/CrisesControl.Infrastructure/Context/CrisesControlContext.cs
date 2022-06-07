@@ -24,6 +24,7 @@ using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Core.Reports.SP_Response;
+using CrisesControl.Core.Groups;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -89,6 +90,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CommsMethods>().HasNoKey();
             modelBuilder.Entity<PingGroupChartCount>().HasNoKey();
             modelBuilder.Entity<DeliveryOutput>().HasNoKey();
+            modelBuilder.Entity<TrackUserCount>().HasNoKey();
+
             modelBuilder.Entity<AckOption>().HasNoKey();
             modelBuilder.Entity<IncKeyCons>().HasNoKey();
             modelBuilder.Entity<IncidentAssetResponse>().HasNoKey();
@@ -109,6 +112,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<IncidentUserLocationResponse>().HasNoKey().Ignore("UserName").Ignore("UserMobile");
             modelBuilder.Entity<TrackUsers>().HasNoKey();
             modelBuilder.Entity<MessageDetails>().HasNoKey();
+            //modelBuilder.Entity<Assets>().HasNoKey();
+            modelBuilder.Entity<MessageGroupObject>().HasNoKey();
+            modelBuilder.Entity<GroupLink>().HasNoKey();
+
             //modelBuilder.Entity<Assets>().HasNoKey();
             modelBuilder.Entity<DeliverySummary>().HasNoKey();
 

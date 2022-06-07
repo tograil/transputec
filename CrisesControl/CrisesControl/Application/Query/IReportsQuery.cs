@@ -4,6 +4,7 @@ using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
+using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Api.Application.Query.Requests;
 using CrisesControl.Core.Compatibility;
@@ -25,6 +26,7 @@ namespace CrisesControl.Api.Application.Query
         List<IncidentMessageAuditResponse> GetIndidentMessagesAudit(int incidentActivationId, int companyId);
         List<IncidentUserLocationResponse> GetIncidentUserLocation(int incidentActivationId, int companyId);
         List<TrackUsers> GetTrackingUsers(string status, int userId, int companyId);
+        Task<GetTrackingUserCountResponse> GetTrackingUserCount(GetTrackingUserCountRequest request);
         Task<GetMessageDeliverySummaryResponse> GetMessageDeliverySummary(GetMessageDeliverySummaryRequest request);
     }
 }
