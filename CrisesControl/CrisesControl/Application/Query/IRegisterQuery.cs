@@ -1,4 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
 using CrisesControl.Api.Application.Commands.Register.TempRegister;
 using CrisesControl.Api.Application.Commands.Register.UpgradeRequest;
 using CrisesControl.Api.Application.Commands.Register.ValidateMobile;
@@ -15,5 +17,7 @@ namespace CrisesControl.Api.Application.Query
         Task<UpgradeResponse> UpgradeRequest(UpgradeRequest request);
         Task<VerifyTempRegistrationResponse> VerifyTempRegistration(VerifyTempRegistrationRequest request);
         Task<TempRegisterResponse> TempRegister(TempRegisterRequest request);
+        Task<SetupCompletedResponse> SetupCompleted(SetupCompletedRequest request);
+        Task<GetTempRegistrationReponse> GetTempRegistration(GetTempRegistrationRequest request);
     }
 }

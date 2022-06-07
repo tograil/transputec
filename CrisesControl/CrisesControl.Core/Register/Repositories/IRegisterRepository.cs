@@ -24,5 +24,7 @@ namespace CrisesControl.Core.Register.Repositories
         Task<Registration> GetRegistrationByUniqueReference(string UniqueRef);
         Task<Registration> GetRegistrationDataByEmail(string Email);
         Task<Registration> TempRegister(Registration reg);
+        Task<bool> SetupCompleted(Company company);
+        Task<Registration> GetTempRegistration(int RegID, string UniqueRef);
     }
 }

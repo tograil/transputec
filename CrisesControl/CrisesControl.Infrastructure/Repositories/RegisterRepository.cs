@@ -1,6 +1,8 @@
 ﻿using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
-using CrisesControl.Core.Messages.Services;
+using CrisesControl.Core.Exceptions.NotFound;
+using CrisesControl.Core.Exceptions.NotFound.Base;
+using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Register.Repositories;
@@ -28,18 +30,21 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly ILogger<RegisterRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-      
+        private readonly IIncidentRepository _incidentRepository;
+
         private readonly ICompanyRepository _companyRepository;
         private readonly ISenderEmailService _senderEmail;
     
         private int UserID;
         private int CompanyId;
-        public RegisterRepository(ILogger<RegisterRepository> logger, ISenderEmailService senderEmail,  CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+        public RegisterRepository(ILogger<RegisterRepository> logger, ISenderEmailService senderEmail,  
+            CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IIncidentRepository incidentRepository)
         {
           this._logger = logger;
           this._context = context;
           this._httpContextAccessor = httpContextAccessor;
           this._senderEmail=senderEmail;
+          this._incidentRepository=incidentRepository;
       
 
         }
@@ -590,6 +595,44 @@ namespace CrisesControl.Infrastructure.Repositories
            
         }
 
+        public async Task<bool> SetupCompleted(Company company)
+        {
+           
+            if (company != null)
+            {
 
+
+
+                _context.Update(company);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }
+        public async Task<Registration> GetTempRegistration(int RegID, string UniqueRef)
+        {
+            try
+            {
+                if (RegID > 0)
+                {
+                    var reg = await _context.Set<Registration>().Where(R=> R.Id == RegID).FirstOrDefaultAsync();
+                    return reg;
+                }
+                else if (!string.IsNullOrEmpty(UniqueRef))
+                {
+                    var reg = await _context.Set<Registration>().Where(R=> R.UniqueReference == UniqueRef).FirstOrDefaultAsync();
+                    return reg;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error occured while seeding into database {0}, {1},{2}",ex.Message,ex.InnerException,ex.StackTrace);
+              
+            }
+            throw new RegisterNotFoundException(RegID, 0);
+
+
+        }
     }
+    
 }

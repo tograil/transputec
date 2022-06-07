@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Exceptions;
 using CrisesControl.Core.Exceptions.Error.Base;
 using CrisesControl.Core.Exceptions.NotFound.Base;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,15 @@ namespace CrisesControl.Api.Maintenance
 
             var result = context.Exception switch
             {
+                NotFoundRegisterException _notFoundRegisterException => new JsonResult(new ErrorData
+                {
+                    Message = _notFoundRegisterException.Message,
+                    UserId = _currentUser.UserId,
+                    RegID = _notFoundRegisterException.ErrorData.RegId,
+                })
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError
+                },
                 NotFoundBaseException notFoundBaseException => new JsonResult(new ErrorData
                 {
                     CompanyId = notFoundBaseException.ErrorData.CompanyId,
@@ -56,7 +66,9 @@ namespace CrisesControl.Api.Maintenance
                 })
                 {
                     StatusCode = StatusCodes.Status500InternalServerError
-                }
+                },
+
+
             };
 
             context.Result = result;

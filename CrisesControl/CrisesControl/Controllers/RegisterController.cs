@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
 using CrisesControl.Api.Application.Commands.Register.TempRegister;
 using CrisesControl.Api.Application.Commands.Register.UpgradeRequest;
 using CrisesControl.Api.Application.Commands.Register.ValidateMobile;
@@ -63,6 +64,13 @@ namespace CrisesControl.Api.Controllers
         [HttpPost("TempRegister")]
 
         public async Task<IActionResult> TempRegister([FromBody] TempRegisterRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPost("SetupCompleted")]
+        public async Task<IActionResult> SetupCompleted([FromBody] SetupCompletedRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 

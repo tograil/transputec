@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
 using CrisesControl.Api.Application.Commands.Register.TempRegister;
 using CrisesControl.Api.Application.Commands.Register.UpgradeRequest;
 using CrisesControl.Api.Application.Commands.Register.ValidateMobile;
@@ -9,6 +11,7 @@ using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
+using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Register.Repositories;
 using CrisesControl.SharedKernel.Utils;
 
@@ -21,13 +24,17 @@ namespace CrisesControl.Api.Application.Query
         private readonly IMapper _mapper;
         private readonly ICompanyRepository _companyRepository;
         private readonly ICurrentUser _currentUser;
-        public RegisterQuery(IRegisterRepository registerRepository, IMapper mapper,
+        private readonly IIncidentRepository _incidentRepository;
+        public RegisterQuery(IRegisterRepository registerRepository, IMapper mapper, IIncidentRepository incidentRepository,
         ILogger<RegisterQuery> logger, ICompanyRepository companyRepository, ICurrentUser currentUser)
         {
             this. _mapper = mapper;
             this._registerRepository = registerRepository;
             this._logger = logger;
             this._companyRepository=companyRepository;
+            this._currentUser=currentUser;
+            this._incidentRepository=incidentRepository;
+
         }
         public async Task<CheckCustomerResponse> CheckCustomer(CheckCustomerRequest request)
         {
@@ -43,6 +50,36 @@ namespace CrisesControl.Api.Application.Query
             }
 
             return result;
+        }
+
+        public async Task<GetTempRegistrationReponse> GetTempRegistration(GetTempRegistrationRequest request)
+        {
+            var temp = await _registerRepository.GetTempRegistration(request.RegId,request.UniqueRef);
+            var result = _mapper.Map<GetTempRegistrationReponse>(temp);
+            var response = new GetTempRegistrationReponse();
+            response.data = result.data;
+            return response;
+        }
+
+        public async Task<SetupCompletedResponse> SetupCompleted(SetupCompletedRequest request)
+        {
+            var CompanyStatus = await _companyRepository.GetCompanyByID(_currentUser.CompanyId);
+            if (CompanyStatus != null)
+            {
+                var newReg = _mapper.Map<Company>(CompanyStatus);
+                await _incidentRepository.CopyIncidentToCompany(_currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
+
+                newReg.CompanyProfile = "ON_TRIAL";
+                newReg.OnTrial = true;
+                var setup =await _registerRepository.SetupCompleted(newReg);
+
+                var response = new SetupCompletedResponse();
+                response.Message = "Company Completed";
+                response.Result = setup.ToString();
+                return response;
+
+            }
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
         }
 
         public async Task<TempRegisterResponse> TempRegister(TempRegisterRequest request)
@@ -243,19 +280,15 @@ namespace CrisesControl.Api.Application.Query
                   
                                     
                 }
-                return new VerifyTempRegistrationResponse()
-                {
-                    Message = "Not Found",
-                    RegId = 0
-                }
-                      ;
+               
 
             }
             catch (Exception ex)
             {
-                throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
-                return null;
+
+                _logger.LogError("Error occured while seeding into a database");
             }
+            throw new RegisterNotFoundException(0, _currentUser.UserId);
 
         }
     }
