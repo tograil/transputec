@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Users.CreateUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
+using CrisesControl.Api.Application.Commands.Users.GetUserComms;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.UpdateProfile;
@@ -30,6 +31,10 @@ namespace CrisesControl.Api.Application.Maps
 
             CreateMap<UpdateProfileRequest, User>();
             CreateMap<ValidateEmailReponseModel, ValidateEmailResponse>();
+
+            CreateMap<GetUserCommsResponse, UserComm>()
+                .ForMember(x=>x.MethodId, m=>m.MapFrom(x=> x.MethodId))
+                .ForMember(x=>x.MessageType, m=>m.MapFrom(x=>x.MessageType));
         }
     }
 }

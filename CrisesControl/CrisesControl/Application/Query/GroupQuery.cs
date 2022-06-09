@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Groups.GetGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroups;
+using CrisesControl.Api.Application.Commands.Groups.SegregationLinks;
+using CrisesControl.Core.Groups;
 using CrisesControl.Core.Groups.Repositories;
 
 namespace CrisesControl.Api.Application.Query
@@ -9,10 +11,12 @@ namespace CrisesControl.Api.Application.Query
     {
         private readonly IGroupRepository _groupRepository;
         private readonly IMapper _mapper;
-        public GroupQuery(IGroupRepository groupRepository, IMapper mapper)
+        private readonly ILogger<GroupQuery> _logger;
+        public GroupQuery(IGroupRepository groupRepository, IMapper mapper, ILogger<GroupQuery> logger)
         {
             _groupRepository = groupRepository;
             _mapper = mapper;
+            _logger = logger;   
         }
 
         public async Task<GetGroupsResponse> GetGroups(GetGroupsRequest request, CancellationToken cancellationToken)
@@ -30,6 +34,16 @@ namespace CrisesControl.Api.Application.Query
             GetGroupResponse response = _mapper.Map<GetGroupResponse>(group);
 
             return response;
+        }
+
+        public async Task<SegregationLinksResponse> SegregationLinks(SegregationLinksRequest request)
+        {
+            var groups = await _groupRepository.SegregationLinks(request.TargetID, request.MemberShipType,request.LinkType);
+            var response = _mapper.Map<List<GroupLink>>(groups);
+            var result = new SegregationLinksResponse();
+            result.data = response;
+            result.Message = "Data Loaded Succesfully";
+            return result;
         }
     }
 }
