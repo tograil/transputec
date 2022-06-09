@@ -656,7 +656,63 @@ namespace CrisesControl.Infrastructure.Repositories
             
         }
 
-       
+        public async Task<bool> ActivateCompany(int UserId, string ActivationKey, string IPAddress, int SalesSource = 0, string TimeZoneId = "GMT Standard Time")
+        {
+
+            try
+            {
+                int getuser = await _context.Set<User>().Where(U=> U.UserId == UserId).Select(U=>U.CompanyId).FirstOrDefaultAsync();
+
+                if (getuser > 0)
+                {
+                    var checkkey =  _context.Set<Company>().Include(CP=>CP.CompanyPaymentProfiles)
+                                    .Include(CA=>CA.CompanyActivation)                                   
+                                    .Where(CA=> CA.CompanyActivation.ActivationKey == ActivationKey && CA.CompanyId == getuser && CA.Status == 0
+                                    ).FirstOrDefault();
+                    if (checkkey != null)
+                    {
+                        checkkey.CompanyActivation.ActivatedBy = UserId;
+                        checkkey.CompanyActivation.ActivatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
+
+                        if (checkkey.Status == 4)
+                        {
+                            checkkey.CompanyProfile = "AWAITING_SETUP";
+                        }
+
+                        checkkey.CompanyActivation.Status = 1;
+                        checkkey.CompanyActivation.Ipaddress = IPAddress;
+                        if (checkkey.CompanyActivation.SalesSource <= 0)
+                            checkkey.CompanyActivation.SalesSource = SalesSource;
+                        checkkey.Status = 1;
+                        _context.Update(checkkey);
+                        await _context.SaveChangesAsync();
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw new CompanyNotFoundException(CompanyId, UserId);
+                return false;
+            }
+        }
+        public async Task<UserDevice> GetUserDeviceByUserId(int UserID)
+        {
+            var device =await  _context.Set<UserDevice>().Where(UD=> UD.UserId == UserID && UD.Status == 1 ).FirstOrDefaultAsync();
+            return device;
+  
+        }
+
+
     }
     
 }

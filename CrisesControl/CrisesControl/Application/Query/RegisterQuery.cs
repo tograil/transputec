@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Register.ActivateCompany;
+using CrisesControl.Api.Application.Commands.Register.CheckAppDownloaded;
 using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
@@ -38,6 +40,24 @@ namespace CrisesControl.Api.Application.Query
             this._incidentRepository=incidentRepository;
 
         }
+
+        public async Task<ActivateCompanyResponse> ActivateCompany(ActivateCompanyRequest request)
+        {
+            var status =await _registerRepository.ActivateCompany(request.UserId,request.ActivationKey,request.IPAddress,request.SalesSource);
+            var result = _mapper.Map<ActivateCompanyResponse>(status);
+
+            if (status)
+            {
+                result.Activated= true;
+            }
+            else
+            {
+                result.Activated = false;
+                result.Message = "Invalid activation key entered, try again.";
+            }
+            return result;
+        }
+
         public async Task<CheckCustomerResponse> CheckCustomer(CheckCustomerRequest request)
         {
             var customer = await _registerRepository.CheckCustomer(request.CustomerId);                    
@@ -53,7 +73,32 @@ namespace CrisesControl.Api.Application.Query
 
             return result;
         }
+       public async Task<CheckAppDownloadResponse> CheckAppDownload(CheckAppDownloadRequest request)
+        {
+            try
+            {
+                var device = await _registerRepository.GetUserDeviceByUserId(request.UserId);
+                var response = _mapper.Map<CheckAppDownloadResponse>(device);
 
+                if (device != null)
+                {
+
+                    response.Data = device;
+                    response.Message = "DOWNLOADED";
+                }
+                else
+                {
+                    response.Data = device;
+                    response.Message = "NOT_DOWNLOAD";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
         public async Task<CreateSampleIncidentResponse> CreateSampleIncident(CreateSampleIncidentRequest request)
         {
             var CompanyStatus = _companyRepository.GetCompanyByID(request.CompanyId);

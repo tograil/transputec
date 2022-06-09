@@ -1,4 +1,6 @@
-﻿using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+﻿using CrisesControl.Api.Application.Commands.Register.ActivateCompany;
+using CrisesControl.Api.Application.Commands.Register.CheckAppDownloaded;
+using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
@@ -93,8 +95,22 @@ namespace CrisesControl.Api.Controllers
 
             return Ok(result);
         }
-        [HttpDelete("CreateSampleIncident")]
+        [HttpPost("CreateSampleIncident")]
         public async Task<IActionResult> CreateSampleIncident([FromRoute] CreateSampleIncidentRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPut("ActivateCompany")]
+        public async Task<IActionResult> ActivateCompany([FromBody] ActivateCompanyRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet("CheckAppDownload")]
+        public async Task<IActionResult> CheckAppDownload([FromRoute] CheckAppDownloadRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 

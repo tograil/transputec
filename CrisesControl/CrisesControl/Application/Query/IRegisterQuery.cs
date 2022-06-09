@@ -1,4 +1,6 @@
-﻿using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+﻿using CrisesControl.Api.Application.Commands.Register.ActivateCompany;
+using CrisesControl.Api.Application.Commands.Register.CheckAppDownloaded;
+using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
@@ -23,5 +25,7 @@ namespace CrisesControl.Api.Application.Query
         Task<GetTempRegistrationReponse> GetTempRegistration(GetTempRegistrationRequest request);
         Task<DeleteTempRegistrationResponse> DeleteTempRegistration(DeleteTempRegistrationRequest request);
         Task<CreateSampleIncidentResponse> CreateSampleIncident(CreateSampleIncidentRequest request);
+        Task<ActivateCompanyResponse> ActivateCompany(ActivateCompanyRequest request);
+        Task<CheckAppDownloadResponse> CheckAppDownload(CheckAppDownloadRequest request);
     }
 }
