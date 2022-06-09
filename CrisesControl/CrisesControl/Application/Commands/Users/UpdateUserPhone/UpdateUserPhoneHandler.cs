@@ -8,17 +8,17 @@ using FluentValidation;
 using MediatR;
 using CrisesControl.Api.Application.Helpers;
 
-namespace CrisesControl.Api.Application.Commands.Users.UpdateUser
+namespace CrisesControl.Api.Application.Commands.Users.UpdateUserPhone
 {
-    public class UpdateUserHandler: IRequestHandler<UpdateUserRequest, UpdateUserResponse>
+    public class UpdateUserPhoneHandler: IRequestHandler<UpdateUserPhoneRequest, UpdateUserPhoneResponse>
     {
-        private readonly UpdateUserValidator _userValidator;
+        private readonly UpdateUserPhoneValidator _userValidator;
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mappper;
         private readonly ICurrentUser _currentUser;
 
 
-        public UpdateUserHandler(UpdateUserValidator userValidator, IUserRepository userService, IMapper mapper, ICurrentUser currentUser)
+        public UpdateUserPhoneHandler(UpdateUserPhoneValidator userValidator, IUserRepository userService, IMapper mapper, ICurrentUser currentUser)
         {
             _userValidator = userValidator;
             _userRepository = userService;
@@ -26,16 +26,16 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateUser
             _currentUser = currentUser;
         }
 
-        public async Task<UpdateUserResponse> Handle(UpdateUserRequest request, CancellationToken cancellationToken)
+        public async Task<UpdateUserPhoneResponse> Handle(UpdateUserPhoneRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(UpdateUserRequest));
+            Guard.Against.Null(request, nameof(UpdateUserPhoneRequest));
 
-            User value = _mappper.Map<UpdateUserRequest,User>(request);
+            User value = _mappper.Map<UpdateUserPhoneRequest,User>(request);
             if (CheckDuplicate(value))
             {
-                var userId = await _userRepository.UpdateUser(value, cancellationToken);
-                var result = new UpdateUserResponse();
-                result.UserId = userId;   
+                var user = await _userRepository.UpdateUserPhone(value, request.MobileNo, request.MobileISDCode, cancellationToken);
+                var result = new UpdateUserPhoneResponse();
+                result.UserId = user.UserId;   
                 return result;
             } 
             throw new UserNotFoundException(_currentUser.CompanyId, _currentUser.UserId);

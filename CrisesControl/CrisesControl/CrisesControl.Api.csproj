@@ -52,6 +52,11 @@
     <Folder Include="Application\Commands\Incidents\CopyIncident\" />
     <Folder Include="Application\Commands\Incidents\InitiateCompanyIncident\" />
     <Folder Include="Application\Commands\Incidents\LaunchCompanyIncident\" />
+    <Folder Include="Application\Commands\Users\CheckEmail\" />
+    <Folder Include="Application\Commands\Users\GetAllOneUserDeviceList\" />
+    <Folder Include="Application\Commands\Users\DeleteUserDevice\" />
+    <Folder Include="Application\Commands\Users\SendInvites\" />
+    <Folder Include="Application\Commands\Users\UpdateUserPhoto\" />
     <Folder Include="Application\Helpers\" />
     <Folder Include="Application\ViewModels\Company\" />
     <Folder Include="Maintenance\Interfaces\" />

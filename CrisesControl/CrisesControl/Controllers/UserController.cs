@@ -16,6 +16,16 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using UserModel = CrisesControl.Core.Models.EmptyUser;
 using CrisesControl.Api.Application.Commands.Users.MembershipList;
+using CrisesControl.Api.Application.Commands.Users.GetAllUsersDevice;
+using CrisesControl.Core.Users;
+using CrisesControl.Api.Application.Commands.Users.GetUserComms;
+using CrisesControl.Api.Application.Commands.Users.DeleteRegisteredUser;
+using CrisesControl.Api.Application.Commands.Users.UpdateUserPhoto;
+using CrisesControl.Api.Application.Commands.Users.UpdateUserPhone;
+using CrisesControl.Api.Application.Commands.Users.CheckEmail;
+using CrisesControl.Api.Application.Commands.Users.SendInvites;
+using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
+using CrisesControl.Api.Application.Commands.Users.DeleteUserDevice;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -110,6 +120,77 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpGet("MembershipList")]
         public async Task<IActionResult> MembershipList([FromQuery] MembershipRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpPost("GetAllUserDeviceList")]
+        public async Task<IActionResult> GetAllUserDeviceList([FromBody] GetAllUserDevicesRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _userQuery.GetAllUserDeviceList(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetUserComms")]
+        public async Task<IActionResult> GetUserComms([FromBody] GetUserCommsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _userQuery.GetUserComms(request, cancellationToken);
+            return Ok(result);
+        }
+
+
+        [HttpPost]
+        [Route("DeleteRegisteredUser")]
+        public async Task<IActionResult> DeleteRegisteredUser([FromBody] DeleteRegisteredUserRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("UpdateUserPhoto")]
+        public async Task<IActionResult> UpdateUserPhoto([FromBody] UpdateUserPhotoRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("UpdateUserPhone")]
+        public async Task<IActionResult> UpdateUserPhone([FromBody] UpdateUserPhoneRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("CheckEmail")]
+        public async Task<IActionResult> CheckMail([FromBody] CheckEmailRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("SendInvites")]
+        public async Task<IActionResult> SendInvites([FromBody] SendInvitesRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetAllOneUserDeviceList")]
+        public async Task<IActionResult> GetAllOneUserDeviceList([FromBody] GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _userQuery.GetAllOneUserDeviceList(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("DeleteUserDevice")]
+        public async Task<IActionResult> DeleteUserDevice([FromBody] DeleteUserDeviceRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

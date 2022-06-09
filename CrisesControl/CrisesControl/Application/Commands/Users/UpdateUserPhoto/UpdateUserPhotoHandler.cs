@@ -8,17 +8,17 @@ using FluentValidation;
 using MediatR;
 using CrisesControl.Api.Application.Helpers;
 
-namespace CrisesControl.Api.Application.Commands.Users.UpdateUser
+namespace CrisesControl.Api.Application.Commands.Users.UpdateUserPhoto
 {
-    public class UpdateUserHandler: IRequestHandler<UpdateUserRequest, UpdateUserResponse>
+    public class UpdateUserPhotoHandler: IRequestHandler<UpdateUserPhotoRequest, UpdateUserPhotoResponse>
     {
-        private readonly UpdateUserValidator _userValidator;
+        private readonly UpdateUserPhotoValidator _userValidator;
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mappper;
         private readonly ICurrentUser _currentUser;
 
 
-        public UpdateUserHandler(UpdateUserValidator userValidator, IUserRepository userService, IMapper mapper, ICurrentUser currentUser)
+        public UpdateUserPhotoHandler(UpdateUserPhotoValidator userValidator, IUserRepository userService, IMapper mapper, ICurrentUser currentUser)
         {
             _userValidator = userValidator;
             _userRepository = userService;
@@ -26,16 +26,16 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateUser
             _currentUser = currentUser;
         }
 
-        public async Task<UpdateUserResponse> Handle(UpdateUserRequest request, CancellationToken cancellationToken)
+        public async Task<UpdateUserPhotoResponse> Handle(UpdateUserPhotoRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(UpdateUserRequest));
+            Guard.Against.Null(request, nameof(UpdateUserPhotoRequest));
 
-            User value = _mappper.Map<UpdateUserRequest,User>(request);
+            User value = _mappper.Map<UpdateUserPhotoRequest,User>(request);
             if (CheckDuplicate(value))
             {
-                var userId = await _userRepository.UpdateUser(value, cancellationToken);
-                var result = new UpdateUserResponse();
-                result.UserId = userId;   
+                var user = await _userRepository.UpdateUserPhoto(value, request.UserPhoto, cancellationToken);
+                var result = new UpdateUserPhotoResponse();
+                result.UserId = user.UserId;   
                 return result;
             } 
             throw new UserNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
