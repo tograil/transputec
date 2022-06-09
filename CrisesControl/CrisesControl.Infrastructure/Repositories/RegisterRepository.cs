@@ -633,6 +633,30 @@ namespace CrisesControl.Infrastructure.Repositories
 
 
         }
+        public async Task<bool> DeleteTempRegistration(Registration registration)
+        {
+            try
+            {
+                
+                if (registration != null)
+                {
+                    _context.Remove(registration);
+                    _context.SaveChanges();
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new RegisterNotFoundException(0, 0);
+            }
+            
+        }
+
+       
     }
     
 }

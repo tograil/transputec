@@ -1,4 +1,7 @@
 ﻿using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
+using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
 using CrisesControl.Api.Application.Commands.Register.TempRegister;
 using CrisesControl.Api.Application.Commands.Register.UpgradeRequest;
@@ -6,7 +9,7 @@ using CrisesControl.Api.Application.Commands.Register.ValidateMobile;
 using CrisesControl.Api.Application.Commands.Register.VerifyTempRegistration;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+
 using Microsoft.AspNetCore.Mvc;
 
 namespace CrisesControl.Api.Controllers
@@ -69,8 +72,29 @@ namespace CrisesControl.Api.Controllers
 
             return Ok(result);
         }
-        [HttpPost("SetupCompleted")]
+        [HttpPut("SetupCompleted")]
         public async Task<IActionResult> SetupCompleted([FromBody] SetupCompletedRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet("GetTempRegistration")]
+        public async Task<IActionResult> GetTempRegistration([FromRoute] GetTempRegistrationRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpDelete("DeleteTempRegistration")]
+        public async Task<IActionResult> DeleteTempRegistration([FromRoute] DeleteTempRegistrationRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpDelete("CreateSampleIncident")]
+        public async Task<IActionResult> CreateSampleIncident([FromRoute] CreateSampleIncidentRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 

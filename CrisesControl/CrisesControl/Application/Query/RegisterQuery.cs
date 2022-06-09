@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
+using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
 using CrisesControl.Api.Application.Commands.Register.TempRegister;
@@ -50,6 +52,39 @@ namespace CrisesControl.Api.Application.Query
             }
 
             return result;
+        }
+
+        public async Task<CreateSampleIncidentResponse> CreateSampleIncident(CreateSampleIncidentRequest request)
+        {
+            var CompanyStatus = _companyRepository.GetCompanyByID(request.CompanyId);
+            if (CompanyStatus != null)
+            {
+
+                int incident_id = await _incidentRepository.ActivateSampleIncident(_currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
+
+                
+                await _incidentRepository.CreateSOSIncident(_currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
+                var result = _mapper.Map<CreateSampleIncidentResponse>(incident_id);
+                var response = new CreateSampleIncidentResponse();
+                response.result = result.result;
+                response.Message = "Company has been Found";
+                return response;
+            }
+            throw new RegisterNotFoundException(0,_currentUser.UserId);
+        }
+
+        public async  Task<DeleteTempRegistrationResponse> DeleteTempRegistration(DeleteTempRegistrationRequest request)
+        {
+            var delete = await _registerRepository.GetRegistrationByUniqueReference(request.UniqueReference);
+            var response = new DeleteTempRegistrationResponse();
+            if (delete != null)
+            {
+                var result = await _registerRepository.DeleteTempRegistration(delete);
+                response.Result = result;
+                response.Message = "Deleted";
+                return response;
+            }
+            throw new RegisterNotFoundException(0, _currentUser.UserId);
         }
 
         public async Task<GetTempRegistrationReponse> GetTempRegistration(GetTempRegistrationRequest request)

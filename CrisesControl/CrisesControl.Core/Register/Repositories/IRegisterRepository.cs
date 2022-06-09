@@ -26,5 +26,6 @@ namespace CrisesControl.Core.Register.Repositories
         Task<Registration> TempRegister(Registration reg);
         Task<bool> SetupCompleted(Company company);
         Task<Registration> GetTempRegistration(int RegID, string UniqueRef);
+        Task<bool> DeleteTempRegistration(Registration registration);
     }
 }

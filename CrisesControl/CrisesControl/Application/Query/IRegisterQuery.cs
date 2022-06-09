@@ -1,4 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
+using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
 using CrisesControl.Api.Application.Commands.Register.TempRegister;
@@ -19,5 +21,7 @@ namespace CrisesControl.Api.Application.Query
         Task<TempRegisterResponse> TempRegister(TempRegisterRequest request);
         Task<SetupCompletedResponse> SetupCompleted(SetupCompletedRequest request);
         Task<GetTempRegistrationReponse> GetTempRegistration(GetTempRegistrationRequest request);
+        Task<DeleteTempRegistrationResponse> DeleteTempRegistration(DeleteTempRegistrationRequest request);
+        Task<CreateSampleIncidentResponse> CreateSampleIncident(CreateSampleIncidentRequest request);
     }
 }

@@ -26,5 +26,32 @@ public class MessageService : IMessageService
     {
         throw new System.NotImplementedException();
     }
+    public async Task CreateMessageMethod(int MessageID, int MethodID, int ActiveIncidentID = 0, int IncidentID = 0)
+    {
+        
+        try
+        {
+            var exist = await _context.Set<MessageMethod>()
+                        .Where( MMS=>
+                            MMS.ActiveIncidentId == ActiveIncidentID &&
+                            ActiveIncidentID > 0 &&
+                            MMS.MethodId == MethodID
+                         ).AnyAsync();
+
+            MessageMethod MM = new MessageMethod()
+            {
+                MessageId = MessageID,
+                MethodId = MethodID,
+                ActiveIncidentId = (exist == false ? ActiveIncidentID : 0),
+                IncidentId = IncidentID
+            };
+           await _context.AddAsync(MM);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
 
 }
