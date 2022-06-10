@@ -3,8 +3,12 @@ using Azure.Core;
 using Azure.Identity;
 using CC.Authority.Api;
 using CC.Authority.Api.Config;
+using CC.Authority.Implementation;
 using CC.Authority.Implementation.Data;
 using CC.Authority.Implementation.Models;
+using CC.Authority.Implementation.Scim;
+using CC.Authority.SCIM.Service;
+using CC.Authority.SCIM.Service.Monitor;
 using CrisesControl.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
@@ -14,10 +18,17 @@ using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
+using Microsoft.SCIM.WebHostSample.Provider;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var monitoringBehavior = new ConsoleMonitor();
+
+builder.Services.AddSingleton(typeof(IMonitor), monitoringBehavior);
+
+builder.Services.AddInfrastructure();
 
 builder.Services.AddDbContext<OpenIddictContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlOpenIddict"));
@@ -95,7 +106,7 @@ builder.Services.AddIdentityCore<User>()
     .AddUserStore<UserStore>()
     .AddUserManager<CrisesControlUserManager>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
