@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
@@ -27,6 +28,7 @@ public class UserRepository : IUserRepository
     private readonly CrisesControlContext _context;
     private readonly string timeZoneId = "GMT Standard Time";
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly SendEmail _SDE;
     private int userId;
     private int companyId;
     private int userID;
@@ -35,13 +37,14 @@ public class UserRepository : IUserRepository
     const string action = "ADD";
 
 
-    public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<UserRepository> logger)
+    public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<UserRepository> logger, SendEmail SDE)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
         companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         _logger = logger;
+        _SDE = SDE;
     }
 
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
@@ -1058,6 +1061,11 @@ public class UserRepository : IUserRepository
 
         if(pendingUsers.Count() > 0)
         {
+            foreach (var usr in pendingUsers)
+            {
+                _SDE.NewUserAccount(usr.PrimaryEmail, usr.FirstName + " " + usr.LastName, usr.CompanyId, usr.UniqueGuiId);
+            }
+           
             return "Invitation sent to all pending users";
         } else
         {

@@ -57,7 +57,6 @@
     <Folder Include="Application\Commands\Users\DeleteUserDevice\" />
     <Folder Include="Application\Commands\Users\SendInvites\" />
     <Folder Include="Application\Commands\Users\UpdateUserPhoto\" />
-    <Folder Include="Application\Helpers\" />
     <Folder Include="Application\ViewModels\Company\" />
     <Folder Include="Maintenance\Interfaces\" />
   </ItemGroup>
