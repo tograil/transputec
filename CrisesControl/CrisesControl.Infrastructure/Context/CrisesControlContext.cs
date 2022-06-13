@@ -125,6 +125,14 @@ namespace CrisesControl.Infrastructure.Context
 
 
             //modelBuilder.Entity<Location>().HasNoKey();
+            //modelBuilder.Entity<Assets>().HasNoKey();
+            modelBuilder.Entity<MessageGroupObject>().HasNoKey();
+
+
+
+
+
+            //modelBuilder.Entity<Location>().HasNoKey();
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
