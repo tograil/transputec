@@ -4,15 +4,18 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Incidents.SPResponse;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
 
 namespace CrisesControl.Infrastructure.Repositories;
@@ -20,9 +23,15 @@ namespace CrisesControl.Infrastructure.Repositories;
 public class IncidentRepository : IIncidentRepository
 {
     private readonly CrisesControlContext _context;
-    public IncidentRepository(CrisesControlContext context)
+    private readonly ICompanyParametersRepository _companyParamentersRepository;
+    private readonly IMessageService _service;
+    private readonly ILogger<IncidentRepository> _logger;
+    public IncidentRepository(CrisesControlContext context, ICompanyParametersRepository companyParamentersRepository, IMessageService service, ILogger<IncidentRepository> logger)
     {
         _context = context;
+        _companyParamentersRepository = companyParamentersRepository;
+        _service = service;
+        _logger = logger;
     }
 
     public async Task<bool> CheckDuplicate(int companyId, string incidentName, int incidentId)
@@ -479,6 +488,283 @@ public class IncidentRepository : IIncidentRepository
         {
         }
         return new IncidentDetails();
+    }
+    public async Task<int> ActivateSampleIncident(int UserID, int CompanyID, string TimeZoneID)
+    {
+        try
+        {
+            var check_incident = await _context.Set<Incident>().Where(I=> I.CompanyId == CompanyID).FirstOrDefaultAsync();
+            if (check_incident == null)
+            {
+               IEnumerable<DataIncidentType> source_incident_type = await CopyIncidentTypes(UserID, CompanyID);
+
+                int sample_incident_id = 986;
+                bool checkid = int.TryParse(await LookupWithKey("SAMPLE_INCIDENT_ID"), out sample_incident_id);
+
+                var sample_incident = await _context.Set<LibIncident>().Where(LI=> LI.LibIncidentId == sample_incident_id).FirstOrDefaultAsync();
+
+                var reco = source_incident_type.Where(myrow=>myrow.IncidentTypeId == sample_incident.LibIncidentId).FirstOrDefault();
+                int toIncidentTypeId = reco.IncidentTypeId;
+
+               
+
+                //Create new sample incident
+                int incidentId = await AddCompanyIncidents(CompanyID, sample_incident.LibIncodentIcon, sample_incident.Name, sample_incident.Description, 0,
+                    toIncidentTypeId, sample_incident.Severity, 1, UserID, TimeZoneID, null, 0, sample_incident.Status);
+
+
+                //Attach the key contacts
+                var KeyHolderList = await _context.Set<User>().Where(U=> U.CompanyId == CompanyID && U.Status != 3).Select(U => new AddIncidentKeyHldLst( U.UserId )).Take(2).ToArrayAsync();
+                await AttachKeyContactsToIncident(incidentId, UserID, CompanyID, KeyHolderList, TimeZoneID);
+                return incidentId;
+            }
+            return check_incident.IncidentId;
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return 0;
+        }
+    }
+
+    public async Task<int> AddCompanyIncidents(
+        int CompanyId, string IncidentIcon, string Name, string Description, int PlanAssetID,
+            int IncidentTypeId, int Severity, int NumberOfKeyHolders, int CurrentUserId, string TimeZoneId,
+            AddIncidentKeyHldLst[] AddIncidentKeyHldLst, int AudioAssetId, int Status = 1, bool TrackUser = false,
+            bool SilentMessage = false, List<AckOption> AckOptions = null, bool IsSOS = false, int[] MessageMethod = null, int CascadePlanID = 0,
+            int[] Groups = null, int[] Keyholders = null)
+    {
+        string allow_nominated_kh = await _companyParamentersRepository.GetCompanyParameter("ALLOW_KEYHOLDER_NOMINATION", CompanyId);
+
+        Incident tblIncident = new Incident()
+        {
+            CompanyId = CompanyId,
+            IncidentIcon = IncidentIcon,
+            Name = Name,
+            Description = Description,
+            PlanAssetId = PlanAssetID,
+            IncidentTypeId = IncidentTypeId,
+            Severity = Severity,
+            Status = Status,
+            NumberOfKeyHolders = NumberOfKeyHolders,
+            AudioAssetId = AudioAssetId,
+            TrackUser = TrackUser,
+            SilentMessage = SilentMessage,
+            CreatedBy = CurrentUserId,
+            CreatedOn = DateTime.Now,
+            UpdatedBy = CurrentUserId,
+            IsSos = IsSOS,
+            CascadePlanId = CascadePlanID,
+            UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneId, System.DateTime.Now),
+            HasTask = (Keyholders.Length > 0 && NumberOfKeyHolders > 1 && allow_nominated_kh == "true")
+        };
+       await _context.AddAsync(tblIncident);
+       await _context.SaveChangesAsync();
+
+
+        if (tblIncident.IncidentId > 0)
+        {
+            if (AddIncidentKeyHldLst != null)
+            {
+                List<AddIncidentKeyHldLst> LstKeyHld = new List<AddIncidentKeyHldLst>(AddIncidentKeyHldLst);
+                foreach (var IKeyHld in LstKeyHld)
+                {
+                    if (IKeyHld.UserId != null)
+                    {
+                        IncidentKeyContact tblIncKeyContact = new IncidentKeyContact()
+                        {
+                            CompanyId = CompanyId,
+                            IncidentId = tblIncident.IncidentId,
+                            UserId = IKeyHld.UserId.Value,
+                            CreatedBy = CurrentUserId,
+                            CreatedOn = System.DateTime.Now,
+                            UpdatedBy = CurrentUserId,
+                            UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId)
+                        };
+                        await _context.AddAsync(tblIncKeyContact);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+
+           await ProcessKeyholders(CompanyId, tblIncident.IncidentId, CurrentUserId, Keyholders);
+
+            if (AckOptions != null)
+            {
+               await SaveIncidentMessageResponse(AckOptions, tblIncident.IncidentId);
+            }
+
+            if (Groups != null)
+            {
+               await AddIncidentGroup(tblIncident.IncidentId, Groups, CompanyId);
+            }
+
+            if (MessageMethod != null && CascadePlanID <= 0)
+            {
+                if (MessageMethod.Length > 0)
+                {
+                    
+                    foreach (int Method in MessageMethod)
+                    {
+                       await _service.CreateMessageMethod(0, Method, 0, tblIncident.IncidentId);
+                    }
+                }
+            }
+            //Create incident segregation links
+           await CreateIncidentSegLinks(tblIncident.IncidentId, CurrentUserId, CompanyId);
+
+            return tblIncident.IncidentId;
+        }
+        return 0;
+    }
+
+    public async Task AttachKeyContactsToIncident(int IncidentID, int UserID, int CompanyID, AddIncidentKeyHldLst[] KCList, string TimeZoneID)
+    {
+        try
+        {
+            if (KCList != null)
+            {
+                List<AddIncidentKeyHldLst> LstKeyHld = new List<AddIncidentKeyHldLst>(KCList);
+                foreach (var IKeyHld in LstKeyHld)
+                {
+                    if (IKeyHld.UserId != null)
+                    {
+                        IncidentKeyContact tblIncKeyContact = new IncidentKeyContact()
+                        {
+                            CompanyId = CompanyID,
+                            IncidentId = IncidentID,
+                            UserId = IKeyHld.UserId.Value,
+                            CreatedBy = UserID,
+                            CreatedOn = DateTime.Now,
+                            UpdatedBy = UserID,
+                            UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneID, DateTime.Now)
+                        };
+                        await _context.AddAsync(tblIncKeyContact);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task ProcessKeyholders(int CompanyId, int IncidentId, int CurrentUserId, int[] Keyholders)
+    {
+        var incKeyHlds = await _context.Set<IncidentKeyholder>()
+                        .Where(incKey=>incKey.CompanyID == CompanyId && incKey.IncidentID == IncidentId 
+                        && (incKey.ActiveIncidentID == null ||
+                          incKey.ActiveIncidentID == 0)
+                          ).ToListAsync();
+
+        List<long> KEYLIST = new List<long>();
+
+        foreach (int keyhld in Keyholders)
+        {
+            if (keyhld > 0)
+            {
+                var ISExist = incKeyHlds.FirstOrDefault(s => s.CompanyID == CompanyId && s.IncidentID == IncidentId && s.UserID == keyhld);
+                if (ISExist == null)
+                {
+                    IncidentKeyholder tblIncKeyholder = new IncidentKeyholder()
+                    {
+                        CompanyID = CompanyId,
+                        IncidentID = IncidentId,
+                        UserID = keyhld
+                    };
+                  await  _context.AddAsync(tblIncKeyholder);
+                }
+                else
+                {
+                    KEYLIST.Add(ISExist.IncidentKeyholderID);
+                }
+            }
+        }
+        foreach (var Ditem in incKeyHlds)
+        {
+            bool ISDEL = KEYLIST.Any(s => s == Ditem.IncidentKeyholderID);
+            if (!ISDEL)
+            {
+                _context.Remove(Ditem);
+            }
+        }
+      await  _context.SaveChangesAsync();
+    }
+    private async Task<string> LookupWithKey(string Key, string Default = "")
+    {
+        try
+        {
+            Dictionary<string, string> Globals = CCConstants.GlobalVars;
+            if (Globals.ContainsKey(Key))
+            {
+                return Globals[Key];
+            }
+
+
+            var LKP = await _context.Set<SysParameter>().Where(w => w.Name == Key).FirstOrDefaultAsync();
+            if (LKP != null)
+            {
+                Default = LKP.Value;
+            }
+            return Default;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                    ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+            return Default;
+        }
+    }
+    public async Task<int> CreateSOSIncident(int UserID, int CompanyID, string TimeZoneID)
+    {
+        try
+        {
+            IEnumerable<DataIncidentType> source_incident_type = await CopyIncidentTypes(UserID, CompanyID);
+
+            var sos_incident = await _context.Set<LibIncident>().Where(I=> I.IsSos == true).FirstOrDefaultAsync();
+
+            var reco =  source_incident_type.AsEnumerable().Where(myrow=> myrow.IncidentTypeId == sos_incident.LibIncidentTypeId
+                       ).FirstOrDefault();
+
+            int toIncidentTypeId = reco.IncidentTypeId;
+
+           
+
+            int[] Methods =  _context.Set<CompanyComm>().Where(CM=> CM.CompanyId == CompanyID).Select (CM=>CM.MethodId).ToList().ToArray();
+
+            //Create new sample incident
+            int incidentId = await AddCompanyIncidents(CompanyID, sos_incident.LibIncodentIcon, sos_incident.Name,
+                sos_incident.Description, 0, toIncidentTypeId, sos_incident.Severity, 1, UserID, TimeZoneID,
+                null, 0, sos_incident.Status, true, false, null, (bool)sos_incident.IsSos, Methods);
+
+            //Attach the key contacts
+            var KeyHolderList = await _context.Set<User>().Where(U => U.CompanyId == CompanyID && U.Status != 3).Select(U => new AddIncidentKeyHldLst(U.UserId)).Take(2).ToArrayAsync();
+            foreach (AddIncidentKeyHldLst kc in KeyHolderList)
+            {
+                IncidentKeyContact tblIncKeyContact = new IncidentKeyContact()
+                {
+                    CompanyId = CompanyID,
+                    IncidentId = incidentId,
+                    UserId = kc.UserId.Value,
+                    CreatedBy = UserID,
+                    CreatedOn = DateTime.Now,
+                    UpdatedBy = UserID,
+                    UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneID, DateTime.Now)
+                };
+               await _context.AddAsync(tblIncKeyContact);
+               await _context.SaveChangesAsync();
+            }
+
+            return incidentId;
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return 0;
+        }
     }
 
 }

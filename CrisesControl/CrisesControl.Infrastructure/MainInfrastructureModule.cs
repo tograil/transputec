@@ -25,6 +25,8 @@ using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.ExTriggers.Repositories;
 using CrisesControl.Core.Jobs.Services;
 using CrisesControl.Core.Tasks.Repositories;
+using CrisesControl.Core.Register.Repositories;
+using CrisesControl.Core.Administrator.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -87,6 +89,9 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
             builder.RegisterType<ExTriggerRepository>().As<IExTriggerRepository>();
             builder.RegisterType<ScheduleService>().As<IScheduleService>();
+            builder.RegisterType<RegisterRepository>().As<IRegisterRepository>();
+            builder.RegisterType<AdminRepository>().As<IAdminRepository>();
+            builder.RegisterType<SendEmailService>().As<ISenderEmailService>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

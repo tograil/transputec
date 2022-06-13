@@ -2,6 +2,7 @@
 using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncident;
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Administrator.Repositories;
+using CrisesControl.Core.Models;
 
 namespace CrisesControl.Api.Application.Query
 {

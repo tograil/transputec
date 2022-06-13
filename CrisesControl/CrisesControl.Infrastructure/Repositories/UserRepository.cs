@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
@@ -27,21 +28,36 @@ public class UserRepository : IUserRepository
     private readonly CrisesControlContext _context;
     private readonly string timeZoneId = "GMT Standard Time";
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly SendEmail _SDE;
+    private readonly DBCommon _DBC;
+    private readonly LocationRepository _locationRepository;
+    private readonly GroupRepository _groupRepository;
+
     private int userId;
     private int companyId;
-    private int userID;
-    private int companyID;
     private readonly ILogger<UserRepository> _logger;
     const string action = "ADD";
 
 
-    public UserRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<UserRepository> logger)
+    public UserRepository(
+        CrisesControlContext context,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<UserRepository> logger,
+        SendEmail SDE,
+        DBCommon DBC,
+        LocationRepository locationRepository,
+        GroupRepository groupRepository
+        )
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
         companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         _logger = logger;
+        _SDE = SDE;
+        _DBC = DBC;
+        _locationRepository = locationRepository;
+        _groupRepository = groupRepository;
     }
 
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
@@ -143,12 +159,115 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task<User> DeleteUser(User user, CancellationToken token)
+    public async Task<User> DeleteUser(User user, CancellationToken cancellationToken)
     {
-        var userToRemove = new User { UserId = user.UserId, CompanyId = user.CompanyId };
-        _context.Remove(userToRemove);
-        await _context.SaveChangesAsync(token);
-        return user;
+        var userToBeDeleted = await _context.Set<User>().Where(t => t.CompanyId == user.UserId).FirstOrDefaultAsync();
+
+        if (userToBeDeleted != null)
+        {
+            if (userToBeDeleted.RegisteredUser != true)
+            {
+                userToBeDeleted.Status = 3;
+                //tblUser.TOKEN = "";
+                userToBeDeleted.PrimaryEmail = "DEL-" + user.PrimaryEmail;
+                userToBeDeleted.UserHash = _DBC.PWDencrypt(user.PrimaryEmail);
+                userToBeDeleted.UpdatedBy = userId;
+                userToBeDeleted.UpdatedOn = _DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                await CheckUserAssociation(user.UserId, user.CompanyId, cancellationToken);
+
+                //Remove all user devices;
+                RemoveUserDevice(user.UserId);
+                DeleteUsercoms(user.UserId, 0, true);
+
+                //_billing.AddUserRoleChange(CompanyId, UserId, tblUser.UserRole, TimeZoneId);
+
+            }
+            return user;
+        }
+        throw new UserNotFoundException(companyId, userId);
+    }
+
+    private void DeleteUsercoms(int userId, int methodId, bool deleteAll = false)
+    {
+        try
+        {
+            if (!deleteAll)
+            {
+                var delRec = _context.Set<UserComm>().Where(userComm => userComm.UserId == userId && userComm.MethodId == methodId).FirstOrDefault();
+                if (delRec != null)
+                {
+                    _context.Set<UserComm>().Remove(delRec);
+                    _context.SaveChanges();
+                }
+            }
+            else
+            {
+                var delRec = _context.Set<UserComm>().Where(userComm => userComm.UserId == userId).ToList();
+                if (delRec != null)
+                {
+                    _context.Set<UserComm>().RemoveRange(delRec);
+                    _context.SaveChanges();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            //ToDo: throw exception
+            throw ex;
+        }
+    }
+
+    private void RemoveUserDevice(int userId, bool tokenReset = false)
+    {
+        try
+        {
+            var devices = _context.Set<UserDevice>().Where(userDevice => userDevice.UserId == userId).ToList();
+            if (!tokenReset)
+            {
+                _context.Set<UserDevice>().RemoveRange(devices);
+            }
+            else
+            {
+                devices.ForEach(s => s.DeviceToken = "");
+            }
+            _context.SaveChanges();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            //ToDo: throw exception
+        }
+    }
+
+    private async Task<bool> CheckUserAssociation(int qUserId, int qCompanyId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            bool sendemail = false;
+
+            var result = await _context.Set<ModuleLinks>().FromSqlRaw("EXEC Pro_Get_User_Association @UserID, @CompanyID", qUserId, qCompanyId).ToListAsync();
+            if (result.Count > 0)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("<table width=\"100%\" class=\"user_list\" style=\"border:1px solid #000000;border-collapse: collapse\"><tr width=\"25%\"><th style=\"text-align:left;\">Module</th><th width=\"75%\" style=\"text-align:left;\">Item Name</th></tr>");
+                sendemail = true;
+                foreach (var item in result)
+                {
+                    sb.AppendLine("<tr><td>" + item.Module + "</td><td>" + item.ModuleItem + "</td></tr>");
+                }
+                sb.AppendLine("</table>");
+                _SDE.SendUserAssociationsToAdmin(sb.ToString(), qUserId, qCompanyId);
+            }
+
+            return sendemail;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            ///ToDo: throw exception
+        }
     }
 
     public async Task<IEnumerable<User>> GetAllUsers(GetAllUserRequest request)
@@ -344,7 +463,8 @@ public class UserRepository : IUserRepository
 
             string strCompanyName = "";
 
-            if (CompanyInfo != null) {
+            if (CompanyInfo != null)
+            {
                 strCompanyName = CompanyInfo.C.CompanyName;
                 UserLoginLog TblUserLog = new UserLoginLog();
                 TblUserLog.CompanyId = companyId;
@@ -356,11 +476,13 @@ public class UserRepository : IUserRepository
                 await _context.SaveChangesAsync(cancellationToken);
 
 
-                if (!string.IsNullOrEmpty(request.Language)) {
+                if (!string.IsNullOrEmpty(request.Language))
+                {
                     var user = await (from Usersval in _context.Set<User>()
                                       where Usersval.CompanyId == companyId && Usersval.UserId == userId
                                       select Usersval).FirstOrDefaultAsync();
-                    if (user != null) {
+                    if (user != null)
+                    {
                         user.UserLanguage = request.Language;
                         await _context.SaveChangesAsync(cancellationToken);
                     }
@@ -370,7 +492,8 @@ public class UserRepository : IUserRepository
                                          join TZ in _context.Set<StdTimeZone>() on U.TimezoneId equals TZ.TimeZoneId into ps
                                          from p in ps.DefaultIfEmpty()
                                          where U.CompanyId == companyId && U.UserId == userId
-                                         select new LoginInfoReturnModel {
+                                         select new LoginInfoReturnModel
+                                         {
                                              CompanyId = U.CompanyId,
                                              CompanyName = strCompanyName,
                                              CompanyLogo = CompanyInfo.C.CompanyLogoPath,
@@ -412,7 +535,8 @@ public class UserRepository : IUserRepository
                                                          from ASG in ASGS.DefaultIfEmpty()
                                                          where SO.Status == 1 && PF.Status == 1 && PF.CompanyId == U.CompanyId
                                                          //&& SO.Target.Contains("Client")
-                                                         select new SecItemModel {
+                                                         select new SecItemModel
+                                                         {
                                                              Code = SOT.Code,
                                                              SecurityKey = SO.SecurityKey,
                                                              Name = SO.Name,
@@ -446,8 +570,8 @@ public class UserRepository : IUserRepository
             var SearchString = (Search != null) ? Search : string.Empty;
 
 
-            var pCompanyId = new SqlParameter("@CompanyID", companyID);
-            var pUserID = new SqlParameter("@UserID", userID);
+            var pCompanyId = new SqlParameter("@CompanyID", companyId);
+            var pUserID = new SqlParameter("@UserID", userId);
             var pObjMapID = new SqlParameter("@ObjMapID", ObjMapID);
             var pTargetID = new SqlParameter("@TargetID", TargetID);
             var pRecordStart = new SqlParameter("@RecordStart", Start);
@@ -752,7 +876,8 @@ public class UserRepository : IUserRepository
                 await _context.SaveChangesAsync();
             }
         }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                            ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
         }
@@ -862,7 +987,8 @@ public class UserRepository : IUserRepository
     }
     public async Task<User> GetRegisteredUserInfo(int CompanyId, int userId)
     {
-        try {
+        try
+        {
             var RegUserInfo = await _context.Set<User>().Include(uc => uc.UserComm).Include(usg => usg.UserSecurityGroup).Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
 
             if (RegUserInfo != null)
@@ -932,7 +1058,8 @@ public class UserRepository : IUserRepository
 
             return true;
         }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             return false;
         }
     }
@@ -1054,12 +1181,18 @@ public class UserRepository : IUserRepository
 
     public async Task<string> SendInvites(CancellationToken cancellationToken)
     {
-        var pendingUsers = _context.Set<User>().Where(t=>t.Status == 2 && t.CompanyId == companyId).ToList();
+        var pendingUsers = _context.Set<User>().Where(t => t.Status == 2 && t.CompanyId == companyId).ToList();
 
-        if(pendingUsers.Count() > 0)
+        if (pendingUsers.Count() > 0)
         {
+            foreach (var usr in pendingUsers)
+            {
+                _SDE.NewUserAccount(usr.PrimaryEmail, usr.FirstName + " " + usr.LastName, usr.CompanyId, usr.UniqueGuiId);
+            }
+
             return "Invitation sent to all pending users";
-        } else
+        }
+        else
         {
             return "No pending users";
         }
@@ -1087,7 +1220,7 @@ public class UserRepository : IUserRepository
                             OverrideSilent = UD.OverrideSilent,
                             LastLoginFrom = UD.UpdatedOn
                         }).ToList();
-        if (response!=null)
+        if (response != null)
         {
             return response;
         }
@@ -1111,4 +1244,438 @@ public class UserRepository : IUserRepository
         throw new UserNotFoundException(companyId, userId);
     }
 
+    public async Task<UserRelations> UserRelations(CancellationToken cancellationToken)
+    {
+        UserRelations UR = new UserRelations();
+        try
+        {
+            bool ShowAllGroups = true;
+            bool.TryParse(_DBC.GetCompanyParameter("SHOW_ALL_GROUPS_TO_USERS", companyId), out ShowAllGroups);
+            UR.ShowAllGroups = ShowAllGroups;
+
+            if (!ShowAllGroups)
+            {
+                var userRelations = (from UOR in _context.Set<ObjectRelation>()
+                                     join OBM in _context.Set<ObjectMapping>() on UOR.ObjectMappingId equals OBM.ObjectMappingId
+                                     join OBJ in _context.Set<Core.Models.Object>() on OBM.SourceObjectId equals OBJ.ObjectId
+                                     where UOR.TargetObjectPrimaryId == userId && (OBJ.ObjectTableName == "Group" || OBJ.ObjectTableName == "Location")
+                                     select new UGroup
+                                     {
+                                         ObjectTableName = OBJ.ObjectTableName,
+                                         SourceObjectPrimaryId = UOR.SourceObjectPrimaryId,
+                                         ObjectMappingId = OBM.ObjectMappingId
+                                     }).ToList();
+                var newLocation = new Core.Locations.Location();
+                newLocation.CompanyId = companyId;
+                newLocation.LocationName = "ALL";
+                newLocation.Lat = "";
+                newLocation.Long = "";
+                newLocation.Desc = "All Locations";
+                newLocation.PostCode = " ";
+                newLocation.Status = 1;
+                newLocation.CreatedBy = userId;
+                newLocation.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                int newLocaionId = await _locationRepository.CreateLocation(newLocation, cancellationToken);
+                var newGroup = new Core.Groups.Group();
+                newGroup.CompanyId = companyId;
+                newGroup.GroupName = "ALL";
+                newGroup.Status = 1;
+                newGroup.CreatedBy = userId;
+                newGroup.UpdatedBy = userId;
+                newGroup.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                newGroup.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                int newGroupId = await _groupRepository.CreateGroup(newGroup, cancellationToken);
+
+                UR.Groups = userRelations;
+
+                List<int> relatedUserId = new List<int>();
+
+                foreach (var relation in userRelations)
+                {
+
+                    if ((newLocaionId == relation.SourceObjectPrimaryId && relation.ObjectTableName == "Location") ||
+                        newGroupId == relation.SourceObjectPrimaryId && relation.ObjectTableName == "Group")
+                    {
+                        continue;
+                    }
+
+                    var getuser = (from UOR in _context.Set<ObjectRelation>()
+                                   where UOR.ObjectMappingId == relation.ObjectMappingId && UOR.SourceObjectPrimaryId == relation.SourceObjectPrimaryId
+                                   select UOR).ToList();
+                    foreach (var user in getuser)
+                    {
+                        relatedUserId.Add(user.TargetObjectPrimaryId);
+                    }
+                }
+                UR.Users = relatedUserId.Distinct().ToList();
+            }
+            return UR;
+
+        }
+        catch (Exception ex)
+        {
+            //ToDO: throw exceptions
+            throw ex;
+        }
+        return UR;
+    }
+
+    public void ResetUserDeviceToken(int qUserId)
+    {
+        try
+        {
+            var dvcs = _context.Set<UserDevice>().Where(w => w.UserId == qUserId).ToList();
+            foreach (var dvc in dvcs)
+            {
+                dvc.DeviceToken = Guid.NewGuid().ToString();
+            }
+            _context.SaveChanges();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            //ToDo: throw exception
+        }
+    }
+
+    public void CreateUserSecurityGroup(int userId, int securityGroupId, int createdUpatedBy, int companyId, string securityGroupStandatdFilter = "")
+    {
+        try
+        {
+            int newSecurityGroupId = 0;
+            if (securityGroupId > 0)
+            {
+                newSecurityGroupId = securityGroupId;
+            }
+            else if (!string.IsNullOrEmpty(securityGroupStandatdFilter))
+            {
+                newSecurityGroupId = _context.Set<SecurityGroup>().Where(t => t.CompanyId == companyId && t.Name == securityGroupStandatdFilter).Select(t => t.SecurityGroupId).FirstOrDefault();
+            }
+            if (newSecurityGroupId > 0)
+            {
+                bool isUserSecurityGroupDefined = _context.Set<UserSecurityGroup>().Where(t => t.UserId == userId && t.SecurityGroupId == securityGroupId).Any();
+                if (!isUserSecurityGroupDefined)
+                {
+                    UserSecurityGroup newUserSecurityGroup = new UserSecurityGroup();
+                    newUserSecurityGroup.UserId = userId;
+                    newUserSecurityGroup.SecurityGroupId = securityGroupId;
+                    _context.Set<UserSecurityGroup>().Add(newUserSecurityGroup);
+                    _context.SaveChanges();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            //ToDo: throw exception
+        }
+    }
+
+    public void UserSecurityGroup(int userId, string[] totSecGroup, int currentUserId, int companyId)
+    {
+        try
+        {
+            if (totSecGroup.Length > 0)
+            {
+                var regUserDel = _context.Set<UserSecurityGroup>().Where(t => t.UserId == userId).ToList();
+                List<int[]> USGList = new List<int[]>();
+                foreach (string group in totSecGroup)
+                {
+                    int groupid = Convert.ToInt16(group);
+                    var ISExist = regUserDel.FirstOrDefault(s => s.UserId == userId && s.SecurityGroupId == groupid);
+                    if (ISExist == null)
+                    {
+                        CreateUserSecurityGroup(userId, Convert.ToInt16(group), currentUserId, companyId);
+                        ResetUserDeviceToken(userId);
+                    }
+                    else
+                    {
+                        int[] Arr = new int[2];
+                        Arr[0] = ISExist.UserId;
+                        Arr[1] = ISExist.SecurityGroupId;
+                        USGList.Add(Arr);
+                    }
+                }
+                foreach (var item in regUserDel)
+                {
+                    bool ISDEL = USGList.Any(s => s[0] == item.UserId && s[1] == item.SecurityGroupId);
+                    if (!ISDEL)
+                    {
+                        _context.Set<UserSecurityGroup>().Remove(item);
+                    }
+                }
+                _context.SaveChanges();
+            }
+        }
+        catch (Exception ex)
+        {
+            //ToDo: throw exception
+        }
+    }
+
+    public void UserObjectRelation(int userId, string[] objFilters, int currentUserId, int companyId, string timeZoneId, string deptAction = "REPLACE", string locAction = "REPLACE")
+    {
+
+        try
+        {
+            List<int> OBJRList = new List<int>();
+
+            List<ObjFltrList> objf = new List<ObjFltrList>();
+
+            if (objFilters.Length > 0)
+            {
+                foreach (string filter in objFilters)
+                {
+                    string[] subFilter = filter.Split(',');
+                    int delObjmapid = Convert.ToInt32(subFilter[0]);
+
+                    for (int loop = 0; loop < subFilter.Length; loop++)
+                    {
+                        if (loop == 0)
+                        {
+                            objf.Add(new ObjFltrList() { ObjMapId = delObjmapid, SourceId = 0 });
+                        }
+                        else
+                        {
+                            int sourceid = Convert.ToInt32(subFilter[loop]);
+                            objf.Add(new ObjFltrList() { ObjMapId = delObjmapid, SourceId = sourceid });
+                        }
+                    }
+                }
+
+                var UniqOBjs = objf.Select(s => s.ObjMapId).Distinct();
+
+                foreach (int OBjs in UniqOBjs)
+                {
+                    var objMap = (from OM in _context.Set<ObjectMapping>()
+                                  join O in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals O.ObjectId
+                                  where OM.ObjectMappingId == OBjs
+                                  select O).FirstOrDefault();
+                    if (objMap != null)
+                    {
+                        var ObjName = objMap.ObjectTableName;
+
+                        var SourceIds = objf.Where(s => s.ObjMapId == OBjs && s.SourceId > 0).ToList();
+                        var queryRec = _context.Set<ObjectRelation>().Where(t => t.TargetObjectPrimaryId == userId && t.ObjectMappingId == OBjs).ToList();
+
+                        if (SourceIds.Count > 0)
+                        {
+                            foreach (var SourceId in SourceIds)
+                            {
+                                var IsExist = queryRec.FirstOrDefault(s => s.TargetObjectPrimaryId == userId && s.SourceObjectPrimaryId == SourceId.SourceId && s.ObjectMappingId == OBjs);
+                                if (IsExist == null)
+                                {
+                                    _DBC.CreateNewObjectRelation(SourceId.SourceId, userId, OBjs, currentUserId, timeZoneId, companyId);
+                                }
+                                else
+                                {
+                                    bool IsEdxistdata = OBJRList.Any(s => s == IsExist.ObjectRelationId);
+                                    if (!IsEdxistdata)
+                                        OBJRList.Add(IsExist.ObjectRelationId);
+                                }
+                            }
+                        }
+
+                        if ((deptAction == "REPLACE" && ObjName == "Group") || (locAction == "REPLACE" && ObjName == "Location"))
+                        {
+                            foreach (var item in queryRec)
+                            {
+                                bool ISDEL = OBJRList.Any(s => s == item.ObjectRelationId);
+                                if (!ISDEL || SourceIds.Count == 0)
+                                {
+                                    _context.Set<ObjectRelation>().Remove(item);
+                                }
+                            }
+                            _context.SaveChanges();
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+
+    public async Task<bool> BulkAction(BulkActionModel request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userList = await _context.Set<User>().Where(user => request.UserList.Contains(user.UserId)).ToListAsync();
+
+
+            foreach (var user in userList)
+            {
+                if (request.Action == "DELETE")
+                {
+                    if (user.RegisteredUser == false)
+                    {
+                        var userToBeDeleted = new User();
+
+                        await DeleteUser(user, cancellationToken);
+                    }
+                }
+                else if (request.Action == "DEACTIVATE")
+                {
+                    user.Status = 0;
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                else if (request.Action == "ACTIVATE")
+                {
+                    user.Status = 1;
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                else if (request.Action == "VERIFY")
+                {
+                    if (user.Status == 2)
+                    {
+                        user.Status = 1;
+                        user.FirstLogin = true;
+                        await _context.SaveChangesAsync(cancellationToken);
+                        //Assign the user to the default location and depeartment and send the account details
+                        _DBC.CreateObjectRelationship(user.UserId, 0, "Location", user.CompanyId, request.CurrentUserId, timeZoneId, "ALL");
+                        _DBC.CreateObjectRelationship(user.UserId, 0, "Group", user.CompanyId, request.CurrentUserId, timeZoneId, "ALL");
+
+                        if (request.SendInvite)
+                            _SDE.NewUserAccountConfirm(user.PrimaryEmail, user.FirstName + " " + user.LastName, user.Password, user.CompanyId, user.UniqueGuiId);
+
+                    }
+                }
+                else if (request.Action == "CREDENTIAL")
+                {
+                    _SDE.NewUserAccountConfirm(user.PrimaryEmail, user.FirstName + " " + user.LastName, user.Password, user.CompanyId, user.UniqueGuiId);
+                    user.FirstLogin = true;
+                    _context.SaveChanges();
+                }
+                else if (request.Action == "INVITE")
+                {
+                    if (user.Status == 2)
+                    {
+                        _SDE.NewUserAccount(user.PrimaryEmail, user.FirstName + " " + user.LastName, user.CompanyId, user.UniqueGuiId);
+                    }
+                }
+                else if (request.Action == "EDIT")
+                {
+
+                    if (user.RegisteredUser == false)
+                    {
+
+                        string[] ObjFilters = request.Filters.Split(';');
+
+                        if (user.Status != 2 && request.SetStatus == "1")
+                        {
+                            user.Status = request.Status;
+                        }
+
+                        if (user.UserRole.ToUpper() != request.UserRole.ToUpper() && request.SetUserRole == "1")
+                        {
+                            //_billing.AddUserRoleChange(CompanyId, user.UserId, InputModel.UserRole.ToUpper(), TimeZoneId);
+                            // ToDo: implement billing
+                            ResetUserDeviceToken(user.UserId);
+                        }
+
+                        if (request.Status == 0 && request.SetStatus == "1")
+                            RemoveUserDevice(user.UserId);
+
+                        if (request.SetUserLanguage == "1")
+                        {
+                            user.UserLanguage = request.UserLanguage;
+                        }
+                        if (request.SetUserRole == "1")
+                        {
+                            user.UserRole = request.UserRole.ToUpper();
+                        }
+                        user.UpdatedBy = request.CurrentUserId;
+                        user.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+
+                        _context.SaveChanges();
+                        await CreateUserSearch(user.UserId, user.FirstName, user.LastName, user.Isdcode, user.MobileNo, user.PrimaryEmail, companyId);
+
+                        if (request.SetSecurityGroups == "1")
+                        {
+                            string[] totSecGroup = request.SecurityGroups.Split(',');
+                            UserSecurityGroup(user.UserId, totSecGroup, request.CurrentUserId, companyId);
+                        }
+
+                        if (request.SetDepartment == "1")
+                        {
+                            user.DepartmentId = request.Department;
+                        }
+
+                        if (request.SetLocation == "1" || request.SetGroup == "1")
+                        {
+                            UserObjectRelation(user.UserId, ObjFilters, request.CurrentUserId, companyId, timeZoneId, request.GroupActionGroup, request.GroupActionLocation);
+
+                            _DBC.CreateObjectRelationship(user.UserId, 0, "Location", companyId, user.UserId, timeZoneId, "ALL");
+
+                            _DBC.CreateObjectRelationship(user.UserId, 0, "Group", companyId, user.UserId, timeZoneId, "ALL");
+                        }
+
+                        if (request.SetPingMethod == "1")
+                        {
+                            UserCommsMethods(user.UserId, "Ping", request.PingMethod, request.CurrentUserId, companyId, timeZoneId);
+                        }
+
+                        if (request.SetIncidentMethod == "1")
+                        {
+                            UserCommsMethods(user.UserId, "Incident", request.IncidentMethod, request.CurrentUserId, companyId, timeZoneId);
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    private bool ValidateUserPassword(int userId, string newPassword, int companyId, bool saveHistory, out string pwdError)
+    {
+        pwdError = string.Empty;
+        bool pwdNotUsed = true;
+        newPassword = newPassword.Trim();
+        int lastNPwdCheck = Convert.ToInt16(_DBC.GetCompanyParameter("LAST_PASSWORD_CHECK", companyId));
+        try
+        {
+            var pwdHistory = _context.Set<PasswordChangeHistory>().Where(t => t.UserId == userId).ToList();
+            var lastXPwd = (from LP in pwdHistory select LP).OrderByDescending(o => o.Id).Take(lastNPwdCheck);
+
+            foreach (var pwd in lastXPwd)
+            {
+                if (pwd.LastPassword.Trim() == newPassword)
+                {
+                    pwdNotUsed = false;
+                }
+            }
+
+            if (!pwdNotUsed)
+            {
+                pwdError = "New password cannot be the past " + lastNPwdCheck + " used passwords";
+            }
+            else
+            {
+                if (saveHistory)
+                {
+                    int ChngId = _DBC.AddPwdChangeHistory(userId, newPassword);
+                }
+            }
+
+            var delPwd = _context.Set<PasswordChangeHistory>().OrderByDescending(t => t.Id).Skip(lastNPwdCheck).ToList();
+            if (delPwd.Count > 0)
+            {
+                _context.Set<PasswordChangeHistory>().RemoveRange(delPwd);
+                _context.SaveChanges();
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+        return pwdNotUsed;
+    }
 }

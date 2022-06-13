@@ -45,4 +45,14 @@ public interface IIncidentRepository
     List<AffectedLocation> GetIncidentLocation(int CompanyId, int IncidentActivationId);
     List<CommsMethods> GetIncidentComms(int ItemID, string Type);
     IncidentDetails GetIncidentById(int CompanyId, int UserID, int IncidentId, string UserStatus);
+    Task<int> AddCompanyIncidents(
+        int CompanyId, string IncidentIcon, string Name, string Description, int PlanAssetID,
+            int IncidentTypeId, int Severity, int NumberOfKeyHolders, int CurrentUserId, string TimeZoneId,
+            AddIncidentKeyHldLst[] AddIncidentKeyHldLst, int AudioAssetId, int Status = 1, bool TrackUser = false,
+            bool SilentMessage = false, List<AckOption> AckOptions = null, bool IsSOS = false, int[] MessageMethod = null, int CascadePlanID = 0,
+            int[] Groups = null, int[] Keyholders = null);
+    Task AttachKeyContactsToIncident(int IncidentID, int UserID, int CompanyID, AddIncidentKeyHldLst[] KCList, string TimeZoneID);
+    Task ProcessKeyholders(int CompanyId, int IncidentId, int CurrentUserId, int[] Keyholders);
+    Task<int> ActivateSampleIncident(int UserID, int CompanyID, string TimeZoneID);
+    Task<int> CreateSOSIncident(int UserID, int CompanyID, string TimeZoneID);
 }
