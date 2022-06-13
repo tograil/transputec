@@ -2,6 +2,7 @@
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
@@ -360,6 +361,68 @@ namespace CrisesControl.Infrastructure.Repositories
                 _logger.LogError("Error occurred while seeding into database {0},{1},{2},{3}", ex.Message, ex.InnerException, ex.StackTrace, ex.Source);
                 return null;
             }
+
+        }
+        public async Task<string> GetTimeZoneVal(int UserId)
+        {
+            return (await _context.Set<User>()
+                .Include(x=>x.Company)
+               // .Include(x => x.StdTimeZone)
+                .FirstOrDefaultAsync(x => x.UserId == UserId))?.Company.StdTimeZone?.ZoneLabel ?? "GMT Standard Time";
+        }
+
+        public async Task<dynamic> GetMessageDeliverySummary(int MessageID)
+        {
+            try
+            {
+
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                var pMessageID = new SqlParameter("@MessageID", MessageID);
+
+                  
+                    var result = await _context.Set<DeliverySummary>().FromSqlRaw(" exec Pro_Report_Delivery_Summary @MessageID", pMessageID).ToListAsync();
+
+                    List<DeliverySummary> DlvRecs = new List<DeliverySummary>();
+                    string TimeZoneId = await GetTimeZoneVal(UserID);
+                    List<DateTimeOffset> endTimes = new List<DateTimeOffset>();
+
+                    foreach (DeliverySummary rec in result)
+                    {
+                        endTimes.Add(rec.EmailEndTime);
+                        endTimes.Add(rec.PhoneEndTime);
+                        endTimes.Add(rec.PushEndTime);
+                        endTimes.Add(rec.TextEndTime);
+
+                        rec.EmailStartTime = rec.EmailStartTime;
+                        rec.EmailEndTime = rec.EmailEndTime;
+                        rec.PhoneStartTime = rec.PhoneStartTime;
+                        rec.PhoneEndTime = rec.PhoneEndTime;
+                        rec.PushStartTime = rec.PushStartTime;
+                        rec.PushEndTime = rec.PushEndTime;
+                        rec.TextStartTime = rec.TextStartTime;
+                        rec.TextEndTime = rec.TextEndTime;
+
+                        DlvRecs.Add(rec);
+                    }
+
+                    var methods = await _context.Set<Message>().Where(M=>M.MessageId == MessageID).Select( M=> new  { M.Phone, M.Text, M.Email, M.Push, M.CreatedOn }).FirstOrDefaultAsync();
+                 
+
+                    endTimes.Add(methods.CreatedOn);
+
+                    DateTimeOffset maxEndTimes = endTimes.Max();
+
+                    return Tuple.Create(DlvRecs, methods, maxEndTimes);
+                
+            }
+            catch (Exception ex)
+            {
+                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+                throw new MessageNotFoundException(CompanyID, UserID);
+
+                return null;
+            }
         }
 
         public DataTablePaging GetResponseReportByGroup(DataTableAjaxPostModel dtapm, DateTimeOffset startDate, DateTimeOffset endDate, string messageType, int drillOpt, int groupId, int objectMappingId, string companyKey, bool isThisWeek, bool isThisMonth, bool isLastMonth, int companyId)
@@ -566,12 +629,12 @@ namespace CrisesControl.Infrastructure.Repositories
         }
 
 
-        public async Task<List<TrackUserCount>> GetTrackingUserCount()
+        public async Task<List<TrackUserCount>> GetTrackingUserCount(int companyId)
         {
             try {
 
-                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var tckusr = await _context.Set<TrackUserCount>().FromSqlRaw("exec Pro_Get_Tracking_Users_Count @CompanyID", pCompanyID).ToListAsync();
 
                 return tckusr;
@@ -579,8 +642,10 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             catch (Exception ex) {
                 _logger.LogError("Error occured while seeding the database {0},{1}", ex.Message, ex.InnerException);
+               
             }
-           return null;
+            throw new CompanyNotFoundException(companyId, UserID);
+
         }
     }
 }

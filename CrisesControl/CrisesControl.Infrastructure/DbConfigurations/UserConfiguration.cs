@@ -111,7 +111,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasOne(e => e.UserSecurityGroup)
                .WithMany().HasForeignKey(x => x.UserId);
         builder.HasOne(e => e.Company)
-              .WithMany().HasForeignKey(x => x.UserId);
+       .WithMany().HasForeignKey(x => x.UserId);
 
     }
 }

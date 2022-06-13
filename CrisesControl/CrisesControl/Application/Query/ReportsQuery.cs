@@ -14,6 +14,8 @@ using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
 
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Helpers;
@@ -169,7 +171,7 @@ namespace CrisesControl.Api.Application.Query
         public async Task<GetTrackingUserCountResponse> GetTrackingUserCount(GetTrackingUserCountRequest request)
         {
            
-                var trkUser = await _reportRepository.GetTrackingUserCount();
+                var trkUser = await _reportRepository.GetTrackingUserCount(_currentUser.CompanyId);
 
                 var response = _mapper.Map<List<TrackUserCount>>(trkUser);
                 var result = new GetTrackingUserCountResponse();
@@ -182,6 +184,26 @@ namespace CrisesControl.Api.Application.Query
                 }
 
             throw new ReportingNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+
+        }
+
+        public async Task<GetMessageDeliverySummaryResponse> GetMessageDeliverySummary(GetMessageDeliverySummaryRequest request)
+        {
+            try
+            {
+                var summary = await _reportRepository.GetMessageDeliverySummary(request.MessageID);
+                var response = _mapper.Map<List<DeliverySummary>>(summary);
+                var result = new GetMessageDeliverySummaryResponse();
+                result.Data = response;
+                result.StatusCode = System.Net.HttpStatusCode.OK;
+                result.Message = "Summary has been Loaded";
+                return result;
+            }
+            catch (Exception ex) {
+                _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                          ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+                return new GetMessageDeliverySummaryResponse();
+            }
 
         }
     }
