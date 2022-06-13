@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Core.Administrator;
+using CrisesControl.Core.Models;
 
 namespace CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncident
 {

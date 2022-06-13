@@ -25,6 +25,7 @@ using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Core.Groups;
+using CrisesControl.Core.Register;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -116,8 +117,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
             modelBuilder.Entity<GroupLink>().HasNoKey();
 
-
+            modelBuilder.Entity<CommsStatus>().HasNoKey();
             modelBuilder.Entity<LibIncident>().HasNoKey();
+            modelBuilder.Entity<CompanyUser>().HasNoKey().Ignore("UserName");
+           
 
 
 

@@ -91,6 +91,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<ScheduleService>().As<IScheduleService>();
             builder.RegisterType<RegisterRepository>().As<IRegisterRepository>();
             builder.RegisterType<AdminRepository>().As<IAdminRepository>();
+            builder.RegisterType<SendEmailService>().As<ISenderEmailService>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

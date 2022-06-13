@@ -380,7 +380,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 
                 string Subject = string.Empty;
-                string message = Convert.ToString(await ReadHtmlFile("NEW_ACCOUNT_CONFIRMED", "DB", CompanyId,  Subject));
+                string message = Convert.ToString( ReadHtmlFile("NEW_ACCOUNT_CONFIRMED", "DB", CompanyId,  out Subject));
 
                 var CompanyInfo =await  _context.Set<Company>().Where(C=> C.CompanyId == CompanyId ).FirstOrDefaultAsync();
                 string Website = await LookupWithKey("DOMAIN");
@@ -432,7 +432,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<StringBuilder> ReadHtmlFile(string FileCode, string Source, int CompanyId, string Subject, string Provider = "AWSSES")
+        public  StringBuilder ReadHtmlFile(string FileCode, string Source, int CompanyId, out string Subject, string Provider = "AWSSES")
         {
             StringBuilder htmlContent = new StringBuilder();
             string line;
@@ -453,15 +453,15 @@ namespace CrisesControl.Infrastructure.Repositories
                 {
 
 
-                    var content = await _context.Set<EmailTemplate>()
+                    var content =  _context.Set<EmailTemplate>()
                                 .Where(MSG => MSG.CompanyId == 0 && MSG.Code == FileCode)
                                 .Union(_context.Set<EmailTemplate>()
                                 .Where(MSG => MSG.Code == FileCode && MSG.CompanyId == CompanyId))
-                                .OrderByDescending(MSG => MSG.CompanyId).FirstOrDefaultAsync();
+                                .OrderByDescending(MSG => MSG.CompanyId).FirstOrDefault();
                     {
                         Subject = content.EmailSubject;
 
-                        var head = await _context.Set<EmailTemplate>().Where(MSG => MSG.Code == "DOCHEAD").FirstOrDefaultAsync();
+                        var head =  _context.Set<EmailTemplate>().Where(MSG => MSG.Code == "DOCHEAD").FirstOrDefault();
                         if (head != null)
                         {
                             htmlContent.AppendLine(head.HtmlData.ToString());
@@ -471,11 +471,11 @@ namespace CrisesControl.Infrastructure.Repositories
 
                         if (Provider.ToUpper() != "OFFICE365")
                         {
-                            var desc = await _context.Set<EmailTemplate>()
+                            var desc =  _context.Set<EmailTemplate>()
                                 .Where(MSG => MSG.CompanyId == 0 && MSG.Code == "DISCLAIMER_TEXT")
                                 .Union(_context.Set<EmailTemplate>()
                                 .Where(MSG => MSG.Code == "DISCLAIMER_TEXT" && MSG.CompanyId == CompanyId))
-                                .OrderByDescending(MSG => MSG.CompanyId).FirstOrDefaultAsync();
+                                .OrderByDescending(MSG => MSG.CompanyId).FirstOrDefault();
 
                             if (desc != null)
                             {
@@ -514,7 +514,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
                 string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
 
-                string message = Convert.ToString(await ReadHtmlFile(template, "DB", CompanyId,  Subject));
+                string message = Convert.ToString( ReadHtmlFile(template, "DB", CompanyId,  out Subject));
 
                 if ((hostname != null) && (fromadd != null))
                 {
@@ -711,8 +711,172 @@ namespace CrisesControl.Infrastructure.Repositories
             return device;
   
         }
+        public async Task<User> GetUserByUniqueId(string UniqueId)
+        {
+            var data = await _context.Set<User>().Where(U => U.UniqueGuiId == UniqueId)
+                      .FirstOrDefaultAsync();
+            return data;
+
+        }
+        public async Task<CompanyUser> SendVerification(string UniqueId)
+        {
+            var data = await _context.Set<User>().Include(x=>x.Company).Where(U=>U.UniqueGuiId == UniqueId)
+                       . Select(U => new CompanyUser
+                       {
+                            UserId = U.UserId,
+                            UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                            UserEmail = U.PrimaryEmail,
+                            UniqueID = U.UniqueGuiId,
+                            CompanyId = U.Company.CompanyId,
+                            TimeZoneId = U.Company.StdTimeZone.ZoneLabel,
+                        }).FirstOrDefaultAsync();
+            return data;
+
+        }
+        public async Task NewUserAccount(string EmailId, string UserName, int CompanyId, string guid)
+        {
+            try
+            {
+                //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "NewUserAccount.html";
+                string Subject = string.Empty;
+
+                string message = Convert.ToString(ReadHtmlFile("NEW_USER_ACCOUNT", "DB", CompanyId, out Subject));
+                var sysparms = await  _context.Set<SysParameter>().
+                                Where(SP=> SP.Name == "CC_TWITTER_PAGE" || SP.Name == "CC_FB_PAGE"
+                                || SP.Name == "CC_LINKEDIN_PAGE" || SP.Name == "DOMAIN"
+                                || SP.Name == "CC_TWITTER_ICON" || SP.Name == "CC_FB_ICON"
+                                || SP.Name == "CC_LINKEDIN_ICON" || SP.Name == "CC_USER_SUPPORT_LINK"
+                                || SP.Name == "PORTAL" || SP.Name == "SMTPHOST" || SP.Name == "EMAIL_VALIDATE_URL" || SP.Name == "EMAIL_VALIDATE_ACCOUNT_DELETE"
+                                || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO").Select(SP=>new
+                                 { SP.Name, SP.Value }).ToListAsync();
 
 
+                var Company = _context.Set<Company>().Where(C => C.CompanyId == CompanyId).FirstOrDefault();
+
+                string Website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
+                string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+                string ValdiateURL = sysparms.Where(w => w.Name == "EMAIL_VALIDATE_URL").Select(s => s.Value).FirstOrDefault();
+                string AccountDeleteURL = sysparms.Where(w => w.Name == "EMAIL_VALIDATE_ACCOUNT_DELETE").Select(s => s.Value).FirstOrDefault();
+
+                string Verifylink = Portal + ValdiateURL + CompanyId + "/" + guid;
+                string DeleteVerifyLink = Portal + AccountDeleteURL + CompanyId + "/" + guid;
+
+                string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+                string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
+                string CompanyLogo = Portal + "/uploads/" + CompanyId + "/companylogos/" + Company.CompanyLogoPath;
+
+                if (string.IsNullOrEmpty(Company.CompanyLogoPath))
+                {
+                    CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                }
+
+
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+
+                    string messagebody = message;
+
+                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", UserName);
+                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", EmailId);
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", Company.CompanyName);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                    messagebody = messagebody.Replace("{PORTAL}", Portal);
+                    messagebody = messagebody.Replace("{VERIFY_LINK}", Verifylink);
+                    messagebody = messagebody.Replace("{DELETE_ACCOUNT_LINK}", DeleteVerifyLink);
+                    messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", Company.CustomerId);
+
+                    messagebody = messagebody.Replace("{TWITTER_LINK}", sysparms.Where(w => w.Name == "CC_TWITTER_PAGE").Select(s => s.Value).FirstOrDefault());
+                    messagebody = messagebody.Replace("{TWITTER_ICON}", sysparms.Where(w => w.Name == "CC_TWITTER_ICON").Select(s => s.Value).FirstOrDefault());
+                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", sysparms.Where(w => w.Name == "CC_FB_PAGE").Select(s => s.Value).FirstOrDefault());
+                    messagebody = messagebody.Replace("{FACEBOOK_ICON}", sysparms.Where(w => w.Name == "CC_FB_ICON").Select(s => s.Value).FirstOrDefault());
+                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", sysparms.Where(w => w.Name == "CC_LINKEDIN_PAGE").Select(s => s.Value).FirstOrDefault());
+                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", sysparms.Where(w => w.Name == "CC_LINKEDIN_ICON").Select(s => s.Value).FirstOrDefault());
+
+                    string[] toEmails = { EmailId };
+                    bool ismailsend = await _senderEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<string> UserName(UserFullName strUserName)
+        {
+            try
+            {
+                if (strUserName != null)
+                {
+                    return strUserName.Firstname + " " + strUserName.Lastname;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+               
+            }
+            return "";
+        }
+        public async Task SendCredentials(string EmailId, string UserName, string UserPass, int CompanyId, string guid)
+        {
+            try
+            {
+                string Subject = string.Empty;
+                string message = Convert.ToString(ReadHtmlFile("SEND_CREDENTIAL", "DB", CompanyId, out Subject));
+
+                var CompanyInfo = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyId).FirstOrDefaultAsync();
+                string Website =await LookupWithKey("DOMAIN");
+                string Portal = await LookupWithKey("PORTAL");
+                string ValdiateURL = await LookupWithKey("EMAIL_VALIDATE_URL");
+                string hostname = await LookupWithKey("SMTPHOST");
+                string fromadd = await LookupWithKey("EMAILFROM");
+                string sso_login = await _companyRepository.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
+
+                string Verifylink = Portal + ValdiateURL + CompanyId + "/" + guid;
+                string CompanyLogo = Portal + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
+
+                if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
+                {
+                    CompanyLogo = await LookupWithKey("CCLOGO");
+                }
+
+                if (!string.IsNullOrEmpty(sso_login))
+                    UserPass = "Use the single sign-on to login";
+
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+                    string messagebody = message;
+
+                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", UserName);
+                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", EmailId);
+                    messagebody = messagebody.Replace("{RECIPIENT_PASSWORD}", UserPass);
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", CompanyInfo.CompanyName);
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                    messagebody = messagebody.Replace("{VERIFY_LINK}", Verifylink);
+                    messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
+                    messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                    string[] toEmails = { EmailId };
+
+                    bool ismailsend = await _senderEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+
+            }
+        }
+        public async Task UpdateTemp(User user)
+        {
+            _context.Update(user);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation($"User Profile has been updated {user.UserId}");
+          
+        }
     }
     
 }

@@ -5,6 +5,8 @@ using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.SendCredentials;
+using CrisesControl.Api.Application.Commands.Register.SendVerification;
 using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
 using CrisesControl.Api.Application.Commands.Register.TempRegister;
 using CrisesControl.Api.Application.Commands.Register.UpgradeRequest;
@@ -44,7 +46,8 @@ namespace CrisesControl.Api.Application.Query
         public async Task<ActivateCompanyResponse> ActivateCompany(ActivateCompanyRequest request)
         {
             var status =await _registerRepository.ActivateCompany(request.UserId,request.ActivationKey,request.IPAddress,request.SalesSource);
-            var result = _mapper.Map<ActivateCompanyResponse>(status);
+            var  response = _mapper.Map<ActivateCompanyResponse>(status);
+            var result = new ActivateCompanyResponse();
 
             if (status)
             {
@@ -61,7 +64,8 @@ namespace CrisesControl.Api.Application.Query
         public async Task<CheckCustomerResponse> CheckCustomer(CheckCustomerRequest request)
         {
             var customer = await _registerRepository.CheckCustomer(request.CustomerId);                    
-            var result = _mapper.Map<CheckCustomerResponse>(customer);
+            //var response = _mapper.Map<CheckCustomerResponse>(customer);
+            var result = new CheckCustomerResponse();
             if (customer)
             {
                 result.Message = "Customer ID already taken";
@@ -79,6 +83,7 @@ namespace CrisesControl.Api.Application.Query
             {
                 var device = await _registerRepository.GetUserDeviceByUserId(request.UserId);
                 var response = _mapper.Map<CheckAppDownloadResponse>(device);
+                var result = new CheckAppDownloadResponse();
 
                 if (device != null)
                 {
@@ -370,6 +375,48 @@ namespace CrisesControl.Api.Application.Query
             }
             throw new RegisterNotFoundException(0, _currentUser.UserId);
 
+        }
+
+        public async Task<SendVerificationResponse> SendVerification(SendVerificationRequest request)
+        {
+            var data = await _registerRepository.SendVerification(request.UniqueId);
+            var response = _mapper.Map<SendVerificationResponse>(data);
+            
+            if (data!=null)
+            {
+               
+                await _registerRepository.NewUserAccount(data.UserEmail, await _registerRepository.UserName(data.UserName), data.CompanyId, data.UniqueID);
+                response.Message = "Verification email sent successful.";
+            }
+            else
+            {
+                response.Message = "No record found.";
+            }
+            return response;
+                  
+        }
+
+        public async Task<SendCredentialsResponse> SendCredentials(SendCredentialsRequest request)
+        {
+            var UserInfo = await _registerRepository.GetUserByUniqueId(request.UniqueId);
+            var response = _mapper.Map<SendCredentialsResponse>(UserInfo);
+
+            if (UserInfo != null)
+            {
+
+                await _registerRepository.SendCredentials(UserInfo.PrimaryEmail, UserInfo.FirstName + " " + UserInfo.LastName, UserInfo.Password, UserInfo.CompanyId, UserInfo.UniqueGuiId);
+                
+                UserInfo.FirstLogin = true;
+               await _registerRepository.UpdateTemp(UserInfo);
+                response.Data = UserInfo;
+                
+                response.Message = "User login credential sent successful.";
+            }
+            else
+            {
+                response.Message = "No record found.";
+            }
+            return response;
         }
     }
 }

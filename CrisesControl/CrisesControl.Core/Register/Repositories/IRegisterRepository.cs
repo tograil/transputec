@@ -30,5 +30,11 @@ namespace CrisesControl.Core.Register.Repositories
         Task<bool> DeleteTempRegistration(Registration registration);
         Task<bool> ActivateCompany(int UserId, string ActivationKey, string IPAddress, int SalesSource = 0, string TimeZoneId = "GMT Standard Time");
         Task<UserDevice> GetUserDeviceByUserId(int UserID);
+        Task<CompanyUser> SendVerification(string UniqueId);
+        Task NewUserAccount(string EmailId, string UserName, int CompanyId, string guid);
+        Task<string> UserName(UserFullName strUserName);
+        Task SendCredentials(string EmailId, string UserName, string UserPass, int CompanyId, string guid);
+        Task<User> GetUserByUniqueId(string UniqueId);
+        Task UpdateTemp(User user);
     }
 }
