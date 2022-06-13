@@ -1,7 +1,9 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
 using CrisesControl.Api.Application.Commands.Users.ActivateUser;
+using CrisesControl.Api.Application.Commands.Users.GetAllUsersDevice;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
+using CrisesControl.Api.Application.Commands.Users.GetUserComms;
 using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.MembershipList;
@@ -12,6 +14,7 @@ using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using FluentValidation;
+using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -86,19 +89,19 @@ namespace CrisesControl.Api.Application.Query
 
                 var membership = await _UserRepository.MembershipList(request.ObjMapID, request.MemberShipType, request.TargetID, _paging.PageNumber, _paging.PageSize, request.search, _paging.OrderBy, request.OrderDir, _paging.Apply, request.CompanyKey);
                 DataTablePaging rtn = new DataTablePaging();
-                rtn.recordsFiltered = membership.Count();
-                rtn.data = membership;
+                rtn.RecordsFiltered = membership.Count();
+                rtn.Data = membership;
                 int totalRecord = membership.Count();
-                rtn.draw = request.Draw;
-                rtn.recordsTotal = totalRecord;
+                rtn.Draw = request.Draw;
+                rtn.RecordsTotal = totalRecord;
 
 
                 return new MembershipResponse
                 {
-                    recordsFiltered = rtn.recordsFiltered,
-                    data = rtn.data,
+                    recordsFiltered = rtn.RecordsFiltered,
+                    data = rtn.Data,
                     draw = request.Draw,
-                    recordsTotal = rtn.recordsTotal,
+                    recordsTotal = rtn.RecordsTotal,
 
                 };
 
@@ -114,6 +117,27 @@ namespace CrisesControl.Api.Application.Query
         {
             var validateEmail = _UserRepository.ValidateLoginEmail(request.UserEmail);
             var result = _mapper.Map<ValidateEmailResponse>(validateEmail.Result);
+            return result;
+        }
+
+        public async Task<List<GetAllUserDevicesResponse>> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken)
+        {
+            GetAllUserDeviceRequest requestMapped = _mapper.Map<GetAllUserDeviceRequest>(request);
+            var getAllUserDevices = await _UserRepository.GetAllUserDeviceList(requestMapped, cancellationToken);
+            var result = _mapper.Map<List<GetAllUserDevicesResponse>>(getAllUserDevices);
+            return result;
+        }
+
+        public async Task<IEnumerable<GetUserCommsResponse>> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken)
+        {
+            var response = await _UserRepository.GetUserComms(request.CommsUserId, cancellationToken);
+            var result = _mapper.Map<List<UserComm>, List<GetUserCommsResponse>>(response);
+            return result;
+        }
+        public async Task<IEnumerable<GetAllOneUserDeviceListResponse>> GetAllOneUserDeviceList(GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken)
+        {
+            var response = await _UserRepository.GetAllOneUserDeviceList(request.QueriedUserId, cancellationToken);
+            var result = _mapper.Map<List<GetAllOneUserDeviceListResponse>>(response);
             return result;
         }
     }

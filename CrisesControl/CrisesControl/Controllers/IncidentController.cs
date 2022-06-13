@@ -5,7 +5,7 @@ using CrisesControl.Api.Application.Commands.Incidents.InitiateAndLaunchIncident
 using CrisesControl.Api.Application.Commands.Incidents.InitiateCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.LaunchCompanyIncident;
 using CrisesControl.Api.Application.Query;
-using CrisesControl.Api.Application.Query.Common;
+using CrisesControl.Core.Compatibility;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -96,7 +96,7 @@ public class IncidentController : Controller
     /// <returns></returns>
     [HttpGet]
     [Route("[action]")]
-    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? status, [FromRoute] PagedRequest paging)
+    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? status, [FromRoute] DataTableAjaxPostModel paging)
     {
         var result = _incidentQuery.GetAllActiveCompanyIncident(status, paging);
         return Ok(result);

@@ -1,6 +1,5 @@
-﻿using CrisesControl.Api.Application.Query.Common;
+﻿using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
-using CrisesControl.Core.Paging;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -12,6 +11,6 @@ namespace CrisesControl.Api.Application.Query
         List<AffectedLocation> GetIncidentLocations(int companyId, int incidentActivationId);
         List<CommsMethods> GetIncidentComms(int itemID, string type);
         IncidentDetails GetCompanyIncidentById(int companyId, int incidentId, string userStatus);
-        DataTablePaging GetAllActiveCompanyIncident(string? status, PagedRequest pagedRequest);
+        DataTablePaging GetAllActiveCompanyIncident(string? status, DataTableAjaxPostModel pagedRequest);
     }
 }

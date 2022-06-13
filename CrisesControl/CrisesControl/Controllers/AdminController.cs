@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Query;
+﻿using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncident;
+using CrisesControl.Api.Application.Query;
 using CrisesControl.Api.Maintenance;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -30,5 +31,12 @@ public class AdminController : Controller
         var companies = await _companyQuery.GetCompanyList(status, companyProfile);
 
         return Ok(companies);
+    }
+    [HttpGet]
+    [Route("GetAllLibIncident")]
+    public async Task<IActionResult> GetAllLibIncident([FromRoute] GetAllLibIncidentRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
     }
 }

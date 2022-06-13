@@ -1,9 +1,4 @@
-﻿using CrisesControl.Core.Models.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CrisesControl.Core.Compatibility;
 
 namespace CrisesControl.Core.Reports.Repositories
 {

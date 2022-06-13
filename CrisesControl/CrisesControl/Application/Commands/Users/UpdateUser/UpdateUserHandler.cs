@@ -1,10 +1,12 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
 using CrisesControl.Api.Application.ViewModels.Company;
+using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using FluentValidation;
 using MediatR;
+using CrisesControl.Api.Application.Helpers;
 
 namespace CrisesControl.Api.Application.Commands.Users.UpdateUser
 {
@@ -13,12 +15,15 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateUser
         private readonly UpdateUserValidator _userValidator;
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mappper;
+        private readonly ICurrentUser _currentUser;
 
-        public UpdateUserHandler(UpdateUserValidator userValidator, IUserRepository userService, IMapper mapper)
+
+        public UpdateUserHandler(UpdateUserValidator userValidator, IUserRepository userService, IMapper mapper, ICurrentUser currentUser)
         {
             _userValidator = userValidator;
             _userRepository = userService;
             _mappper = mapper;
+            _currentUser = currentUser;
         }
 
         public async Task<UpdateUserResponse> Handle(UpdateUserRequest request, CancellationToken cancellationToken)
@@ -32,8 +37,8 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateUser
                 var result = new UpdateUserResponse();
                 result.UserId = userId;   
                 return result;
-            }
-            return null;
+            } 
+            throw new UserNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
         }
 
         private bool CheckDuplicate(User user)

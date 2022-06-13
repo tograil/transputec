@@ -1,10 +1,12 @@
 ﻿using CrisesControl.Api.Application.Commands.Messaging.GetAttachment;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageAttachment;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails;
+using CrisesControl.Api.Application.Commands.Messaging.GetMessageGroupList;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
+using CrisesControl.Api.Application.Commands.Messaging.GetReplies;
 using CrisesControl.Api.Application.Commands.Messaging.MessageAcknowledged;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -121,6 +123,22 @@ namespace CrisesControl.Api.Controllers {
             request.ResponseID = requestRoute.ResponseID;
             request.MsgListId=requestRoute.MsgListId;
 
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetReplies/{MessageId}")]
+        public async Task<IActionResult> GetReplies([FromRoute] GetRepliesRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetMessageGroupList/{MessageID}")]
+        public async Task<IActionResult> GetMessageGroupList([FromRoute] GetMessageGroupListRequest request, CancellationToken cancellationToken)
+        {
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);

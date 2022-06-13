@@ -8,14 +8,14 @@ public class IncidentAssets
 {
     public int AssetId { get; set; }
     public string AssetTitle { get; set; }
-    public string AssetDescription { get; set; }
+    public string? AssetDescription { get; set; }
     [NotMapped]
-    public string AssetFileName { get; set; }
+    public string? AssetFileName { get; set; }
     [NotMapped]
-    public string AssetPath { get; set; }
+    public string? AssetPath { get; set; }
     [NotMapped]
-    public string FilePath { get; set; }
-    public string AssetType { get; set; }
+    public string? FilePath { get; set; }
+    public string? AssetType { get; set; }
     [NotMapped]
     public double AssetSize { get; set; }
     [NotMapped]

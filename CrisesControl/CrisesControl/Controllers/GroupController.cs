@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Api.Application.Commands.Groups.CreateGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroups;
+using CrisesControl.Api.Application.Commands.Groups.SegregationLinks;
 using CrisesControl.Api.Application.Commands.Groups.UpdateGroup;
 using CrisesControl.Api.Application.Query;
 using MediatR;
@@ -48,6 +49,13 @@ namespace CrisesControl.Api.Controllers
         [HttpPut]
         [Route("[action]")]
         public async Task<IActionResult> UpdateGroup([FromBody] UpdateGroupRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("SegregationLinks/{TargetID}/{LinkType}/{MemberShipType}")]
+        public async Task<IActionResult> SegregationLinks([FromRoute] SegregationLinksRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

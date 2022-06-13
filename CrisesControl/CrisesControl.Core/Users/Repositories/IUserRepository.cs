@@ -25,7 +25,10 @@ public interface IUserRepository
     bool CheckDuplicate(User user);
     Task<LoginInfoReturnModel> GetLoggedInUserInfo(LoginInfo request, CancellationToken cancellationToken);
     Task<User> ReactivateUser(int qureiedUserId, CancellationToken cancellationToken);
+    Task<List<GetAllUserDevices>> GetAllUserDeviceList(GetAllUserDeviceRequest request, CancellationToken cancellation);
+
     Task<ValidateEmailReponseModel> ValidateLoginEmail(string UserName);
+    Task<List<UserComm>> GetUserComms(int commsUserId, CancellationToken cancellationToken);
     Task<int> UpdateProfile(User user);
     Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
     void CreateSMSTriggerRight(int CompanyId, int UserId, string UserRole, bool SMSTrigger, string ISDCode, string MobileNo, bool Self = false);
@@ -34,5 +37,13 @@ public interface IUserRepository
     Task<bool> UpdateGroupMember(int TargetID, int UserID, int ObjMapID, string Action);
     Task<User> GetRegisteredUserInfo(int CompanyId, int userId);
     Task<bool> UpdateUserMsgGroups(List<UserGroup> UserGroups);
-    Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search,string orderBy,string orderDir, bool ActiveOnly, string? CompanyKey);
+    Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search, string orderBy, string orderDir, bool ActiveOnly, string? CompanyKey);
+    Task<User> DeleteRegisteredUser(int CustomerId, string UniqueGUID, CancellationToken cancellationToken);
+    Task<User> UpdateUserPhoto(User User, string UserPhoto, CancellationToken cancellationToken);
+    Task<User> UpdateUserPhone(User user, string mobilerNo, string isd, CancellationToken cancellationToken);
+    Task<bool> BadEmail(string email);
+    Task<bool> DuplicateEmail(string email);
+    Task<string> SendInvites(CancellationToken cancellationToken);
+    Task<IEnumerable<UserDeviceListModel>> GetAllOneUserDeviceList(int quiredUserId, CancellationToken cancellationToken);
+    Task<bool> DeleteUserDevice(int userDeviceId, CancellationToken cancellationToken);
 }

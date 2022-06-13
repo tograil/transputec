@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -15,7 +16,6 @@ using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -27,6 +27,8 @@ public class UserRepository : IUserRepository
     private readonly CrisesControlContext _context;
     private readonly string timeZoneId = "GMT Standard Time";
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private int userId;
+    private int companyId;
     private int userID;
     private int companyID;
     private readonly ILogger<UserRepository> _logger;
@@ -37,9 +39,9 @@ public class UserRepository : IUserRepository
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
-        userID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-        companyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-        _logger=logger;
+        userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+        companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+        _logger = logger;
     }
 
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
@@ -90,7 +92,7 @@ public class UserRepository : IUserRepository
             result.Otpcode = user.Otpcode;
             result.Otpexpiry = user.Otpexpiry;
             result.Password = user.Password;
-            result.PasswordChangeDate  = user.PasswordChangeDate;
+            result.PasswordChangeDate = user.PasswordChangeDate;
             result.PrimaryEmail = user.PrimaryEmail;
             result.RegisteredUser = user.RegisteredUser;
             result.SecondaryEmail = user.SecondaryEmail;
@@ -133,7 +135,7 @@ public class UserRepository : IUserRepository
     {
         var searchString = firstName + " " + lastName + "|" + primaryEmail + "|" + isdCode + mobileNo;
 
-        var comp = await _context.Set<Company>().Include(std=>std.StdTimeZone).Include(pk=>pk.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
+        var comp = await _context.Set<Company>().Include(std => std.StdTimeZone).Include(pk => pk.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
         if (comp != null)
         {
             var memberUser = _context.Set<MemberUser>().FromSqlRaw(" exec Pro_Create_User_Search {0}, {1}, {2}",
@@ -143,7 +145,7 @@ public class UserRepository : IUserRepository
 
     public async Task<User> DeleteUser(User user, CancellationToken token)
     {
-        var userToRemove = new User { UserId = user.UserId, CompanyId =  user.CompanyId};
+        var userToRemove = new User { UserId = user.UserId, CompanyId = user.CompanyId };
         _context.Remove(userToRemove);
         await _context.SaveChangesAsync(token);
         return user;
@@ -152,9 +154,9 @@ public class UserRepository : IUserRepository
     public async Task<IEnumerable<User>> GetAllUsers(GetAllUserRequest request)
     {
         var propertyInfo = typeof(GetAllUserRequest).GetProperty(request.OrderBy);
-        var val = _context.Set<User>().FromSqlRaw($"Pro_Get_User_SelectAll @CompanyId = {companyID},@UserID = {userID},@RecordStart={request.RecordStart},@RecordLength={request.RecordLength},@SearchString={request.SearchString}," +
+        var val = _context.Set<User>().FromSqlRaw($"Pro_Get_User_SelectAll @CompanyId = {companyId},@UserID = {userId},@RecordStart={request.RecordStart},@RecordLength={request.RecordLength},@SearchString={request.SearchString}," +
             $"@OrderBy = {request.OrderBy},@SkipDeleted= {request.SkipDeleted},@ActiveOnly = {request.ActiveOnly},@SkipInActive={request.SkipInActive},@KeyHolderOnly={request.KeyHolderOnly},@Filters={request.Filters},@UniqueKey = {request.CompanyKey}").OrderByDescending(o => propertyInfo.GetValue(o, null)).ToListAsync();
-        return await _context.Set<User>().Where(t => t.CompanyId == companyID).ToListAsync();
+        return await _context.Set<User>().Where(t => t.CompanyId == companyId).ToListAsync();
     }
 
     public async Task<User> GetUser(int companyId, int userId)
@@ -248,7 +250,7 @@ public class UserRepository : IUserRepository
             throw ex;
         }
     }
-    private  DateTime GetLocalTime(string TimeZoneId, DateTime? ParamTime = null)
+    private DateTime GetLocalTime(string TimeZoneId, DateTime? ParamTime = null)
     {
         try
         {
@@ -298,7 +300,7 @@ public class UserRepository : IUserRepository
                     }
                     else
                     {
-                        Default =  LookupWithKey(Key, Default);
+                        Default = LookupWithKey(Key, Default);
                     }
                 }
             }
@@ -336,8 +338,8 @@ public class UserRepository : IUserRepository
         try
         {
             var CompanyInfo = await (from C in _context.Set<Company>()
-                               join TZ in _context.Set<StdTimeZone>() on C.TimeZone equals TZ.TimeZoneId
-                               where C.CompanyId == companyID
+                                     join TZ in _context.Set<StdTimeZone>() on C.TimeZone equals TZ.TimeZoneId
+                                     where C.CompanyId == companyId
                                      select new { C, TZ }).FirstOrDefaultAsync();
 
             string strCompanyName = "";
@@ -345,8 +347,8 @@ public class UserRepository : IUserRepository
             if (CompanyInfo != null) {
                 strCompanyName = CompanyInfo.C.CompanyName;
                 UserLoginLog TblUserLog = new UserLoginLog();
-                TblUserLog.CompanyId = companyID;
-                TblUserLog.UserId = userID;
+                TblUserLog.CompanyId = companyId;
+                TblUserLog.UserId = userId;
                 TblUserLog.DeviceType = request.DeviceType;
                 TblUserLog.Ipaddress = request.IPAddress;
                 TblUserLog.LoggedInTime = GetDateTimeOffset(DateTime.Now, timeZoneId);
@@ -356,7 +358,7 @@ public class UserRepository : IUserRepository
 
                 if (!string.IsNullOrEmpty(request.Language)) {
                     var user = await (from Usersval in _context.Set<User>()
-                                where Usersval.CompanyId == companyID && Usersval.UserId == userID
+                                      where Usersval.CompanyId == companyId && Usersval.UserId == userId
                                       select Usersval).FirstOrDefaultAsync();
                     if (user != null) {
                         user.UserLanguage = request.Language;
@@ -365,66 +367,66 @@ public class UserRepository : IUserRepository
                 }
 
                 var RegUserInfo = await (from U in _context.Set<User>()
-                                   join TZ in _context.Set<StdTimeZone>() on U.TimezoneId equals TZ.TimeZoneId into ps
-                                   from p in ps.DefaultIfEmpty()
-                                   where U.CompanyId == companyID && U.UserId == userID
+                                         join TZ in _context.Set<StdTimeZone>() on U.TimezoneId equals TZ.TimeZoneId into ps
+                                         from p in ps.DefaultIfEmpty()
+                                         where U.CompanyId == companyId && U.UserId == userId
                                          select new LoginInfoReturnModel {
-                                       CompanyId = U.CompanyId,
-                                       CompanyName = strCompanyName,
-                                       CompanyLogo = CompanyInfo.C.CompanyLogoPath,
-                                       CompanyProfile = CompanyInfo.C.CompanyProfile,
-                                       AnniversaryDate = CompanyInfo.C.AnniversaryDate,
-                                       UserId = U.UserId,
-                                       CustomerId = CompanyInfo.C.CustomerId,
-                                       First_Name = U.FirstName,
-                                       Last_Name = U.LastName,
-                                       UserMobileISD = U.Isdcode,
-                                       MobileNo = U.MobileNo,
-                                       Primary_Email = U.PrimaryEmail,
-                                       UserPassword = U.Password,
-                                       UserPhoto = U.UserPhoto,
-                                       UniqueGuiId = U.UniqueGuiId,
-                                       RegisterUser = U.RegisteredUser,
-                                       UserRole = U.UserRole,
-                                       UserLanguage = U.UserLanguage,
-                                       Status = U.Status,
-                                       FirstLogin = U.FirstLogin,
-                                       CompanyPlanId = (int)CompanyInfo.C.PackagePlanId,
-                                       CompanyStatus = CompanyInfo.C.Status,
-                                       UniqueKey = CompanyInfo.C.UniqueKey,
-                                       PortalTimeZone = p != null ? p.PortalTimeZone : CompanyInfo.TZ.PortalTimeZone,
-                                       ActiveOffDuty = U.ActiveOffDuty,
-                                       TimeZoneId = CompanyInfo.TZ.TimeZoneId,
-                                       SecItems = (from PF in _context.Set<CompanyPackageFeature>()
-                                                   join SO in _context.Set<SecurityObject>() on PF.SecurityObjectId equals SO.SecurityObjectId
-                                                   join SOT in _context.Set<SecurityObjectType>() on SO.TypeId equals SOT.SecurityObjectTypeId
-                                                   join ASG in
-                                                       (from USG in _context.Set<UserSecurityGroup>()
-                                                        join SG in _context.Set<SecurityGroup>() on USG.SecurityGroupId equals SG.SecurityGroupId
-                                                        join GSO in _context.Set<GroupSecuityObject>() on USG.SecurityGroupId equals GSO.SecurityGroupId
-                                                        join SO1 in _context.Set<SecurityObject>() on GSO.SecurityObjectId equals SO1.SecurityObjectId
-                                                        where USG.UserId == U.UserId && SO1.Status == 1 && SG.CompanyId == companyID
-                                                        select new { USG.SecurityGroupId, SO1.SecurityObjectId })
-                                                   on SO.SecurityObjectId equals ASG.SecurityObjectId
-                                                   into ASGS
-                                                   from ASG in ASGS.DefaultIfEmpty()
-                                                   where SO.Status == 1 && PF.Status == 1 && PF.CompanyId == U.CompanyId
-                                                   //&& SO.Target.Contains("Client")
-                                                   select new SecItemModel {
-                                                       Code = SOT.Code,
-                                                       SecurityKey = SO.SecurityKey,
-                                                       Name = SO.Name,
-                                                       UpdatedOn = SO.UpdatedOn,
-                                                       Target = SO.Target,
-                                                       ShowOnTrial = (bool)SO.ShowOnTrial,
-                                                       HasAccess = ASG.SecurityGroupId == null ||
-                                                       (U.UserRole == "USER" && SO.RequireKeyHolder == true) ||
-                                                       ((U.UserRole == "USER" || U.UserRole == "KEYHOLDER") && SO.RequireAdmin == true)
-                                                       ? "false" : "true"
-                                                   }).ToList(),
-                                       ErrorId = 0,
-                                       Message = "OK"
-                                   }).FirstOrDefaultAsync();
+                                             CompanyId = U.CompanyId,
+                                             CompanyName = strCompanyName,
+                                             CompanyLogo = CompanyInfo.C.CompanyLogoPath,
+                                             CompanyProfile = CompanyInfo.C.CompanyProfile,
+                                             AnniversaryDate = CompanyInfo.C.AnniversaryDate,
+                                             UserId = U.UserId,
+                                             CustomerId = CompanyInfo.C.CustomerId,
+                                             First_Name = U.FirstName,
+                                             Last_Name = U.LastName,
+                                             UserMobileISD = U.Isdcode,
+                                             MobileNo = U.MobileNo,
+                                             Primary_Email = U.PrimaryEmail,
+                                             UserPassword = U.Password,
+                                             UserPhoto = U.UserPhoto,
+                                             UniqueGuiId = U.UniqueGuiId,
+                                             RegisterUser = U.RegisteredUser,
+                                             UserRole = U.UserRole,
+                                             UserLanguage = U.UserLanguage,
+                                             Status = U.Status,
+                                             FirstLogin = U.FirstLogin,
+                                             CompanyPlanId = (int)CompanyInfo.C.PackagePlanId,
+                                             CompanyStatus = CompanyInfo.C.Status,
+                                             UniqueKey = CompanyInfo.C.UniqueKey,
+                                             PortalTimeZone = p != null ? p.PortalTimeZone : CompanyInfo.TZ.PortalTimeZone,
+                                             ActiveOffDuty = U.ActiveOffDuty,
+                                             TimeZoneId = CompanyInfo.TZ.TimeZoneId,
+                                             SecItems = (from PF in _context.Set<CompanyPackageFeature>()
+                                                         join SO in _context.Set<SecurityObject>() on PF.SecurityObjectId equals SO.SecurityObjectId
+                                                         join SOT in _context.Set<SecurityObjectType>() on SO.TypeId equals SOT.SecurityObjectTypeId
+                                                         join ASG in
+                                                             (from USG in _context.Set<UserSecurityGroup>()
+                                                              join SG in _context.Set<SecurityGroup>() on USG.SecurityGroupId equals SG.SecurityGroupId
+                                                              join GSO in _context.Set<GroupSecuityObject>() on USG.SecurityGroupId equals GSO.SecurityGroupId
+                                                              join SO1 in _context.Set<SecurityObject>() on GSO.SecurityObjectId equals SO1.SecurityObjectId
+                                                              where USG.UserId == U.UserId && SO1.Status == 1 && SG.CompanyId == companyId
+                                                              select new { USG.SecurityGroupId, SO1.SecurityObjectId })
+                                                         on SO.SecurityObjectId equals ASG.SecurityObjectId
+                                                         into ASGS
+                                                         from ASG in ASGS.DefaultIfEmpty()
+                                                         where SO.Status == 1 && PF.Status == 1 && PF.CompanyId == U.CompanyId
+                                                         //&& SO.Target.Contains("Client")
+                                                         select new SecItemModel {
+                                                             Code = SOT.Code,
+                                                             SecurityKey = SO.SecurityKey,
+                                                             Name = SO.Name,
+                                                             UpdatedOn = SO.UpdatedOn,
+                                                             Target = SO.Target,
+                                                             ShowOnTrial = (bool)SO.ShowOnTrial,
+                                                             HasAccess = ASG.SecurityGroupId == null ||
+                                                             (U.UserRole == "USER" && SO.RequireKeyHolder == true) ||
+                                                             ((U.UserRole == "USER" || U.UserRole == "KEYHOLDER") && SO.RequireAdmin == true)
+                                                             ? "false" : "true"
+                                                         }).ToList(),
+                                             ErrorId = 0,
+                                             Message = "OK"
+                                         }).FirstOrDefaultAsync();
                 return RegUserInfo;
             }
             return null;
@@ -433,7 +435,7 @@ public class UserRepository : IUserRepository
         {
             return null;
         }
-    }   
+    }
 
 
     public async Task<List<MemberUser>> MembershipList(int ObjMapID, MemberShipType memberShipType, int TargetID, int? Start, int? Length, string? Search, string orderBy, string orderDir, bool ActiveOnly, string? CompanyKey)
@@ -441,7 +443,7 @@ public class UserRepository : IUserRepository
         try
         {
 
-            var SearchString = (Search != null) ? Search : string.Empty;           
+            var SearchString = (Search != null) ? Search : string.Empty;
 
 
             var pCompanyId = new SqlParameter("@CompanyID", companyID);
@@ -557,19 +559,17 @@ public class UserRepository : IUserRepository
 
                 return MainUserlist;
             }
-
-           
         }
         catch (Exception ex)
         {
             return null;
         }
-        
+        return null;
     }
 
     private string GetCompanyName(int companyId)
     {
-        string companyName =  _context.Set<Company>().Where(c=>c.CompanyId == companyId).Select(c=>c.CompanyName).FirstOrDefault();
+        string companyName = _context.Set<Company>().Where(c => c.CompanyId == companyId).Select(c => c.CompanyName).FirstOrDefault();
         return companyName;
     }
 
@@ -583,13 +583,13 @@ public class UserRepository : IUserRepository
             {
                 userRecord.Status = 1;
                 await _context.SaveChangesAsync(cancellationToken);
-                var ActivatedUser = _context.Set<User>().Where(u=> u.UserId == queriedUserId).Select(u=> new
-                                     {
-                                         UserId = u.UserId,
-                                         UserName = new UserFullName { Firstname = u.FirstName, Lastname = u.LastName },
-                                         UserEmail = u.PrimaryEmail,
-                                         CompanyName = GetCompanyName(u.CompanyId)
-                                     }).FirstOrDefault();
+                var ActivatedUser = _context.Set<User>().Where(u => u.UserId == queriedUserId).Select(u => new
+                {
+                    UserId = u.UserId,
+                    UserName = new UserFullName { Firstname = u.FirstName, Lastname = u.LastName },
+                    UserEmail = u.PrimaryEmail,
+                    CompanyName = GetCompanyName(u.CompanyId)
+                }).FirstOrDefault();
                 if (ActivatedUser != null)
                 {
                     return userRecord;
@@ -599,8 +599,8 @@ public class UserRepository : IUserRepository
                     return null;
                 }
             }
-           
-           return null;
+
+            return null;
         }
         catch (Exception ex)
         {
@@ -608,7 +608,7 @@ public class UserRepository : IUserRepository
         }
     }
 
- 
+
     public async Task<ValidateEmailReponseModel> ValidateLoginEmail(string userName)
     {
         try
@@ -622,13 +622,13 @@ public class UserRepository : IUserRepository
                 string sso_type = await GetCompanyParameter("SSO_PROVIDER", user.CompanyId);
                 string sso_enabled = await GetCompanyParameter("SINGLE_SIGNON_ENABLED", user.CompanyId);
                 string sso_issuer = await GetCompanyParameter("AAD_SSO_TENANT_ID", user.CompanyId);
-                string sso_client_secret = await GetCompanyParameter("SSO_CLIENT_SECRET", user.CompanyId); 
-                return new ValidateEmailReponseModel 
-                { 
-                    SSOType = sso_type, 
-                    SSOEnabled = sso_enabled, 
-                    SSOIssuer = sso_issuer, 
-                    SSOSecret = sso_client_secret 
+                string sso_client_secret = await GetCompanyParameter("SSO_CLIENT_SECRET", user.CompanyId);
+                return new ValidateEmailReponseModel
+                {
+                    SSOType = sso_type,
+                    SSOEnabled = sso_enabled,
+                    SSOIssuer = sso_issuer,
+                    SSOSecret = sso_client_secret
                 };
             }
             else
@@ -644,7 +644,7 @@ public class UserRepository : IUserRepository
 
     public async Task<int> UpdateProfile(User user)
     {
-       _context.Update(user);
+        _context.Update(user);
         await _context.SaveChangesAsync();
         _logger.LogInformation($"User Profile has been updated {user.UserId}");
         return user.UserId;
@@ -660,7 +660,7 @@ public class UserRepository : IUserRepository
                 List<int> ExtComList = new List<int>();
                 foreach (int NewMethodId in MethodId)
                 {
-                    var ISEXsit =  DelCommList.FirstOrDefault(S => S.UserId == UserId && S.MethodId == NewMethodId && S.MessageType == MethodType);
+                    var ISEXsit = DelCommList.FirstOrDefault(S => S.UserId == UserId && S.MethodId == NewMethodId && S.MessageType == MethodType);
                     if (ISEXsit == null)
                     {
                         CreateUserComms(UserId, CompanyID, NewMethodId, CurrentUserID, TimeZoneId, MethodType);
@@ -683,16 +683,16 @@ public class UserRepository : IUserRepository
                         item.Status = 1;
                     }
                 }
-              await  _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
         {
             _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source},{5}",
-                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source, CompanyID) ;
+                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source, CompanyID);
         }
-      }
-    public async void UserCommsPriority(int UserID, List<CommsMethodPriority> CommsMethod, int CurrentUserID, int CompanyID,CancellationToken token)
+    }
+    public async void UserCommsPriority(int UserID, List<CommsMethodPriority> CommsMethod, int CurrentUserID, int CompanyID, CancellationToken token)
     {
         try
         {
@@ -712,7 +712,7 @@ public class UserRepository : IUserRepository
                         Comms.Priority = priority.Priority;
                     }
                 }
-               await _context.SaveChangesAsync(token);
+                await _context.SaveChangesAsync(token);
             }
         }
         catch (Exception ex)
@@ -762,7 +762,7 @@ public class UserRepository : IUserRepository
         try
         {
             var roles = Roles.CcRoles(true); ;
-           var checkusr= await _context.Set<SmsTriggerUser>().FirstOrDefaultAsync(STU=> STU.CompanyId == CompanyId && STU.UserId == UserId);
+            var checkusr = await _context.Set<SmsTriggerUser>().FirstOrDefaultAsync(STU => STU.CompanyId == CompanyId && STU.UserId == UserId);
             if (checkusr != null)
             {
 
@@ -789,7 +789,7 @@ public class UserRepository : IUserRepository
                     STU.UserId = UserId;
                     STU.PhoneNumber = ISDCode + MobileNo;
                     STU.Status = 1;
-                   _context.AddAsync(STU);
+                    _context.AddAsync(STU);
                     _context.SaveChangesAsync();
                 }
             }
@@ -799,20 +799,81 @@ public class UserRepository : IUserRepository
             throw ex;
         }
     }
+
+    public async Task<List<GetAllUserDevices>> GetAllUserDeviceList(GetAllUserDeviceRequest request, CancellationToken cancellation)
+    {
+        try
+        {
+            var pCompanyId = new SqlParameter("@CompanyId", companyId);
+            var pUserID = new SqlParameter("@UserID", userId);
+            var pRecordStart = new SqlParameter("@RecordStart", request.RecordStart);
+            var pRecordLength = new SqlParameter("@RecordLength", request.RecordLength);
+            var pSearchString = new SqlParameter("@SearchString", request.SearchString);
+            var pOrderBy = new SqlParameter("@OrderBy", request.OrderBy);
+            var pOrderDir = new SqlParameter("@OrderDir", request.OrderDir);
+            var pUniqueKey = new SqlParameter("@UniqueKey", request.CompanyKey);
+
+            var UserDeviceList = new List<GetAllUserDevices>();
+            var propertyInfo = typeof(GetAllUserDeviceRequest).GetProperty(request.OrderBy);
+
+            if (request.OrderDir == "desc" && propertyInfo != null)
+            {
+                UserDeviceList = await _context.Set<GetAllUserDevices>().FromSqlRaw("EXEC Pro_Get_User_Devices_SelectAll @CompanyId,@UserID,@RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
+                    pCompanyId, pUserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                    .ToListAsync();
+                UserDeviceList.Select(c =>
+                {
+                    c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                    return c;
+                }).OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+            }
+            else if (request.OrderDir == "asc" && propertyInfo != null)
+            {
+                UserDeviceList = await _context.Set<GetAllUserDevices>().FromSqlRaw("EXEC Pro_Get_User_Devices_SelectAll @CompanyId,@UserID,@RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
+                    pCompanyId, pUserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                    .ToListAsync();
+                UserDeviceList.Select(c =>
+                {
+                    c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                    return c;
+                })
+                        .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+            }
+            else
+            {
+                UserDeviceList = await _context.Set<GetAllUserDevices>().FromSqlRaw("EXEC Pro_Get_User_Devices_SelectAll @CompanyId,@UserID,@RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
+                    pCompanyId, pUserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                    .ToListAsync();
+                UserDeviceList.Select(c =>
+                    {
+                        c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        return c;
+                    }).ToList();
+            }
+
+            return UserDeviceList;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return null;
+            throw ex;
+        }
+    }
     public async Task<User> GetRegisteredUserInfo(int CompanyId, int userId)
     {
-        try { 
-        var RegUserInfo = await _context.Set<User>().Include(uc => uc.UserComm).Include(usg=>usg.UserSecurityGroup).Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
+        try {
+            var RegUserInfo = await _context.Set<User>().Include(uc => uc.UserComm).Include(usg => usg.UserSecurityGroup).Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
 
-        if (RegUserInfo != null)
-        {
-            return RegUserInfo;
+            if (RegUserInfo != null)
+            {
+                return RegUserInfo;
+            }
+            return null;
         }
-        return null;
-        }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-         return null;
+            return null;
         }
     }
 
@@ -828,11 +889,11 @@ public class UserRepository : IUserRepository
                 var usg = await _context.Set<ObjectRelation>().Where(grp => grp.ObjectRelationId == UsrGrp.UniqueId).FirstOrDefaultAsync();
                 if (usg != null)
                     usg.ReceiveOnly = UsrGrp.ReceiveOnly;
-                 usb.AppendLine(_context.Update(usg).ToString());
-                
+                usb.AppendLine(_context.Update(usg).ToString());
+
             }
-           await _context.SaveChangesAsync();
-            
+            await _context.SaveChangesAsync();
+
             return true;
 
         }
@@ -883,7 +944,7 @@ public class UserRepository : IUserRepository
             var user = await _context.Set<User>().Where(U => U.UserId == UserID && U.CompanyId == CompanyId).FirstOrDefaultAsync();
             if (user != null)
             {
-                if (Action.ToUpper() ==action.ToUpper())
+                if (Action.ToUpper() == action.ToUpper())
                 {
                     user.DepartmentId = DepartmentID;
                 }
@@ -894,7 +955,7 @@ public class UserRepository : IUserRepository
                 user.UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId);
                 user.UpdatedBy = CurrentUserId;
                 _context.Update(user);
-               await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
@@ -906,7 +967,7 @@ public class UserRepository : IUserRepository
     {
         try
         {
-           
+
             bool IsALLOBJrelationExist = await _context.Set<ObjectRelation>().Where(OBR => OBR.TargetObjectPrimaryId == TargetObjectID
                                           && OBR.ObjectMappingId == ObjMapId
                                           && OBR.SourceObjectPrimaryId == SourceObjectID).AnyAsync();
@@ -920,10 +981,10 @@ public class UserRepository : IUserRepository
                     CreatedBy = CreatedUpdatedBy,
                     UpdatedBy = CreatedUpdatedBy,
                     CreatedOn = System.DateTime.Now,
-                    UpdatedOn = GetLocalTime(TimeZoneId,DateTime.UtcNow),
+                    UpdatedOn = GetLocalTime(TimeZoneId, DateTime.UtcNow),
                     ReceiveOnly = false
                 };
-               await _context.AddAsync(tblDepObjRel);
+                await _context.AddAsync(tblDepObjRel);
                 await _context.SaveChangesAsync();
             }
         }
@@ -931,6 +992,123 @@ public class UserRepository : IUserRepository
         {
             _logger.LogError("Error occured while seeding the database {0}, {1}", ex.Message, ex.InnerException);
         }
+    }
+
+    public async Task<User> DeleteRegisteredUser(int CustomerId, string UniqueGUID, CancellationToken cancellationToken)
+    {
+        var DeleteUser = _context.Set<User>().Where(u => u.CompanyId == CustomerId && u.UniqueGuiId == UniqueGUID && u.RegisteredUser == false)
+            .FirstOrDefault();
+
+        if (DeleteUser != null)
+        {
+            _context.Set<User>().Remove(DeleteUser);
+            await _context.SaveChangesAsync(cancellationToken);
+            return DeleteUser;
+        }
+        else
+        {
+            return null;
+        }
+    }
+    public async Task<List<UserComm>> GetUserComms(int commsUserId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _context.Set<UserComm>().Where(uc => uc.UserId == commsUserId).ToListAsync();
+            return response;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<User> UpdateUserPhoto(User user, string userPhoto, CancellationToken cancellationToken)
+    {
+        user.UserPhoto = userPhoto;
+        _context.Update(user);
+        await _context.SaveChangesAsync();
+        return user;
+    }
+
+    public async Task<User> UpdateUserPhone(User user, string mobilerNo, string isd, CancellationToken cancellationToken)
+    {
+        user.MobileNo = mobilerNo;
+        user.Isdcode = isd;
+        await _context.SaveChangesAsync();
+        return user;
+    }
+
+    public async Task<bool> BadEmail(string email)
+    {
+        int indexOfAt = email.IndexOf('@');
+        string domain = email.Substring(indexOfAt + 1).Trim();
+        bool exist = await _context.Set<BadDomain>().Where(w => w.DomainName == domain && w.Status == 1).AnyAsync();
+        return exist;
+    }
+
+    public async Task<bool> DuplicateEmail(string email)
+    {
+        return await _context.Set<User>().Where(t => t.PrimaryEmail == email).AnyAsync();
+    }
+
+    public async Task<string> SendInvites(CancellationToken cancellationToken)
+    {
+        var pendingUsers = _context.Set<User>().Where(t=>t.Status == 2 && t.CompanyId == companyId).ToList();
+
+        if(pendingUsers.Count() > 0)
+        {
+            return "Invitation sent to all pending users";
+        } else
+        {
+            return "No pending users";
+        }
+    }
+
+    public async Task<IEnumerable<UserDeviceListModel>> GetAllOneUserDeviceList(int quiredUserId, CancellationToken cancellationToken)
+    {
+        var response = (from UD in _context.Set<UserDevice>()
+                        join U in _context.Set<User>() on UD.UserId equals U.UserId
+                        where UD.UserId == quiredUserId
+                        select new UserDeviceListModel()
+                        {
+                            UserId = UD.UserId,
+                            UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                            UserDeviceID = UD.UserDeviceId,
+                            CompanyID = UD.CompanyId,
+                            DeviceId = UD.DeviceId,
+                            DeviceType = UD.DeviceType,
+                            DeviceOs = UD.DeviceOs,
+                            DeviceModel = UD.DeviceModel,
+                            ExtraInfo = UD.ExtraInfo,
+                            Status = UD.Status,
+                            DeviceSerial = UD.DeviceSerial,
+                            SirenOn = UD.SirenOn,
+                            OverrideSilent = UD.OverrideSilent,
+                            LastLoginFrom = UD.UpdatedOn
+                        }).ToList();
+        if (response!=null)
+        {
+            return response;
+        }
+        throw new UserNotFoundException(companyId, userId);
+
+    }
+
+    public async Task<bool> DeleteUserDevice(int userDeviceId, CancellationToken cancellationToken)
+    {
+        var userDevice = _context.Set<UserDevice>().Where(ud => ud.UserDeviceId == userDeviceId).FirstOrDefault();
+        if (userDevice != null)
+        {
+            _context.Set<UserDevice>().Remove(userDevice);
+            _context.SaveChanges();
+
+            var tracking = _context.Set<TrackMe>().Where(tm => tm.UserDeviceId == userDeviceId).ToList();
+            _context.Set<TrackMe>().RemoveRange(tracking);
+            _context.SaveChanges();
+            return true;
+        }
+        throw new UserNotFoundException(companyId, userId);
     }
 
 }
