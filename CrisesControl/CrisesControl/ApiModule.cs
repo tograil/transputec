@@ -38,6 +38,8 @@ public class ApiModule : Module
 
         builder.RegisterType<IncidentQuery>().As<IIncidentQuery>();
         builder.RegisterType<TaskQuery>().As<ITaskQuery>();
+        builder.RegisterType<AdminQuery>().As<IAdminQuery>();
+        builder.RegisterType<RegisterQuery>().As<IRegisterQuery>();
 
         builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>();
 

@@ -12,5 +12,6 @@ namespace CrisesControl.Core.Models
         public DateTimeOffset UpdatedOn { get; set; }
         public int SourceObjectId { get; set; }
         public int TargetObjectId { get; set; }
+        public Object Object { get; set; }
     }
 }
