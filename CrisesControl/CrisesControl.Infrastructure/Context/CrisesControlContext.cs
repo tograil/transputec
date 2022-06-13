@@ -116,6 +116,9 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
             modelBuilder.Entity<GroupLink>().HasNoKey();
 
+            //modelBuilder.Entity<Assets>().HasNoKey();
+            modelBuilder.Entity<DeliverySummary>().HasNoKey();
+
 
             modelBuilder.Entity<LibIncident>().HasNoKey();
 
