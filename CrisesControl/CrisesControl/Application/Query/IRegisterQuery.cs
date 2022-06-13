@@ -4,6 +4,7 @@ using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.Index;
 using CrisesControl.Api.Application.Commands.Register.SendCredentials;
 using CrisesControl.Api.Application.Commands.Register.SendVerification;
 using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
@@ -31,5 +32,6 @@ namespace CrisesControl.Api.Application.Query
         Task<CheckAppDownloadResponse> CheckAppDownload(CheckAppDownloadRequest request);
         Task<SendVerificationResponse> SendVerification(SendVerificationRequest request);
         Task<SendCredentialsResponse> SendCredentials(SendCredentialsRequest request);
+        Task<IndexResponse> Index(IndexRequest request);
     }
 }

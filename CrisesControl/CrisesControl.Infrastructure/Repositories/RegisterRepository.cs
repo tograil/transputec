@@ -38,17 +38,23 @@ namespace CrisesControl.Infrastructure.Repositories
         private int UserID;
         private int CompanyId;
         public RegisterRepository(ILogger<RegisterRepository> logger, ISenderEmailService senderEmail,  
-            CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IIncidentRepository incidentRepository)
+            CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IIncidentRepository incidentRepository,
+            ICompanyRepository companyRepository)
         {
           this._logger = logger;
           this._context = context;
           this._httpContextAccessor = httpContextAccessor;
           this._senderEmail=senderEmail;
           this._incidentRepository=incidentRepository;
+            this._companyRepository = companyRepository;
       
 
         }
-        public async Task<bool> CheckCustomer(string CustomerId)
+        public async Task<List<Registration>> GetAllRegistrations()
+        {
+            return await _context.Set<Registration>().ToListAsync();
+        }
+            public async Task<bool> CheckCustomer(string CustomerId)
         {
             try
             {

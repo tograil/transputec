@@ -5,6 +5,7 @@ using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.Index;
 using CrisesControl.Api.Application.Commands.Register.SendCredentials;
 using CrisesControl.Api.Application.Commands.Register.SendVerification;
 using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
@@ -417,6 +418,24 @@ namespace CrisesControl.Api.Application.Query
                 response.Message = "No record found.";
             }
             return response;
+        }
+
+        public async Task<IndexResponse> Index(IndexRequest request)
+        {
+            var registrations = await _registerRepository.GetAllRegistrations();
+            var response = _mapper.Map<List<Registration>>(registrations);
+            var result = new IndexResponse();
+            if (registrations != null)
+            {
+                result.Data = response;
+                result.Message = "Data has been Loaded";
+            }
+            else
+            {
+                result.Data = new List<Registration>();
+                result.Message = "No record Found.";
+            }
+            return result;
         }
     }
 }
