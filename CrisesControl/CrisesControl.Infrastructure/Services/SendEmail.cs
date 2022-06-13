@@ -4,6 +4,7 @@ using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1044,5 +1045,72 @@ namespace CrisesControl.Api.Application.Helpers
                 //TODO throw exception
             }
         }
+        public void SendUserAssociationsToAdmin(string items, int userId, int companyId)
+        {
+            try
+            {
+                var roles = _DBC.CCRoles();
+                var user =  _context.Set<User>().Where(t => t.UserId == userId).Select(t => new UserFullName { Firstname = t.FirstName, Lastname = t.LastName }).FirstOrDefault();
+
+                var adminuser = (from U in _context.Set<User>()
+                                 where roles.Contains(U.UserRole) && U.CompanyId == companyId && U.Status == 1
+                                 select new { U.PrimaryEmail, U.FirstName, U.LastName }).ToList();
+
+                var company = (from C in _context.Set<Company>()
+                               join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                               where C.CompanyId == companyId
+                               select new { C, CP }).FirstOrDefault();
+                if (company != null)
+                {
+                    string templatename = "USER_DELETE_ALERT";
+                    string Subject = string.Empty;
+                    string message = Convert.ToString(_DBC.ReadHtmlFile(templatename, "DB", company.C.CompanyId, out Subject));
+
+                    var sysparms = (from SP in _context.Set<SysParameter>()
+                                    where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
+                                    || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO"
+                                    select new { SP.Name, SP.Value }).ToList();
+
+                    string Website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
+                    string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+
+                    string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+                    string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
+                    string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+
+                    if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                    {
+                        CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                    }
+
+                    if ((message != null) && (hostname != null) && (fromadd != null))
+                    {
+                        string messagebody = message;
+
+                        messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                        messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                        messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
+                        messagebody = messagebody.Replace("{PORTAL}", Portal);
+                        messagebody = messagebody.Replace("{DELETED_USER_NAME}", user.Firstname + " " + user.Lastname);
+                        messagebody = messagebody.Replace("{USER_LINKS}", items);
+                        messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+
+                        foreach (var admin in adminuser)
+                        {
+                            string sendbody = messagebody;
+                            sendbody = sendbody.Replace("{RECIPIENT_NAME}", admin.FirstName + " " + admin.LastName);
+                            string[] adm_email = { admin.PrimaryEmail };
+                            Email(adm_email, sendbody, fromadd, hostname, Subject);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                //ToDo: throw exception
+            }
+        }
+
     }
 }

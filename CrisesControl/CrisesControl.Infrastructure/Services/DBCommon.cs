@@ -228,5 +228,172 @@ namespace CrisesControl.Api.Application.Helpers
         {
             return "&pound;" + Amount.ToString("n" + points);
         }
+
+        public DateTimeOffset GetDateTimeOffset(DateTime crTime, string timeZoneId = "GMT Standard Time")
+        {
+            try
+            {
+                if (crTime.Year <= 2000)
+                    return crTime;
+
+                if (crTime.Year > 3000)
+                {
+                    crTime = DateTime.MaxValue.AddHours(-48);
+                }
+
+                TimeZoneInfo cet = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+                var offset = cet.GetUtcOffset(crTime);
+
+                DateTimeOffset newvals = new DateTimeOffset(new DateTime(crTime.Year, crTime.Month, crTime.Day, crTime.Hour, crTime.Minute, crTime.Second, crTime.Millisecond));
+
+                DateTimeOffset convertedtime = newvals.ToOffset(offset);
+
+                return convertedtime;
+            }
+            catch (Exception ex)
+            {
+                //TODO: throw exception
+                throw ex;
+            }
+        }
+
+        public DateTime GetLocalTime(string timeZoneId, DateTime? paramTime = null)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(timeZoneId))
+                    timeZoneId = "GMT Standard Time";
+
+                DateTime retDate = DateTime.Now.ToUniversalTime();
+
+                DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
+
+                DateTime timeUtc = DateTime.UtcNow;
+
+                TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+                retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
+
+                return retDate;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public void CreateObjectRelationship(int targetObjectId, int sourceObjectId, string relationName, int companyId, int createdUpdatedBy, string timeZoneId, string relatinFilter = "")
+        {
+            try
+            {
+                if (relationName.ToUpper() == "GROUP" || relationName.ToUpper() == "LOCATION")
+                {
+                    if (targetObjectId > 0)
+                    {
+                        int newSourceObjectId = 0;
+
+                        var ObjMapId = (from OM in _context.Set<ObjectMapping>()
+                                        join OBJ in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals OBJ.ObjectId
+                                        where OBJ.ObjectTableName == relationName
+                                        select OM).Select(a => a.ObjectMappingId).FirstOrDefault();
+
+                        if (sourceObjectId > 0)
+                        {
+                            newSourceObjectId = sourceObjectId;
+                            CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
+                        }
+
+                        if (!string.IsNullOrEmpty(relatinFilter))
+                        {
+                            if (relationName.ToUpper() == "GROUP")
+                            {
+                                newSourceObjectId = _context.Set<Group>().Where(t=>t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t=>t.GroupId).FirstOrDefault();
+                            }
+                            else if (relationName.ToUpper() == "LOCATION")
+                            {
+                                newSourceObjectId = _context.Set<Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
+                            }
+                            CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
+                        }
+                    }
+                }
+                else if (relationName.ToUpper() == "DEPARTMENT")
+                {
+                    UpdateUserDepartment(targetObjectId, sourceObjectId, createdUpdatedBy, companyId, timeZoneId);
+                }
+            }
+            catch (Exception ex) { 
+                throw ex; //ToDo:throw exception
+            }
+        }
+
+        private void UpdateUserDepartment(int userId, int departmentId, int createdUpdatedBy, int companyId, string timeZoneId)
+        {
+            try
+            {
+                var user = _context.Set<User>().Where(t => t.UserId == userId).FirstOrDefault();
+                if (user != null)
+                {
+                    user.DepartmentId = departmentId;
+                    user.UpdatedBy = createdUpdatedBy;
+                    user.UpdatedOn = GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    _context.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                //ToDo: throw exception
+            }
+        }
+        public void CreateNewObjectRelation(int sourceObjectId, int targetObjectId, int objMapId, int createdUpdatedBy, string timeZoneId, int companyId)
+        {
+            try
+            {
+                bool isAllObjeRelationExist = _context.Set<ObjectRelation>().Where(t => t.TargetObjectPrimaryId == targetObjectId
+                && t.ObjectMappingId != objMapId
+                && t.SourceObjectPrimaryId == sourceObjectId).Any();
+
+                if (!isAllObjeRelationExist)
+                {
+                    ObjectRelation tblDepObjRel = new ObjectRelation()
+                    {
+                        TargetObjectPrimaryId = targetObjectId,
+                        ObjectMappingId = objMapId,
+                        SourceObjectPrimaryId = sourceObjectId,
+                        CreatedBy = createdUpdatedBy,
+                        UpdatedBy = createdUpdatedBy,
+                        CreatedOn = System.DateTime.Now,
+                        UpdatedOn = GetLocalTime(timeZoneId, System.DateTime.Now),
+                        ReceiveOnly = false
+                    };
+                    _context.Set<ObjectRelation>().Add(tblDepObjRel);
+                    _context.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                //ToDo: throw exception
+            }
+        }
+
+        public int AddPwdChangeHistory(int userId, string newPassword)
+        {
+            try
+            {
+                PasswordChangeHistory PH = new PasswordChangeHistory();
+                PH.UserId = userId;
+                PH.LastPassword = newPassword;
+                PH.ChangedDateTime = GetDateTimeOffset(DateTime.Now);
+                _context.Set<PasswordChangeHistory>().Add(PH);
+                _context.SaveChanges();
+                return PH.Id;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                //todo: throw exception
+            }
+        }
     }
 }
