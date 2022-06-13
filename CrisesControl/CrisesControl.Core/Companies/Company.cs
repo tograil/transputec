@@ -41,5 +41,6 @@ namespace CrisesControl.Core.Companies
         public PackagePlan PackagePlan { get; set; }
 
         public IEnumerable<CompanyPaymentProfile> CompanyPaymentProfiles { get; set; }
+        public CompanyActivation CompanyActivation { get; set; }
     }
 }

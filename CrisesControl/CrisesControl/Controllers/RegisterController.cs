@@ -1,11 +1,16 @@
-﻿using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
+﻿using CrisesControl.Api.Application.Commands.Register.ActivateCompany;
+using CrisesControl.Api.Application.Commands.Register.CheckAppDownloaded;
+using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.SendCredentials;
+using CrisesControl.Api.Application.Commands.Register.SendVerification;
 using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
 using CrisesControl.Api.Application.Commands.Register.TempRegister;
 using CrisesControl.Api.Application.Commands.Register.UpgradeRequest;
 using CrisesControl.Api.Application.Commands.Register.ValidateMobile;
+using CrisesControl.Api.Application.Commands.Register.ValidateUserEmail;
 using CrisesControl.Api.Application.Commands.Register.VerifyTempRegistration;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -32,7 +37,7 @@ namespace CrisesControl.Api.Controllers
 
             return Ok(result);
         }
-        [HttpGet("ValidateMobile")]
+        [HttpGet("ValidateMobile/{Code}/{ISD}/{MobileNo}")]
 
         public async Task<IActionResult> ValidateMobile([FromRoute] VerifyPhoneRequest request, CancellationToken cancellationToken)
         {
@@ -40,15 +45,15 @@ namespace CrisesControl.Api.Controllers
 
             return Ok(result);
         }
-        [HttpGet("ValidateUserUserEmail")]
+        [HttpGet("ValidateUserEmail/{CompanyId}/{uniqueId}")]
 
-        public async Task<IActionResult> ValidateUserUserEmail([FromRoute] VerifyPhoneRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> ValidateUserUserEmail([FromRoute] ValidateUserEmailRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);
         }
-        [HttpGet("UpgradeRequest")]
+        [HttpGet("UpgradeRequest/{CompanyId}")]
 
         public async Task<IActionResult> UpgradeRequest([FromRoute] UpgradeRequest request, CancellationToken cancellationToken)
         {
@@ -56,9 +61,9 @@ namespace CrisesControl.Api.Controllers
 
             return Ok(result);
         }
-        [HttpGet("VerifyTempRegistration")]
+        [HttpPost("VerifyTempRegistration")]
 
-        public async Task<IActionResult> VerifyTempRegistration([FromRoute] VerifyTempRegistrationRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> VerifyTempRegistration([FromBody] VerifyTempRegistrationRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 
@@ -93,8 +98,36 @@ namespace CrisesControl.Api.Controllers
 
             return Ok(result);
         }
-        [HttpDelete("CreateSampleIncident")]
+        [HttpPost("CreateSampleIncident/{CompanyId}")]
         public async Task<IActionResult> CreateSampleIncident([FromRoute] CreateSampleIncidentRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPut("ActivateCompany/{UserId}/{ActivationKey}/{SalesSource}")]
+        public async Task<IActionResult> ActivateCompany([FromBody] ActivateCompanyRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet("CheckAppDownload/{UserId}")]
+        public async Task<IActionResult> CheckAppDownload([FromRoute] CheckAppDownloadRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet("SendVerification/{UniqueId}")]
+        public async Task<IActionResult> SendVerification([FromRoute] SendVerificationRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet("SendCredentials/{UniqueId}")]
+        public async Task<IActionResult> SendVerification([FromRoute] SendCredentialsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 

@@ -1,5 +1,6 @@
-﻿using CrisesControl.Core.Administrator;
+﻿
 using CrisesControl.Core.Administrator.Repositories;
+using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
