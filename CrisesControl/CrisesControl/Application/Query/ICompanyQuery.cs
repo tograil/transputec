@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
+﻿using CrisesControl.Api.Application.Commands.Companies.CheckCompany;
+using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.ViewModels.Company;
 using CrisesControl.Core.Models;
@@ -10,4 +11,5 @@ public interface ICompanyQuery
     public Task<IEnumerable<CompanyInfo>> GetCompanyList(int? status, string? companyProfile);
     public Task<GetCompanyResponse> GetCompany(GetCompanyRequest request, CancellationToken cancellationToken);
     public Task<GetCommsMethodResponse> GetCommsMethod(CancellationToken cancellationToken);
+    Task<CheckCompanyResponse> CheckCompany(CheckCompanyRequest request);
 }

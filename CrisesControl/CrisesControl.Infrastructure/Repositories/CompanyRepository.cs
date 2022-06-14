@@ -203,5 +203,24 @@ public class CompanyRepository : ICompanyRepository
 
            
     }
-    
+    public async Task<bool> DuplicateCompany(string CompanyName, string Countrycode)
+    {
+        try
+        {
+            var chkCompany = await _context.Set<Company>().Include(AL => AL.AddressLink).Include(a => a.AddressLink.Address)
+                            .Where(C => C.CompanyName == CompanyName.Trim() && C.AddressLink.Address.CountryCode == Countrycode.Trim())
+                             .Select(A => new{A.AddressLink.Address.CountryCode, A.CompanyName }).FirstOrDefaultAsync();
+            if (chkCompany != null)
+            {
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return false;
+        }
+    }
+
 }

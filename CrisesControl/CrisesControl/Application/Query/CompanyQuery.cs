@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Companies.CheckCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.ViewModels.Company;
@@ -66,5 +67,23 @@ public class CompanyQuery : ICompanyQuery {
         result.Data = response;
         result.ErrorCode = "0";
         return result;
+    }
+    public async Task<CheckCompanyResponse> CheckCompany(CheckCompanyRequest request)
+    {
+        var check = _companyRepository.DuplicateCompany(request.CompanyName, request.CountryCode);
+        var result= _mapper.Map<bool>(check);
+        var response = new CheckCompanyResponse();
+        if (result)
+        {
+            response.Checked = true;
+            response.Message = "The company name already registered in the selected country";
+            
+        }
+        else
+        {
+            response.Checked = true;
+            response.Message = "No record found.";
+        }
+        return response;
     }
 }
