@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +23,39 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="SystemForCrossDomainIdentityManagementProtocolResources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SystemForCrossDomainIdentityManagementProtocolResources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="SystemForCrossDomainIdentityManagementSchemasResources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SystemForCrossDomainIdentityManagementSchemasResources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="SystemForCrossDomainIdentityManagementServiceResources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SystemForCrossDomainIdentityManagementServiceResources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="SystemForCrossDomainIdentityManagementProtocolResources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>SystemForCrossDomainIdentityManagementProtocolResources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="SystemForCrossDomainIdentityManagementSchemasResources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>SystemForCrossDomainIdentityManagementSchemasResources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="SystemForCrossDomainIdentityManagementServiceResources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>SystemForCrossDomainIdentityManagementServiceResources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

@@ -19,6 +19,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using Microsoft.SCIM.WebHostSample.Provider;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 
@@ -106,7 +108,13 @@ builder.Services.AddIdentityCore<User>()
     .AddUserStore<UserStore>()
     .AddUserManager<CrisesControlUserManager>();
 
-builder.Services.AddControllers().AddNewtonsoftJson();
+builder.Services.AddControllers().AddNewtonsoftJson(opt =>
+{
+    opt.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+    opt.SerializerSettings.Formatting = Newtonsoft.Json.Formatting.Indented;
+    opt.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+});
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

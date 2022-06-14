@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Microsoft.SCIM {
+namespace CC.Authority.SCIM {
     using System;
     
     
@@ -19,10 +19,10 @@ namespace Microsoft.SCIM {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class SystemForCrossDomainIdentityManagementProtocolResources {
+    public class SystemForCrossDomainIdentityManagementProtocolResources {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
@@ -36,10 +36,10 @@ namespace Microsoft.SCIM {
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Resources.ResourceManager ResourceManager {
+        public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Microsoft.SCIM.SystemForCrossDomainIdentityManagementProtocolResources", typeof(SystemForCrossDomainIdentityManagementProtocolResources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("CC.Authority.SCIM.SystemForCrossDomainIdentityManagementProtocolResources", typeof(SystemForCrossDomainIdentityManagementProtocolResources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -51,7 +51,7 @@ namespace Microsoft.SCIM {
         ///   resource lookups using this strongly typed resource class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Globalization.CultureInfo Culture {
+        public static global::System.Globalization.CultureInfo Culture {
             get {
                 return resourceCulture;
             }
@@ -63,7 +63,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to This filter is invalid: {0}..
         /// </summary>
-        internal static string ExceptionInvalidFilterTemplate {
+        public static string ExceptionInvalidFilterTemplate {
             get {
                 return ResourceManager.GetString("ExceptionInvalidFilterTemplate", resourceCulture);
             }
@@ -72,7 +72,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to This operator is not supported: {0}..
         /// </summary>
-        internal static string ExceptionInvalidOperatorTemplate {
+        public static string ExceptionInvalidOperatorTemplate {
             get {
                 return ResourceManager.GetString("ExceptionInvalidOperatorTemplate", resourceCulture);
             }
@@ -81,7 +81,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to This path is invalid: {0}..
         /// </summary>
-        internal static string ExceptionInvalidPathTemplate {
+        public static string ExceptionInvalidPathTemplate {
             get {
                 return ResourceManager.GetString("ExceptionInvalidPathTemplate", resourceCulture);
             }
@@ -90,7 +90,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to The request is invalid..
         /// </summary>
-        internal static string ExceptionInvalidRequest {
+        public static string ExceptionInvalidRequest {
             get {
                 return ResourceManager.GetString("ExceptionInvalidRequest", resourceCulture);
             }
@@ -99,7 +99,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to A resource is invalid..
         /// </summary>
-        internal static string ExceptionInvalidResource {
+        public static string ExceptionInvalidResource {
             get {
                 return ResourceManager.GetString("ExceptionInvalidResource", resourceCulture);
             }
@@ -108,7 +108,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to This count value is invalid: {0}.  A non-negative number is expected..
         /// </summary>
-        internal static string ExceptionInvalidSearchRequestCountTemplate {
+        public static string ExceptionInvalidSearchRequestCountTemplate {
             get {
                 return ResourceManager.GetString("ExceptionInvalidSearchRequestCountTemplate", resourceCulture);
             }
@@ -117,7 +117,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to This sort order value is invalid: {0}..
         /// </summary>
-        internal static string ExceptionInvalidSortOrderTemplate {
+        public static string ExceptionInvalidSortOrderTemplate {
             get {
                 return ResourceManager.GetString("ExceptionInvalidSortOrderTemplate", resourceCulture);
             }
@@ -126,7 +126,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to This start index value is invalid: {0}.  The start index is a 1-based index..
         /// </summary>
-        internal static string ExceptionInvalidStartIndexTemplate {
+        public static string ExceptionInvalidStartIndexTemplate {
             get {
                 return ResourceManager.GetString("ExceptionInvalidStartIndexTemplate", resourceCulture);
             }
@@ -135,7 +135,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to A value is invalid..
         /// </summary>
-        internal static string ExceptionInvalidValue {
+        public static string ExceptionInvalidValue {
             get {
                 return ResourceManager.GetString("ExceptionInvalidValue", resourceCulture);
             }
@@ -144,7 +144,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to A bulk operation must have a unique identifier..
         /// </summary>
-        internal static string ExceptionUnidentifiableOperation {
+        public static string ExceptionUnidentifiableOperation {
             get {
                 return ResourceManager.GetString("ExceptionUnidentifiableOperation", resourceCulture);
             }
@@ -153,7 +153,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to The schema could not be identified..
         /// </summary>
-        internal static string ExceptionUnidentifiableSchema {
+        public static string ExceptionUnidentifiableSchema {
             get {
                 return ResourceManager.GetString("ExceptionUnidentifiableSchema", resourceCulture);
             }
@@ -162,7 +162,7 @@ namespace Microsoft.SCIM {
         /// <summary>
         ///   Looks up a localized string similar to {0}/{1}..
         /// </summary>
-        internal static string ResourceIdentifierTemplate {
+        public static string ResourceIdentifierTemplate {
             get {
                 return ResourceManager.GetString("ResourceIdentifierTemplate", resourceCulture);
             }

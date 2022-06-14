@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation.// Licensed under the MIT license.
 
+using CC.Authority.SCIM;
 using CC.Authority.SCIM.Protocol;
 using CC.Authority.SCIM.Schemas;
 using CC.Authority.SCIM.Service;

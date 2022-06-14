@@ -2,6 +2,7 @@
 
 using System.Net;
 using System.Web.Http;
+using CC.Authority.SCIM;
 using CC.Authority.SCIM.Protocol;
 using CC.Authority.SCIM.Schemas;
 using CC.Authority.SCIM.Service;

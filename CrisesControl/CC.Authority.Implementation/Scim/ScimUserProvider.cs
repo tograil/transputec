@@ -1,4 +1,5 @@
 ﻿using CC.Authority.Implementation.Data;
+using CC.Authority.Implementation.Models;
 using CC.Authority.SCIM.Protocol;
 using CC.Authority.SCIM.Schemas;
 using CC.Authority.SCIM.Service;
@@ -31,6 +32,12 @@ namespace CC.Authority.Implementation.Scim
         public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
         {
             var user = resource as Core2EnterpriseUser;
+
+            var newUser = new Models.User
+            {
+                FirstName = user.Name.GivenName,
+                LastName = user.Name.FamilyName
+            };
 
             throw new NotImplementedException();
         }

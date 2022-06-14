@@ -109,7 +109,7 @@ namespace CC.Authority.SCIM.Schemas
         }
 
         [DataMember(Name = AttributeNames.Roles, IsRequired = false, EmitDefaultValue = false)]
-        public virtual IEnumerable<Role> Roles
+        public virtual IEnumerable<Role>? Roles
         {
             get;
             set;
