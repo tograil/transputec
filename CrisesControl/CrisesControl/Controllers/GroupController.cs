@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.Groups.CreateGroup;
+﻿using CrisesControl.Api.Application.Commands.Groups.CheckGroup;
+using CrisesControl.Api.Application.Commands.Groups.CreateGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroups;
 using CrisesControl.Api.Application.Commands.Groups.SegregationLinks;
@@ -56,6 +57,13 @@ namespace CrisesControl.Api.Controllers
         [HttpGet]
         [Route("SegregationLinks/{TargetID}/{LinkType}/{MemberShipType}")]
         public async Task<IActionResult> SegregationLinks([FromRoute] SegregationLinksRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("CheckGroup/{CompanyId}/{GroupName}/{GroupId}")]
+        public async Task<IActionResult> CheckGroup([FromRoute] CheckGroupRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
