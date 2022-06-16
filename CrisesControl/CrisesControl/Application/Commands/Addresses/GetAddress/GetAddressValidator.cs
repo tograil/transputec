@@ -1,6 +1,12 @@
-﻿namespace CrisesControl.Api.Application.Commands.Addresses.GetAddress
+﻿using FluentValidation;
+
+namespace CrisesControl.Api.Application.Commands.Addresses.GetAddress
 {
-    public class GetAddressValidator
+    public class GetAddressValidator:AbstractValidator<GetAddressRequest>
     {
+        public GetAddressValidator()
+        {
+            RuleFor(x => x.AddressId).GreaterThan(0);
+        }
     }
 }

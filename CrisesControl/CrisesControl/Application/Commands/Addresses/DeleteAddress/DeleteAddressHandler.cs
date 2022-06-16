@@ -1,4 +1,6 @@
-﻿using CrisesControl.Api.Application.Query;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Query;
+using FluentValidation;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Addresses.DeleteAddress
@@ -7,14 +9,19 @@ namespace CrisesControl.Api.Application.Commands.Addresses.DeleteAddress
     {
         private readonly ILogger<DeleteAddressHandler> _logger;
         private readonly IAddressQuery _addressQuery;
-        public DeleteAddressHandler(ILogger<DeleteAddressHandler> logger, IAddressQuery addressQuery)
+        private readonly DeleteAddressValidator _deleteAddressValidator;
+        public DeleteAddressHandler(ILogger<DeleteAddressHandler> logger, IAddressQuery addressQuery, DeleteAddressValidator deleteAddressValidator)
         {
             this._addressQuery = addressQuery;
             this._logger = logger;
+            this._deleteAddressValidator = deleteAddressValidator;
         }
         public async Task<DeleteAddressResponse> Handle(DeleteAddressRequest request, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            Guard.Against.Null(request, nameof(DeleteAddressRequest));
+            await _deleteAddressValidator.ValidateAndThrowAsync(request, cancellationToken);
+            var result = await _addressQuery.DeleteAddress(request);
+            return result;
         }
     }
 }
