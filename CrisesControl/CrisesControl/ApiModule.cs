@@ -45,5 +45,6 @@ public class ApiModule : Module
         builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>();
 
         builder.RegisterType<CurrentUser>().As<ICurrentUser>();
+        builder.RegisterType<AddressQuery>().As<IAddressQuery>();
     }
 }
