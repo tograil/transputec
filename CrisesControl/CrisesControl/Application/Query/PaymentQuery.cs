@@ -28,8 +28,8 @@ namespace CrisesControl.Api.Application.Query
         public async Task<UpgradeByKeyResponse> UpgradeByKey(UpgradeByKeyRequest request)
         {
             const string sub = "SUBSCRIBED";
-            var cp = await _paymentRepository.GetCompanyByKey(request.ActivationKey, _currentUser.CompanyId);
-            var result = _mapper.Map<Company>(cp);
+            var cp = await _paymentRepository.GetCompanyByKey(request.ActivationKey, request.OutUserCompanyId);
+            //var result = _mapper.Map<Company>(cp);
             var response = new UpgradeByKeyResponse();
             if (cp != null)
             {
@@ -52,7 +52,7 @@ namespace CrisesControl.Api.Application.Query
                
                 
 
-                response.CompanyId = result.CompanyId;
+                response.CompanyId = intCompany;
                 response.Message = "Payment is Upgraded ";
                 return response;
             }

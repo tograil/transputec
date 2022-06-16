@@ -10,10 +10,11 @@ namespace CrisesControl.Api.Application.Commands.Payments.UpgradeByKey
         private readonly ILogger<UpgradeByKeyHandler> _logger;
         private readonly IPaymentQuery _paymentQuery;
         private readonly UpgradeKeyValidator _upgradeKeyValidator;
-        public UpgradeByKeyHandler(ILogger<UpgradeByKeyHandler> logger, IPaymentQuery paymentQuery)
+        public UpgradeByKeyHandler(ILogger<UpgradeByKeyHandler> logger, IPaymentQuery paymentQuery, UpgradeKeyValidator upgradeKeyValidator)
         {
             this._logger = logger;
             this._paymentQuery = paymentQuery;
+            this._upgradeKeyValidator = upgradeKeyValidator;
         }
         public async Task<UpgradeByKeyResponse> Handle(UpgradeByKeyRequest request, CancellationToken cancellationToken)
         {

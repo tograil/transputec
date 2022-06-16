@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Core.Companies;
 using CrisesControl.Core.Exceptions.NotFound;
+using CrisesControl.Core.Models;
 using CrisesControl.Core.Payments.Repositories;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
@@ -21,11 +22,12 @@ namespace CrisesControl.Infrastructure.Repositories
             this._context = context;
             this._logger = logger;
         }
-        public async Task<Company> GetCompanyByKey(string ActivationKey, int OutUserCompanyId)
+        public async Task<dynamic> GetCompanyByKey(string ActivationKey, int OutUserCompanyId)
         {
-            var cp = await _context.Set<Company>().Include(cp => cp.CompanyPaymentProfiles).Include(CA => CA.CompanyActivation)
+            var cp = await _context.Set<Company>().Include(CA => CA.CompanyActivation)
                                     .Where(CA => CA.CompanyActivation.ActivationKey == ActivationKey && CA.CompanyId == OutUserCompanyId && CA.Status == 0
                                     ).FirstOrDefaultAsync();
+       
             return cp;
         }
         public async Task<int> UpgradeByKey(Company company)

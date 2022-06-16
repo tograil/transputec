@@ -6,5 +6,6 @@ namespace CrisesControl.Api.Application.Commands.Payments.UpgradeByKey
     {
         public string IPAddress { get; set; }
         public string ActivationKey { get; set; }
+        public int OutUserCompanyId { get; set; }
     }
 }
