@@ -126,6 +126,7 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<UpdateAddressResponse> UpdateAddress(UpdateAddressRequest request)
         {
+            
             var address = new Address
             {
                 AddressId=request.AddressId,

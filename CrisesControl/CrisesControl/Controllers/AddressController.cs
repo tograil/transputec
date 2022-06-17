@@ -28,7 +28,7 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
         [HttpGet]
-        [Route("GetAddress")]
+        [Route("GetAddress/{AddressId}")]
         public async Task<IActionResult> GetAddress([FromRoute] GetAddressRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -49,7 +49,7 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
         [HttpDelete]
-        [Route("DeleteAddress")]
+        [Route("DeleteAddress/{AddressId}")]
         public async Task<IActionResult> DeleteAddress([FromRoute] DeleteAddressRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

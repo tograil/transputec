@@ -11,11 +11,6 @@ namespace CrisesControl.Api.Application.Commands.Addresses.AddAddress
         public string Postcode { get; set; } = null!;
         public string? CountryCode { get; set; }
         public string AddressType { get; set; } = null!;
-        public int CreatedBy { get; set; }
-        public DateTimeOffset CreatedOn { get; set; }
-        public int UpdatedBy { get; set; }
-        public DateTimeOffset UpdatedOn { get; set; }
-        public int? Status { get; set; }
         public string? AddressLabel { get; set; }
     }
 }

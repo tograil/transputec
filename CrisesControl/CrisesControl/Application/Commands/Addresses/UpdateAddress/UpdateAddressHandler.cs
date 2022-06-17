@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Query;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Query;
 using FluentValidation;
 using MediatR;
 
