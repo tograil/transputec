@@ -1,12 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.SharedKernel.Utils;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -220,6 +227,179 @@ public class CompanyRepository : ICompanyRepository
         {
             throw ex;
             return false;
+        }
+    }
+    public async Task<dynamic> DeleteCompanyComplete(int CompanyId, int UserId, string GUID, string DeleteType)
+    {
+
+        try
+        {
+            var userdata = await _context.Set<User>().Where(U=> U.UniqueGuiId == GUID).FirstOrDefaultAsync();
+            if (userdata != null)
+            {
+                UserId = userdata.UserId;
+                CompanyId = userdata.CompanyId;
+                if (DeleteType.ToUpper() == "COMPANY")
+                {
+                    if (userdata.RegisteredUser == true)
+                    {
+                        var compDelete = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyId).FirstOrDefaultAsync();
+                        if ( compDelete.Status != 1)
+                        {
+
+                            UserFullName primaryUserName = new UserFullName { Firstname = userdata.FirstName, Lastname = userdata.LastName };
+
+                            string primaryUserEmail = userdata.PrimaryEmail;
+                            PhoneNumber primaryUserMobile = new PhoneNumber { ISD = userdata.Isdcode, Number = userdata.MobileNo };
+
+                            var pCompanyID = new SqlParameter("@CompanyId", CompanyId);
+                            var response = await _context.Set<Company>().FromSqlRaw("exec SP_Delete_Company_Hard @CompanyId", pCompanyID).FirstOrDefaultAsync();
+
+                            //SendEmail SDE = new SendEmail();
+                            RegistrationCancelled(compDelete.CompanyName, (int)compDelete.PackagePlanId, compDelete.RegistrationDate, primaryUserName, primaryUserEmail, primaryUserMobile);
+
+                            try
+                            {
+                                Task.Factory.StartNew(() => { DeleteCompanyApi(CompanyId, compDelete.CustomerId); });
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new CompanyNotFoundException(CompanyId, UserId);
+                            }
+
+                            return true;
+
+                        }
+                        else
+                        {
+                            return false;
+                            //ResultDTO.ErrorId = 161;
+                            //ResultDTO.Message = "This company is already active and cannot be deleted in this manner. Please login to the portal to cancel your membership.";
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                        //ResultDTO.ErrorId = 147;
+                        //ResultDTO.Message = "User is not registered.";
+                    }
+                }
+                else if (DeleteType == "USER")
+                {
+                    if (userdata.Status != 1)
+                    {
+                        var DeleteUserSecurityGroup = await _context.Set<UserSecurityGroup>().Where(USG=> USG.UserId == UserId).ToListAsync();
+                        _context.RemoveRange(DeleteUserSecurityGroup);
+                        await _context.SaveChangesAsync();
+
+                        var Deletecompanycomms = await _context.Set<UserComm>().Where(UC=> UC.UserId == UserId && UC.CompanyId == CompanyId).ToListAsync();
+                        _context.RemoveRange(Deletecompanycomms);
+                        await _context.SaveChangesAsync();
+
+                        var DelOBjs = (from OJR in _context.Set<ObjectRelation>()
+                                       let ObjMap = from OM in _context.Set<ObjectMapping>()
+                                                    join OS in _context.Set<CrisesControl.Core.Models.Object>() on OM.SourceObjectId equals OS.ObjectId
+                                                    join OT in _context.Set<CrisesControl.Core.Models.Object>() on OM.TargetObjectId equals OT.ObjectId
+                                                    where (OS.ObjectName == "GroupDetails" || OS.ObjectName == "LocationDetails")
+                                                    && OT.ObjectName == "UserDetails"
+                                                    select OM.ObjectMappingId
+                                       where OJR.TargetObjectPrimaryId == UserId && ObjMap.Contains(OJR.ObjectMappingId)
+                                       select OJR);
+                        _context.RemoveRange(DelOBjs);
+                        await _context.SaveChangesAsync();
+
+                        _context.Remove(userdata);
+                       await _context.SaveChangesAsync();
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                        //ResultDTO.ErrorId = 162;
+                        //ResultDTO.Message = "This account is already active and cannot be deleted in this manner. Please ask your system administrator to delete your account from Crises Control.";
+                    }
+                }
+            }
+            else
+            {
+                return false;
+            }
+            return userdata;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private void RegistrationCancelled(string companyName, int packagePlanId, DateTimeOffset registrationDate, UserFullName primaryUserName, string primaryUserEmail, PhoneNumber primaryUserMobile)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<bool> DeleteCompanyApi(int CompanyId, string CustomerId)
+    {
+        try
+        {
+            string CompanyApi = await LookupWithKey("COMPANY_API_MGMT_URL");
+
+            HttpClient client = new HttpClient();
+            client.BaseAddress = new Uri(CompanyApi);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var cmpapirequest = new CompanyApiRequest()
+            {
+                ApiHost = "",
+                CompanyId = CompanyId,
+                CompanyName = "",
+                CustomerId = CustomerId,
+                InvitationCode = "",
+                ApiMode = ""
+            };
+
+            HttpResponseMessage RspApi = client.PostAsJsonAsync("Company/DeleteCompanyApi", cmpapirequest).Result;
+            Task<string> resultstring = RspApi.Content.ReadAsStringAsync();
+            string ressultstr = resultstring.Result.Trim();
+            if (RspApi.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                //DBC.CreateLog("INFO", ressultstr, null, "RegisterHelper", "InsertCompanyApi", CompanyId);
+                return false;
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return false;
+        }
+    }
+    public async Task<string> LookupWithKey(string Key, string Default = "")
+    {
+        try
+        {
+            Dictionary<string, string> Globals = CCConstants.GlobalVars;
+            if (Globals.ContainsKey(Key))
+            {
+                return Globals[Key];
+            }
+
+
+            var LKP = await _context.Set<SysParameter>().Where(w => w.Name == Key).FirstOrDefaultAsync();
+            if (LKP != null)
+            {
+                Default = LKP.Value;
+            }
+            return Default;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
+                                    ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+            return Default;
         }
     }
 
