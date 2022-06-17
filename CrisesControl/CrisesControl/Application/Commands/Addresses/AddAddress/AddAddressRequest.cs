@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using CrisesControl.SharedKernel.Enums;
+using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Addresses.AddAddress
 {
@@ -10,7 +11,7 @@ namespace CrisesControl.Api.Application.Commands.Addresses.AddAddress
         public string? State { get; set; }
         public string Postcode { get; set; } = null!;
         public string? CountryCode { get; set; }
-        public string AddressType { get; set; } = null!;
+        public AddressType AddressType { get; set; } 
         public string? AddressLabel { get; set; }
     }
 }
