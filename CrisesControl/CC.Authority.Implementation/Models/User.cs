@@ -7,6 +7,7 @@ namespace CC.Authority.Implementation.Models
     {
         public int UserId { get; set; }
         public int CompanyId { get; set; }
+        public string ExternalScimId { get; set; }
         public bool RegisteredUser { get; set; }
         public string FirstName { get; set; } = null!;
         public string? LastName { get; set; }

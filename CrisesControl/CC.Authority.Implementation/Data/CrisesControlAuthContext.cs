@@ -20,6 +20,7 @@ namespace CC.Authority.Implementation.Data
         public virtual DbSet<Company> Companies { get; set; } = null!;
         public virtual DbSet<CompanyParameter> CompanyParameters { get; set; } = null!;
         public virtual DbSet<CompanyPaymentProfile> CompanyPaymentProfiles { get; set; } = null!;
+        public virtual DbSet<Country> Countries { get; set; } = null!;
         public virtual DbSet<Department> Departments { get; set; } = null!;
         public virtual DbSet<FailedLoginAttempt> FailedLoginAttempts { get; set; } = null!;
         public virtual DbSet<GetStarted> GetStarteds { get; set; } = null!;
@@ -27,8 +28,10 @@ namespace CC.Authority.Implementation.Data
         public virtual DbSet<Location> Locations { get; set; } = null!;
         public virtual DbSet<ObjectRelation> ObjectRelations { get; set; } = null!;
         public virtual DbSet<PasswordChangeHistory> PasswordChangeHistories { get; set; } = null!;
+        public virtual DbSet<PaymentProfile> PaymentProfiles { get; set; } = null!;
         public virtual DbSet<PreContractOffer> PreContractOffers { get; set; } = null!;
         public virtual DbSet<SecurityGroup> SecurityGroups { get; set; } = null!;
+        public virtual DbSet<StdTimeZone> StdTimeZones { get; set; } = null!;
         public virtual DbSet<TwoFactorAuthLog> TwoFactorAuthLogs { get; set; } = null!;
         public virtual DbSet<User> Users { get; set; } = null!;
         public virtual DbSet<UserDepartment> UserDepartments { get; set; } = null!;
@@ -43,11 +46,7 @@ namespace CC.Authority.Implementation.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!optionsBuilder.IsConfigured)
-            {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-                optionsBuilder.UseSqlServer("Data Source=.\\SQLEXPRESS;Initial Catalog=CrisesControlAuth;Integrated Security=true;");
-            }
+            
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -179,6 +178,35 @@ namespace CC.Authority.Implementation.Data
                 entity.Property(e => e.Vatrate)
                     .HasColumnType("decimal(18, 2)")
                     .HasColumnName("VATRate");
+            });
+
+            modelBuilder.Entity<Country>(entity =>
+            {
+                entity.HasNoKey();
+
+                entity.ToTable("Country");
+
+                entity.Property(e => e.CountryCode).HasMaxLength(128);
+
+                entity.Property(e => e.CountryId).HasColumnName("CountryID");
+
+                entity.Property(e => e.CountryPhoneCode).HasMaxLength(50);
+
+                entity.Property(e => e.Iso2code)
+                    .HasMaxLength(3)
+                    .HasColumnName("ISO2Code");
+
+                entity.Property(e => e.Name).HasMaxLength(100);
+
+                entity.Property(e => e.Smsavailable).HasColumnName("SMSAvailable");
+
+                entity.Property(e => e.SmspriceUrl)
+                    .HasMaxLength(200)
+                    .HasColumnName("SMSPriceURL");
+
+                entity.Property(e => e.VoicePriceUrl)
+                    .HasMaxLength(200)
+                    .HasColumnName("VoicePriceURL");
             });
 
             modelBuilder.Entity<Department>(entity =>
@@ -326,6 +354,43 @@ namespace CC.Authority.Implementation.Data
                 entity.Property(e => e.LastPassword).HasMaxLength(50);
             });
 
+            modelBuilder.Entity<PaymentProfile>(entity =>
+            {
+                entity.HasNoKey();
+
+                entity.ToTable("PaymentProfile");
+
+                entity.Property(e => e.ConfUplift).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.CreditBalance).HasColumnType("decimal(18, 4)");
+
+                entity.Property(e => e.CreditLimit).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.EmailUplift).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.MinimumBalance).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.MinimumConfRate).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.MinimumEmailRate).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.MinimumPhoneRate).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.MinimumPushRate).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.MinimumTextRate).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.PhoneUplift).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.PushUplift).HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.SoptokenValue)
+                    .HasColumnType("decimal(20, 4)")
+                    .HasColumnName("SOPTokenValue");
+
+                entity.Property(e => e.TextUplift).HasColumnType("decimal(20, 4)");
+            });
+
             modelBuilder.Entity<PreContractOffer>(entity =>
             {
                 entity.HasNoKey();
@@ -356,6 +421,21 @@ namespace CC.Authority.Implementation.Data
                 entity.Property(e => e.Name).HasMaxLength(50);
 
                 entity.Property(e => e.UserRole).HasMaxLength(20);
+            });
+
+            modelBuilder.Entity<StdTimeZone>(entity =>
+            {
+                entity.HasNoKey();
+
+                entity.ToTable("StdTimeZone");
+
+                entity.Property(e => e.PortalTimeZone).HasMaxLength(100);
+
+                entity.Property(e => e.TimeZoneId).HasColumnName("TimeZoneID");
+
+                entity.Property(e => e.ZoneId).HasMaxLength(100);
+
+                entity.Property(e => e.ZoneLabel).HasMaxLength(100);
             });
 
             modelBuilder.Entity<TwoFactorAuthLog>(entity =>
