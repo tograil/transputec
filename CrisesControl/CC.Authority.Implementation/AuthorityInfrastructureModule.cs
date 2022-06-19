@@ -1,4 +1,5 @@
-﻿using CC.Authority.Implementation.Scim;
+﻿using CC.Authority.Implementation.Helpers;
+using CC.Authority.Implementation.Scim;
 using CC.Authority.SCIM.Service;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +10,8 @@ namespace CC.Authority.Implementation
         public static void AddInfrastructure(this IServiceCollection services)
         {
             services.AddScoped<IProvider, ScimProvider>();
+
+            services.AddScoped<ICurrentUser, CurrentUser>();
         }
     }
 }

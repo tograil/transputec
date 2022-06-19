@@ -2,6 +2,7 @@
 using System.Net;
 using System.Web.Http;
 using CC.Authority.Implementation.Data;
+using CC.Authority.Implementation.Helpers;
 using CC.Authority.SCIM;
 using CC.Authority.SCIM.Protocol;
 using CC.Authority.SCIM.Schemas;
@@ -14,14 +15,18 @@ namespace CC.Authority.Implementation.Scim
     public class ScimUserProvider : ProviderBase
     {
         private readonly CrisesControlAuthContext _authContext;
+        private readonly ICurrentUser _currentUser;
 
-        public ScimUserProvider(CrisesControlAuthContext authContext)
+        public ScimUserProvider(CrisesControlAuthContext authContext, ICurrentUser currentUser)
         {
-            this._authContext = authContext;
+            _authContext = authContext;
+            _currentUser = currentUser;
         }
 
         public override async Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
         {
+            //TODO: add scim format
+
             return await _authContext.Users.Select(user => new Core2EnterpriseUser
             {
                 Identifier = user.UserId.ToString(),
@@ -78,6 +83,11 @@ namespace CC.Authority.Implementation.Scim
                 TimezoneId = currentTimeZone?.TimeZoneId,
                 PrimaryEmail = primaryEmail?.Value ?? string.Empty,
                 SecondaryEmail = secondaryEmail?.Value ?? string.Empty,
+                CreatedBy = _currentUser.UserId,
+                CreatedOn = DateTimeOffset.UtcNow,
+                UpdatedBy = _currentUser.UserId,
+                UpdatedOn = DateTimeOffset.UtcNow,
+                CompanyId = _currentUser.CompanyId
             };
 
             await _authContext.Users.AddAsync(newUser);
@@ -85,6 +95,13 @@ namespace CC.Authority.Implementation.Scim
             await _authContext.SaveChangesAsync();
 
             user.Identifier = newUser.UserId.ToString();
+
+            user.Metadata = new Core2Metadata
+            {
+                ResourceType = "User",
+                Created = newUser.CreatedOn.DateTime,
+                LastModified = newUser.UpdatedOn.DateTime
+            };
 
             return user;
         }
@@ -199,6 +216,8 @@ namespace CC.Authority.Implementation.Scim
 
                 userToUpdate.TimezoneId = currentTimeZone?.TimeZoneId;
             }
+
+            userToUpdate.UpdatedOn = DateTime.UtcNow;
 
             await _authContext.SaveChangesAsync();
         }

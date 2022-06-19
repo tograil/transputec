@@ -1,37 +1,201 @@
-﻿using CC.Authority.Implementation.Data;
+﻿using System.Net;
+using System.Web.Http;
+using CC.Authority.Implementation.Data;
+using CC.Authority.Implementation.Helpers;
+using CC.Authority.Implementation.Models;
+using CC.Authority.SCIM;
 using CC.Authority.SCIM.Protocol;
 using CC.Authority.SCIM.Schemas;
 using CC.Authority.SCIM.Service;
+using Microsoft.Win32.SafeHandles;
 
 namespace CC.Authority.Implementation.Scim
 {
     public class ScimGroupProvider : ProviderBase
     {
-        private readonly CrisesControlAuthContext authContext;
+        private readonly CrisesControlAuthContext _authContext;
+        private readonly ICurrentUser _currentUser;
 
-        public ScimGroupProvider(CrisesControlAuthContext authContext)
+        public ScimGroupProvider(CrisesControlAuthContext authContext,
+            ICurrentUser currentUser)
         {
-            this.authContext = authContext;
+            _authContext = authContext;
+            _currentUser = currentUser;
         }
 
-        public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
+        public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
         {
-            throw new NotImplementedException();
+            if (resource.Identifier != null)
+            {
+                throw new HttpResponseException(HttpStatusCode.BadRequest);
+            }
+
+            Core2Group group = resource as Core2Group;
+
+            if (string.IsNullOrWhiteSpace(group.DisplayName))
+            {
+                throw new HttpResponseException(HttpStatusCode.BadRequest);
+            }
+
+            var existingGroups = _authContext.Groups.Where(g => g.GroupName == group.DisplayName).ToList();
+            if
+            (existingGroups.Any(existingGroup => string.Equals(existingGroup.GroupName, group.DisplayName, StringComparison.Ordinal)))
+            {
+                throw new HttpResponseException(HttpStatusCode.Conflict);
+            }
+            //Update Metadata
+            var created = DateTime.UtcNow;
+            group.Metadata.Created = created;
+            group.Metadata.LastModified = created;
+
+            var newGroup = new Group
+            {
+                CompanyId = _currentUser.CompanyId,
+                GroupName = group.DisplayName,
+                CreatedBy = _currentUser.UserId,
+                CreatedOn = created,
+                UpdatedBy = _currentUser.UserId,
+                UpdatedOn = created
+            };
+
+            await _authContext.Groups.AddAsync(newGroup);
+
+            await _authContext.SaveChangesAsync();
+
+            resource.Identifier = newGroup.GroupId.ToString();
+           
+            return resource;
         }
 
         public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(resourceIdentifier?.Identifier) 
+                && !int.TryParse(resourceIdentifier?.Identifier, out _))
+            {
+                throw new HttpResponseException(HttpStatusCode.BadRequest);
+            }
+
+            var id = int.Parse(resourceIdentifier?.Identifier);
+
+            var group = _authContext.Groups.FirstOrDefault(g => g.GroupId == id);
+
+            if (group is null)
+            {
+                throw new HttpResponseException(HttpStatusCode.BadRequest);
+            }
+
+            _authContext.Groups.Remove(group);
+
+            _authContext.SaveChanges();
+
+            return Task.CompletedTask;
         }
 
         public override Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier)
         {
-            throw new NotImplementedException();
+            if (parameters == null)
+            {
+                throw new ArgumentNullException(nameof(parameters));
+            }
+
+            if (string.IsNullOrWhiteSpace(correlationIdentifier))
+            {
+                throw new ArgumentNullException(nameof(correlationIdentifier));
+            }
+
+            if (string.IsNullOrEmpty(parameters?.ResourceIdentifier?.Identifier))
+            {
+                throw new ArgumentNullException(nameof(parameters));
+            }
+
+            string identifier = parameters.ResourceIdentifier.Identifier;
+
+            var group = _authContext.Groups.FirstOrDefault(g => g.GroupId.ToString() == identifier);
+
+            if (group is not null)
+            {
+                var groupResult = new Core2Group
+                {
+                    DisplayName = group.GroupName,
+                    Identifier = group.GroupId.ToString(),
+                    Metadata = new Core2Metadata
+                    {
+                        ResourceType = "Group",
+                        Created = group.CreatedOn.DateTime,
+                        LastModified = group.UpdatedOn.DateTime
+                    }
+                };
+                   
+                return Task.FromResult((Resource)groupResult);
+                
+            }
+
+            throw new HttpResponseException(HttpStatusCode.NotFound);
         }
 
         public override Task UpdateAsync(IPatch patch, string correlationIdentifier)
         {
-            throw new NotImplementedException();
+            if (null == patch)
+            {
+                throw new ArgumentNullException(nameof(patch));
+            }
+
+            if (null == patch.ResourceIdentifier)
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidOperation);
+            }
+
+            if (string.IsNullOrWhiteSpace(patch.ResourceIdentifier.Identifier))
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidOperation);
+            }
+
+            if (null == patch.PatchRequest)
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidOperation);
+            }
+
+            PatchRequest2 patchRequest =
+                patch.PatchRequest as PatchRequest2;
+
+            if (null == patchRequest)
+            {
+                string unsupportedPatchTypeName = patch.GetType().FullName;
+                throw new NotSupportedException(unsupportedPatchTypeName);
+            }
+
+            string identifier = patch.ResourceIdentifier.Identifier;
+
+            var group = _authContext.Groups.FirstOrDefault(g => g.GroupId.ToString() == identifier);
+
+            if (group is not null)
+            {
+                var groupResult = new Core2Group
+                {
+                    DisplayName = group.GroupName,
+                    Identifier = group.GroupId.ToString(),
+                    Metadata = new Core2Metadata
+                    {
+                        ResourceType = "Group",
+                        Created = group.CreatedOn.DateTime,
+                        LastModified = group.UpdatedOn.DateTime
+                    }
+                };
+
+                groupResult.Apply(patchRequest);
+
+                groupResult.Metadata.LastModified = DateTime.UtcNow;
+
+                group.GroupName = groupResult.DisplayName;
+                group.UpdatedOn = groupResult.Metadata.LastModified;
+
+            }
+            else
+            {
+                throw new HttpResponseException(HttpStatusCode.NotFound);
+            }
+
+            return Task.CompletedTask;
         }
     }
 }
