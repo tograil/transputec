@@ -176,7 +176,10 @@ builder.Configuration.AddAzureKeyVault(
         ManagedIdentityClientId = builder.Configuration["AzureADManagedIdentityClientId"]
     }));
 
-var credentials = new VisualStudioCredential();
+var credentials = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+{
+    ManagedIdentityClientId = builder.Configuration["AzureADManagedIdentityClientId"]
+});
 
 var akvProvider = new SqlColumnEncryptionAzureKeyVaultProvider(credentials);
 
@@ -191,6 +194,8 @@ builder.Services.AddDbContext<CrisesControlAuthContext>(options => {
 
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 builder.Services.AddAuthorization();
+
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 

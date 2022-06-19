@@ -1,4 +1,5 @@
 ﻿using CC.Authority.Implementation.Data;
+using CC.Authority.Implementation.Helpers;
 using CC.Authority.SCIM.Protocol;
 using CC.Authority.SCIM.Schemas;
 using CC.Authority.SCIM.Service;
@@ -10,6 +11,7 @@ namespace CC.Authority.Implementation.Scim
     {
         private readonly ProviderBase _groupProvider;
         private readonly ProviderBase _userProvider;
+        private readonly ICurrentUser _currentUser;
 
         private readonly CrisesControlAuthContext _authContext;
 
@@ -31,12 +33,13 @@ namespace CC.Authority.Implementation.Scim
                 () =>
                     new Core2ResourceType[] { SampleResourceTypes.UserResourceType, SampleResourceTypes.GroupResourceType });
 
-        public ScimProvider(CrisesControlAuthContext context)
+        public ScimProvider(CrisesControlAuthContext context, ICurrentUser currentUser)
         {
             _authContext = context;
+            _currentUser = currentUser;
 
-            this._groupProvider = new ScimGroupProvider(this._authContext);
-            this._userProvider = new ScimUserProvider(this._authContext);
+            this._groupProvider = new ScimGroupProvider(this._authContext, currentUser);
+            this._userProvider = new ScimUserProvider(this._authContext, currentUser);
         }
 
         public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
