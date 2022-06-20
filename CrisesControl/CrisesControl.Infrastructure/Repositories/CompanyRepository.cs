@@ -262,7 +262,7 @@ public class CompanyRepository : ICompanyRepository
                             var response = await _context.Set<Company>().FromSqlRaw("exec SP_Delete_Company_Hard @CompanyId", pCompanyID).FirstOrDefaultAsync();
 
                             //SendEmail SDE = new SendEmail();
-                            RegistrationCancelled(compDelete.CompanyName, (int)compDelete.PackagePlanId, compDelete.RegistrationDate, primaryUserName, primaryUserEmail, primaryUserMobile);
+                           await _senderEmailService.RegistrationCancelled(compDelete.CompanyName, (int)compDelete.PackagePlanId, compDelete.RegistrationDate, primaryUserName, primaryUserEmail, primaryUserMobile);
 
                             try
                             {
@@ -334,12 +334,6 @@ public class CompanyRepository : ICompanyRepository
             throw new CompanyNotFoundException(CompanyId, UserId);
         }
     }
-
-    private void RegistrationCancelled(string companyName, int packagePlanId, DateTimeOffset registrationDate, UserFullName primaryUserName, string primaryUserEmail, PhoneNumber primaryUserMobile)
-    {
-        throw new NotImplementedException();
-    }
-
     public async Task<bool> DeleteCompanyApi(int CompanyId, string CustomerId)
     {
         try
