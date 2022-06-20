@@ -10,8 +10,10 @@ using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Register.Repositories;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -25,13 +27,15 @@ public class CompanyRepository : ICompanyRepository
     private readonly CrisesControlContext _context;
     private readonly IGlobalParametersRepository _globalParametersRepository;
     private readonly ILogger<CompanyRepository> _logger;
+    private readonly ISenderEmailService _senderEmailService;
 
-    public CompanyRepository(CrisesControlContext context, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
+    public CompanyRepository(CrisesControlContext context, ISenderEmailService senderEmailService, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
     {
         _context = context;
         _globalParametersRepository = globalParametersRepository;
-        this._logger = logger;
-    }
+        _logger = logger;
+        _senderEmailService = senderEmailService;
+     }
 
     public async Task<IEnumerable<Company>> GetAllCompanies()
     {
@@ -234,7 +238,9 @@ public class CompanyRepository : ICompanyRepository
 
         try
         {
-            var userdata = await _context.Set<User>().Where(U=> U.UniqueGuiId == GUID).FirstOrDefaultAsync();
+            string Message = "";
+            var userdata = await _context.Set<User>().Where(U => U.UniqueGuiId == GUID).FirstOrDefaultAsync(); 
+
             if (userdata != null)
             {
                 UserId = userdata.UserId;
@@ -272,16 +278,14 @@ public class CompanyRepository : ICompanyRepository
                         }
                         else
                         {
-                            return false;
-                            //ResultDTO.ErrorId = 161;
-                            //ResultDTO.Message = "This company is already active and cannot be deleted in this manner. Please login to the portal to cancel your membership.";
+                                                   
+                            Message = "This company is already active and cannot be deleted in this manner. Please login to the portal to cancel your membership.";
                         }
                     }
                     else
                     {
-                        return false;
-                        //ResultDTO.ErrorId = 147;
-                        //ResultDTO.Message = "User is not registered.";
+                                           
+                        Message = "User is not registered.";
                     }
                 }
                 else if (DeleteType == "USER")
@@ -314,9 +318,8 @@ public class CompanyRepository : ICompanyRepository
                     }
                     else
                     {
-                        return false;
-                        //ResultDTO.ErrorId = 162;
-                        //ResultDTO.Message = "This account is already active and cannot be deleted in this manner. Please ask your system administrator to delete your account from Crises Control.";
+                        
+                        Message = "This account is already active and cannot be deleted in this manner. Please ask your system administrator to delete your account from Crises Control.";
                     }
                 }
             }
@@ -328,7 +331,7 @@ public class CompanyRepository : ICompanyRepository
         }
         catch (Exception ex)
         {
-            throw ex;
+            throw new CompanyNotFoundException(CompanyId, UserId);
         }
     }
 

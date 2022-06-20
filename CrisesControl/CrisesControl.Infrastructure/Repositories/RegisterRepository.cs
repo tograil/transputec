@@ -727,15 +727,15 @@ namespace CrisesControl.Infrastructure.Repositories
         public async Task<CompanyUser> SendVerification(string UniqueId)
         {
             var data = await _context.Set<User>().Include(x=>x.Company).Where(U=>U.UniqueGuiId == UniqueId)
-                       . Select(U => new CompanyUser
-                       {
-                            UserId = U.UserId,
-                            UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
-                            UserEmail = U.PrimaryEmail,
-                            UniqueID = U.UniqueGuiId,
-                            CompanyId = U.Company.CompanyId,
-                            TimeZoneId = U.Company.StdTimeZone.ZoneLabel,
-                        }).FirstOrDefaultAsync();
+            . Select(U => new CompanyUser()
+              {
+                  UserId = U.UserId,
+                  UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                  UserEmail = U.PrimaryEmail,
+                  UniqueID = U.UniqueGuiId,
+                  CompanyId = U.Company.CompanyId,
+                  TimeZoneId = U.Company.StdTimeZone.ZoneLabel,
+              }).FirstOrDefaultAsync();
             return data;
 
         }

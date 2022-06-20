@@ -19,7 +19,10 @@ using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Incidents.Repositories;
+using CrisesControl.Core.Models;
+using CrisesControl.Core.Register;
 using CrisesControl.Core.Register.Repositories;
+using CrisesControl.Core.Users;
 using CrisesControl.SharedKernel.Utils;
 
 namespace CrisesControl.Api.Application.Query
@@ -83,21 +86,21 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                 var device = await _registerRepository.GetUserDeviceByUserId(request.UserId);
-                var response = _mapper.Map<CheckAppDownloadResponse>(device);
+                var response = _mapper.Map<UserDevice>(device);
                 var result = new CheckAppDownloadResponse();
 
-                if (device != null)
+                if (response != null)
                 {
 
-                    response.Data = device;
-                    response.Message = "DOWNLOADED";
+                    result.Data = device;
+                    result.Message = "DOWNLOADED";
                 }
                 else
                 {
-                    response.Data = device;
-                    response.Message = "NOT_DOWNLOAD";
+                    result.Data = device;
+                    result.Message = "NOT_DOWNLOAD";
                 }
-                return response;
+                return result;
             }
             catch (Exception ex)
             {
@@ -115,9 +118,9 @@ namespace CrisesControl.Api.Application.Query
 
                 
                 await _incidentRepository.CreateSOSIncident(_currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
-                var result = _mapper.Map<CreateSampleIncidentResponse>(incident_id);
+                var result = _mapper.Map<int>(incident_id);
                 var response = new CreateSampleIncidentResponse();
-                response.result = result.result;
+                response.result = result;
                 response.Message = "Company has been Found";
                 return response;
             }
@@ -258,19 +261,20 @@ namespace CrisesControl.Api.Application.Query
             public async Task<UpgradeResponse> UpgradeRequest(UpgradeRequest request)
         {
             var status = await _registerRepository.UpgradeRequest(request.CompanyId);
-            var result = _mapper.Map<UpgradeResponse>(status);
+            var result = _mapper.Map<bool>(status);
+            var response = new UpgradeResponse();
             if (status)
             {
-                result.Message = "Company is upgraded";
-                result.Status = status;
+                response.Message = "Company is upgraded";
+                response.Status = status;
             }
             else
             {
-                result.Status = status;
-                result.Message = "No record found.";
+                response.Status = status;
+                response.Message = "No record found.";
             }
 
-            return result;
+            return response;
         }
 
         public async Task<VerifyPhoneResponse> ValidateMobile(VerifyPhoneRequest request)
@@ -381,9 +385,9 @@ namespace CrisesControl.Api.Application.Query
         public async Task<SendVerificationResponse> SendVerification(SendVerificationRequest request)
         {
             var data = await _registerRepository.SendVerification(request.UniqueId);
-            var response = _mapper.Map<SendVerificationResponse>(data);
-            
-            if (data!=null)
+            var result = _mapper.Map<CompanyUser>(data);
+            var response = new SendVerificationResponse();
+            if (result != null)
             {
                
                 await _registerRepository.NewUserAccount(data.UserEmail, await _registerRepository.UserName(data.UserName), data.CompanyId, data.UniqueID);
@@ -400,8 +404,8 @@ namespace CrisesControl.Api.Application.Query
         public async Task<SendCredentialsResponse> SendCredentials(SendCredentialsRequest request)
         {
             var UserInfo = await _registerRepository.GetUserByUniqueId(request.UniqueId);
-            var response = _mapper.Map<SendCredentialsResponse>(UserInfo);
-
+            var result = _mapper.Map<User>(UserInfo);
+            var response = new SendCredentialsResponse();
             if (UserInfo != null)
             {
 

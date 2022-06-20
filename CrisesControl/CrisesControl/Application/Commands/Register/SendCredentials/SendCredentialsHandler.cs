@@ -9,9 +9,10 @@ namespace CrisesControl.Api.Application.Commands.Register.SendCredentials
     {
         private readonly IRegisterQuery _registerQuery;
         private readonly SendCredentialsValidator _sendCredentialsValidator;
-        public SendCredentialsHandler()
+        public SendCredentialsHandler(IRegisterQuery registerQuery, SendCredentialsValidator sendCredentialsValidator)
         {
-
+            this._registerQuery = registerQuery;
+            this._sendCredentialsValidator = sendCredentialsValidator;
         }
         public  async Task<SendCredentialsResponse> Handle(SendCredentialsRequest request, CancellationToken cancellationToken)
         {

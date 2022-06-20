@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Companies.CheckCompany;
+using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.ViewModels.Company;
 using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
 
 namespace CrisesControl.Api.Application.Query;
@@ -85,5 +87,32 @@ public class CompanyQuery : ICompanyQuery {
             response.Message = "No record found.";
         }
         return response;
+    }
+
+    public async Task<DeleteCompanyResponse> DeleteCompany(DeleteCompanyRequest request)
+    {
+        try
+        {
+            var check = _companyRepository.DeleteCompanyComplete(request.CompanyId, request.UserId,request.GUID, request.DeleteType);
+            var result = _mapper.Map<CompanyInfo>(check);
+            var response = new DeleteCompanyResponse();
+            if (result!=null)
+            {
+               
+                response.Message = "Deleted";
+
+            }
+            else
+            {
+               
+                response.Message = "No record found.";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(request.CompanyId, request.UserId);
+        }
     }
 }

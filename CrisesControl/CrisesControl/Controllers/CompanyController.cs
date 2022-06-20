@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CrisesControl.Api.Application.Commands.Companies.CheckCompany;
+using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 
 namespace CrisesControl.Api.Controllers;
 
@@ -78,6 +79,14 @@ public class CompanyController : Controller
     [HttpGet]
     [Route("CheckCompany/{CompanyName}/{CountryCode}")]
     public async Task<IActionResult> CheckCompany([FromRoute] CheckCompanyRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpDelete]
+    [Route("DeleteCompany/{CompanyId}/{UserId}/{GUID}/{DeleteType}")]
+    public async Task<IActionResult> DeleteCompany([FromRoute] DeleteCompanyRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
 

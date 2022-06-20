@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -26,7 +27,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 if (Provider.ToUpper() == "OFFICE365")
                 {
-                    string Office365Host = await LookupWithKey("AWS_SMTP_HOST");
+                    string Office365Host = LookupWithKey("AWS_SMTP_HOST");
                     emailstatus = await Office365(ToAddress, MessageBody, FromAddress, Office365Host, Subject, fileattached);
                     //} else if(Provider.ToUpper() == "SENDGRID") {
                     //    emailstatus = SendGridEmail(ToAddress, MessageBody, FromAddress, SendGridAPIKey, Subject);
@@ -85,11 +86,11 @@ namespace CrisesControl.Infrastructure.Services
           
             try
             {
-                string AWSSESHost = await LookupWithKey("AWS_SMTP_HOST");
-                string AWSSESUser = await LookupWithKey("AWS_SMTP_USER");
-                string AWSSESPwd = await LookupWithKey("AWS_SMTP_PWD");
-                int AWSSESPort = Convert.ToInt32(await LookupWithKey("AWS_SMTP_PORT"));
-                bool AWSSESSSL = Convert.ToBoolean(await LookupWithKey("AWS_SMTP_SSL"));
+                string AWSSESHost =  LookupWithKey("AWS_SMTP_HOST");
+                string AWSSESUser =  LookupWithKey("AWS_SMTP_USER");
+                string AWSSESPwd =  LookupWithKey("AWS_SMTP_PWD");
+                int AWSSESPort = Convert.ToInt32( LookupWithKey("AWS_SMTP_PORT"));
+                bool AWSSESSSL = Convert.ToBoolean(LookupWithKey("AWS_SMTP_SSL"));
 
                 MailAddress from = new MailAddress(FromAddress);
 
@@ -127,12 +128,12 @@ namespace CrisesControl.Infrastructure.Services
 
             }
         }
-        private async Task<string> LookupWithKey(string Key, string Default = "")
+        private string LookupWithKey(string Key, string Default = "")
         {
             try
             {
-                var LKP = await _context.Set<SysParameter>()
-                          .Where(L=> L.Name == Key).FirstOrDefaultAsync();
+                var LKP = _context.Set<SysParameter>()
+                          .Where(L=> L.Name == Key).FirstOrDefault();
                 if (LKP != null)
                 {
                     Default = LKP.Value;
@@ -143,6 +144,65 @@ namespace CrisesControl.Infrastructure.Services
             {
                 return Default;
             }
+        }
+        private async Task<string> UserName(UserFullName strUserName)
+        {
+            try
+            {
+                if (strUserName != null)
+                {
+                    return strUserName.Firstname + " " + strUserName.Lastname;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return "";
+        }
+        public async Task<string> PhoneNumber(PhoneNumber strPhoneNumber)
+        {
+            try
+            {
+                if (strPhoneNumber != null)
+                {
+                    return strPhoneNumber.ISD + strPhoneNumber.Number;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return "";
+        }
+        public async Task RegistrationCancelled(string CompanyName, int PlanId, DateTimeOffset RegDate, UserFullName pUserName, string pUserEmail, PhoneNumber pUserMobile)
+        {
+            var sysparms =await  _context.Set<SysParameter>()
+                            .Where(SP=> SP.Name == "PORTAL" || SP.Name == "SMTPHOST" || SP.Name == "EMAILFROM")
+                            .Select(SP => new { SP.Name, SP.Value }).ToListAsync();
+
+            string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+            string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
+
+            if ((hostname != null) && (fromadd != null))
+            {
+
+                System.Text.StringBuilder adminMsg = new System.Text.StringBuilder();
+                string Plan = (PlanId == 1 ? "Business" : "EnterPrise");
+                adminMsg.AppendLine("<h2>A company has cancelled their subscription from Crises Control</h2>");
+                adminMsg.AppendLine("<p>Below are the company information:</p>");
+                adminMsg.AppendLine("<strong>Company Name: </strong>" + CompanyName + "</br>");
+                adminMsg.AppendLine("<strong>Registration Date: </strong>" + RegDate.ToString() + "</br>");
+                adminMsg.AppendLine("<strong>Plan Name: </strong>" + Plan + "</br>");
+                adminMsg.AppendLine("<strong>Primary Email: </strong>" + pUserEmail + "</br>");
+                adminMsg.AppendLine("<strong>Contact Person: </strong>" + await UserName(pUserName) + "</br>");
+                adminMsg.AppendLine("<strong>Mobile: </strong>" + await PhoneNumber(pUserMobile) + "</br>");
+                string[] AdminEmail =  LookupWithKey("SENDFEEDBACKTO").Split(',');
+
+               await Email(AdminEmail, adminMsg.ToString(), fromadd, hostname, CompanyName + ": Crises Control: Membership Cancellation Alert");
+            }
+
         }
 
     }
