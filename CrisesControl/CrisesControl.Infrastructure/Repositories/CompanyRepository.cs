@@ -400,4 +400,34 @@ public class CompanyRepository : ICompanyRepository
         }
     }
 
+    public async Task<AddressLink> GetCompanyAddress(int CompanyID)
+    {
+                var AddressInfo = await _context.Set<AddressLink>().Include(x=>x.Address)
+                                   //join AddLink in db.AddressLink on Addressval.AddressId equals AddLink.AddressId
+                                  .Where(Addressval=> Addressval.CompanyId == CompanyID && Addressval.Address.AddressType == "Primary"
+                                  ).FirstOrDefaultAsync();
+        return AddressInfo;
+    }
+    //public Task<> ViewCompany(int CompanyID)
+    //{
+
+    //    try
+    //    {
+    //        var Companydata = (from CompanyVal in db.Company
+    //                           where CompanyVal.CompanyId == CompanyID
+    //                           select CompanyVal).FirstOrDefault();
+
+
+
+
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        var result = DBC.catchException(ex);
+    //        ResultDTO.ErrorId = result.ErrorId;
+    //        ResultDTO.Message = result.Message;
+    //        return ResultDTO;
+    //    }
+    //}
+
 }
