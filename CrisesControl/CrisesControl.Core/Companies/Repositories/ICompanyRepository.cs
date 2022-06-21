@@ -24,5 +24,6 @@ public interface ICompanyRepository
     Task<bool> DeleteCompanyApi(int CompanyId, string CustomerId);
     Task<dynamic> DeleteCompanyComplete(int CompanyId, int UserId, string GUID, string DeleteType);
     Task<AddressLink> GetCompanyAddress(int CompanyID);
+    Task<dynamic> GetSite(int SiteID, int CompanyID);
 
 }

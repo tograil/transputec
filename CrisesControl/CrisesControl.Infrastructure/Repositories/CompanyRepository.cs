@@ -408,26 +408,27 @@ public class CompanyRepository : ICompanyRepository
                                   ).FirstOrDefaultAsync();
         return AddressInfo;
     }
-    //public Task<> ViewCompany(int CompanyID)
-    //{
 
-    //    try
-    //    {
-    //        var Companydata = (from CompanyVal in db.Company
-    //                           where CompanyVal.CompanyId == CompanyID
-    //                           select CompanyVal).FirstOrDefault();
-
-
-
-
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        var result = DBC.catchException(ex);
-    //        ResultDTO.ErrorId = result.ErrorId;
-    //        ResultDTO.Message = result.Message;
-    //        return ResultDTO;
-    //    }
-    //}
+    public async Task<dynamic> GetSite(int SiteID, int CompanyID)
+    {
+        try
+        {
+            if (SiteID > 0)
+            {
+                var site = await _context.Set<Site>().Where(S=> S.SiteId == SiteID && S.CompanyId == CompanyID).FirstOrDefaultAsync();
+                return site;
+            }
+            else
+            {
+                var sites= await _context.Set<Site>().Where(S=> S.CompanyId == CompanyID).ToListAsync();
+                return sites;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    
 
 }

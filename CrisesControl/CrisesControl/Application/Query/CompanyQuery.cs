@@ -3,6 +3,7 @@ using CrisesControl.Api.Application.Commands.Companies.CheckCompany;
 using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
+using CrisesControl.Api.Application.Commands.Companies.GetSite;
 using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.ViewModels.Company;
@@ -157,6 +158,33 @@ public class CompanyQuery : ICompanyQuery {
         ResultDTO.ErrorId = 0;
         ResultDTO.Message = "CompanyView";
         return ResultDTO;
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(request.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<GetSiteResponse> GetSite(GetSiteRequest request)
+    {
+        try
+        {
+            var site = _companyRepository.GetSite( request.SiteId, request.CompanyId);
+            //var result = _mapper.Map<CompanyInfo>(check);
+            var response = new GetSiteResponse();
+            if (site != null)
+            {
+                response.site = site;
+                response.Message = "Sites has been Found";
+
+            }
+            else
+            {
+
+                response.Message = "No record found.";
+            }
+            return response;
+
         }
         catch (Exception ex)
         {
