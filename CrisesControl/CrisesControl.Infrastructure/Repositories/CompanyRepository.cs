@@ -429,6 +429,21 @@ public class CompanyRepository : ICompanyRepository
             throw ex;
         }
     }
-    
 
+    public async Task<int> SaveSite(Site site)
+    {
+        await _context.AddAsync(site);
+
+        await _context.SaveChangesAsync();
+
+
+        _logger.LogInformation($"Added new site {site.SiteId}");
+
+        return site.SiteId;
+    }
+    public async Task<Site> GetCompanySiteById(int SiteID, int CompanyID)
+    {
+       var site= await _context.Set<Site>().Where(S=> S.SiteId == SiteID && S.CompanyId == CompanyID ).FirstOrDefaultAsync();
+        return site;
+    }
 }
