@@ -12,6 +12,7 @@ using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
 using CrisesControl.Api.Application.Commands.Companies.SaveSite;
+using CrisesControl.Api.Application.Commands.GetStarted;
 
 namespace CrisesControl.Api.Controllers;
 
@@ -114,6 +115,14 @@ public class CompanyController : Controller
     [HttpPost]
     [Route("SaveSite")]
     public async Task<IActionResult> SaveSite([FromBody] SaveSiteRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("GetStarted/{CompanyId}")]
+    public async Task<IActionResult> GetStarted([FromRoute] GetStartedRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
 

@@ -446,4 +446,34 @@ public class CompanyRepository : ICompanyRepository
        var site= await _context.Set<Site>().Where(S=> S.SiteId == SiteID && S.CompanyId == CompanyID ).FirstOrDefaultAsync();
         return site;
     }
+    public async Task<GetCompanyDataResponse> GetStarted(int CompanyID)
+    {
+
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+           var data=await _context.Set<GetCompanyDataResponse>().FromSqlRaw("exec Pro_Company_GetCompanyData @CompanyID", pCompanyID).FirstOrDefaultAsync();
+            return data;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<SocialIntegraion>> GetSocialIntegration(int CompanyID, string AccountType)
+    {
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pAccountType = new SqlParameter("@AccountType", AccountType);
+
+            var result = await _context.Set<SocialIntegraion>().FromSqlRaw("EXEC Pro_Get_Social_Integration @CompanyID, @AccountType", pCompanyID, pAccountType).ToListAsync();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            catchException(ex);
+            return null;
+        }
+    }
 }

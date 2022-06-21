@@ -27,5 +27,7 @@ public interface ICompanyRepository
     Task<dynamic> GetSite(int SiteID, int CompanyID);
     Task<int> SaveSite(Site site);
     Task<Site> GetCompanySiteById(int SiteID, int CompanyID);
+    Task<GetCompanyDataResponse> GetStarted(int CompanyID);
+    Task<List<SocialIntegraion>> GetSocialIntegration(int CompanyID, string AccountType);
 
 }
