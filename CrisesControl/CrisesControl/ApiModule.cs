@@ -40,9 +40,11 @@ public class ApiModule : Module
         builder.RegisterType<TaskQuery>().As<ITaskQuery>();
         builder.RegisterType<AdminQuery>().As<IAdminQuery>();
         builder.RegisterType<RegisterQuery>().As<IRegisterQuery>();
+        builder.RegisterType<PaymentQuery>().As<IPaymentQuery>();
 
         builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>();
 
         builder.RegisterType<CurrentUser>().As<ICurrentUser>();
+        builder.RegisterType<AddressQuery>().As<IAddressQuery>();
     }
 }

@@ -20,5 +20,9 @@ public interface ICompanyRepository
     Task<CompanyInfoReturn> GetCompany(CompanyRequestInfo company, CancellationToken token);
     Task<List<CommsMethod>> GetCommsMethod();
     Task<int> UpdateCompany(Company company);
+    Task<bool> DuplicateCompany(string CompanyName, string Countrycode);
+    Task<bool> DeleteCompanyApi(int CompanyId, string CustomerId);
+    Task<dynamic> DeleteCompanyComplete(int CompanyId, int UserId, string GUID, string DeleteType);
+    Task<AddressLink> GetCompanyAddress(int CompanyID);
 
 }

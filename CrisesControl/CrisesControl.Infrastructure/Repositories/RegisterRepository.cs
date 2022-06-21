@@ -38,17 +38,23 @@ namespace CrisesControl.Infrastructure.Repositories
         private int UserID;
         private int CompanyId;
         public RegisterRepository(ILogger<RegisterRepository> logger, ISenderEmailService senderEmail,  
-            CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IIncidentRepository incidentRepository)
+            CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IIncidentRepository incidentRepository,
+            ICompanyRepository companyRepository)
         {
           this._logger = logger;
           this._context = context;
           this._httpContextAccessor = httpContextAccessor;
           this._senderEmail=senderEmail;
           this._incidentRepository=incidentRepository;
+            this._companyRepository = companyRepository;
       
 
         }
-        public async Task<bool> CheckCustomer(string CustomerId)
+        public async Task<List<Registration>> GetAllRegistrations()
+        {
+            return await _context.Set<Registration>().ToListAsync();
+        }
+            public async Task<bool> CheckCustomer(string CustomerId)
         {
             try
             {
@@ -721,15 +727,15 @@ namespace CrisesControl.Infrastructure.Repositories
         public async Task<CompanyUser> SendVerification(string UniqueId)
         {
             var data = await _context.Set<User>().Include(x=>x.Company).Where(U=>U.UniqueGuiId == UniqueId)
-                       . Select(U => new CompanyUser
-                       {
-                            UserId = U.UserId,
-                            UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
-                            UserEmail = U.PrimaryEmail,
-                            UniqueID = U.UniqueGuiId,
-                            CompanyId = U.Company.CompanyId,
-                            TimeZoneId = U.Company.StdTimeZone.ZoneLabel,
-                        }).FirstOrDefaultAsync();
+            . Select(U => new CompanyUser()
+              {
+                  UserId = U.UserId,
+                  UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                  UserEmail = U.PrimaryEmail,
+                  UniqueID = U.UniqueGuiId,
+                  CompanyId = U.Company.CompanyId,
+                  TimeZoneId = U.Company.StdTimeZone.ZoneLabel,
+              }).FirstOrDefaultAsync();
             return data;
 
         }

@@ -15,5 +15,6 @@ namespace CrisesControl.Core.Groups.Repositories
         bool CheckDuplicate(Group group);
         bool CheckForExistance(int groupId);
         Task<List<GroupLink>> SegregationLinks(int TargetID, MemberShipType MemberShipType, string LinkType);
+        Task<bool> DuplicateGroup(string strGroupName, int intcompanyid, int intGroupId);
     }
 }

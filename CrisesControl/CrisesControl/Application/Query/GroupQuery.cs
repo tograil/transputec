@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Groups.CheckGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroups;
 using CrisesControl.Api.Application.Commands.Groups.SegregationLinks;
@@ -44,6 +45,22 @@ namespace CrisesControl.Api.Application.Query
             result.data = response;
             result.Message = "Data Loaded Succesfully";
             return result;
+        }
+        public async Task<CheckGroupResponse> CheckGroup(CheckGroupRequest request)
+        {
+            var groups = await _groupRepository.DuplicateGroup(request.GroupName, request.CompanyId, request.GroupId);
+            var result = _mapper.Map<bool>(groups);
+            var response = new CheckGroupResponse();
+            if (result)
+            {
+                response.Message= "Duplicate Deprtment.";
+            }
+            else
+            {
+                response.Message = "No record found.";
+            }
+            return response;       
+                   
         }
     }
 }

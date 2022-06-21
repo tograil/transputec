@@ -36,5 +36,6 @@ namespace CrisesControl.Core.Register.Repositories
         Task SendCredentials(string EmailId, string UserName, string UserPass, int CompanyId, string guid);
         Task<User> GetUserByUniqueId(string UniqueId);
         Task UpdateTemp(User user);
+        Task<List<Registration>> GetAllRegistrations();
     }
 }

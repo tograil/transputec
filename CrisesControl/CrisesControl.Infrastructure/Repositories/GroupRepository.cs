@@ -111,5 +111,39 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
+        public async Task<bool> DuplicateGroup(string strGroupName, int intcompanyid, int intGroupId)
+        {
+            try
+            {
+                if (intGroupId == 0)
+                {
+                    var Dept = await _context.Set<Group>()
+                                .Where(Depval=> Depval.GroupName == strGroupName && Depval.CompanyId == intcompanyid
+                                ).FirstOrDefaultAsync();
+
+                    if (Dept != null)
+                    {
+                        return true;
+                    }
+                }
+                else 
+                {
+                    var Dept = await _context.Set<Group>()
+                                .Where(Depval => Depval.GroupName == strGroupName && Depval.CompanyId == intcompanyid && (Depval.GroupId) != intGroupId
+                                ).FirstOrDefaultAsync();
+
+                    if (Dept != null)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                
+            }
+        }
     }
 }

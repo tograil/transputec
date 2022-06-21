@@ -4,6 +4,7 @@ using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.Index;
 using CrisesControl.Api.Application.Commands.Register.SendCredentials;
 using CrisesControl.Api.Application.Commands.Register.SendVerification;
 using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
@@ -28,6 +29,14 @@ namespace CrisesControl.Api.Controllers
         public RegisterController(IMediator mediator)
         {
           _mediator=mediator;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Index([FromRoute] IndexRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
         }
         [HttpGet("CheckCustomer/{CustomerId}")]
        
