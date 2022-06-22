@@ -169,14 +169,23 @@ public class CompanyQuery : ICompanyQuery {
     {
         try
         {
-            var site = _companyRepository.GetSite( request.SiteId, request.CompanyId);
-            //var result = _mapper.Map<CompanyInfo>(check);
+            var site = await _companyRepository.GetSite( request.SiteId, request.CompanyId);
+            var sites = await _companyRepository.GetSites(request.CompanyId);
+            var result = _mapper.Map<Site>(site);
+            var results =  _mapper.Map<List<Site>>(sites);
             var response = new GetSiteResponse();
-            if (site != null)
+            if (request.SiteId>0) { 
+                    if (result != null)
+                    {
+                        response.site = result;
+                        response.Message = "Site has been Found";
+                    }
+                  
+            }
+            else if(results!=null)
             {
-                response.site = site;
+                response.sites = results;
                 response.Message = "Sites has been Found";
-
             }
             else
             {
