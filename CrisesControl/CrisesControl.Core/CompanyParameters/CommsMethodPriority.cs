@@ -17,6 +17,8 @@ namespace CrisesControl.Core.CompanyParameters
         public int Status { get; set; }
         public int MethodId { get; set; }
         public string MethodName { get; set; }
-       
+        public int[] Methods { get; set; }
+
+
     }
 }

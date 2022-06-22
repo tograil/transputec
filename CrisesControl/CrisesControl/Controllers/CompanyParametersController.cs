@@ -6,6 +6,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using CrisesControl.Api.Application.Commands.CompanyParameters.SaveCompanyFTP;
 
 namespace CrisesControl.Api.Controllers {
     [Route("api/[controller]")]
@@ -42,6 +43,20 @@ namespace CrisesControl.Api.Controllers {
         [HttpGet]
         [Route("GetAllCompanyParameters/{CompanyId:int}")]
         public async Task<IActionResult> GetAllCompanyParameters([FromRoute] GetAllCompanyParametersRequest request, CancellationToken cancellationToken) {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        /// <summary>
+        /// Save company FTP.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("SaveCompanyFTP")]
+        public async Task<IActionResult> SaveCompanyFTP([FromBody] SaveCompanyFTPRequest request, CancellationToken cancellationToken)
+        {
             var result = await _mediator.Send(request, cancellationToken);
 
             return Ok(result);
