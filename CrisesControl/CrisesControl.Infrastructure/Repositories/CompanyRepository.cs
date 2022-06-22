@@ -472,7 +472,7 @@ public class CompanyRepository : ICompanyRepository
         }
         catch (Exception ex)
         {
-            catchException(ex);
+            throw ex;
             return null;
         }
     }

@@ -13,6 +13,7 @@ using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
 using CrisesControl.Api.Application.Commands.Companies.SaveSite;
 using CrisesControl.Api.Application.Commands.GetStarted;
+using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
 
 namespace CrisesControl.Api.Controllers;
 
@@ -123,6 +124,14 @@ public class CompanyController : Controller
     [HttpGet]
     [Route("GetStarted/{CompanyId}")]
     public async Task<IActionResult> GetStarted([FromRoute] GetStartedRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("GetSocialIntegration/{CompanyID}/{AccountType}")]
+    public async Task<IActionResult> GetSocialIntegration([FromRoute] GetSocialIntegrationRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
 

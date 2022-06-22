@@ -4,6 +4,7 @@ using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
+using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
 using CrisesControl.Api.Application.Commands.Companies.SaveSite;
 using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
 using CrisesControl.Api.Application.Helpers;
@@ -240,6 +241,33 @@ public class CompanyQuery : ICompanyQuery {
         catch (Exception ex)
         {
             throw ex;
+        }
+    }
+
+    public async Task<GetSocialIntegrationResponse> GetSocialIntegration(GetSocialIntegrationRequest request)
+    {
+        try
+        {
+            var socials = await _companyRepository.GetSocialIntegration(request.CompanyID, request.AccountType);
+            var result = _mapper.Map<List<SocialIntegraion>>(socials);
+            var response = new GetSocialIntegrationResponse();
+            if (result != null)
+            {
+                response.Data = result;
+                response.Message = "Socials has been Found";
+
+            }
+            else
+            {
+
+                response.Message = "No record found.";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
         }
     }
 }
