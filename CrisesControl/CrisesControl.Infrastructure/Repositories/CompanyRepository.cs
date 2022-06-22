@@ -476,4 +476,30 @@ public class CompanyRepository : ICompanyRepository
             return null;
         }
     }
+    public async Task<bool> SaveSocialIntegration(string AccountName, string AccountType, string AuthSecret, string AdnlKeyOne, string AuthToken, string AdnlKeyTwo,int CompanyId, string TimeZoneId, int userId)
+    {
+        try
+        {
+
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+            var pAccountName = new SqlParameter("@AccountName", AccountName);
+            var pAccountType = new SqlParameter("@AccountType", AccountType);
+            var pAuthToken = new SqlParameter("@AuthToken", AuthToken);
+            var pAuthSecret = new SqlParameter("@AuthSecret", AuthSecret);
+            var pAdnlKeyOne = new SqlParameter("@AdnlKeyOne", AdnlKeyOne);
+            var pAdnlKeyTwo = new SqlParameter("@AdnlKeyTwo", AdnlKeyTwo);
+            DateTimeOffset CreatedNow = DateTime.Now.GetDateTimeOffset( TimeZoneId);
+            var pCreatedNow = new SqlParameter("@UpdatedOn", CreatedNow);
+            var pUpdatedBy = new SqlParameter("@UpdatedBy",userId );
+
+            _context.Set<SocialIntegraion>().FromSqlRaw(" exec Pro_Save_Social_Integration @CompanyID, @AccountName, @AccountType, @AuthToken, @AuthSecret, @AdnlKeyOne, @AdnlKeyTwo, @UpdatedOn, @UpdatedBy",
+                pCompanyID, pAccountName, pAccountType, pAuthToken, pAuthSecret, pAdnlKeyOne, pAdnlKeyTwo, pCreatedNow, pUpdatedBy);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return false;
+        }
+    }
 }
