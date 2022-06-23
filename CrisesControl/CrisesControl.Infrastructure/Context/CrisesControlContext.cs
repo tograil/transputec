@@ -7,14 +7,12 @@ using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Queues;
 using CrisesControl.Core.Users;
-using CrisesControl.Core.Communication;
 using CrisesControl.Core.Incidents.SPResponse;
 using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Compatibility;
-using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Tasks;
 using CrisesControl.Core.Tasks.SP_Response;
 using CrisesControl.Core.Common;
@@ -126,12 +124,12 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<LibIncident>().HasNoKey();
             modelBuilder.Entity<CompanyUser>().HasNoKey().Ignore("UserName");
             modelBuilder.Entity<GetCompanyDataResponse>().HasNoKey();
-           
+
 
 
 
             //modelBuilder.Entity<Location>().HasNoKey();
-            //modelBuilder.Entity<Assets>().HasNoKey();
+            modelBuilder.Entity<IntResult>().HasNoKey();
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
 
 

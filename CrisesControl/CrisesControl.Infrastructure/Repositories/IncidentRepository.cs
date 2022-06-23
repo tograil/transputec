@@ -766,5 +766,22 @@ public class IncidentRepository : IIncidentRepository
             return 0;
         }
     }
+    public async Task CheckSOSIncident(int CompanyID, int UserID, string TimeZoneID)
+    {
+        try
+        {
+            var incident = await _context.Set<Incident>()
+                            .Where(I=> I.IsSos == true && I.CompanyId == CompanyID
+                            ).AnyAsync();
+            if (!incident)
+            {
+               await CreateSOSIncident(UserID, CompanyID, TimeZoneID);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
 
 }

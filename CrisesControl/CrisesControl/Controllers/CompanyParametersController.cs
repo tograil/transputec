@@ -7,6 +7,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SaveCompanyFTP;
+using CrisesControl.Api.Application.Commands.CompanyParameters.SaveCascading;
+using CrisesControl.Api.Application.Commands.CompanyParameters.SaveParameter;
+using CrisesControl.Api.Application.Commands.CompanyParameters.UpdateCompanyParameters;
+using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
 
 namespace CrisesControl.Api.Controllers {
     [Route("api/[controller]")]
@@ -53,9 +57,41 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpGet]
+        [HttpPost]
         [Route("SaveCompanyFTP")]
         public async Task<IActionResult> SaveCompanyFTP([FromBody] SaveCompanyFTPRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("SaveCascading")]
+        public async Task<IActionResult> SaveCascading([FromBody] SaveCascadingRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("SaveParameter")]
+        public async Task<IActionResult> SaveParameter([FromBody] SaveParameterRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPut]
+        [Route("UpdateCompanyParameters")]
+        public async Task<IActionResult> UpdateCompanyParameters([FromBody] UpdateCompanyParametersRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpDelete]
+        [Route("DeleteCascading/{PlanID}/{CompanyId}")]
+        public async Task<IActionResult> DeleteCascading([FromRoute] DeleteCascadingRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 

@@ -14,6 +14,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Company = CrisesControl.Core.Companies.Company;
+using CompanyParameter = CrisesControl.Core.Companies.CompanyParameter;
 
 namespace CrisesControl.Infrastructure.Repositories {
     public class CompanyParametersRepository : ICompanyParametersRepository {
@@ -187,11 +189,11 @@ namespace CrisesControl.Infrastructure.Repositories {
             }
         
         }
-        public async Task<bool> SaveCascading(int PlanID, string PlanName, string PlanType, bool LaunchSOS, int LaunchSOSInterval, List<CommsMethodPriority> CommsMethod, int CompanyID, int UserID)
+        public async Task<bool> SaveCascading(int PlanID, string PlanName, string PlanType, bool LaunchSOS, int LaunchSOSInterval, List<CommsMethodPriority> CommsMethod, int CompanyID)
         {
             try
             {
-                int planId =await SaveCascadingPlanHeader(PlanID, PlanName, PlanType, LaunchSOS, LaunchSOSInterval, CompanyID, UserID);
+                int planId =await SaveCascadingPlanHeader(PlanID, PlanName, PlanType, LaunchSOS, LaunchSOSInterval, CompanyID);
                 if (planId > 0)
                 {
                    await SaveCascadingDetails(planId, CommsMethod, CompanyID);
@@ -219,7 +221,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         cascade.LaunchSos = LaunchSOS;
                         cascade.LaunchSosinterval = LaunchSOSInterval;
                         _context.Update(cascade);
-                        _context.SaveChangesAsync();
+                       await _context.SaveChangesAsync();
                     }
                 }
                 else
@@ -324,7 +326,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         prioritytmpl.Where(w => w.MessageType == "IncidentSeverity" && w.PriorityLevel == 4).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentSeverity.Severity4);
                         prioritytmpl.Where(w => w.MessageType == "IncidentSeverity" && w.PriorityLevel == 5).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentSeverity.Severity5);
                     }
-                    _context.AddAsync(prioritytmpl);
+                    await _context.AddAsync(prioritytmpl);
                    await _context.SaveChangesAsync();
                 }
 
@@ -341,7 +343,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                int RowsCount = await _context.Set<int>().FromSqlRaw("Pro_Update_Cascading_Channel @CompanyID", pCompanyID).FirstOrDefaultAsync();
+               await _context.Set<IntResult>().FromSqlRaw("exec Pro_Update_Cascading_Channel @CompanyID", pCompanyID).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -354,7 +356,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                int RowsCount = await _context.Set<int>().FromSqlRaw("Pro_Update_OffDuty @CompanyID", pCompanyID).FirstOrDefaultAsync();
+               await _context.Set<IntResult>().FromSqlRaw("exec Pro_Update_OffDuty @CompanyID", pCompanyID).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -397,7 +399,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 DateTimeOffset CreatedNow = DateTime.Now.GetDateTimeOffset( TimeZoneId);
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
                 var pCreatedNow = new SqlParameter("@CreatedOnOffset", CreatedNow);
-                await _context.Set<int>("Pro_DC_Global_Config @CompanyID, @CreatedOnOffset", pCompanyID, pCreatedNow).FirstOrDefaultAsync();
+                await _context.Set<IntResult>().FromSqlRaw("Pro_DC_Global_Config @CompanyID, @CreatedOnOffset", pCompanyID, pCreatedNow).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -409,7 +411,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-               await _context.Set<int>().FromSqlRaw("Pro_DC_Ping @CompanyID", pCompanyID).FirstOrDefaultAsync();
+               await _context.Set<IntResult>().FromSqlRaw("Pro_DC_Ping @CompanyID", pCompanyID).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -422,7 +424,161 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-               await _context.Set<int>().FromSqlRaw("Pro_DC_Active_Incident @CompanyID", pCompanyID).FirstOrDefaultAsync();
+               await _context.Set<IntResult>().FromSqlRaw("Pro_DC_Active_Incident @CompanyID", pCompanyID).FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<bool> DeleteCascading(int PlanID, int CompanyId, int UserId)
+        {
+            
+            try
+            {
+                var cascading = await _context.Set<CascadingPlan>()
+                                 .Where(CP=> CP.CompanyId == CompanyId && CP.PlanId == PlanID
+                                 ).FirstOrDefaultAsync();
+                if (cascading != null)
+                {
+                    _context.Remove(cascading);
+                    var plansteps = await _context.Set<PriorityInterval>()
+                                     .Where(STP=> STP.CascadingPlanId == PlanID
+                                     ).ToListAsync();
+                    _context.RemoveRange(plansteps);
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                //else
+                //{
+                //    ResultDTO.ErrorId = 110;
+                //    ResultDTO.Message = "No record found.";
+                    
+                //}
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<bool> SaveParameter(int ParameterID, string ParameterName, string ParameterValue, int CurrentUserID, int CompanyID, string TimeZoneId)
+        {
+            try
+            {
+                if (ParameterID > 0)
+                {
+                    var CompanyParameter = await _context.Set<CompanyParameter>()
+                                            .Where(CP=> CP.CompanyId == CompanyID && CP.CompanyParametersId == ParameterID
+                                           ).FirstOrDefaultAsync();
+
+                    if (CompanyParameter != null)
+                    {
+                        if (ParameterValue != null)
+                        {
+                            if (CompanyParameter.Name == "MAX_PING_KPI" || CompanyParameter.Name == "MAX_INCIDENT_KPI")
+                            {
+                                CompanyParameter.Value = Convert.ToString(Convert.ToInt32(ParameterValue) * 60);
+                            }
+                            else
+                            {
+                                CompanyParameter.Value = ParameterValue;
+                            }
+                        }
+                        CompanyParameter.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                        CompanyParameter.UpdatedBy = CurrentUserID;
+                        _context.Update(CompanyParameter);
+                       await _context.SaveChangesAsync();
+                        return true;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(ParameterName))
+                {
+                    var CompanyParameter = await _context.Set<CompanyParameter>()
+                                            .Where(CP=> CP.CompanyId == CompanyID && CP.Name == ParameterName).FirstOrDefaultAsync();
+
+                    if (CompanyParameter != null)
+                    {
+                        if (ParameterValue != null)
+                        {
+                            if (CompanyParameter.Name == "MAX_PING_KPI" || CompanyParameter.Name == "MAX_INCIDENT_KPI")
+                            {
+                                CompanyParameter.Value = Convert.ToString(Convert.ToInt32(ParameterValue) * 60);
+                            }
+                            else
+                            {
+                                CompanyParameter.Value = ParameterValue;
+                            }
+                        }
+                        CompanyParameter.UpdatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
+                        CompanyParameter.UpdatedBy = CurrentUserID;
+                        _context.Update(CompanyParameter);
+                       await _context.SaveChangesAsync();
+                        return true;
+                    }
+                    else
+                    {
+                        int CompanyParametersId =await AddCompanyParameter(ParameterName, ParameterValue, CompanyID, CurrentUserID, TimeZoneId);
+                        return true;
+                    }
+                }
+
+                if (ParameterName.ToUpper() == "RECHARGE_BALANCE_TRIGGER")
+                {
+                    var profile = await _context.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == CompanyID).FirstOrDefaultAsync();
+                    if (profile != null)
+                    {
+                        profile.MinimumBalance = Convert.ToDecimal(ParameterValue);
+                        _context.Update(profile);
+                       await _context.SaveChangesAsync();
+                        return true;
+
+                    }
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public async Task<int> AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
+        {
+            try
+            {
+                var comp_param = await _context.Set<CompanyParameter>().Where(CP=> CP.CompanyId == CompanyId && CP.Name == Name).AnyAsync();
+                if (!comp_param)
+                {
+                    CompanyParameter NewCompanyParameters = new CompanyParameter()
+                    {
+                        CompanyId = CompanyId,
+                        Name = Name,
+                        Value = Value,
+                        Status = 1,
+                        CreatedBy = CurrentUserId,
+                        UpdatedBy = CurrentUserId,
+                        CreatedOn = DateTime.Now,
+                        UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId)
+                    };
+                    await _context.AddAsync(NewCompanyParameters);
+                    await _context.SaveChangesAsync();
+                    return NewCompanyParameters.CompanyParametersId;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return 0;
+        }
+        public async Task SetSSOParameters(int CompanyId)
+        {
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyId", CompanyId);
+                var response = await _context.Set<JsonResults>().FromSqlRaw("Pro_Configure_SSO @CompanyId", pCompanyID).FirstOrDefaultAsync();
+
             }
             catch (Exception ex)
             {
