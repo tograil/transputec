@@ -26,19 +26,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventLogger.Grpc", "EventLogger.Grpc\EventLogger.Grpc.csproj", "{02B9EC15-6BA8-4D4B-9C1B-ABE8CC02434B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventLogger.Core", "EventLogger.Core\EventLogger.Core.csproj", "{89561CE4-95D1-468A-8566-484D086DB219}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventLogger.Core", "EventLogger.Core\EventLogger.Core.csproj", "{89561CE4-95D1-468A-8566-484D086DB219}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventLogger.Infrastructure", "EventLogger.Infrastructure\EventLogger.Infrastructure.csproj", "{A0799A8F-FB61-43C0-B821-6BA19DD81F93}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventLogger.Infrastructure", "EventLogger.Infrastructure\EventLogger.Infrastructure.csproj", "{A0799A8F-FB61-43C0-B821-6BA19DD81F93}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Authority", "Authority", "{5D6DF10D-0BB5-4FCD-AF2C-DB383DBDC61F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CC.Authority.Api", "CC.Authority.Api\CC.Authority.Api.csproj", "{42258EFF-086B-4B87-99B2-D9A3A68382B2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CC.Authority.Api", "CC.Authority.Api\CC.Authority.Api.csproj", "{42258EFF-086B-4B87-99B2-D9A3A68382B2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CC.Authority.SCIM", "CC.Authority.SCIM\CC.Authority.SCIM.csproj", "{34048D80-D817-40BB-8ACC-33723545BB92}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CC.Authority.SCIM", "CC.Authority.SCIM\CC.Authority.SCIM.csproj", "{34048D80-D817-40BB-8ACC-33723545BB92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CC.Authority.Core", "CC.Authority.Core\CC.Authority.Core.csproj", "{9104B631-4BAE-4FFF-B4CD-C088125C7FC5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CC.Authority.Core", "CC.Authority.Core\CC.Authority.Core.csproj", "{9104B631-4BAE-4FFF-B4CD-C088125C7FC5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CC.Authority.Implementation", "CC.Authority.Implementation\CC.Authority.Implementation.csproj", "{ACBC0F9A-7C46-4A4A-B885-7D51E08DEB73}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CC.Authority.Implementation", "CC.Authority.Implementation\CC.Authority.Implementation.csproj", "{ACBC0F9A-7C46-4A4A-B885-7D51E08DEB73}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
