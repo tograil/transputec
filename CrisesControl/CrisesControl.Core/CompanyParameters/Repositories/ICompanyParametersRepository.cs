@@ -15,7 +15,7 @@ namespace CrisesControl.Core.CompanyParameters.Repositories
         List<CommsMethodPriority> GetCascadingDetails(int PlanID, int CompanyId);
         Task<List<CompanyParameterItem>> GetAllCompanyParameters(int companyId);
         Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
-        Task<int> SaveCompanyFTP(int CompanyId, string HostName, string UserName, string SecurityKey, string Protocol,
+        Task<Result> SaveCompanyFTP(int CompanyId, string HostName, string UserName, string SecurityKey, string Protocol,
                                  int Port, string RemotePath, string LogonType, bool DeleteSourceFile, string SHAFingerPrint);
         Task<bool> SaveCascading(int PlanID, string PlanName, string PlanType, bool LaunchSOS, int LaunchSOSInterval, List<CommsMethodPriority> CommsMethod, int CompanyID);
         Task<int> SaveCascadingPlanHeader(int PlanID, string PlanName, string PlanType, bool LaunchSOS, int LaunchSOSInterval, int CompanyID);

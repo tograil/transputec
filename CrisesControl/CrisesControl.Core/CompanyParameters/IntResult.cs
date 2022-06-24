@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.CompanyParameters
 {
-    public class IntResult
+    public class Result
     {
-        public int Result { get; set; }
+        public int ResultID { get; set; }
     }
 }

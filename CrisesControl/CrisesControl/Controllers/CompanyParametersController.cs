@@ -11,6 +11,7 @@ using CrisesControl.Api.Application.Commands.CompanyParameters.SaveCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SaveParameter;
 using CrisesControl.Api.Application.Commands.CompanyParameters.UpdateCompanyParameters;
 using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
+using CrisesControl.Api.Application.Commands.CompanyParameters.SavePriority;
 
 namespace CrisesControl.Api.Controllers {
     [Route("api/[controller]")]
@@ -92,6 +93,14 @@ namespace CrisesControl.Api.Controllers {
         [HttpDelete]
         [Route("DeleteCascading/{PlanID}/{CompanyId}")]
         public async Task<IActionResult> DeleteCascading([FromRoute] DeleteCascadingRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("SavePriority")]
+        public async Task<IActionResult> SavePriority([FromBody] SavePriorityRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 

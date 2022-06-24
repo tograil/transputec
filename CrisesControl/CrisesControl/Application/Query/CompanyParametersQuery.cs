@@ -11,6 +11,7 @@ using CrisesControl.Api.Application.Commands.CompanyParameters.SaveCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SaveParameter;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
+using CrisesControl.Api.Application.Commands.CompanyParameters.SavePriority;
 
 namespace CrisesControl.Api.Application.Query {
     public class CompanyParametersQuery : ICompanyParametersQuery {
@@ -61,9 +62,9 @@ namespace CrisesControl.Api.Application.Query {
         public async Task<SaveCompanyFTPResponse> SaveCompanyFTP(SaveCompanyFTPRequest request)
         {
             var ftp = await _companyParametersRepository.SaveCompanyFTP(_currentUser.CompanyId,request.HostName,request.UserName,request.SecurityKey,request.Protocol,request.Port,request.RemotePath,request.LogonType,request.DeleteSourceFile,request.SHAFingerPrint);
-            var response = _mapper.Map<int>(ftp);
+            var response = _mapper.Map<Result>(ftp);
             var result = new SaveCompanyFTPResponse();
-            if (ftp>0)
+            if (ftp!=null)
             {
                 result.ResultId = response;
                 result.Message = "CompanyFTP has been added";
@@ -150,6 +151,34 @@ namespace CrisesControl.Api.Application.Query {
             }
 
             return result;
+        }
+
+        public async Task<SavePriorityResponse> SavePriority(SavePriorityRequest request)
+        {
+            try
+            {
+                var priority = await _companyParametersRepository.SavePriority(request.ParamName, request.EnableSetting, request.CommsMethod, request.PingPriority, request.IncidentPriority, request.IncidentSeverity,
+                        request.Type, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
+                var result = _mapper.Map<bool>(priority);
+                var  response = new SavePriorityResponse();
+                if (priority)
+                {
+                    response.Result = result;
+                    response.Message = "Priority Saved";
+                }
+                else
+                {
+                    response.Result = result;
+                    response.Message = "Priority not added";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }

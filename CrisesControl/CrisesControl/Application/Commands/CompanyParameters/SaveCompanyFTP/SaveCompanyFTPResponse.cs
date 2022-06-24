@@ -1,8 +1,10 @@
-﻿namespace CrisesControl.Api.Application.Commands.CompanyParameters.SaveCompanyFTP
+﻿using CrisesControl.Core.CompanyParameters;
+
+namespace CrisesControl.Api.Application.Commands.CompanyParameters.SaveCompanyFTP
 {
     public class SaveCompanyFTPResponse
     {
-        public int ResultId { get; set; }
+        public Result ResultId { get; set; }
         public string Message { get; set; }
     }
 }

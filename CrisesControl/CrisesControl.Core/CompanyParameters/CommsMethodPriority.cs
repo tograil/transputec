@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ namespace CrisesControl.Core.CompanyParameters
         public int Status { get; set; }
         public int MethodId { get; set; }
         public string MethodName { get; set; }
+        [NotMapped]
         public int[] Methods { get; set; }
 
 

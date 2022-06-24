@@ -161,7 +161,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 return Default;
             }
         }
-        public async Task<int> SaveCompanyFTP(int CompanyId, string HostName, string UserName, string SecurityKey, string Protocol,
+        public async Task<Result> SaveCompanyFTP(int CompanyId, string HostName, string UserName, string SecurityKey, string Protocol,
     int Port, string RemotePath, string LogonType, bool DeleteSourceFile, string SHAFingerPrint)
         {
             try
@@ -177,10 +177,15 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var pRemotePath = new SqlParameter("@RemotePath", RemotePath);
                 var pSHAFingerPrint = new SqlParameter("@SHAFingerPrint", SHAFingerPrint);
 
-                var result = await _context.Set<JsonResults>().FromSqlRaw("Pro_Save_Company_FTP @CompanyID,@HostName,@UserName,@Protocol,@SecurityKey,@LogonType,@Port,@DeleteSourceFile,@RemotePath,@SHAFingerPrint",
-                                    pCompanyId, pHostName, pUserName, pProtocol, pSecurityKey, pLogonType, pPort, pDeleteSourceFile, pRemotePath, pSHAFingerPrint).FirstOrDefaultAsync();
-              
-                    return result.ResultID;
+                var result =  _context.Set<Result>().FromSqlRaw("exec Pro_Save_Company_FTP @CompanyID,@HostName,@UserName,@Protocol,@SecurityKey,@LogonType,@Port,@DeleteSourceFile,@RemotePath,@SHAFingerPrint",
+                                    pCompanyId, pHostName, pUserName, pProtocol, pSecurityKey, pLogonType, pPort, pDeleteSourceFile, pRemotePath, pSHAFingerPrint).AsEnumerable();
+                
+                if (result != null)
+                {
+                    var intResult = result.FirstOrDefault();
+                    return intResult;
+                }
+                return null;
                 
             }
             catch (Exception ex)
@@ -275,7 +280,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 }
                await _context.SaveChangesAsync();
 
-                UpdateCascadingAsync(CompanyID);
+               await UpdateCascadingAsync(CompanyID);
             }
             catch (Exception ex)
             {
@@ -306,16 +311,16 @@ namespace CrisesControl.Infrastructure.Repositories {
                     var prioritytmpl = await _context.Set<PriorityMethod>().Where(PM=> PM.CompanyId == CompanyID ).ToListAsync();
                     if (PingPriority != null)
                     {
-                        prioritytmpl.Where(w => w.MessageType == Type && w.PriorityLevel == 100).Select(s => s).FirstOrDefault().Methods = string.Join(",", PingPriority.PriorityLow);
-                        prioritytmpl.Where(w => w.MessageType == Type && w.PriorityLevel == 500).Select(s => s).FirstOrDefault().Methods = string.Join(",", PingPriority.PriorityMed);
-                        prioritytmpl.Where(w => w.MessageType == Type && w.PriorityLevel == 999).Select(s => s).FirstOrDefault().Methods = string.Join(",", PingPriority.PriorityHigh);
+                        prioritytmpl.Where(w => w.MessageType == "Ping" && w.PriorityLevel == 100).Select(s => s).FirstOrDefault().Methods = string.Join(",", PingPriority.PriorityLow);
+                        prioritytmpl.Where(w => w.MessageType == "Ping" && w.PriorityLevel == 500).Select(s => s).FirstOrDefault().Methods = string.Join(",", PingPriority.PriorityMed);
+                        prioritytmpl.Where(w => w.MessageType == "Ping" && w.PriorityLevel == 999).Select(s => s).FirstOrDefault().Methods = string.Join(",", PingPriority.PriorityHigh);
                     }
 
                     if (IncidentPriority != null)
                     {
-                        prioritytmpl.Where(w => w.MessageType == Type && w.PriorityLevel == 100).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentPriority.PriorityLow);
-                        prioritytmpl.Where(w => w.MessageType == Type && w.PriorityLevel == 500).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentPriority.PriorityMed);
-                        prioritytmpl.Where(w => w.MessageType == Type && w.PriorityLevel == 999).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentPriority.PriorityHigh);
+                        prioritytmpl.Where(w => w.MessageType == "Incident" && w.PriorityLevel == 100).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentPriority.PriorityLow);
+                        prioritytmpl.Where(w => w.MessageType == "Incident" && w.PriorityLevel == 500).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentPriority.PriorityMed);
+                        prioritytmpl.Where(w => w.MessageType == "Incident" && w.PriorityLevel == 999).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentPriority.PriorityHigh);
                     }
 
                     if (IncidentSeverity != null)
@@ -326,7 +331,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         prioritytmpl.Where(w => w.MessageType == "IncidentSeverity" && w.PriorityLevel == 4).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentSeverity.Severity4);
                         prioritytmpl.Where(w => w.MessageType == "IncidentSeverity" && w.PriorityLevel == 5).Select(s => s).FirstOrDefault().Methods = string.Join(",", IncidentSeverity.Severity5);
                     }
-                    await _context.AddAsync(prioritytmpl);
+                   // _context.Update(prioritytmpl);
                    await _context.SaveChangesAsync();
                 }
 
@@ -343,7 +348,8 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-               await _context.Set<IntResult>().FromSqlRaw("exec Pro_Update_Cascading_Channel @CompanyID", pCompanyID).FirstOrDefaultAsync();
+             _context.Set<Result>().FromSqlRaw("exec Pro_Update_Cascading_Channel @CompanyID", pCompanyID).AsEnumerable();
+              
             }
             catch (Exception ex)
             {
@@ -356,7 +362,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-               await _context.Set<IntResult>().FromSqlRaw("exec Pro_Update_OffDuty @CompanyID", pCompanyID).FirstOrDefaultAsync();
+               await _context.Set<Result>().FromSqlRaw("exec Pro_Update_OffDuty @CompanyID", pCompanyID).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -399,7 +405,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 DateTimeOffset CreatedNow = DateTime.Now.GetDateTimeOffset( TimeZoneId);
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
                 var pCreatedNow = new SqlParameter("@CreatedOnOffset", CreatedNow);
-                await _context.Set<IntResult>().FromSqlRaw("Pro_DC_Global_Config @CompanyID, @CreatedOnOffset", pCompanyID, pCreatedNow).FirstOrDefaultAsync();
+                await _context.Set<Result>().FromSqlRaw("Pro_DC_Global_Config @CompanyID, @CreatedOnOffset", pCompanyID, pCreatedNow).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -411,7 +417,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-               await _context.Set<IntResult>().FromSqlRaw("Pro_DC_Ping @CompanyID", pCompanyID).FirstOrDefaultAsync();
+               await _context.Set<Result>().FromSqlRaw("Pro_DC_Ping @CompanyID", pCompanyID).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -424,7 +430,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-               await _context.Set<IntResult>().FromSqlRaw("Pro_DC_Active_Incident @CompanyID", pCompanyID).FirstOrDefaultAsync();
+               await _context.Set<Result>().FromSqlRaw("Pro_DC_Active_Incident @CompanyID", pCompanyID).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -577,7 +583,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyId", CompanyId);
-                var response = await _context.Set<JsonResults>().FromSqlRaw("Pro_Configure_SSO @CompanyId", pCompanyID).FirstOrDefaultAsync();
+                _context.Set<JsonResults>().FromSqlRaw("exec Pro_Configure_SSO @CompanyId", pCompanyID).AsEnumerable();
 
             }
             catch (Exception ex)
