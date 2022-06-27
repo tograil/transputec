@@ -107,7 +107,7 @@ namespace CrisesControl.Api.Controllers {
 
             return Ok(result);
         }
-        [HttpPost]
+        [HttpGet]
         [Route("GetCompanyParameterByName/{CustomerId}/{ParamName}")]
         public async Task<IActionResult> GetCompanyParameterByName([FromRoute] GetCompanyParameterByNameRequest request, CancellationToken cancellationToken)
         {
