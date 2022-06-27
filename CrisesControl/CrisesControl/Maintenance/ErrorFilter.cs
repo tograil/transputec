@@ -47,6 +47,14 @@ namespace CrisesControl.Api.Maintenance
                 {
                     StatusCode = StatusCodes.Status404NotFound
                 },
+                InvalidOperationException _invalidOperationException => new JsonResult(new ErrorData
+                {
+                    Message = _invalidOperationException.Message,
+                    UserId = _currentUser.UserId
+                })
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError
+                },
                 ErrorBaseException errorBaseException => new JsonResult(new ErrorData
                 {
                     CompanyId = errorBaseException.ErrorData.CompanyId,

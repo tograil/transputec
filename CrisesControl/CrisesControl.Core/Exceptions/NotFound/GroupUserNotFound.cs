@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Exceptions.NotFound
 {
-    public class RegisterNotFoundException: NotFoundBaseException
+    public class GroupUserNotFound : NotFoundRegisterException
     {
-        public RegisterNotFoundException(int regId, int userId) : base(regId,userId)
+        public GroupUserNotFound(int companyId, int userId)
+            : base(companyId, userId)
         {
 
         }
-        public override string Message => "Temp Registered not found";
+
+        public override string Message => "Group User not found";
     }
 }
