@@ -26,5 +26,6 @@ namespace CrisesControl.Core.Reports.Repositories
         List<TrackUsers> GetTrackingUsers(string status, int userId, int companyId);
         Task<List<TrackUserCount>> GetTrackingUserCount(int companyId);
         Task<dynamic> GetMessageDeliverySummary(int MessageID);
+        Task<List<IncidentMessagesRtn>> GetIndidentReportDetails(int IncidentActivationID, int CompanyID, int UserId);
     }
 }

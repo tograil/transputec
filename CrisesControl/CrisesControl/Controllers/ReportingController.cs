@@ -13,6 +13,7 @@ using CrisesControl.Api.Application.Query.Requests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentReportDetails;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -207,6 +208,13 @@ namespace CrisesControl.Api.Controllers
         {
             var result = await _mediator.Send(request, cancellationToken);
 
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetIndidentReportDetails/{IncidentActivationId}")]
+        public async Task<IActionResult> GetIndidentReportDetails([FromRoute] GetIndidentReportDetailsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 

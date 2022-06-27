@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using CrisesControl.Core.Exceptions.NotFound;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentReportDetails;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -205,6 +206,32 @@ namespace CrisesControl.Api.Application.Query
                 return new GetMessageDeliverySummaryResponse();
             }
 
+        }
+
+        public async Task<GetIndidentReportDetailsResponse> GetIndidentReportDetails(GetIndidentReportDetailsRequest request)
+        {
+            try
+            {
+                var messagesRtns = await _reportRepository.GetIndidentReportDetails(request.IncidentActivationId, _currentUser.CompanyId,_currentUser.UserId);
+                var response = _mapper.Map<List<IncidentMessagesRtn>>(messagesRtns);
+                var result = new GetIndidentReportDetailsResponse();
+                if (response != null)
+                {
+                    result.data = response;
+                    result.Message = "Data Loaded";
+                }
+                else
+                {
+                    result.data = response;
+                    result.Message = "No data found";
+                }
+               
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new ReportingNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+            }
         }
     }
 }

@@ -647,5 +647,37 @@ namespace CrisesControl.Infrastructure.Repositories
             throw new CompanyNotFoundException(companyId, UserID);
 
         }
+        public async Task<List<IncidentMessagesRtn>> GetIndidentReportDetails(int IncidentActivationID, int CompanyID, int UserId)
+        {
+            try
+            {
+
+                var pIncidentActivationID = new SqlParameter("@IncidentActivationID", IncidentActivationID);
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pUserID = new SqlParameter("@UserID", UserId);
+
+                var incimsgs = _context.Set<IncidentMessagesRtn>().FromSqlRaw("exec Pro_Get_Incident_Messages @IncidentActivationID, @CompanyID, @UserID",
+                  pIncidentActivationID, pCompanyID, pUserID)
+                  .ToList()
+                  .Select( c =>
+                  {
+                      c.SentBy = new UserFullName { Firstname = c.SentByFirst, Lastname = c.SentByLast };
+                      c.Notes =  _context.Set<IncidentTaskNote>()
+                                 .Where(N => N.ObjectId == IncidentActivationID && N.NoteType == "TASK"
+                                 || N.ObjectId == IncidentActivationID && N.NoteType == "INCIDENT" && c.MessageType == "Ping"
+                                 ).FirstOrDefault();
+                                 return c;
+                  }).ToList();                     
+               
+
+               
+                    return incimsgs;
+               
+            }
+            catch (Exception ex)
+            {
+                throw new ReportingNotFoundException(CompanyID, UserId);
+            }
+        }
     }
 }

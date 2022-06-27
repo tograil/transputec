@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetIndidentReportDetails;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
@@ -28,5 +29,6 @@ namespace CrisesControl.Api.Application.Query
         List<TrackUsers> GetTrackingUsers(string status, int userId, int companyId);
         Task<GetTrackingUserCountResponse> GetTrackingUserCount(GetTrackingUserCountRequest request);
         Task<GetMessageDeliverySummaryResponse> GetMessageDeliverySummary(GetMessageDeliverySummaryRequest request);
+        Task<GetIndidentReportDetailsResponse> GetIndidentReportDetails(GetIndidentReportDetailsRequest request);
     }
 }
