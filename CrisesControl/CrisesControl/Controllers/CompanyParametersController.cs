@@ -12,6 +12,7 @@ using CrisesControl.Api.Application.Commands.CompanyParameters.SaveParameter;
 using CrisesControl.Api.Application.Commands.CompanyParameters.UpdateCompanyParameters;
 using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SavePriority;
+using CrisesControl.Api.Application.Commands.CompanyParameters.GetCompanyParameterByName;
 
 namespace CrisesControl.Api.Controllers {
     [Route("api/[controller]")]
@@ -101,6 +102,14 @@ namespace CrisesControl.Api.Controllers {
         [HttpPost]
         [Route("SavePriority")]
         public async Task<IActionResult> SavePriority([FromBody] SavePriorityRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("GetCompanyParameterByName/{CustomerId}/{ParamName}")]
+        public async Task<IActionResult> GetCompanyParameterByName([FromRoute] GetCompanyParameterByNameRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 

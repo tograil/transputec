@@ -32,5 +32,6 @@ namespace CrisesControl.Core.CompanyParameters.Repositories
         Task<bool> SaveParameter(int ParameterID, string ParameterName, string ParameterValue, int CurrentUserID, int CompanyID, string TimeZoneId);
         Task<int> AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId);
         Task SetSSOParameters(int CompanyId);
+        
     }
 }

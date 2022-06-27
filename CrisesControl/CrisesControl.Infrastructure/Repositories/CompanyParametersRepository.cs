@@ -140,7 +140,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     var cmp = await _context.Set<Company>().Where(w => w.CustomerId == CustomerId).FirstOrDefaultAsync();
                     if (cmp != null)
                     {
-                        var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
+                        var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == cmp.CompanyId).FirstOrDefaultAsync();
                         if (LKP != null)
                         {
                             Default = LKP.Value;
