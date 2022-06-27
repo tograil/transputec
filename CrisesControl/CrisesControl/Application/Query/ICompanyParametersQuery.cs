@@ -8,6 +8,7 @@ using CrisesControl.Api.Application.Commands.CompanyParameters.SaveCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SaveParameter;
 using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SavePriority;
+using CrisesControl.Api.Application.Commands.CompanyParameters.AddCompanyParameter;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -21,5 +22,6 @@ namespace CrisesControl.Api.Application.Query
         Task<SaveParameterResponse> SaveParameter(SaveParameterRequest request);
         Task<DeleteCascadingResponse> DeleteCascading(DeleteCascadingRequest request);
         Task<SavePriorityResponse> SavePriority(SavePriorityRequest request);
+        Task<AddCompanyParameterResponse> AddCompanyParameter(AddCompanyParameterRequest request);
     }
 }
