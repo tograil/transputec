@@ -10,6 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 using CrisesControl.Api.Application.Commands.Companies.CheckCompany;
 using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
+using CrisesControl.Api.Application.Commands.Companies.GetSite;
+using CrisesControl.Api.Application.Commands.Companies.SaveSite;
+using CrisesControl.Api.Application.Commands.GetStarted;
+using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
+using CrisesControl.Api.Application.Commands.Companies.SaveSocialIntegration;
 
 namespace CrisesControl.Api.Controllers;
 
@@ -96,6 +101,46 @@ public class CompanyController : Controller
     [HttpGet]
     [Route("ViewCompany/{CompanyId}")]
     public async Task<IActionResult> ViewCompany([FromRoute] ViewCompanyRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("GetSite/{SiteId}/{CompanyId}")]
+    public async Task<IActionResult> GetSite([FromRoute] GetSiteRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpPost]
+    [Route("SaveSite")]
+    public async Task<IActionResult> SaveSite([FromBody] SaveSiteRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("GetStarted/{CompanyId}")]
+    public async Task<IActionResult> GetStarted([FromRoute] GetStartedRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("GetSocialIntegration/{CompanyID}/{AccountType}")]
+    public async Task<IActionResult> GetSocialIntegration([FromRoute] GetSocialIntegrationRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpPost]
+    [Route("SaveSocialIntegration")]
+    public async Task<IActionResult> SaveSocialIntegrationRequest([FromBody] SaveSocialIntegrationRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
 

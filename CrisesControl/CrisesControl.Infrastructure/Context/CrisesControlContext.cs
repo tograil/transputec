@@ -125,6 +125,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CommsStatus>().HasNoKey();
             modelBuilder.Entity<LibIncident>().HasNoKey();
             modelBuilder.Entity<CompanyUser>().HasNoKey().Ignore("UserName");
+            modelBuilder.Entity<GetCompanyDataResponse>().HasNoKey();
            
 
 
