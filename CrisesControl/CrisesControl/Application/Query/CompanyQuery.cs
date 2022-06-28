@@ -4,6 +4,8 @@ using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
+using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
+using CrisesControl.Api.Application.Commands.Companies.SaveSite;
 using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.ViewModels.Company;
@@ -12,6 +14,7 @@ using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
+using CrisesControl.SharedKernel.Utils;
 
 namespace CrisesControl.Api.Application.Query;
 
@@ -22,10 +25,11 @@ public class CompanyQuery : ICompanyQuery {
     private readonly ICurrentUser _currentUser;
 
     public CompanyQuery(ICompanyRepository companyRepository, IMapper mapper,
-        ILogger<CompanyQuery> logger, IAddressRepository addressRepository) {
+        ILogger<CompanyQuery> logger, ICurrentUser currentUser) {
         _mapper = mapper;
         _companyRepository = companyRepository;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     public async Task<IEnumerable<CompanyInfo>> GetCompanyList(int? status, string? companyProfile) {
@@ -198,6 +202,81 @@ public class CompanyQuery : ICompanyQuery {
         catch (Exception ex)
         {
             throw new CompanyNotFoundException(request.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<SaveSiteResponse> SaveSite(SaveSiteRequest request)
+    {
+        try
+        {
+            var response = new SaveSiteResponse();
+            DateTimeOffset CRTime = DateTime.Now.GetDateTimeOffset( _currentUser.TimeZone);
+            if (request.SiteID > 0)
+            {
+                var site = await _companyRepository.GetCompanySiteById(request.SiteID,request.CompanyID);
+                if (site != null)
+                {
+                    site.SiteName = request.SiteName;
+                    site.SiteCode = request.SiteCode;
+                    site.UpdatedOn = CRTime;
+                    site.UpdatedBy = _currentUser.UserId;
+                    site.Status = request.Status;
+                    var SiteID = await _companyRepository.SaveSite(site);
+                    
+                    response.SiteId = SiteID;
+                    response.Message = "Updated Site";
+                   
+                }
+            }
+            else
+            {
+                Site ST = new Site();
+                ST.CompanyId = request.CompanyID;
+                ST.SiteName = request.SiteName;
+                ST.SiteCode = request.SiteCode;
+                ST.Status = request.Status;
+                ST.CreatedBy = _currentUser.UserId;
+                ST.CreatedOn = CRTime;
+                ST.UpdatedBy = _currentUser.UserId;
+                ST.UpdatedOn = CRTime;
+                var SiteID = await _companyRepository.SaveSite(ST);
+
+                response.SiteId = SiteID;
+                response.Message = "Added Successfull";
+               
+            }
+            return response;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<GetSocialIntegrationResponse> GetSocialIntegration(GetSocialIntegrationRequest request)
+    {
+        try
+        {
+            var socials = await _companyRepository.GetSocialIntegration(request.CompanyID, request.AccountType);
+            var result = _mapper.Map<List<SocialIntegraion>>(socials);
+            var response = new GetSocialIntegrationResponse();
+            if (result != null)
+            {
+                response.Data = result;
+                response.Message = "Socials has been Found";
+
+            }
+            else
+            {
+
+                response.Message = "No record found.";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
         }
     }
 }

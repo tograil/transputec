@@ -3,6 +3,8 @@ using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
+using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
+using CrisesControl.Api.Application.Commands.Companies.SaveSite;
 using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
 using CrisesControl.Api.Application.ViewModels.Company;
 using CrisesControl.Core.Models;
@@ -18,4 +20,6 @@ public interface ICompanyQuery
     Task<DeleteCompanyResponse> DeleteCompany(DeleteCompanyRequest request);
     Task<ViewCompanyResponse> ViewCompany(ViewCompanyRequest request);
     Task<GetSiteResponse> GetSite(GetSiteRequest request);
+    Task<SaveSiteResponse> SaveSite(SaveSiteRequest request);
+    Task<GetSocialIntegrationResponse> GetSocialIntegration(GetSocialIntegrationRequest request);
 }

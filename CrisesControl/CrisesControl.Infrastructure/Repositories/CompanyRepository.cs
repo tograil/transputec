@@ -424,6 +424,79 @@ public class CompanyRepository : ICompanyRepository
         }
     }
 
+    public async Task<int> SaveSite(Site site)
+    {
+        await _context.AddAsync(site);
+
+        await _context.SaveChangesAsync();
+
+
+        _logger.LogInformation($"Added new site {site.SiteId}");
+
+        return site.SiteId;
+    }
+    public async Task<Site> GetCompanySiteById(int SiteID, int CompanyID)
+    {
+       var site= await _context.Set<Site>().Where(S=> S.SiteId == SiteID && S.CompanyId == CompanyID ).FirstOrDefaultAsync();
+        return site;
+    }
+    public async Task<GetCompanyDataResponse> GetStarted(int CompanyID)
+    {
+
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+           var data=await _context.Set<GetCompanyDataResponse>().FromSqlRaw("exec Pro_Company_GetCompanyData @CompanyID", pCompanyID).FirstOrDefaultAsync();
+            return data;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<SocialIntegraion>> GetSocialIntegration(int CompanyID, string AccountType)
+    {
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pAccountType = new SqlParameter("@AccountType", AccountType);
+
+            var result = await _context.Set<SocialIntegraion>().FromSqlRaw("EXEC Pro_Get_Social_Integration @CompanyID, @AccountType", pCompanyID, pAccountType).ToListAsync();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return null;
+        }
+    }
+    public async Task<bool> SaveSocialIntegration(string AccountName, string AccountType, string AuthSecret, string AdnlKeyOne, string AuthToken, string AdnlKeyTwo,int CompanyId, string TimeZoneId, int userId)
+    {
+        try
+        {
+
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+            var pAccountName = new SqlParameter("@AccountName", AccountName);
+            var pAccountType = new SqlParameter("@AccountType", AccountType);
+            var pAuthToken = new SqlParameter("@AuthToken", AuthToken);
+            var pAuthSecret = new SqlParameter("@AuthSecret", AuthSecret);
+            var pAdnlKeyOne = new SqlParameter("@AdnlKeyOne", AdnlKeyOne);
+            var pAdnlKeyTwo = new SqlParameter("@AdnlKeyTwo", AdnlKeyTwo);
+            DateTimeOffset CreatedNow = DateTime.Now.GetDateTimeOffset( TimeZoneId);
+            var pCreatedNow = new SqlParameter("@UpdatedOn", CreatedNow);
+            var pUpdatedBy = new SqlParameter("@UpdatedBy",userId );
+
+            _context.Set<SocialIntegraion>().FromSqlRaw(" exec Pro_Save_Social_Integration @CompanyID, @AccountName, @AccountType, @AuthToken, @AuthSecret, @AdnlKeyOne, @AdnlKeyTwo, @UpdatedOn, @UpdatedBy",
+                pCompanyID, pAccountName, pAccountType, pAuthToken, pAuthSecret, pAdnlKeyOne, pAdnlKeyTwo, pCreatedNow, pUpdatedBy);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return false;
+        }
+    }
+
     public async Task<List<Site>> GetSites(int CompanyID)
     {
         var sites = await _context.Set<Site>().Where(S => S.CompanyId == CompanyID).ToListAsync();

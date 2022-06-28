@@ -131,12 +131,15 @@ app.MapControllers();
 
 
 
-await using (var scope = app.Services.CreateAsyncScope()) {
+await using (var scope = app.Services.CreateAsyncScope())
+{
 
     var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
 
-    if (await manager.FindByNameAsync("api") is null) {
-        await manager.CreateAsync(new OpenIddictScopeDescriptor {
+    if (await manager.FindByNameAsync("api") is null)
+    {
+        await manager.CreateAsync(new OpenIddictScopeDescriptor
+        {
             Name = "api",
             Resources =
             {
