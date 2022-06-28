@@ -55,4 +55,5 @@ public interface IIncidentRepository
     Task ProcessKeyholders(int CompanyId, int IncidentId, int CurrentUserId, int[] Keyholders);
     Task<int> ActivateSampleIncident(int UserID, int CompanyID, string TimeZoneID);
     Task<int> CreateSOSIncident(int UserID, int CompanyID, string TimeZoneID);
+    Task CheckSOSIncident(int CompanyID, int UserID, string TimeZoneID);
 }
