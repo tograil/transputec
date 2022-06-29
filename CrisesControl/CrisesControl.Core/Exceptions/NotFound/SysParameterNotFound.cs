@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Exceptions.NotFound
 {
-    public class RegisterNotFoundException: NotFoundBaseException
+    public class SysParameterNotFound : NotFoundRegisterException
     {
-        public RegisterNotFoundException(int regId, int userId) : base(regId,userId)
+        public SysParameterNotFound(int companyId, int userId)
+            : base(companyId, userId)
         {
 
         }
-        public override string Message => "Temp Registered not found";
+
+        public override string Message => "System Parameter not found";
     }
 }

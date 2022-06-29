@@ -9,16 +9,27 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Linq;
+using CrisesControl.Core.Exceptions.NotFound;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
+using CrisesControl.Core.Exceptions.InvalidOperation;
+using System.Text.RegularExpressions;
 
 namespace CrisesControl.Api.Application.Helpers
 {
     public class DBCommon
     {
         private readonly CrisesControlContext _context;
+        private int userId;
+        private int companyId;
+        private readonly string timeZoneId = "GMT Standard Time";
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public DBCommon(CrisesControlContext context)
+        public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         }
 
         public StringBuilder ReadHtmlFile(string fileCode, string source, int companyId, out string subject, string provider = "AWSSES")
@@ -110,22 +121,15 @@ namespace CrisesControl.Api.Application.Helpers
             }
             catch (Exception ex)
             {
-                return Default;
+                throw new SysParameterNotFound(companyId, userId);
             }
         }
 
         public string UserName(UserFullName strUserName)
         {
-            try
+            if (strUserName != null)
             {
-                if (strUserName != null)
-                {
-                    return strUserName.Firstname + " " + strUserName.Lastname;
-                }
-            }
-            catch (Exception ex)
-            {
-                //Todo:
+                return strUserName.Firstname + " " + strUserName.Lastname;
             }
             return "";
         }
@@ -184,8 +188,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
             catch (Exception ex)
             {
-                //ToDo:
-                return Default;
+                throw new CompanyParameterNotFoundException(companyId, userId);
             }
         }
 
@@ -231,8 +234,6 @@ namespace CrisesControl.Api.Application.Helpers
 
         public DateTimeOffset GetDateTimeOffset(DateTime crTime, string timeZoneId = "GMT Standard Time")
         {
-            try
-            {
                 if (crTime.Year <= 2000)
                     return crTime;
 
@@ -249,18 +250,10 @@ namespace CrisesControl.Api.Application.Helpers
                 DateTimeOffset convertedtime = newvals.ToOffset(offset);
 
                 return convertedtime;
-            }
-            catch (Exception ex)
-            {
-                //TODO: throw exception
-                throw ex;
-            }
         }
 
         public DateTime GetLocalTime(string timeZoneId, DateTime? paramTime = null)
         {
-            try
-            {
                 if (string.IsNullOrEmpty(timeZoneId))
                     timeZoneId = "GMT Standard Time";
 
@@ -274,11 +267,6 @@ namespace CrisesControl.Api.Application.Helpers
                 retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
 
                 return retDate;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
         }
 
         public void CreateObjectRelationship(int targetObjectId, int sourceObjectId, string relationName, int companyId, int createdUpdatedBy, string timeZoneId, string relatinFilter = "")
@@ -306,7 +294,7 @@ namespace CrisesControl.Api.Application.Helpers
                         {
                             if (relationName.ToUpper() == "GROUP")
                             {
-                                newSourceObjectId = _context.Set<Group>().Where(t=>t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t=>t.GroupId).FirstOrDefault();
+                                newSourceObjectId = _context.Set<Core.Groups.Group>().Where(t=>t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t=>t.GroupId).FirstOrDefault();
                             }
                             else if (relationName.ToUpper() == "LOCATION")
                             {
@@ -321,8 +309,8 @@ namespace CrisesControl.Api.Application.Helpers
                     UpdateUserDepartment(targetObjectId, sourceObjectId, createdUpdatedBy, companyId, timeZoneId);
                 }
             }
-            catch (Exception ex) { 
-                throw ex; //ToDo:throw exception
+            catch (Exception ex) {
+                throw new RelationNameNotFoundException(companyId, userId);
             }
         }
 
@@ -341,8 +329,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
             catch (Exception ex)
             {
-                throw ex;
-                //ToDo: throw exception
+                throw new UserNotFoundException(companyId, userId);
             }
         }
         public void CreateNewObjectRelation(int sourceObjectId, int targetObjectId, int objMapId, int createdUpdatedBy, string timeZoneId, int companyId)
@@ -372,8 +359,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
             catch (Exception ex)
             {
-                throw ex;
-                //ToDo: throw exception
+                throw new DuplicateEntryException("Dublicate Object Relation");
             }
         }
 
@@ -392,8 +378,79 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex)
             {
                 throw ex;
-                //todo: throw exception
             }
         }
+
+        public DateTimeOffset ConvertToLocalTime(string timezoneId, DateTimeOffset paramTime)
+        {
+            try
+            {
+                DateTimeOffset retDate = paramTime.ToUniversalTime();
+
+                DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
+
+                DateTime timeUtc = DateTime.UtcNow;
+
+                TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+                retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
+
+                return retDate;
+            }
+            catch (Exception ex) { throw ex; }
+            return DateTime.Now;
+        }
+        //Todo: implement this based on the scheduler
+        public void DeleteScheduledJob(string jobName, string group)
+        {
+            //try
+            //{
+            //    ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+            //    IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+            //    _scheduler.DeleteJob(new JobKey(JobName, Group));
+            //}
+            //catch (Exception ex)
+            //{
+            //    catchException(ex);
+            //}
+        }
+
+        public string GetTimeZoneVal(int UserId)
+        {
+            try
+            {
+                string tmpZoneVal = "GMT Standard Time";
+                var userInfo = (from U in _context.Set<User>()
+                                join C in _context.Set<Company>() on U.CompanyId equals C.CompanyId
+                                join T in _context.Set<StdTimeZone>() on C.TimeZone equals T.TimeZoneId
+                                where U.UserId == UserId
+                                select new
+                                {
+                                    UserTimezone = T.ZoneLabel
+                                }).FirstOrDefault();
+                if (userInfo != null)
+                {
+                    tmpZoneVal = userInfo.UserTimezone;
+                }
+
+                return tmpZoneVal;
+            }
+            catch (Exception ex) {
+                throw new UserNotFoundException(companyId, userId);
+            }
+            return "GMT Standard Time";
+        }
+
+        public string Left(string str, int lngth, int stpoint = 0)
+        {
+            return str.Substring(stpoint, Math.Min(str.Length, lngth));
+        }
+
+        public string FixMobileZero(string strNumber)
+        {
+            strNumber = (strNumber == null) ? string.Empty : Regex.Replace(strNumber, @"\D", string.Empty);
+            strNumber = Left(strNumber, 1) == "0" ? Left(strNumber, strNumber.Length - 1, 1) : strNumber;
+            return strNumber;
+        }
+
     }
 }
