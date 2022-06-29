@@ -14,6 +14,19 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentReportDetails;
+using CrisesControl.Api.Application.Commands.Reports.GetUserReportPiechartData;
+using CrisesControl.Api.Application.Commands.Reports.GetUserIncidentReport;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentReport;
+using CrisesControl.Api.Application.Commands.Reports.GetGroupPingReportChart;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentUserMessage;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentStats;
+using CrisesControl.Api.Application.Commands.Reports.GetPerformanceReport;
+using CrisesControl.Api.Application.Commands.Reports.GetPerformanceReportByGroup;
+using CrisesControl.Api.Application.Commands.Reports.GetResponseCoordinates;
+using CrisesControl.Api.Application.Commands.Reports.GetTrackingData;
+using CrisesControl.Api.Application.Commands.Reports.GetTaskPerformance;
+using CrisesControl.Api.Application.Commands.Reports.GetFailedTasks;
+using CrisesControl.Api.Application.Commands.Reports.GetFailedAttempts;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -213,6 +226,97 @@ namespace CrisesControl.Api.Controllers
         [HttpGet]
         [Route("GetIndidentReportDetails/{IncidentActivationId}")]
         public async Task<IActionResult> GetIndidentReportDetails([FromRoute] GetIndidentReportDetailsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetUserReportPiechartData/{StartDate}/{EndDate}")]
+        public async Task<IActionResult> GetUserReportPiechartData([FromRoute] GetUserReportPiechartDataRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetUserIncidentReport/{StartDate}/{EndDate}")]
+        public async Task<IActionResult> GetUserIncidentReport([FromRoute] GetUserIncidentReportRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetIncidentReport/{StartDate}/{EndDate}")]
+        public async Task<IActionResult> GetIncidentReport([FromRoute] GetIncidentReportRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetGroupPingReportChart/{StartDate}/{EndDate}/{GroupID}")]
+        public async Task<IActionResult> GetGroupPingReportChart([FromRoute] GetGroupPingReportChartRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetIncidentUserMessage/{IncidentActivationId}")]
+        public async Task<IActionResult> GetIncidentUserMessage([FromRoute] GetIncidentUserMessageRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetIncidentStats/{IncidentActivationId}")]
+        public async Task<IActionResult> GetIncidentStats([FromRoute] GetIncidentStatsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetPerformanceReport/{StartDate}/{EndDate}")]
+        public async Task<IActionResult> GetPerformanceReport([FromRoute] GetPerformanceReportRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetPerformanceReportByGroup/{IsThisWeek}/{IsThisMonth}/{IsLastMonth}/{MessageType}/{GroupName}/{GroupType}/{StartDate}/{EndDate}")]
+        public async Task<IActionResult> GetPerformanceReportByGroup([FromRoute] GetPerformanceReportByGroupRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetResponseCoordinates/{MessageId}")]
+        public async Task<IActionResult> GetResponseCoordinates([FromRoute] GetResponseCoordinatesRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetTrackingData/{TrackMeID}/{UserDeviceID}/{StartDate}/{EndDate}")]
+        public async Task<IActionResult> GetTrackingData([FromRoute] GetTrackingDataRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetTaskPerformance/{IsThisWeek}/{IsThisMonth}/{IsLastMonth}/{startDate}/{EndDate}")]
+        public async Task<IActionResult> GetTaskPerformance([FromRoute] GetTaskPerformanceRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetFailedTasks/{IsThisWeek}/{IsThisMonth}/{IsLastMonth}/{startDate}/{EndDate}/{RangeMax}/{RangeMin}/{ReportType}/{Search}/{dir}")]
+        public async Task<IActionResult> GetFailedTasks([FromRoute] GetFailedTasksRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetFailedAttempts/{MessageListID}/{CommsMethod}")]
+        public async Task<IActionResult> GetFailedAttempts([FromRoute] GetFailedAttemptsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

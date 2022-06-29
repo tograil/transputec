@@ -27,5 +27,25 @@ namespace CrisesControl.Core.Reports.Repositories
         Task<List<TrackUserCount>> GetTrackingUserCount(int companyId);
         Task<dynamic> GetMessageDeliverySummary(int MessageID);
         Task<List<IncidentMessagesRtn>> GetIndidentReportDetails(int IncidentActivationID, int CompanyID, int UserId);
+        Task<DataTablePaging> GetIncidentReport(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate, int SelectedUserID, int CompanyId);
+        Task<List<UserPieChart>> GetUserReportPiechartData(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate, int SelectedUserID, int CompanyId);
+        Task<IEnumerable<UserIncidentReportResponse>> GetUserIncidentReport(DateTimeOffset startDate, DateTimeOffset endDate, bool isThisWeek, bool isThisMonth, bool isLastMonth, int companyId);
+        void GetStartEndDate(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, ref DateTime stDate, ref DateTime enDate, DateTimeOffset StartDate, DateTimeOffset EndDate);
+        Task<List<PingGroupChartCount>> GetPingReportAnalysis(int MessageID, string MessageType, int _CompanyID);
+        Task<List<IncidentUserMessageResponse>> GetIncidentUserMessage(int IncidentActivationId, int SelectedUserId, int CompanyID);
+        Task<IncidentStatsResponse> GetIncidentStats(int IncidentActivationId, int CompanyId);
+        Task<List<PerformanceReport>> GetPerformanceReport(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, bool ShowDeletedGroups, int CurrentUserId, int CompanyId, DateTimeOffset StartDate, DateTimeOffset EndDate, string MessageType);
+        Task<List<PingReportGrid>> GetPerformanceReport(DateTime StartDate, DateTime EndDate, string MessageType, int companyId, string GroupName = "", string GroupType = "", int FilterUser = 0,
+                int DrillOpt = 0, int RecordStart = 0, int RecordLength = 100, string SearchString = "", string OrderBy = "DateSent", string OrderDir = "desc", string CompanyKey = "");
+        Task<List<PingReportGrid>> GetPerformanceReportByGroup(DateTime StartDate, DateTime EndDate, string MessageType, int _CompanyID, string GroupName = "", string GroupType = "", int DrillOpt = 0,
+            int RecordStart = 0, int RecordLength = 100, string SearchString = "", string OrderBy = "DateSent", string OrderDir = "desc", string CompanyKey = "");
+        Task<DataTablePaging> GetPerformanceReportByGroup(int draw, bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, int CompanyId, int start, int length, string search, string orderby, string dir, int FilterUser, string MessageType, string GroupName, string GroupType, int DrillOpt, DateTimeOffset StartDate, DateTimeOffset EndDate, string CompanyKey = "");
+        Task<DataTablePaging> GetResponseCoordinates(int start, int length, int MessageId);
+        Task<List<TrackingExport>> GetTrackingData(int TrackMeID, int UserDeviceID, DateTimeOffset StartDate, DateTimeOffset EndDate);
+        Task<TaskPerformance> GetTaskPerformance(int companyId, bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate);
+        Task<FailedTaskReport> GetFailedTasks(string ReportType, int companyId, bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate);
+        Task<List<FailedTaskList>> GetFailedTaskList(string ReportType, int RangeMin, int RangeMax, DateTime stDate, DateTime enDate, int RecordStart, int RecordLength,
+            string SearchString, string OrderBy, string OrderDir, string CompanyKey, int _CompanyID);
+        Task<List<DeliveryOutput>> GetFailedAttempts(int MessageListID, string CommsMethod);
     }
 }

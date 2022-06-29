@@ -12,20 +12,27 @@ using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Reports.SP_Response;
-using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
-using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
-
-using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
-using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.Compatibility;
-using CrisesControl.Api.Maintenance.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentReportDetails;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentReport;
+using CrisesControl.Api.Application.Commands.Reports.GetUserReportPiechartData;
+using CrisesControl.Api.Application.Commands.Reports.GetUserIncidentReport;
+using CrisesControl.Api.Application.Commands.Reports.GetGroupPingReportChart;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentUserMessage;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentStats;
+using CrisesControl.Api.Application.Commands.Reports.GetPerformanceReport;
+using CrisesControl.SharedKernel.Utils;
+using CrisesControl.Api.Application.Commands.Reports.GetPerformanceReportByGroup;
+using CrisesControl.Api.Application.Commands.Reports.GetResponseCoordinates;
+using CrisesControl.Api.Application.Commands.Reports.GetTrackingData;
+using CrisesControl.Api.Application.Commands.Reports.GetTaskPerformance;
+using CrisesControl.Api.Application.Commands.Reports.GetFailedTasks;
+using CrisesControl.Api.Application.Commands.Reports.GetFailedAttempts;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -231,6 +238,392 @@ namespace CrisesControl.Api.Application.Query
             catch (Exception ex)
             {
                 throw new ReportingNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+            }
+        }
+        public async Task<GetIncidentReportResponse> GetIncidentReport(GetIncidentReportRequest request)
+        {
+            try
+            {
+                var messagesRtns = await _reportRepository.GetIncidentReport(request.IsThisWeek, request.IsThisMonth, request.IsLastMonth, request.StartDate, request.EndDate, _currentUser.UserId, _currentUser.CompanyId); ;
+                var response = _mapper.Map<DataTablePaging>(messagesRtns);
+                var result = new GetIncidentReportResponse();
+                if (response != null)
+                {
+                    result.data = response;
+                    result.Message = "Data Loaded";
+                }
+                else
+                {
+                    result.data = response;
+                    result.Message = "No data found";
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new ReportingNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+            }
+        }
+
+        public async Task<GetUserReportPiechartDataResponse> GetUserReportPiechartData(GetUserReportPiechartDataRequest request)
+        {
+            try
+            {
+                var messagesRtns = await _reportRepository.GetUserReportPiechartData(request.IsThisWeek, request.IsThisMonth, request.IsLastMonth, request.StartDate, request.EndDate,_currentUser.UserId, _currentUser.CompanyId);
+                var response = _mapper.Map<List<UserPieChart>>(messagesRtns);
+                var result = new GetUserReportPiechartDataResponse();
+                if (response != null)
+                {
+                    result.data = response;
+                    result.Message = "Data Loaded";
+                }
+                else
+                {
+                    result.data = response;
+                    result.Message = "No data found";
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new ReportingNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+            }
+        }
+
+        public async Task<GetUserIncidentReportResponse> GetUserIncidentReport(GetUserIncidentReportRequest request)
+        {
+            try
+            {
+                var messagesRtns = await _reportRepository.GetUserIncidentReport(request.StartDate, request.EndDate,request.IsThisWeek, request.IsThisMonth, request.IsLastMonth,_currentUser.UserId);
+                var response = _mapper.Map<UserIncidentReportResponse>(messagesRtns);
+                var result = new GetUserIncidentReportResponse();
+                if (response != null)
+                {
+                    result.data = response;
+                    result.Message = "Data Loaded";
+                }
+                else
+                {
+                    result.data = response;
+                    result.Message = "No data found";
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new ReportingNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+            }
+        }
+
+        public async Task<GetGroupPingReportChartResponse> GetGroupPingReportChart(GetGroupPingReportChartRequest request)
+        {
+            try
+            {
+                DateTime stDate = DateTime.Now;
+                DateTime enDate = DateTime.Now;
+                int FilterRelation = request.FilterRelation;
+
+                _reportRepository.GetStartEndDate(request.IsThisWeek, request.IsThisMonth, request.IsLastMonth, ref stDate, ref enDate, request.StartDate, request.EndDate);
+
+               
+                List<PingGroupChartCount> result = await _reportRepository.GetPingReportChart(stDate, enDate, request.FilterRelation, "PING", request.ObjectMappingID);
+
+                var results = _mapper.Map<PingGroupChartCount>(result);
+                var response = new GetGroupPingReportChartResponse();
+                if (result != null)
+                {
+                    int PingMinLimit = Convert.ToInt32(await _reportRepository.GetCompanyParameter("MIN_PING_KPI", _currentUser.CompanyId));
+                    int PingMaxLimit = Convert.ToInt32(await _reportRepository.GetCompanyParameter("MAX_PING_KPI", _currentUser.CompanyId));
+
+                    var mainresult = result.FirstOrDefault();
+                    mainresult.KPILimit = PingMinLimit;
+                    mainresult.KPIMaxLimit = PingMaxLimit;
+                    response.data = mainresult;
+                    response.Message = "Data loaded";
+                }
+                else
+                {
+                    response.data = results;
+                    response.Message = "No data found";
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw new ReportingNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+            }
+        }
+
+        public async Task<GetIncidentUserMessageResponse> GetIncidentUserMessage(GetIncidentUserMessageRequest request)
+        {
+            try
+            {
+                var messagesRtns = await _reportRepository.GetIncidentUserMessage(request.IncidentActivationId, _currentUser.UserId, _currentUser.CompanyId);
+                var response = _mapper.Map<List<IncidentUserMessageResponse>>(messagesRtns);
+                var result = new GetIncidentUserMessageResponse();
+                if (response != null)
+                {
+                    result.data = response;
+                    result.Message = "Data Loaded";
+                }
+                else
+                {
+                    result.data = response;
+                    result.Message = "No data found";
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetIncidentStatsResponse> GetIncidentStats(GetIncidentStatsRequest request)
+        {
+            try
+            {
+                var messagesRtns = await _reportRepository.GetIncidentStats(request.IncidentActivationId, _currentUser.CompanyId);
+                var response = _mapper.Map<IncidentStatsResponse>(messagesRtns);
+                var result = new GetIncidentStatsResponse();
+                if (response != null)
+                {
+                    result.Data = response;
+                    result.Message = "Data Loaded";
+                }
+                else
+                {
+                    result.Data = response;
+                    result.Message = "No data found";
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetPerformanceReportResponse> GetPerformanceReport(GetPerformanceReportRequest request)
+        {
+            try
+            {
+                var performances = await _reportRepository.GetPerformanceReport(request.IsThisWeek,request.IsThisMonth,request.IsLastMonth,request.ShowDeletedGroups,_currentUser.UserId, _currentUser.CompanyId,request.StartDate, request.EndDate,request.GroupType.ToDbMethodString());
+                var result = _mapper.Map<PerformanceReport>(performances);
+                var response = new GetPerformanceReportResponse();
+                if (result != null)
+                {
+                    response.Data = performances;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Data = performances;
+                    response.Message = "No data found";
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetPerformanceReportByGroupResponse> GetPerformanceReportByGroup(GetPerformanceReportByGroupRequest request)
+        {
+            try
+            {
+    
+                var dataTable = await _reportRepository.GetPerformanceReportByGroup(request.draw, request.IsThisWeek, request.IsThisMonth, request.IsLastMonth, _currentUser.CompanyId,_paging.PageNumber,_paging.PageSize,request.SearchString,_paging.OrderBy,"asc", _currentUser.UserId,request.MessageType.ToDbMethodString(),request.GroupName, request.GroupType.ToGrString(),request.DrillOpt,  request.StartDate, request.EndDate, request.CompanyKey);
+                var result = _mapper.Map<DataTablePaging>(dataTable);
+                var response = new GetPerformanceReportByGroupResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Message = "No data found";
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetResponseCoordinatesResponse> GetResponseCoordinates(GetResponseCoordinatesRequest request)
+        {
+            try
+            {
+                var coordinates = await _reportRepository.GetResponseCoordinates(_paging.PageNumber, _paging.PageSize, request.MessageId);
+                var result = _mapper.Map<DataTablePaging>(coordinates);
+                var response = new GetResponseCoordinatesResponse();
+                if (result != null)
+                {
+                    response.Data = coordinates;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Data = coordinates;
+                    response.Message = "No data found";
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTrackingDataResponse> GetTrackingData(GetTrackingDataRequest request)
+        {
+            try
+            {
+                var track = await _reportRepository.GetTrackingData(request.TrackMeID, request.UserDeviceID, request.StartDate, request.EndDate);
+                var result = _mapper.Map<List<TrackingExport>>(track);
+                var response = new GetTrackingDataResponse();
+                if (result != null)
+                {
+                    response.Data = track;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Data = track;
+                    response.Message = "No data found";
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTaskPerformanceResponse> GetTaskPerformance(GetTaskPerformanceRequest request)
+        {
+            try
+            {
+                var TaskReport = await _reportRepository.GetTaskPerformance(_currentUser.CompanyId,request.IsThisWeek, request.IsThisMonth, request.IsLastMonth,request.startDate,request.EndDate);
+               
+                var response = new GetTaskPerformanceResponse();
+                if (TaskReport != null)
+                {
+                    var AcceptFailed = await _reportRepository.GetFailedTasks("Accept", _currentUser.CompanyId, request.IsThisWeek, request.IsThisMonth, request.IsLastMonth, request.startDate, request.EndDate);
+                    var CompleteFailed = await _reportRepository.GetFailedTasks("Completion", _currentUser.CompanyId, request.IsThisWeek, request.IsThisMonth, request.IsLastMonth, request.startDate, request.EndDate);
+                    response.Data = TaskReport;
+                    response.failedTask = AcceptFailed;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Data = TaskReport;
+                    response.Message = "No data found";
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetFailedTasksResponse> GetFailedTasks(GetFailedTasksRequest request)
+        {
+            try
+            {
+                DateTime stDate = DateTime.Now;
+                DateTime enDate = DateTime.Now;
+                _reportRepository.GetStartEndDate(request.IsThisWeek, request.IsThisMonth, request.IsLastMonth, ref stDate, ref enDate, request.startDate, request.EndDate);
+                var response = new GetFailedTasksResponse();
+
+                var RecordStart = _paging.PageNumber == 0 ? 0 : _paging.PageNumber;
+                var RecordLength = _paging.PageSize == 0 ? int.MaxValue : _paging.PageSize;
+                var SearchString = (request.Search != null) ? request.Search.ToString() :string.Empty;
+                string OrderBy = _paging.OrderBy != null ? _paging.OrderBy.FirstOrDefault().ToString() : "TaskActivationDate";
+                string OrderDir = request.dir != null ? request.dir.FirstOrDefault().ToString() : "desc";
+
+                if (request.RangeMax == -1)
+                    request.RangeMax = int.MaxValue;
+
+                int totalRecord = 0;
+                DataTablePaging rtn = new DataTablePaging();
+                rtn.Draw = request.draw;
+                var TaskReport = await _reportRepository.GetFailedTaskList(request.ReportType, request.RangeMin, request.RangeMax, stDate, enDate, RecordStart, RecordLength,
+                       SearchString, OrderBy, OrderDir, request.CompanyKey, _currentUser.CompanyId);
+
+                if (TaskReport != null)
+                {
+                    totalRecord = TaskReport.Count;
+                    rtn.RecordsFiltered = TaskReport.Count;
+                    rtn.Data = TaskReport;
+                }
+                var TotalList =await _reportRepository.GetFailedTaskList(request.ReportType, request.RangeMin, request.RangeMax, stDate, enDate, 0, int.MaxValue,
+                       "", "TaskActivationDate", "asc", request.CompanyKey, _currentUser.CompanyId);
+                if (TotalList != null)
+                {
+                    totalRecord = TotalList.Count;
+                }
+
+                rtn.RecordsTotal = totalRecord;
+                if (rtn.Data != null)
+                {
+                    response.Data = rtn;
+                    response.Message = "Data has been Loaded";
+                }
+                else
+                {
+                    response.Data = rtn;
+                    response.Message = "No record found.";
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetFailedAttemptsResponse> GetFailedAttempts(GetFailedAttemptsRequest request)
+        {
+            try
+            {
+                var track = await _reportRepository.GetFailedAttempts(request.MessageListID, request.CommsMethod);
+                var result = _mapper.Map<List<DeliveryOutput>>(track);
+                var response = new GetFailedAttemptsResponse();
+                if (result != null)
+                {
+                    response.Data = track;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Data = track;
+                    response.Message = "No data found";
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
     }
