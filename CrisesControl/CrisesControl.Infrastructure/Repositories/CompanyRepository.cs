@@ -502,4 +502,135 @@ public class CompanyRepository : ICompanyRepository
             return false;
         }
     }
+    public async Task<CompanyCommunication> GetCompanyComms(int CompanyID, int UserID)
+    {
+
+        try
+        {
+            var t_bill_users = await GetCompanyParameter("BILLING_USERS", CompanyID);
+            var billUsers = new object();
+            
+            if (!string.IsNullOrEmpty(t_bill_users))
+            {
+                List<int> uids = t_bill_users.Split(',').Select(int.Parse).ToList();
+                 billUsers = await _context.Set<User>()
+                              .Where(U=> uids.Contains(U.UserId) && U.Status == 1)
+                              .Select(U=> new { U.UserId, UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName } }).ToListAsync();
+            }
+
+            var URole =await _context.Set<User>().Where(w => w.UserId == UserID).Select(s => s.UserRole).FirstOrDefaultAsync();
+            string HasLowBalance = await CheckFunds(CompanyID, URole);
+            var ObjectInfo = await _context.Set<CompanyComm>().Include(CC => CC.CommsMethod)
+                            .Where(CC => CC.CompanyId == CompanyID)
+                            .Select(CC => new
+                                   {
+                                        CC.MethodId,
+                                        CC.ServiceStatus,
+                                        CC.Status,
+                                        CC.CommsMethod.MethodName
+                                    }).FirstOrDefaultAsync();
+            var Priority = await _context.Set<PriorityInterval>().Where(PR=> PR.CompanyId == CompanyID).OrderBy(o => o.MessageType).ThenBy(t => t.Priority).ToListAsync();
+
+            var PriorityMethod =await _context.Set<PriorityMethod>().Where(PM=> PM.CompanyId == CompanyID).OrderBy(PM=> PM.PriorityLevel).ToListAsync();
+            CompanyCommunication comms = new CompanyCommunication();
+
+            comms.BillUsers = billUsers;
+            comms.HasLowBalance = HasLowBalance;
+            comms.MethodId = ObjectInfo.MethodId;
+            comms.MethodName = ObjectInfo.MethodName;
+            comms.ServiceStatus = ObjectInfo.ServiceStatus;
+            comms.Status = ObjectInfo.Status;
+            comms.Priority = Priority;
+            comms.PriorityMethod = PriorityMethod;
+            
+
+            return comms;
+           
+           
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<ReplyChannel> GetReplyChannel(int CompanyID, int UserID)
+    {
+        try
+        {
+            var t_reply_channel = await GetCompanyParameter("DEFAULT_REPLY_CHANNEL", CompanyID);
+            //var ObjectInfo = new object();
+
+            ReplyChannel channel = new ReplyChannel();
+
+            if (!string.IsNullOrEmpty(t_reply_channel))
+            {
+                List<int> methodid = t_reply_channel.Split(',').Select(int.Parse).ToList();
+             
+             var ObjectInfo = await _context.Set<CompanyComm>().Include(CC => CC.CommsMethod)
+                            .Where(CC=>CC.CompanyId == CompanyID && methodid.Contains(CC.MethodId)).Select(CC => new
+                            {
+                                CC.MethodId,
+                                CC.ServiceStatus,
+                                CC.Status,
+                                CC.CommsMethod.MethodName
+                            }).FirstOrDefaultAsync();
+
+                channel.Status = ObjectInfo.Status;
+                channel.MethodId = ObjectInfo.MethodId;
+                channel.MethodName = ObjectInfo.MethodName;
+                channel.ServiceStatus = ObjectInfo.ServiceStatus;
+
+
+
+            }
+
+            var URole = await _context.Set<User>().Where(w => w.UserId == UserID).Select(s => s.UserRole).FirstOrDefaultAsync();
+            string HasLowBalance = await CheckFunds(CompanyID, URole);
+            channel.HasLowBalance = HasLowBalance;
+
+
+
+
+            return channel;
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<string> CheckFunds(int CompanyID, string UserRole)
+    {
+        string ErrorCode = "";
+        try
+        {
+            string WarningRole = await GetCompanyParameter("SHOW_LOW_BALANCE_WARNING_TO", CompanyID);
+
+            if (UserRole == "USER" && WarningRole == "KEYHOLDER")
+            {
+                return ErrorCode;
+            }
+
+            var cpp = await _context.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == CompanyID).FirstOrDefaultAsync();
+            if (cpp != null)
+            {
+                if (cpp.CreditBalance < -cpp.CreditLimit)
+                {
+                    ErrorCode = "E1001";
+                }
+                else if ((cpp.CreditBalance < 0 && cpp.CreditBalance >= (-cpp.CreditLimit)) ||
+                  (cpp.CreditBalance < cpp.MinimumBalance))
+                {
+                    ErrorCode = "E1002";
+                }
+            }
+            return ErrorCode;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        
+    }
 }

@@ -30,5 +30,7 @@ public interface ICompanyRepository
     Task<GetCompanyDataResponse> GetStarted(int CompanyID);
     Task<List<SocialIntegraion>> GetSocialIntegration(int CompanyID, string AccountType);
     Task<bool> SaveSocialIntegration(string AccountName, string AccountType, string AuthSecret, string AdnlKeyOne, string AuthToken, string AdnlKeyTwo, int CompanyId, string TimeZoneId, int userId);
-
+    Task<string> CheckFunds(int CompanyID, string UserRole);
+    Task<ReplyChannel> GetReplyChannel(int CompanyID, int UserID);
+    Task<CompanyCommunication> GetCompanyComms(int CompanyID, int UserID);
 }
