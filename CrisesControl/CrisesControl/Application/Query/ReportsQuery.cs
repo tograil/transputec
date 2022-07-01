@@ -33,6 +33,18 @@ using CrisesControl.Api.Application.Commands.Reports.GetTrackingData;
 using CrisesControl.Api.Application.Commands.Reports.GetTaskPerformance;
 using CrisesControl.Api.Application.Commands.Reports.GetFailedTasks;
 using CrisesControl.Api.Application.Commands.Reports.GetFailedAttempts;
+using CrisesControl.Api.Application.Commands.Reports.DownloadDeliveryReport;
+using CrisesControl.Api.Application.Commands.Reports.GetUndeliveredMessage;
+using CrisesControl.Api.Application.Commands.Reports.OffDutyReport;
+using CrisesControl.Api.Application.Commands.Reports.ExportAcknowledgement;
+using CrisesControl.Api.Application.Commands.Reports.NoAppUser;
+using CrisesControl.Api.Application.Commands.Reports.IncidentResponseSummary;
+using CrisesControl.Api.Application.Commands.Reports.IncidentResponseSummaries;
+using CrisesControl.Api.Application.Commands.Reports.IncidentResponseDump;
+using System.Data;
+using CrisesControl.Api.Application.Commands.Reports.AppInvitation;
+using CrisesControl.Api.Application.Commands.Reports.GetPingReportAnalysis;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageAnslysisResponse;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -297,16 +309,16 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                 var messagesRtns = await _reportRepository.GetUserIncidentReport(request.StartDate, request.EndDate,request.IsThisWeek, request.IsThisMonth, request.IsLastMonth,_currentUser.UserId);
-                var response = _mapper.Map<UserIncidentReportResponse>(messagesRtns);
+              
                 var result = new GetUserIncidentReportResponse();
-                if (response != null)
+                if (messagesRtns != null)
                 {
-                    result.data = response;
+                    result.data = messagesRtns;
                     result.Message = "Data Loaded";
                 }
                 else
                 {
-                    result.data = response;
+                    result.data = messagesRtns;
                     result.Message = "No data found";
                 }
 
@@ -414,8 +426,8 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var performances = await _reportRepository.GetPerformanceReport(request.IsThisWeek,request.IsThisMonth,request.IsLastMonth,request.ShowDeletedGroups,_currentUser.UserId, _currentUser.CompanyId,request.StartDate, request.EndDate,request.GroupType.ToDbMethodString());
-                var result = _mapper.Map<PerformanceReport>(performances);
+                var performances = await _reportRepository.GetPerformanceReport(request.IsThisWeek,request.IsThisMonth,request.IsLastMonth,request.ShowDeletedGroups,_currentUser.UserId, _currentUser.CompanyId,request.StartDate, request.EndDate,request.GroupType.ToGrString());
+                var result = _mapper.Map<List<PerformanceReport>>(performances);
                 var response = new GetPerformanceReportResponse();
                 if (result != null)
                 {
@@ -606,7 +618,7 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                 var track = await _reportRepository.GetFailedAttempts(request.MessageListID, request.CommsMethod);
-                var result = _mapper.Map<List<DeliveryOutput>>(track);
+                var result = _mapper.Map<List<FailedAttempts>>(track);
                 var response = new GetFailedAttemptsResponse();
                 if (result != null)
                 {
@@ -617,6 +629,323 @@ namespace CrisesControl.Api.Application.Query
                 {
                     response.Data = track;
                     response.Message = "No data found";
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<DownloadDeliveryReportResponse> DownloadDeliveryReport(DownloadDeliveryReportRequest request)
+        {
+            try
+            {
+                var track = await _reportRepository.DownloadDeliveryReport(_currentUser.CompanyId,request.MessageID, _currentUser.UserId);
+                var result = _mapper.Map<string>(track);
+                var response = new DownloadDeliveryReportResponse();
+                if (!string.IsNullOrEmpty(result))
+                {
+                    response.FileName = result;
+                  
+                }
+                else
+                {
+                    response.FileName = result;
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetUndeliveredMessageResponse> GetUndeliveredMessage(GetUndeliveredMessageRequest request)
+        {
+            try
+            {
+                var RecordStart = _paging.PageNumber == 0 ? 0 : _paging.PageNumber;
+                var RecordLength = _paging.PageSize == 0 ? int.MaxValue : _paging.PageSize;
+                var SearchString = (request.search != null) ? request.search : string.Empty;
+                string OrderBy = _paging.OrderBy != null ? _paging.OrderBy.FirstOrDefault().ToString() : "MT.MessageListID";
+                string OrderDir = request.orderDir != null ? request.orderDir.FirstOrDefault().ToString() : "desc";
+
+                int totalRecord = 0;
+                DataTablePaging rtn = new DataTablePaging();
+                rtn.Draw = request.Draw;
+
+                var Report = await _reportRepository.GetUndeliveredMessage(request.MessageID, request.CommsMethod, request.CountryCode, request.ReportType, RecordStart, RecordLength,
+                        SearchString, OrderBy, OrderDir, request.CompanyKey);
+
+                if (Report != null)
+                {
+                    totalRecord = Report.Count;
+                    rtn.RecordsFiltered = Report.Count;
+                    rtn.Data = Report;
+                }
+
+                var TotalList = await _reportRepository.GetUndeliveredMessage(request.MessageID, request.CommsMethod, request.CountryCode, request.ReportType, 0, int.MaxValue, "", "MT.MessageListID", "asc", request.CompanyKey);
+
+                if (TotalList != null)
+                {
+                    totalRecord = TotalList.Count;
+                }
+
+                rtn.RecordsTotal = totalRecord;
+
+
+                var result = _mapper.Map<List<DeliveryOutput>>(Report);
+                var response = new GetUndeliveredMessageResponse();
+                if (rtn.Data!=null)
+                {
+                    response.Data = rtn;
+
+                }
+                else
+                {
+                    response.Data = rtn;
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<OffDutyReportResponse> OffDutyReport(OffDutyReportRequest request)
+        {
+            try
+            {
+                var offDuty = await _reportRepository.OffDutyReport(request.CompanyId,  _currentUser.UserId);
+                var result = _mapper.Map<List<UserItems>>(offDuty);
+                var response = new OffDutyReportResponse();
+                if (result!=null)
+                {
+                    response.Data = result;
+
+                }
+                else
+                {
+                    response.Data = result;
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<ExportAcknowledgementResponse> ExportAcknowledgement(ExportAcknowledgementRequest request)
+        {
+            try
+            {
+                var exportReport = await _reportRepository.ExportAcknowledgement(request.MessageId, _currentUser.CompanyId, _currentUser.UserId, request.CompanyKey);
+                var result = _mapper.Map<string>(exportReport); 
+                var response = new ExportAcknowledgementResponse();
+                if (string.IsNullOrEmpty(result))
+                {
+                    response.FileName = result;
+
+                }
+                else
+                {
+                    response.FileName = result;
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<NoAppUserResponse> NoAppUser(NoAppUserRequest request)
+        {
+            try
+            {
+                var RecordStart = _paging.PageNumber == 0 ? 0 : _paging.PageNumber;
+                var RecordLength = _paging.PageSize == 0 ? int.MaxValue : _paging.PageSize;
+                var SearchString = (request.search != null) ? request.search : string.Empty;
+                string OrderBy = _paging.OrderBy != null ? _paging.OrderBy.FirstOrDefault().ToString() : "U.UserId";
+                string OrderDir = request.orderDir != null ? request.orderDir.FirstOrDefault().ToString() : "desc";
+
+                int totalRecord = 0;
+                DataTablePaging rtn = new DataTablePaging();
+                rtn.Draw = request.Draw;
+
+                var Report = await _reportRepository.NoAppUser(request.CompanyId, request.MessageID, RecordStart, RecordLength, SearchString, OrderBy, OrderDir, request.CompanyKey); 
+
+                if (Report != null)
+                {
+                    totalRecord = Report.Count();
+                    rtn.RecordsFiltered = Report.Count();
+                    rtn.Data = Report;
+                }
+
+                var TotalList = await _reportRepository.NoAppUser(request.CompanyId, request.MessageID, 0, int.MaxValue, "", "U.UserId", "asc", request.CompanyKey);
+
+                if (TotalList != null)
+                {
+                    totalRecord = TotalList.Count();
+                }
+
+                rtn.RecordsTotal = totalRecord;
+
+
+                var result = _mapper.Map<DataTablePaging>(rtn);
+                var response = new NoAppUserResponse();
+                if (rtn.Data != null)
+                {
+                    response.Data = rtn;
+
+                }
+                else
+                {
+                    response.Data = rtn;
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<IncidentResponseSummaryResponse> IncidentResponseSummary(IncidentResponseSummaryRequest request)
+        {
+            try
+            {
+                var exportReport = await _reportRepository.IncidentResponseSummary(request.ActiveIncidentID);
+                var result = _mapper.Map<List<IncidentResponseSummary>>(exportReport);
+                var response = new IncidentResponseSummaryResponse();
+                if (result!=null)
+                {
+                    response.Data = result;
+
+                }
+                else
+                {
+                    response.Data = result;
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<IncidentResponseDumpResponse> IncidentResponseDump(IncidentResponseDumpRequest request)
+        {
+            try
+            {
+                string rFilePath = string.Empty;
+                string rFileName = string.Empty;
+                DataTable dataTable = _reportRepository.GetReportData(request.IncidentActivationId, out rFilePath, out rFileName);
+                
+                var result = _mapper.Map<DataTable>(dataTable);
+                var response = new IncidentResponseDumpResponse();
+                var data = await _reportRepository.ToCSVHighPerformance(result, true, ",");
+                using (StreamWriter SW = new StreamWriter(rFilePath, false))
+                {
+                    SW.Write(data);
+                }
+                if (data != null)
+                {
+                    response.filename = rFileName;
+
+                }
+                else
+                {
+                    response.filename = rFileName;
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<AppInvitationResponse> AppInvitation(AppInvitationRequest request)
+        {
+            try
+            {
+               await Task.Factory.StartNew(async () => await _reportRepository.AppInvitation(request.CompanyId));
+              
+                var response = new AppInvitationResponse();
+                 response.isAppInvited = true;
+              
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetPingReportAnalysisResponse> PingReportAnalysis(GetPingReportAnalysisRequest request)
+        {
+            try
+            {
+                DateTime stDate = DateTime.Now;
+                DateTime enDate = DateTime.Now;
+                List<PingReport> result =await _reportRepository.GetPingReportAnalysis(request.MessageId, request.MessageType.ToDbString(), _currentUser.CompanyId);
+
+                var response = new GetPingReportAnalysisResponse();
+               
+                if (result != null)
+                {
+                    int PingMinLimit = Convert.ToInt32(await _reportRepository.GetCompanyParameter("MIN_PING_KPI", _currentUser.CompanyId));
+
+                    int PingMaxLimit = Convert.ToInt32(await _reportRepository.GetCompanyParameter("MAX_PING_KPI", _currentUser.CompanyId));
+
+                    var mainresult = result.FirstOrDefault();
+                    mainresult.KPILimit = PingMinLimit;
+                    mainresult.KPIMaxLimit = PingMaxLimit;
+                    response.Data = mainresult;
+                    response.Message = "No record found.";
+
+                }
+                else
+                {
+                    response.Data =new PingReport();
+                    response.Message = "No record found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async  Task<GetMessageAnslysisResponseResponse> GetMessageAnslysisResponse(GetMessageAnslysisResponseRequest request)
+        {
+            try
+            {
+                var exportReport = await _reportRepository.GetMessageAnslysisResponse(_currentUser.CompanyId,request.MessageId, request.MessageType.ToDbString(),request.DrillOpt, _paging.PageNumber, _paging.PageSize, request.Search,_paging.OrderBy,request.orderDir,request.CompanyKey, request.Draw);
+                var result = _mapper.Map<DataTablePaging>(exportReport);
+                var response = new GetMessageAnslysisResponseResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+
+                }
+                else
+                {
+                    response.Data = result;
                 }
 
                 return response;

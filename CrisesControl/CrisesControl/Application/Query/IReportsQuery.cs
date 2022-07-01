@@ -1,4 +1,7 @@
-﻿using CrisesControl.Api.Application.Commands.Reports.GetFailedAttempts;
+﻿using CrisesControl.Api.Application.Commands.Reports.AppInvitation;
+using CrisesControl.Api.Application.Commands.Reports.DownloadDeliveryReport;
+using CrisesControl.Api.Application.Commands.Reports.ExportAcknowledgement;
+using CrisesControl.Api.Application.Commands.Reports.GetFailedAttempts;
 using CrisesControl.Api.Application.Commands.Reports.GetFailedTasks;
 using CrisesControl.Api.Application.Commands.Reports.GetGroupPingReportChart;
 using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
@@ -8,17 +11,25 @@ using CrisesControl.Api.Application.Commands.Reports.GetIncidentUserMessage;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentReportDetails;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageAnslysisResponse;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
 using CrisesControl.Api.Application.Commands.Reports.GetPerformanceReport;
 using CrisesControl.Api.Application.Commands.Reports.GetPerformanceReportByGroup;
+using CrisesControl.Api.Application.Commands.Reports.GetPingReportAnalysis;
 using CrisesControl.Api.Application.Commands.Reports.GetResponseCoordinates;
 using CrisesControl.Api.Application.Commands.Reports.GetSOSItems;
 using CrisesControl.Api.Application.Commands.Reports.GetTaskPerformance;
 using CrisesControl.Api.Application.Commands.Reports.GetTrackingData;
 using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
+using CrisesControl.Api.Application.Commands.Reports.GetUndeliveredMessage;
 using CrisesControl.Api.Application.Commands.Reports.GetUserIncidentReport;
 using CrisesControl.Api.Application.Commands.Reports.GetUserReportPiechartData;
+using CrisesControl.Api.Application.Commands.Reports.IncidentResponseDump;
+using CrisesControl.Api.Application.Commands.Reports.IncidentResponseSummaries;
+using CrisesControl.Api.Application.Commands.Reports.IncidentResponseSummary;
+using CrisesControl.Api.Application.Commands.Reports.NoAppUser;
+using CrisesControl.Api.Application.Commands.Reports.OffDutyReport;
 using CrisesControl.Api.Application.Commands.Reports.ResponsesSummary;
 using CrisesControl.Api.Application.Query.Requests;
 using CrisesControl.Core.Compatibility;
@@ -56,5 +67,16 @@ namespace CrisesControl.Api.Application.Query
         Task<GetTaskPerformanceResponse> GetTaskPerformance(GetTaskPerformanceRequest request);
         Task<GetFailedTasksResponse> GetFailedTasks(GetFailedTasksRequest request);
         Task<GetFailedAttemptsResponse> GetFailedAttempts(GetFailedAttemptsRequest request);
+        Task<DownloadDeliveryReportResponse> DownloadDeliveryReport(DownloadDeliveryReportRequest request);
+        Task<GetUndeliveredMessageResponse> GetUndeliveredMessage(GetUndeliveredMessageRequest request);
+        Task<OffDutyReportResponse> OffDutyReport(OffDutyReportRequest request);
+        Task<ExportAcknowledgementResponse> ExportAcknowledgement(ExportAcknowledgementRequest request);
+        Task<NoAppUserResponse> NoAppUser(NoAppUserRequest request);
+        Task<IncidentResponseSummaryResponse> IncidentResponseSummary(IncidentResponseSummaryRequest request);
+        Task<IncidentResponseDumpResponse> IncidentResponseDump(IncidentResponseDumpRequest request);
+        Task<AppInvitationResponse> AppInvitation(AppInvitationRequest request);
+        Task<GetPingReportAnalysisResponse> PingReportAnalysis(GetPingReportAnalysisRequest request);
+        Task<GetMessageAnslysisResponseResponse> GetMessageAnslysisResponse(GetMessageAnslysisResponseRequest request);
+        
     }
 }

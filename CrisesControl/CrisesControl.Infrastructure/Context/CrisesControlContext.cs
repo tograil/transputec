@@ -133,9 +133,23 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
             modelBuilder.Entity<PriorityMethod>().HasNoKey();
             modelBuilder.Entity<IncidentMessagesRtn>().HasNoKey();
-
-
-
+            modelBuilder.Entity<UserPieChart>().HasNoKey();
+            modelBuilder.Entity<UserIncidentReportResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentUserMessageResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentStatsResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentStat>().HasNoKey();
+            modelBuilder.Entity<PerformanceReport>().HasNoKey();
+            modelBuilder.Entity<PingReportGrid>().HasNoKey();
+            modelBuilder.Entity<ResponseCordinates>().HasNoKey();
+            modelBuilder.Entity<TrackingExport>().HasNoKey();
+            modelBuilder.Entity<TaskPerformance>().HasNoKey();
+            modelBuilder.Entity<FailedTaskReport>().HasNoKey();
+            modelBuilder.Entity<FailedTaskList>().HasNoKey();
+            modelBuilder.Entity<UserItems>().HasNoKey();
+            modelBuilder.Entity<IncidentResponseSummary>().HasNoKey();
+            modelBuilder.Entity<FailedAttempts>().HasNoKey();
+            modelBuilder.Entity<DeliveryDetails>().HasNoKey();
+            modelBuilder.Entity<PingReport>().HasNoKey();
 
 
             //modelBuilder.Entity<Location>().HasNoKey();

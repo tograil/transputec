@@ -2,6 +2,7 @@
 using CrisesControl.Core.Reports.SP_Response;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Reports.Repositories
@@ -29,9 +30,9 @@ namespace CrisesControl.Core.Reports.Repositories
         Task<List<IncidentMessagesRtn>> GetIndidentReportDetails(int IncidentActivationID, int CompanyID, int UserId);
         Task<DataTablePaging> GetIncidentReport(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate, int SelectedUserID, int CompanyId);
         Task<List<UserPieChart>> GetUserReportPiechartData(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate, int SelectedUserID, int CompanyId);
-        Task<IEnumerable<UserIncidentReportResponse>> GetUserIncidentReport(DateTimeOffset startDate, DateTimeOffset endDate, bool isThisWeek, bool isThisMonth, bool isLastMonth, int companyId);
+        Task<List<UserIncidentReportResponse>> GetUserIncidentReport(DateTimeOffset startDate, DateTimeOffset endDate, bool isThisWeek, bool isThisMonth, bool isLastMonth, int SelectedUserID);
         void GetStartEndDate(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, ref DateTime stDate, ref DateTime enDate, DateTimeOffset StartDate, DateTimeOffset EndDate);
-        Task<List<PingGroupChartCount>> GetPingReportAnalysis(int MessageID, string MessageType, int _CompanyID);
+        Task<List<PingReport>> GetPingReportAnalysis(int MessageID, string MessageType, int _CompanyID);
         Task<List<IncidentUserMessageResponse>> GetIncidentUserMessage(int IncidentActivationId, int SelectedUserId, int CompanyID);
         Task<IncidentStatsResponse> GetIncidentStats(int IncidentActivationId, int CompanyId);
         Task<List<PerformanceReport>> GetPerformanceReport(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, bool ShowDeletedGroups, int CurrentUserId, int CompanyId, DateTimeOffset StartDate, DateTimeOffset EndDate, string MessageType);
@@ -46,6 +47,21 @@ namespace CrisesControl.Core.Reports.Repositories
         Task<FailedTaskReport> GetFailedTasks(string ReportType, int companyId, bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate);
         Task<List<FailedTaskList>> GetFailedTaskList(string ReportType, int RangeMin, int RangeMax, DateTime stDate, DateTime enDate, int RecordStart, int RecordLength,
             string SearchString, string OrderBy, string OrderDir, string CompanyKey, int _CompanyID);
-        Task<List<DeliveryOutput>> GetFailedAttempts(int MessageListID, string CommsMethod);
+        Task<List<FailedAttempts>> GetFailedAttempts(int MessageListID, string CommsMethod);
+        Task<List<DeliveryDetails>> GetMessageDeliveryDetails(int CompanyID, int MessageID, int UserID);
+        Task<string> DownloadDeliveryReport(int CompanyID, int MessageID, int UserID);
+        Task<List<DeliveryOutput>> GetUndeliveredMessage(int MessageID, string CommsMethod, string CountryCode, string ReportType, int RecordStart, int RecordLength,
+            string SearchString, string OrderBy, string OrderDir, string CompanyKey);
+        Task<List<DeliveryOutput>> NoAppUser(int CompanyID, int MessageID, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir, string CompanyKey);
+        Task<List<UserItems>> OffDutyReport(int CompanyId, int UserID);
+        Task<string> ExportAcknowledgement(int MessageID, int CompanyID, int UserID, string CompanyKey);
+        Task<List<IncidentResponseSummary>> IncidentResponseSummary(int ActiveIncidentID);
+        DataTable GetReportData(int ActiveIncidentID, out string rFilePath, out string rFileName);
+        Task<bool> connectUNCPath(string UNCPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "");
+        Task AppInvitation(int CompanyID);
+        Task<string> ToCSVHighPerformance(DataTable dataTable, bool includeHeaderAsFirstRow = true, string separator = ",");
+        Task<DataTablePaging> GetMessageAnslysisResponse(int companyId, int MessageId, string MessageType, int DrillOpt, int start, int length, string search, string orderBy, string orderDir, string CompanyKey, int draw);
+        Task<List<PingReportGrid>> GetMessageAnalysis(int _CompanyID, int MessageId, string MessageType, int DrillOpt, int RecordStart, int RecordLength, string SearchString,
+            string OrderBy, string OrderDir, string CompanyKey);
     }
 }

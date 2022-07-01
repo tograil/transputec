@@ -27,6 +27,15 @@ using CrisesControl.Api.Application.Commands.Reports.GetTrackingData;
 using CrisesControl.Api.Application.Commands.Reports.GetTaskPerformance;
 using CrisesControl.Api.Application.Commands.Reports.GetFailedTasks;
 using CrisesControl.Api.Application.Commands.Reports.GetFailedAttempts;
+using CrisesControl.Api.Application.Commands.Reports.DownloadDeliveryReport;
+using CrisesControl.Api.Application.Commands.Reports.GetUndeliveredMessage;
+using CrisesControl.Api.Application.Commands.Reports.OffDutyReport;
+using CrisesControl.Api.Application.Commands.Reports.ExportAcknowledgement;
+using CrisesControl.Api.Application.Commands.Reports.NoAppUser;
+using CrisesControl.Api.Application.Commands.Reports.IncidentResponseSummary;
+using CrisesControl.Api.Application.Commands.Reports.GetMessageAnslysisResponse;
+using CrisesControl.Api.Application.Commands.Reports.GetPingReportAnalysis;
+using CrisesControl.Api.Application.Commands.Reports.AppInvitation;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -317,6 +326,69 @@ namespace CrisesControl.Api.Controllers
         [HttpGet]
         [Route("GetFailedAttempts/{MessageListID}/{CommsMethod}")]
         public async Task<IActionResult> GetFailedAttempts([FromRoute] GetFailedAttemptsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("DownloadDeliveryReport/{MessageID}")]
+        public async Task<IActionResult> DownloadDeliveryReport([FromRoute] DownloadDeliveryReportRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetUndeliveredMessage/{MessageID}/{CommsMethod}/{CountryCode}/{ReportType}/{CompanyKey}/{search}/{orderDir}/{Draw}")]
+        public async Task<IActionResult> GetUndeliveredMessage([FromRoute] GetUndeliveredMessageRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("OffDutyReport/{CompanyId}")]
+        public async Task<IActionResult> OffDutyReport([FromRoute] OffDutyReportRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("ExportAcknowledgement/{MessageId}/{CompanyKey}")]
+        public async Task<IActionResult> ExportAcknowledgement([FromRoute] ExportAcknowledgementRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("NoAppUser/{CompanyId}/{MessageID}/{CompanyKey}/{search}/{orderDir}/{Draw}")]
+        public async Task<IActionResult> NoAppUser([FromRoute] NoAppUserRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("IncidentResponseSummary/{ActiveIncidentID}")]
+        public async Task<IActionResult> IncidentResponseSummary([FromRoute] IncidentResponseSummaryRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetMessageAnslysisResponse/{MessageId}/{DrillOpt}/{Search}/{orderDir}/{Draw}/{CompanyKey}")]
+        public async Task<IActionResult> NoAppUser([FromRoute] GetMessageAnslysisResponseRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("PingReportAnalysis/{MessageId}/{MessageType}")]
+        public async Task<IActionResult> PingReportAnalysis([FromRoute] GetPingReportAnalysisRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("AppInvitation/{CompanyId}")]
+        public async Task<IActionResult> AppInvitation([FromRoute] AppInvitationRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
