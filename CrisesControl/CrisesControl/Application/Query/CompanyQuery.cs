@@ -3,6 +3,7 @@ using CrisesControl.Api.Application.Commands.Companies.CheckCompany;
 using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyComms;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
 using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
 using CrisesControl.Api.Application.Commands.Companies.SaveSite;
@@ -261,6 +262,33 @@ public class CompanyQuery : ICompanyQuery {
             {
 
                 response.Message = "No record found.";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<GetCompanyCommsResponse> GetCompanyComms(GetCompanyCommsRequest request)
+    {
+        try
+        {
+            var comms = await _companyRepository.GetCompanyComms(_currentUser.CompanyId, _currentUser.UserId);
+            var result = _mapper.Map<CompanyCommunication>(comms);
+            var response = new GetCompanyCommsResponse();
+            if (result != null)
+            {
+                response.Comms = result;
+               
+
+            }
+            else
+            {
+
+                response.Comms = result;
             }
             return response;
 

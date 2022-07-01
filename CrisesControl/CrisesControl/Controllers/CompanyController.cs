@@ -15,6 +15,7 @@ using CrisesControl.Api.Application.Commands.Companies.SaveSite;
 using CrisesControl.Api.Application.Commands.GetStarted;
 using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
 using CrisesControl.Api.Application.Commands.Companies.SaveSocialIntegration;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyComms;
 
 namespace CrisesControl.Api.Controllers;
 
@@ -141,6 +142,14 @@ public class CompanyController : Controller
     [HttpPost]
     [Route("SaveSocialIntegration")]
     public async Task<IActionResult> SaveSocialIntegrationRequest([FromBody] SaveSocialIntegrationRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("GetCompanyComms")]
+    public async Task<IActionResult> GetCompanyComms([FromRoute] GetCompanyCommsRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
 

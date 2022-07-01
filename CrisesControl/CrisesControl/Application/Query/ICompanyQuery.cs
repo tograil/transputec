@@ -2,6 +2,7 @@
 using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyComms;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
 using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
 using CrisesControl.Api.Application.Commands.Companies.SaveSite;
@@ -22,4 +23,5 @@ public interface ICompanyQuery
     Task<GetSiteResponse> GetSite(GetSiteRequest request);
     Task<SaveSiteResponse> SaveSite(SaveSiteRequest request);
     Task<GetSocialIntegrationResponse> GetSocialIntegration(GetSocialIntegrationRequest request);
+    Task<GetCompanyCommsResponse> GetCompanyComms(GetCompanyCommsRequest request);
 }
