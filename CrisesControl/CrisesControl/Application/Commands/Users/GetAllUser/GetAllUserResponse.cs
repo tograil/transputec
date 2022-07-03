@@ -1,8 +1,8 @@
 ﻿using CrisesControl.Api.Application.Commands.Users.GetUser;
 
-namespace CrisesControl.Api.Application.Commands.Users.GetUsers
+namespace CrisesControl.Api.Application.Commands.Users.GetAllUser
 {
-    public class GetUsersResponse
+    public class GetAllUserResponse
     {
         public List<GetUserResponse> Data { get; set; }
     }
