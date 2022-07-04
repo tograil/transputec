@@ -46,4 +46,5 @@ public interface IUserRepository
     Task<string> SendInvites(CancellationToken cancellationToken);
     Task<IEnumerable<UserDeviceListModel>> GetAllOneUserDeviceList(int quiredUserId, CancellationToken cancellationToken);
     Task<bool> DeleteUserDevice(int userDeviceId, CancellationToken cancellationToken);
+    void UpdateUserComms(int companyId, int userId, int createdUpdatedBy, string timeZoneId = "GMT Standard Time", string pingMethods = "", string incidentMethods = "", bool isNewUser = false, CancellationToken cancellationToken = default);
 }

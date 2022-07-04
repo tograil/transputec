@@ -135,6 +135,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<PriorityMethod>().HasNoKey();
             modelBuilder.Entity<CompanyCommunication>().HasNoKey();
             modelBuilder.Entity<ReplyChannel>().HasNoKey();
+            modelBuilder.Entity<CompanyAccount>().HasNoKey();
 
 
 
