@@ -51,28 +51,30 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpPost]
-        [Route("[action]")]
-        public async Task<IActionResult> Index([FromForm] GetAllUserRequest request, CancellationToken cancellationToken)
+        [Route("GetAllUser")]
+        public async Task<IActionResult> GetAllUser([FromForm] GetAllUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetUsers(request, cancellationToken);
             return Ok(result);
         }
 
         [HttpGet]
-        [Route("{CompanyId:int}/{UserId:int}")]
+        [Route("GetUser/{CompanyId:int}/{UserId:int}")]
         public async Task<IActionResult> GetUser([FromRoute] GetUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetUser(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet("ValidateLoginEmail")]
+        [HttpGet]
+        [Route("ValidateLoginEmail")]
         public async Task<IActionResult> ValidateLoginEmail([FromQuery] ValidateEmailRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 
-        [HttpPost("getUserInfo")]
+        [HttpPost]
+        [Route("GetLoggedinUserInfo")]
         public async Task<IActionResult> GetLoggedinUserInfo([FromForm] LoginRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetLoggedInUserInfo(request, cancellationToken);
@@ -81,13 +83,15 @@ namespace CrisesControl.Api.Controllers
         
 
         [HttpPost]
-        public async Task<IActionResult> CreateUser([FromBody] AddUserRequest UserModel, CancellationToken cancellationToken)
+        [Route("AddUser")]
+        public async Task<IActionResult> AddUser([FromBody] AddUserRequest UserModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(UserModel, cancellationToken);
             return Ok(result);
         }
 
-        [HttpGet("ReactivateUser")]
+        [HttpGet]
+        [Route("ReactivateUser")]
         public async Task<IActionResult> ReactivateUser([FromQuery] ActivateUserRequest activateUserRequest, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(activateUserRequest, cancellationToken);
@@ -95,6 +99,7 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpPut]
+        [Route("UpdateUser")]
         public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest UserModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(UserModel, cancellationToken);
@@ -102,37 +107,43 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpDelete]
+        [Route("DeleteUser")]
         public async Task<IActionResult> DeleteUser([FromBody] DeleteUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPut("UpdateProfile")]
+        [HttpPut]
+        [Route("UpdateProfile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 
-        [HttpPut("UpdateUserGroup")]
+        [HttpPut]
+        [Route("UpdateUserGroup")]
         public async Task<IActionResult> UpdateUserGroup([FromBody] UpdateUserGroupRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPut("UpdateGroupMember")]
+        [HttpPut]
+        [Route("UpdateGroupMember")]
         public async Task<IActionResult> UpdateGroupMember([FromBody] UpdateGroupMemberRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet("MembershipList")]
+        [HttpGet]
+        [Route("MembershipList")]
         public async Task<IActionResult> MembershipList([FromQuery] MembershipRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPost("GetAllUserDeviceList")]
+        [HttpPost]
+        [Route("GetAllUserDeviceList")]
         public async Task<IActionResult> GetAllUserDeviceList([FromBody] GetAllUserDevicesRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetAllUserDeviceList(request, cancellationToken);
