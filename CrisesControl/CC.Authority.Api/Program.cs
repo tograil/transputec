@@ -100,6 +100,8 @@ builder.Services.AddOpenIddict()
 
         options.DisableSlidingRefreshTokenExpiration();
 
+        options.SetIdentityTokenLifetime(TimeSpan.FromDays(30));
+
     }).AddValidation(options => {
         // Note: the validation handler uses OpenID Connect discovery
         // to retrieve the address of the introspection endpoint.

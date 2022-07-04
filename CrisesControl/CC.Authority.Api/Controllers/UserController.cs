@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using CC.Authority.Implementation.Data;
 using CC.Authority.SCIM.Protocol;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -48,7 +49,13 @@ namespace CC.Authority.Api.Controllers
             var claimsPrincipal = new ClaimsPrincipal(identity);
             claimsPrincipal.SetResources("api");
 
-            return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                ExpiresUtc = DateTimeOffset.Now.AddYears(2),
+                IsPersistent = true
+            };
+
+            return SignIn(claimsPrincipal, authProperties, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
     }
 }

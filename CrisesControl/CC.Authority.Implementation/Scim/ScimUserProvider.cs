@@ -213,6 +213,8 @@ namespace CC.Authority.Implementation.Scim
             var primaryEmail = user.ElectronicMailAddresses?.FirstOrDefault(x => x.Primary);
             var secondaryEmail = user.ElectronicMailAddresses?.FirstOrDefault(x => !x.Primary);
 
+            user.Locale ??= "en-US";
+
             var newUser = new Models.User
             {
                 ExternalScimId = user.ExternalIdentifier,
@@ -236,7 +238,8 @@ namespace CC.Authority.Implementation.Scim
                 LastLocationUpdate = DateTimeOffset.UtcNow,
                 TrackingStartTime = DateTimeOffset.MinValue,
                 TrackingEndTime = DateTimeOffset.MaxValue,
-                PasswordChangeDate = DateTimeOffset.UtcNow
+                PasswordChangeDate = DateTimeOffset.UtcNow,
+                UniqueGuiId = Guid.NewGuid().ToString()
             };
 
             await _authContext.Users.AddAsync(newUser);
