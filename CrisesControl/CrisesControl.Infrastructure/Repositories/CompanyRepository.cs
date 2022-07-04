@@ -416,20 +416,14 @@ public class CompanyRepository : ICompanyRepository
         return AddressInfo;
     }
 
-    public async Task<dynamic> GetSite(int SiteID, int CompanyID)
+    public async Task<Site> GetSite(int SiteID, int CompanyID)
     {
         try
         {
-            if (SiteID > 0)
-            {
+            
                 var site = await _context.Set<Site>().Where(S=> S.SiteId == SiteID && S.CompanyId == CompanyID).FirstOrDefaultAsync();
                 return site;
-            }
-            else
-            {
-                var sites= await _context.Set<Site>().Where(S=> S.CompanyId == CompanyID).ToListAsync();
-                return sites;
-            }
+           
         }
         catch (Exception ex)
         {

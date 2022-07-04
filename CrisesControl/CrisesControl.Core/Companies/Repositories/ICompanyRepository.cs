@@ -24,12 +24,15 @@ public interface ICompanyRepository
     Task<bool> DeleteCompanyApi(int CompanyId, string CustomerId);
     Task<dynamic> DeleteCompanyComplete(int CompanyId, int UserId, string GUID, string DeleteType);
     Task<AddressLink> GetCompanyAddress(int CompanyID);
-    Task<dynamic> GetSite(int SiteID, int CompanyID);
+    //Task<dynamic> GetSite(int SiteID, int CompanyID);
     Task<int> SaveSite(Site site);
     Task<Site> GetCompanySiteById(int SiteID, int CompanyID);
     Task<GetCompanyDataResponse> GetStarted(int CompanyID);
     Task<List<SocialIntegraion>> GetSocialIntegration(int CompanyID, string AccountType);
     Task<bool> SaveSocialIntegration(string AccountName, string AccountType, string AuthSecret, string AdnlKeyOne, string AuthToken, string AdnlKeyTwo, int CompanyId, string TimeZoneId, int userId);
+    Task<Site> GetSite(int SiteID, int CompanyID);
+    Task<List<Site>> GetSites(int CompanyID);
+
     Task<string> CheckFunds(int CompanyID, string UserRole);
     Task<ReplyChannel> GetReplyChannel(int CompanyID, int UserID);
     Task<CompanyCommunication> GetCompanyComms(int CompanyID, int UserID);
