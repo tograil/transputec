@@ -24,6 +24,7 @@ using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
+using CrisesControl.Core.Administrator;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -132,6 +133,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<Result>().HasNoKey();
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
             modelBuilder.Entity<PriorityMethod>().HasNoKey();
+            modelBuilder.Entity<ReportParam>().HasNoKey();
+            modelBuilder.Entity<AdminLibIncident>().HasNoKey();
+            modelBuilder.Entity<AdminResult>().HasNoKey();
+            modelBuilder.Entity<CompanyPackageFeatureList>().HasNoKey();
 
 
 
