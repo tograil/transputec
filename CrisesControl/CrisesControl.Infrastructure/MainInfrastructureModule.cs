@@ -30,6 +30,7 @@ using CrisesControl.Core.Administrator.Repositories;
 using CrisesControl.Core.Payments.Repositories;
 using CrisesControl.Core.AddressDetails.Repositories;
 using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Academy.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -99,6 +100,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<AddressRepository>().As<IAddressRepository>();
             builder.RegisterType<SendEmail>().As<SendEmail>();
             builder.RegisterType<DBCommon>().As<DBCommon>();
+            builder.RegisterType<AcademyRepository>().As<IAcademyRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

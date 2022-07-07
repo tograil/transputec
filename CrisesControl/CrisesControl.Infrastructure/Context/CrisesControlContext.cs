@@ -25,6 +25,7 @@ using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Administrator;
+using CrisesControl.Core.Academy;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -144,6 +145,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<EmailTemplateList>().HasNoKey();
             modelBuilder.Entity<AppLanguages>().HasNoKey();
             modelBuilder.Entity<CompanyPackageItems>().HasNoKey();
+            modelBuilder.Entity<AcademyVideos>().HasNoKey();
             
 
 
