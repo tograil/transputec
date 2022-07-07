@@ -122,7 +122,6 @@ namespace CrisesControl.Infrastructure.Context
 
             modelBuilder.Entity<LibIncident>().HasNoKey();
             modelBuilder.Entity<CommsStatus>().HasNoKey();
-            modelBuilder.Entity<LibIncident>().HasNoKey();
             modelBuilder.Entity<CompanyUser>().HasNoKey().Ignore("UserName");
             modelBuilder.Entity<GetCompanyDataResponse>().HasNoKey();
 
@@ -137,6 +136,15 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<AdminLibIncident>().HasNoKey();
             modelBuilder.Entity<AdminResult>().HasNoKey();
             modelBuilder.Entity<CompanyPackageFeatureList>().HasNoKey();
+            modelBuilder.Entity<TransactionList>().HasNoKey();
+            modelBuilder.Entity<CompanyPackageFeatureList>().HasNoKey();
+            modelBuilder.Entity<TransactionDtls>().HasNoKey();
+            modelBuilder.Entity<UnpaidTransaction>().HasNoKey();
+            modelBuilder.Entity<UpdateTransactionDetailsModel>().HasNoKey();
+            modelBuilder.Entity<EmailTemplateList>().HasNoKey();
+            modelBuilder.Entity<AppLanguages>().HasNoKey();
+            modelBuilder.Entity<CompanyPackageItems>().HasNoKey();
+            
 
 
 

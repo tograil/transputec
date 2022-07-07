@@ -25,7 +25,7 @@ namespace CrisesControl.Core.Administrator
         public int TransactionTypeID { get; set; }
         public string ModuleType { get; set; }
         public int Units { get; set; }
-        public decimal Amount { get; set; }
+        //public decimal Amount { get; set; }
         public int LinkID { get; set; }
         public int ModuleParentID { get; set; }
         public decimal Discount { get; set; }
