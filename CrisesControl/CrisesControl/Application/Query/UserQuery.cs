@@ -4,7 +4,6 @@ using CrisesControl.Api.Application.Commands.Users.ActivateUser;
 using CrisesControl.Api.Application.Commands.Users.GetAllUsersDevice;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUserComms;
-using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.MembershipList;
 using CrisesControl.Api.Maintenance.Interfaces;
@@ -15,6 +14,7 @@ using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using FluentValidation;
 using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
+using CrisesControl.Api.Application.Commands.Users.GetAllUser;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -22,12 +22,12 @@ namespace CrisesControl.Api.Application.Query
     {
         private readonly IUserRepository _UserRepository;
         private readonly IMapper _mapper;
-        private readonly GetUsersValidator _getUsersValidator;
+        private readonly GetAllUserValidator _getUsersValidator;
         private readonly GetUserValidator _getUserValidator;
         private readonly LoginValidator _loginValidator;
         private readonly ILogger<UserQuery> _logger;
         private readonly IPaging _paging;
-        public UserQuery(IUserRepository UserRepository, IMapper mapper, ILogger<UserQuery> logger, IPaging paging, GetUsersValidator getUsersValidator, GetUserValidator getUserValidator, LoginValidator loginValidator)
+        public UserQuery(IUserRepository UserRepository, IMapper mapper, ILogger<UserQuery> logger, IPaging paging, GetAllUserValidator getUsersValidator, GetUserValidator getUserValidator, LoginValidator loginValidator)
         {
             _UserRepository = UserRepository;
             _mapper =  mapper;
@@ -38,16 +38,16 @@ namespace CrisesControl.Api.Application.Query
             _paging = paging;
         }
 
-        public async Task<GetUsersResponse> GetUsers(GetUsersRequest request, CancellationToken cancellationToken)
+        public async Task<GetAllUserResponse> GetUsers(Commands.Users.GetAllUser.GetAllUserRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(GetUserRequest));
 
             await _getUsersValidator.ValidateAndThrowAsync(request, cancellationToken);
 
-            var mappedRequest = _mapper.Map<GetAllUserRequest>(request);
+            var mappedRequest = _mapper.Map<Core.Users.GetAllUserRequestList>(request);
             var users = await _UserRepository.GetAllUsers(mappedRequest);
             List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(users.ToList());
-            var result = new GetUsersResponse();
+            var result = new GetAllUserResponse();
             result.Data = response;
             return result;
         }

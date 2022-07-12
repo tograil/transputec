@@ -19,6 +19,16 @@
       "applicationUrl": "http://localhost:7010;http://localhost:5010",
       "dotnetRunMessages": true
     },
+    "CrisesControlHana": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Hana"
+      },
+      "applicationUrl": "http://localhost:7010;http://localhost:5010",
+      "dotnetRunMessages": true
+    },
     "CrisesControlDenish": {
       "commandName": "Project",
       "launchBrowser": false,

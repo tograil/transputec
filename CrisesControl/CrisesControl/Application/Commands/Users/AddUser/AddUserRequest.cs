@@ -1,8 +1,8 @@
 ﻿using MediatR;
 
-namespace CrisesControl.Api.Application.Commands.Users.CreateUser
+namespace CrisesControl.Api.Application.Commands.Users.AddUser
 {
-    public class CreateUserRequest : IRequest<CreateUserResponse>
+    public class AddUserRequest : IRequest<AddUserResponse>
     {
         public int UserId { get; set; }
         public int CompanyId { get; set; }

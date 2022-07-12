@@ -1,8 +1,8 @@
 ﻿using MediatR;
 
-namespace CrisesControl.Api.Application.Commands.Users.GetUsers
+namespace CrisesControl.Api.Application.Commands.Users.GetAllUser
 {
-    public class GetUsersRequest : IRequest<GetUsersResponse>
+    public class GetAllUserRequest : IRequest<GetAllUserResponse>
     {
         public int RecordStart { get; set; }
         public int RecordLength { get; set; }

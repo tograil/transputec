@@ -1,10 +1,10 @@
 ﻿using FluentValidation;
 
-namespace CrisesControl.Api.Application.Commands.Users.CreateUser
+namespace CrisesControl.Api.Application.Commands.Users.AddUser
 {
-    public class CreateUserValidator: AbstractValidator<CreateUserRequest>
+    public class AddUserValidator: AbstractValidator<AddUserRequest>
     {
-        public CreateUserValidator()
+        public AddUserValidator()
         {
             RuleFor(x => x.UserId)
                 .GreaterThan(0);
