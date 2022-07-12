@@ -1,0 +1,8 @@
+<p-dropdown [options]="users" [(ngModel)]="user" optionLabel="name"></p-dropdown>
+<br />
+<p-panel header="Generated token">
+    {{token}}
+</p-panel>
+<br />
+<p-button [ngStyle]="{ float:'right' }" label="Get Token" (click)="getToken()"></p-button>
+

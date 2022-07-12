@@ -1,0 +1,26 @@
+<div class="login-screen">
+    <div class="grid">
+        <div class="col-4"><img [src]="'assets/logo-cc.png'" alt="image"></div>
+        <div class="col-8">
+            <h2>Crises Control SCIM Client</h2>
+        </div>
+    </div>
+
+    <div class="grid" *ngIf="errorVisible">
+        <div class="col-12 login-error">Incorrect login or password</div>
+    </div>
+
+    <div class="card">
+        <div class="field p-float-label">
+            <input id="float-input" type="text" pInputText [(ngModel)]="username"> 
+            <label for="float-input">Username</label>
+        </div>
+        <div class="field p-float-label">
+            <label for="password">Password</label>
+            <p-password id="password" [(ngModel)]="password" [toggleMask]="true"></p-password>
+        </div>
+        <div class="field" style="height: 14px;">
+            <p-button [ngStyle]="{ float:'right' }" label="Submit" (click)="login()"></p-button>
+        </div>
+    </div>
+</div>
