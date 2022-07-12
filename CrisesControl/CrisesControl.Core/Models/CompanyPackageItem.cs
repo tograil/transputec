@@ -13,5 +13,6 @@ namespace CrisesControl.Core.Models
         public DateTimeOffset CreatedOn { get; set; }
         public int UpdatedBy { get; set; }
         public DateTimeOffset UpdatedOn { get; set; }
+        public LibPackageItem LibPackageItem { get; set; }
     }
 }
