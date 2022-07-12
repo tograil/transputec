@@ -13,6 +13,7 @@ using CrisesControl.Api.Application.Commands.CompanyParameters.UpdateCompanyPara
 using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SavePriority;
 using CrisesControl.Api.Application.Commands.CompanyParameters.GetCompanyParameterByName;
+using CrisesControl.Api.Application.Commands.CompanyParameters.AddCompanyParameter;
 
 namespace CrisesControl.Api.Controllers {
     [Route("api/[controller]")]
@@ -110,6 +111,14 @@ namespace CrisesControl.Api.Controllers {
         [HttpGet]
         [Route("GetCompanyParameterByName/{CustomerId}/{ParamName}")]
         public async Task<IActionResult> GetCompanyParameterByName([FromRoute] GetCompanyParameterByNameRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("AddCompanyParameter")]
+        public async Task<IActionResult> AddCompanyParameter([FromBody] AddCompanyParameterRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 
