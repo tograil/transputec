@@ -17,5 +17,9 @@ public class EmailTmplFieldMappingConfiguration : IEntityTypeConfiguration<Email
         builder.Property(e => e.TemplateCode)
             .HasMaxLength(50)
             .IsUnicode(false);
+        
+
+        builder.HasOne(x => x.EmailFieldLookup)
+         .WithMany().HasForeignKey(x => x.FieldId);
     }
 }

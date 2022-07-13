@@ -24,6 +24,7 @@ using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
+using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Companies;
 
 namespace CrisesControl.Infrastructure.Context
@@ -122,7 +123,6 @@ namespace CrisesControl.Infrastructure.Context
 
             modelBuilder.Entity<LibIncident>().HasNoKey();
             modelBuilder.Entity<CommsStatus>().HasNoKey();
-            modelBuilder.Entity<LibIncident>().HasNoKey();
             modelBuilder.Entity<CompanyUser>().HasNoKey().Ignore("UserName");
             modelBuilder.Entity<GetCompanyDataResponse>().HasNoKey();
 
@@ -133,6 +133,19 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<Result>().HasNoKey();
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
             modelBuilder.Entity<PriorityMethod>().HasNoKey();
+            modelBuilder.Entity<ReportParam>().HasNoKey();
+            modelBuilder.Entity<AdminLibIncident>().HasNoKey();
+            modelBuilder.Entity<AdminResult>().HasNoKey();
+            modelBuilder.Entity<CompanyPackageFeatureList>().HasNoKey();
+            modelBuilder.Entity<TransactionList>().HasNoKey();
+            modelBuilder.Entity<CompanyPackageFeatureList>().HasNoKey();
+            modelBuilder.Entity<TransactionDtls>().HasNoKey();
+            modelBuilder.Entity<UnpaidTransaction>().HasNoKey();
+            modelBuilder.Entity<UpdateTransactionDetailsModel>().HasNoKey();
+            modelBuilder.Entity<EmailTemplateList>().HasNoKey();
+            modelBuilder.Entity<AppLanguages>().HasNoKey();
+            modelBuilder.Entity<CompanyPackageItems>().HasNoKey();
+            
             modelBuilder.Entity<CompanyCommunication>().HasNoKey();
             modelBuilder.Entity<ReplyChannel>().HasNoKey();
             modelBuilder.Entity<CompanyAccount>().HasNoKey();

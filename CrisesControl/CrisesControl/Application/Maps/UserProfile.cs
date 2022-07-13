@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
-using CrisesControl.Api.Application.Commands.Users.CreateUser;
+using CrisesControl.Api.Application.Commands.Users.AddUser;
+using CrisesControl.Api.Application.Commands.Users.GetAllUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
 using CrisesControl.Api.Application.Commands.Users.GetUserComms;
-using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.UpdateProfile;
 using CrisesControl.Api.Application.Commands.Users.UpdateUser;
@@ -19,7 +19,7 @@ namespace CrisesControl.Api.Application.Maps
         {
             CreateMap<User, GetUserResponse>();
 
-            CreateMap<CreateUserRequest, User>()
+            CreateMap<AddUserRequest, User>()
                 .ForMember(x => x.CreatedOn, m => m.MapFrom(x => DateTimeOffset.Now))
                 .ForMember(x => x.UpdatedOn, m => m.MapFrom(x => DateTimeOffset.Now));
 
@@ -27,7 +27,7 @@ namespace CrisesControl.Api.Application.Maps
                 .ForMember(x => x.UpdatedOn, m => m.MapFrom(x => DateTimeOffset.Now));
             CreateMap<LoginRequest, LoginInfo>();
             CreateMap<LoginInfoReturnModel, LoginResponse>();
-            CreateMap<GetUsersRequest, GetAllUserRequest>();
+            CreateMap<GetAllUserRequest, GetAllUserRequestList>();
 
             CreateMap<UpdateProfileRequest, User>();
             CreateMap<ValidateEmailReponseModel, ValidateEmailResponse>();
