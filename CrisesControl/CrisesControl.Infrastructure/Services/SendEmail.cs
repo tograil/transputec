@@ -1111,6 +1111,273 @@ namespace CrisesControl.Api.Application.Helpers
                 //ToDo: throw exception
             }
         }
+        public async Task UsageAlert(int CompanyId)
+        {
+            try
+            {
 
+                var company = (from C in _context.Set<Company>()
+                               join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                               where C.CompanyId == CompanyId
+                               select new { C, CP }).FirstOrDefault();
+                if (company != null)
+                {
+                    string bill_status = company.C.CompanyProfile;
+                    string templatename = string.Empty;
+                    if (bill_status == "STOP_MESSAGING")
+                    {
+                        templatename = "STOP_MESSAGE_ALERT";
+                    }
+                    else if (bill_status == "LOW_BALANCE" || bill_status == "ON_CREDIT")
+                    {
+                        templatename = "LOW_BALANCE_ALERT";
+                    }
+
+                    string Subject = string.Empty;
+                    string message = Convert.ToString(_DBC.ReadHtmlFile(templatename, "DB", company.C.CompanyId, out Subject));
+
+                    var sysparms = (from SP in _context.Set<SysParameter>()
+                                    where SP.Name == "DOMAIN" || SP.Name == "CC_USER_SUPPORT_LINK"
+                                    || SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
+                                    || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO"
+                                    select new { SP.Name, SP.Value }).ToList();
+
+                    string Website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
+                    string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+
+                    string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+                    string fromadd = sysparms.Where(w => w.Name == "ALERT_EMAILFROM").Select(s => s.Value).FirstOrDefault();
+                    string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+
+                    if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                    {
+                        CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                    }
+
+                    if ((message != null) && (hostname != null) && (fromadd != null))
+                    {
+                        string messagebody = message;
+
+                        string billing_email = _DBC.LookupWithKey("BILLING_EMAIL");
+
+                        //Get company billing email list.
+                        string billing_users = _DBC.GetCompanyParameter("BILLING_USERS", company.C.CompanyId);
+
+                        List<string> emaillist = new List<string>();
+
+                        if (!string.IsNullOrEmpty(billing_users))
+                        {
+                            var user_ids = billing_users.Split(',').Select(Int32.Parse).ToList();
+                            if (user_ids.Count > 0)
+                            {
+                                var get_user = (from U in _context.Set<User>()
+                                                where user_ids.Contains(U.UserId) && U.Status != 3
+                                                select new
+                                                {
+                                                    U.PrimaryEmail
+                                                }).ToList();
+                                foreach (var bill_user in get_user)
+                                {
+                                    emaillist.Add(bill_user.PrimaryEmail);
+                                }
+                            }
+                        }
+
+                        messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                        messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                        messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
+                        messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                        messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                        messagebody = messagebody.Replace("{CREDIT_BALANCE}", _DBC.ToCurrency(company.CP.CreditBalance));
+                        messagebody = messagebody.Replace("{MINIMUM_BALANCE}", _DBC.ToCurrency(company.CP.MinimumBalance));
+                        messagebody = messagebody.Replace("{CREDIT_LIMIT}", _DBC.ToCurrency(company.CP.CreditLimit));
+
+                        List<string> allowed_comms = new List<string>();
+                        List<string> stopped_comms = new List<string>();
+
+                        var subscribed_method = (from CM in _context.Set<CompanyComm>()
+                                                 join CO in _context.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
+                                                 where CM.CompanyId == CompanyId
+                                                 select new { CO, CM }).Select(s => new {
+                                                     MethodCode = s.CO.MethodCode,
+                                                     MethodName = s.CO.MethodName,
+                                                     ServiceStats = s.CM.ServiceStatus
+                                                 }).ToList();
+                        foreach (var method in subscribed_method)
+                        {
+                            if (method.MethodCode == "EMAIL")
+                            {
+                                if (company.CP.MinimumEmailRate > 0 && method.ServiceStats == false)
+                                {
+                                    stopped_comms.Add(method.MethodName);
+                                }
+                                else
+                                {
+                                    allowed_comms.Add(method.MethodName);
+                                }
+                            }
+                            if (method.MethodCode == "PUSH")
+                            {
+                                if (company.CP.MinimumPushRate > 0 && method.ServiceStats == false)
+                                {
+                                    stopped_comms.Add(method.MethodName);
+                                }
+                                else
+                                {
+                                    allowed_comms.Add(method.MethodName);
+                                }
+                            }
+                            if (method.MethodCode == "TEXT")
+                            {
+                                if (company.CP.MinimumTextRate > 0 && method.ServiceStats == false)
+                                {
+                                    stopped_comms.Add(method.MethodName);
+                                }
+                                else
+                                {
+                                    allowed_comms.Add(method.MethodName);
+                                }
+                            }
+                            if (method.MethodCode == "PHONE")
+                            {
+                                if (company.CP.MinimumPhoneRate > 0 && method.ServiceStats == false)
+                                {
+                                    stopped_comms.Add(method.MethodName);
+                                }
+                                else
+                                {
+                                    allowed_comms.Add(method.MethodName);
+                                }
+                            }
+                        }
+
+                        messagebody = messagebody.Replace("{STOPPED_COMMS}", string.Join(",", stopped_comms));
+                        messagebody = messagebody.Replace("{ALLOWED_COMMS}", string.Join(",", allowed_comms));
+                        messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+
+                        Subject = Subject + " " + company.C.CompanyName;
+                        string[] toEmails = emaillist.ToArray();
+
+                        string[] adm_email = { billing_email };
+
+                        Email(adm_email, messagebody, fromadd, hostname, Subject);
+
+                        string cust_usage_alert =  _DBC.LookupWithKey("SEND_USAGE_ALERT_TO_CUSTOMER");
+                        if (cust_usage_alert == "true")
+                            Email(toEmails, messagebody, fromadd, hostname, Subject);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public void SendPaymentTransactionAlert(int CompanyID, decimal TransactionAmount, string TimeZoneId = "GMT Standard Time")
+        {
+            try
+            {
+
+                //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "PaymentTransactionSuccess.html";
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile("PAYMENT_TRANSACTION_SUCCESS", "DB", CompanyID, out Subject));
+                if (!string.IsNullOrEmpty(message))
+                {
+
+                    var company = (from C in _context.Set<Company>()
+                                   join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                                   where C.CompanyId == CompanyID
+                                   select new { C, CP }).FirstOrDefault();
+                    if (company != null)
+                    {
+
+
+                        var sysparms = (from SP in _context.Set<SysParameter>()
+                                        where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
+                                        || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO"
+                                        select new { SP.Name, SP.Value }).ToList();
+
+                        string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+                        string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+                        string fromadd = sysparms.Where(w => w.Name == "ALERT_EMAILFROM").Select(s => s.Value).FirstOrDefault();
+
+                        string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+                        if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                        {
+                            CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                        }
+
+                        if ((message != null) && (hostname != null) && (fromadd != null))
+                        {
+                            string messagebody = message;
+
+                            string billing_email = _DBC.LookupWithKey("BILLING_EMAIL");
+
+                            //Get company billing email list.
+                            string billing_users = _DBC.GetCompanyParameter("BILLING_USERS", company.C.CompanyId);
+
+                            List<string> emaillist = new List<string>();
+
+                            if (!string.IsNullOrEmpty(billing_users))
+                            {
+                                var user_ids = billing_users.Split(',').Select(int.Parse).ToList();
+                                if (user_ids.Count > 0)
+                                {
+                                    var get_user = (from U in _context.Set<User>()
+                                                    where user_ids.Contains(U.UserId) && U.Status != 3
+                                                    select new
+                                                    {
+                                                        U.PrimaryEmail
+                                                    }).ToList();
+                                    foreach (var bill_user in get_user)
+                                    {
+                                        emaillist.Add(bill_user.PrimaryEmail);
+                                    }
+                                }
+                            }
+
+                            messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                            messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+                            messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                            messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                            messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                            messagebody = messagebody.Replace("{CREDIT_BALANCE}", _DBC.ToCurrency(company.CP.CreditBalance));
+                            messagebody = messagebody.Replace("{MINIMUM_BALANCE}", _DBC.ToCurrency(company.CP.MinimumBalance));
+                            messagebody = messagebody.Replace("{CREDIT_LIMIT}", _DBC.ToCurrency(company.CP.CreditLimit));
+                            messagebody = messagebody.Replace("{TRANSACTION_AMOUNT}", _DBC.ToCurrency(TransactionAmount));
+                            messagebody = messagebody.Replace("{TRANSACTION_DATETIME}", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId).ToString("dd-MMM-yy HH:mm:ss"));
+
+                            string[] toEmails = emaillist.ToArray();
+                            string[] adm_email = { billing_email };
+                            Email(adm_email, messagebody, fromadd, hostname, Subject);
+                            Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public DateTimeOffset GetNextRunDate(DateTimeOffset DateNow, string Period = "MONTHLY", int Adjustment = -1)
+        {
+            DateTimeOffset returndt = DateNow;
+            DateTime firstDay = new DateTime(DateNow.Year, DateNow.Month, 1);
+            if (Period == "MONTHLY")
+            {
+                DateTimeOffset lastDayOfMonth = firstDay.AddMonths(1).AddDays(Adjustment);
+                returndt = lastDayOfMonth;
+            }
+            else
+            {
+                returndt = firstDay.AddYears(1).AddDays(Adjustment);
+
+            }
+            return returndt;
+        }
     }
 }

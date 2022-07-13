@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Linq.Expressions;
 using System.Net;
 using System.Web.Http;
 using CC.Authority.Implementation.Data;
@@ -8,6 +9,7 @@ using CC.Authority.SCIM.Protocol;
 using CC.Authority.SCIM.Schemas;
 using CC.Authority.SCIM.Service;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.SCIM.WebHostSample.Provider;
 using User = CC.Authority.Implementation.Models.User;
 
 namespace CC.Authority.Implementation.Scim
@@ -25,9 +27,30 @@ namespace CC.Authority.Implementation.Scim
 
         public override async Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
         {
-            //TODO: add scim format
+            if (parameters == null)
+            {
+                throw new ArgumentNullException(nameof(parameters));
+            }
 
-            return await _authContext.Users.Select(user => new Core2EnterpriseUser
+            if (string.IsNullOrWhiteSpace(correlationIdentifier))
+            {
+                throw new ArgumentNullException(nameof(correlationIdentifier));
+            }
+
+            if (null == parameters.AlternateFilters)
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+            }
+
+            if (string.IsNullOrWhiteSpace(parameters.SchemaIdentifier))
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+            }
+
+            var predicate = PredicateBuilder.False<Core2EnterpriseUser>();
+            Expression<Func<Core2EnterpriseUser, bool>> predicateAnd;
+
+            var results = await _authContext.Users.Select(user => new Core2EnterpriseUser
             {
                 Identifier = user.UserId.ToString(),
                 ExternalIdentifier = user.ExternalScimId,
@@ -39,7 +62,7 @@ namespace CC.Authority.Implementation.Scim
                     GivenName = user.FirstName,
                     Formatted = $"{user.FirstName} {user.LastName}"
                 },
-                Roles = new []
+                Roles = new[]
                 { new Role
                     {
                         Display = user.UserRole!
@@ -52,6 +75,123 @@ namespace CC.Authority.Implementation.Scim
                     LastModified = user.UpdatedOn.DateTime
                 }
             }).ToArrayAsync();
+
+            if (parameters.AlternateFilters.Count <= 0)
+            {
+                results = results.ToArray();
+            }
+            else
+            {
+
+                foreach (IFilter queryFilter in parameters.AlternateFilters)
+                {
+                    predicateAnd = PredicateBuilder.True<Core2EnterpriseUser>();
+
+                    IFilter andFilter = queryFilter;
+                    IFilter currentFilter = andFilter;
+                    do
+                    {
+                        if (string.IsNullOrWhiteSpace(andFilter.AttributePath))
+                        {
+                            throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+                        }
+
+                        else if (string.IsNullOrWhiteSpace(andFilter.ComparisonValue))
+                        {
+                            throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+                        }
+
+                        // UserName filter
+                        else if (andFilter.AttributePath.Equals(AttributeNames.UserName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (andFilter.FilterOperator != ComparisonOperator.Equals)
+                            {
+                                throw new NotSupportedException(
+                                    string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate, andFilter.FilterOperator));
+                            }
+
+                            string userName = andFilter.ComparisonValue;
+                            predicateAnd = predicateAnd.And(p => string.Equals(p.UserName, userName, StringComparison.OrdinalIgnoreCase));
+
+
+                        }
+
+                        // ExternalId filter
+                        else if (andFilter.AttributePath.Equals(AttributeNames.ExternalIdentifier, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (andFilter.FilterOperator != ComparisonOperator.Equals)
+                            {
+                                throw new NotSupportedException(
+                                    string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate, andFilter.FilterOperator));
+                            }
+
+                            string externalIdentifier = andFilter.ComparisonValue;
+                            predicateAnd = predicateAnd.And(p => string.Equals(p.ExternalIdentifier, externalIdentifier, StringComparison.OrdinalIgnoreCase));
+
+
+                        }
+
+                        //Active Filter
+                        else if (andFilter.AttributePath.Equals(AttributeNames.Active, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (andFilter.FilterOperator != ComparisonOperator.Equals)
+                            {
+                                throw new NotSupportedException(
+                                    string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate, andFilter.FilterOperator));
+                            }
+
+                            bool active = bool.Parse(andFilter.ComparisonValue);
+                            predicateAnd = predicateAnd.And(p => p.Active == active);
+
+                        }
+
+                        //LastModified filter
+                        else if (andFilter.AttributePath.Equals($"{AttributeNames.Metadata}.{AttributeNames.LastModified}", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (andFilter.FilterOperator == ComparisonOperator.EqualOrGreaterThan)
+                            {
+                                DateTime comparisonValue = DateTime.Parse(andFilter.ComparisonValue).ToUniversalTime();
+                                predicateAnd = predicateAnd.And(p => p.Metadata.LastModified >= comparisonValue);
+
+
+                            }
+                            else if (andFilter.FilterOperator == ComparisonOperator.EqualOrLessThan)
+                            {
+                                DateTime comparisonValue = DateTime.Parse(andFilter.ComparisonValue).ToUniversalTime();
+                                predicateAnd = predicateAnd.And(p => p.Metadata.LastModified <= comparisonValue);
+
+
+                            }
+                            else
+                                throw new NotSupportedException(
+                                    string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate, andFilter.FilterOperator));
+
+
+
+                        }
+                        else
+                            throw new NotSupportedException(
+                                string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterAttributePathNotSupportedTemplate, andFilter.AttributePath));
+
+                        currentFilter = andFilter;
+                        andFilter = andFilter.AdditionalFilter;
+
+                    } while (currentFilter.AdditionalFilter != null);
+
+                    predicate = predicate.Or(predicateAnd);
+
+                }
+
+                results = results.Where(predicate.Compile()).ToArray();
+            }
+
+            if (parameters.PaginationParameters != null)
+            {
+                int count = parameters.PaginationParameters.Count.HasValue ? parameters.PaginationParameters.Count.Value : 0;
+                return results.Take(count).ToArray();
+            }
+            else
+                return results.ToArray();
         }
 
         public override async Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)
@@ -73,6 +213,8 @@ namespace CC.Authority.Implementation.Scim
             var primaryEmail = user.ElectronicMailAddresses?.FirstOrDefault(x => x.Primary);
             var secondaryEmail = user.ElectronicMailAddresses?.FirstOrDefault(x => !x.Primary);
 
+            user.Locale ??= "en-US";
+
             var newUser = new Models.User
             {
                 ExternalScimId = user.ExternalIdentifier,
@@ -87,7 +229,17 @@ namespace CC.Authority.Implementation.Scim
                 CreatedOn = DateTimeOffset.UtcNow,
                 UpdatedBy = _currentUser.UserId,
                 UpdatedOn = DateTimeOffset.UtcNow,
-                CompanyId = _currentUser.CompanyId
+                CompanyId = _currentUser.CompanyId,
+                Password = string.Empty,
+                ExpirePassword = false,
+                Otpexpiry = DateTimeOffset.MaxValue,
+                Smstrigger = false,
+                ActiveOffDuty = 0,
+                LastLocationUpdate = DateTimeOffset.UtcNow,
+                TrackingStartTime = DateTimeOffset.MinValue,
+                TrackingEndTime = DateTimeOffset.MaxValue,
+                PasswordChangeDate = DateTimeOffset.UtcNow,
+                UniqueGuiId = Guid.NewGuid().ToString()
             };
 
             await _authContext.Users.AddAsync(newUser);

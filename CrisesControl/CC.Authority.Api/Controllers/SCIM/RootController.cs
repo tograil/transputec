@@ -3,9 +3,12 @@
 using CC.Authority.SCIM.Schemas;
 using CC.Authority.SCIM.Service;
 using CC.Authority.SCIM.Service.Monitor;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CC.Authority.Api.Controllers.SCIM
 {
+    [Route("/scim/root")]
+    [ApiController]
     public sealed class RootController : ControllerTemplate<Resource>
     {
         public RootController(IProvider provider, IMonitor monitor)
