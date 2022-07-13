@@ -4,5 +4,6 @@
     {
         public int FieldId { get; set; }
         public string TemplateCode { get; set; } = null!;
+        public EmailFieldLookup EmailFieldLookup { get; set; }
     }
 }

@@ -28,6 +28,7 @@ namespace CrisesControl.Api.Application.Helpers
         public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
             userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         }
@@ -451,6 +452,7 @@ namespace CrisesControl.Api.Application.Helpers
             strNumber = Left(strNumber, 1) == "0" ? Left(strNumber, strNumber.Length - 1, 1) : strNumber;
             return strNumber;
         }
+
 
     }
 }

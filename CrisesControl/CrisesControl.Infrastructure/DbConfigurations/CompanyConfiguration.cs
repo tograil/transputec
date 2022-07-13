@@ -73,5 +73,7 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
             .WithMany().HasForeignKey(x => x.CompanyId);
         builder.HasOne(x => x.AddressLink)
             .WithMany().HasForeignKey(x => x.CompanyId);
+        builder.HasOne(x => x.CompanyPackageItem)
+           .WithMany().HasForeignKey(x => x.CompanyId);
     }
 }

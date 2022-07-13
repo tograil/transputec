@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using Azure.Core;
 using Azure.Identity;
 using CC.Authority.Api;
@@ -10,10 +11,15 @@ using CC.Authority.Implementation.Scim;
 using CC.Authority.SCIM.Service;
 using CC.Authority.SCIM.Service.Monitor;
 using CrisesControl.Infrastructure.Identity;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SpaServices.AngularCli;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.SqlClient.AlwaysEncrypted.AzureKeyVaultProvider;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
@@ -29,6 +35,11 @@ var builder = WebApplication.CreateBuilder(args);
 var monitoringBehavior = new ConsoleMonitor();
 
 builder.Services.AddSingleton(typeof(IMonitor), monitoringBehavior);
+
+builder.Services.AddSpaStaticFiles(configuration =>
+{
+    configuration.RootPath = "ClientApp/dist";
+});
 
 builder.Services.AddInfrastructure();
 
@@ -67,7 +78,7 @@ builder.Services.AddOpenIddict()
             .AllowPasswordFlow();
 
         options
-            .SetTokenEndpointUris("/connect/token")
+            .SetTokenEndpointUris("/connect/token", "/user/token")
             .SetAuthorizationEndpointUris("/connect/authorize");
 
         // Encryption and signing of tokens
@@ -86,6 +97,10 @@ builder.Services.AddOpenIddict()
             .UseAspNetCore()
             .EnableTokenEndpointPassthrough()
             .DisableTransportSecurityRequirement();
+
+        options.DisableSlidingRefreshTokenExpiration();
+
+        options.SetIdentityTokenLifetime(TimeSpan.FromDays(30));
 
     }).AddValidation(options => {
         // Note: the validation handler uses OpenID Connect discovery
@@ -108,12 +123,12 @@ builder.Services.AddIdentityCore<User>()
     .AddUserStore<UserStore>()
     .AddUserManager<CrisesControlUserManager>();
 
-builder.Services.AddControllers().AddNewtonsoftJson(opt =>
+/*builder.Services.AddControllers().AddNewtonsoftJson(opt =>
 {
     opt.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
     opt.SerializerSettings.Formatting = Newtonsoft.Json.Formatting.Indented;
     opt.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
-});
+});*/
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -169,17 +184,19 @@ builder.Services.AddCors(options => {
         });
 });
 
-builder.Configuration.AddAzureKeyVault(
-    new Uri($"https://{builder.Configuration["KeyVaultName"]}.vault.azure.net/"),
-    new DefaultAzureCredential(new DefaultAzureCredentialOptions
-    {
-        ManagedIdentityClientId = builder.Configuration["AzureADManagedIdentityClientId"]
-    }));
-
-var credentials = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+TokenCredential credentials = new DefaultAzureCredential(new DefaultAzureCredentialOptions
 {
     ManagedIdentityClientId = builder.Configuration["AzureADManagedIdentityClientId"]
 });
+
+if (builder.Environment.IsProduction())
+{
+    credentials = new ManagedIdentityCredential();
+}
+
+builder.Configuration.AddAzureKeyVault(
+    new Uri($"https://{builder.Configuration["KeyVaultName"]}.vault.azure.net/"),
+    credentials);
 
 var akvProvider = new SqlColumnEncryptionAzureKeyVaultProvider(credentials);
 
@@ -191,7 +208,10 @@ SqlConnection.RegisterColumnEncryptionKeyStoreProviders(customProviders: new Dic
 builder.Services.AddDbContext<CrisesControlAuthContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlDatabase"));
 });
+void ConfigureMvcNewtonsoftJsonOptions(MvcNewtonsoftJsonOptions options) => options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
 
+//builder.Services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
+builder.Services.AddControllers().AddNewtonsoftJson(ConfigureMvcNewtonsoftJsonOptions);
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 builder.Services.AddAuthorization();
 
@@ -206,15 +226,34 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseDeveloperExceptionPage();
+
 app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseSpaStaticFiles();
+}
+
+app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();     
+});
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
+    var context = scope.ServiceProvider.GetService<OpenIddictContext>();
+        context.Database.Migrate();
+
+        var context2 = scope.ServiceProvider.GetService<CrisesControlAuthContext>();
+        context2.Database.Migrate();
 
     var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
 
@@ -230,5 +269,19 @@ await using (var scope = app.Services.CreateAsyncScope())
         });
     }
 }
+
+app.UseSpa(spa =>
+{
+    // To learn more about options for serving an Angular SPA from ASP.NET Core,
+    // see https://go.microsoft.com/fwlink/?linkid=864501
+
+    spa.Options.SourcePath = "ClientApp";
+
+    if (app.Environment.IsDevelopment())
+    {
+        spa.UseAngularCliServer(npmScript: "start");
+        // spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
+    }
+});
 
 app.Run();

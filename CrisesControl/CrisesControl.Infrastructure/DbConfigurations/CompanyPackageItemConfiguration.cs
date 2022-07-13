@@ -13,5 +13,7 @@ public class CompanyPackageItemConfiguration : IEntityTypeConfiguration<CompanyP
         builder.Property(e => e.ItemCode).HasMaxLength(50);
 
         builder.Property(e => e.ItemValue).HasMaxLength(150);
+        builder.HasOne(x => x.LibPackageItem)
+           .WithMany().HasForeignKey(x => x.CompanyPackageItemId);
     }
 }
