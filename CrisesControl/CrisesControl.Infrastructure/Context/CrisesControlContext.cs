@@ -132,7 +132,6 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<Result>().HasNoKey();
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
             modelBuilder.Entity<PriorityMethod>().HasNoKey();
-            modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
 
 
 
