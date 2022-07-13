@@ -1,8 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.Users.ActivateUser;
-using CrisesControl.Api.Application.Commands.Users.CreateUser;
 using CrisesControl.Api.Application.Commands.Users.DeleteUser;
 using CrisesControl.Api.Application.Commands.Users.GetUser;
-using CrisesControl.Api.Application.Commands.Users.GetUsers;
 using CrisesControl.Api.Application.Commands.Users.Login;
 using CrisesControl.Api.Application.Commands.Users.UpdateGroupMember;
 using CrisesControl.Api.Application.Commands.Users.UpdateProfile;
@@ -11,13 +9,9 @@ using CrisesControl.Api.Application.Query;
 using CrisesControl.Api.Application.Commands.Users.UpdateUserGroup;
 using CrisesControl.Api.Application.Commands.Users.ValidateEmail;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using UserModel = CrisesControl.Core.Models.EmptyUser;
 using CrisesControl.Api.Application.Commands.Users.MembershipList;
 using CrisesControl.Api.Application.Commands.Users.GetAllUsersDevice;
-using CrisesControl.Core.Users;
 using CrisesControl.Api.Application.Commands.Users.GetUserComms;
 using CrisesControl.Api.Application.Commands.Users.DeleteRegisteredUser;
 using CrisesControl.Api.Application.Commands.Users.UpdateUserPhoto;
@@ -26,6 +20,20 @@ using CrisesControl.Api.Application.Commands.Users.CheckEmail;
 using CrisesControl.Api.Application.Commands.Users.SendInvites;
 using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
 using CrisesControl.Api.Application.Commands.Users.DeleteUserDevice;
+using CrisesControl.Api.Application.Commands.Users.GetAllUser;
+using CrisesControl.Api.Application.Commands.Users.AddUser;
+using CrisesControl.Api.Application.Commands.Users.BulkAction;
+using CrisesControl.Api.Application.Commands.Users.SendPasswordOTP;
+using CrisesControl.Api.Application.Commands.Users.CheckUserLicense;
+using CrisesControl.Api.Application.Commands.Users.GetUserCount;
+using CrisesControl.Api.Application.Commands.Users.TrackUserDevice;
+using CrisesControl.Api.Application.Commands.Users.GetUserMovements;
+using CrisesControl.Api.Application.Commands.Users.GetUserGroups;
+using CrisesControl.Api.Application.Commands.Users.OffDutySetting;
+using CrisesControl.Api.Application.Commands.Users.GetUserDashboard;
+using CrisesControl.Api.Application.Commands.Users.SaveDashboard;
+using CrisesControl.Api.Application.Commands.Users.AddDashlet;
+using CrisesControl.Api.Application.Commands.Users.GetUserSystemInfo;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -43,28 +51,30 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpPost]
-        [Route("[action]")]
-        public async Task<IActionResult> Index([FromForm] GetUsersRequest request, CancellationToken cancellationToken)
+        [Route("GetAllUser")]
+        public async Task<IActionResult> GetAllUser([FromForm] GetAllUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetUsers(request, cancellationToken);
             return Ok(result);
         }
 
         [HttpGet]
-        [Route("{CompanyId:int}/{UserId:int}")]
+        [Route("GetUser/{CompanyId:int}/{UserId:int}")]
         public async Task<IActionResult> GetUser([FromRoute] GetUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetUser(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet("ValidateLoginEmail")]
+        [HttpGet]
+        [Route("ValidateLoginEmail")]
         public async Task<IActionResult> ValidateLoginEmail([FromQuery] ValidateEmailRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 
-        [HttpPost("getUserInfo")]
+        [HttpPost]
+        [Route("GetLoggedinUserInfo")]
         public async Task<IActionResult> GetLoggedinUserInfo([FromForm] LoginRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetLoggedInUserInfo(request, cancellationToken);
@@ -73,13 +83,15 @@ namespace CrisesControl.Api.Controllers
         
 
         [HttpPost]
-        public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest UserModel, CancellationToken cancellationToken)
+        [Route("AddUser")]
+        public async Task<IActionResult> AddUser([FromBody] AddUserRequest UserModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(UserModel, cancellationToken);
             return Ok(result);
         }
 
-        [HttpGet("ReactivateUser")]
+        [HttpGet]
+        [Route("ReactivateUser")]
         public async Task<IActionResult> ReactivateUser([FromQuery] ActivateUserRequest activateUserRequest, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(activateUserRequest, cancellationToken);
@@ -87,6 +99,7 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpPut]
+        [Route("UpdateUser")]
         public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest UserModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(UserModel, cancellationToken);
@@ -94,37 +107,43 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpDelete]
+        [Route("DeleteUser")]
         public async Task<IActionResult> DeleteUser([FromBody] DeleteUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPut("UpdateProfile")]
+        [HttpPut]
+        [Route("UpdateProfile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 
-        [HttpPut("UpdateUserGroup")]
+        [HttpPut]
+        [Route("UpdateUserGroup")]
         public async Task<IActionResult> UpdateUserGroup([FromBody] UpdateUserGroupRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPut("UpdateGroupMember")]
+        [HttpPut]
+        [Route("UpdateGroupMember")]
         public async Task<IActionResult> UpdateGroupMember([FromBody] UpdateGroupMemberRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet("MembershipList")]
+        [HttpGet]
+        [Route("MembershipList")]
         public async Task<IActionResult> MembershipList([FromQuery] MembershipRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPost("GetAllUserDeviceList")]
+        [HttpPost]
+        [Route("GetAllUserDeviceList")]
         public async Task<IActionResult> GetAllUserDeviceList([FromBody] GetAllUserDevicesRequest request, CancellationToken cancellationToken)
         {
             var result = await _userQuery.GetAllUserDeviceList(request, cancellationToken);
@@ -193,6 +212,113 @@ namespace CrisesControl.Api.Controllers
         public async Task<IActionResult> DeleteUserDevice([FromBody] DeleteUserDeviceRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("UserRelations")]
+        public async Task<IActionResult> UserRelations(CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(Request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("ResetUserDeviceToken")]
+        public async Task<IActionResult> ResetUserDeviceToken(int qUserId, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(Request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("BulkAction")]
+        public async Task<ActionResult> BulkAction(BulkActionRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("SendPasswordOTP")]
+        public async Task<ActionResult> SendPasswordOTP(SendPasswordOTPRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("CheckUserLicense")]
+        public async Task<ActionResult> CheckUserLicense(CheckUserLicenseRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("GetUserCount")]
+        public async Task<ActionResult> GetUserCount(GetUserCountRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("TrackUserDevice")]
+        public async Task<ActionResult> TrackUserDevice(TrackUserDeviceRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("GetUserMovements")]
+        public async Task<ActionResult> GetUserMovements(GetUserMovementsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("GetUserGroups")]
+        public async Task<ActionResult> GetUserGroups(GetUserGroupsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("OffDutySetting")]
+        public async Task<ActionResult> OffDutySetting(OffDutySettingRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("GetUserDashboard")]
+        public async Task<ActionResult> GetUserDashboard(GetUserDashboardRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("SaveDashboard")]
+        public async Task<ActionResult> SaveDashboard(SaveDashboardRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("AddDashlet")]
+        public async Task<ActionResult> AddDashlet(AddDashletRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetUserId")]
+        public async Task<ActionResult> GetUserId(GetUserSystemInfoRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("GetUserSystemInfo")]
+        public async Task<ActionResult> GetUserSystemInfo(GetUserSystemInfoRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request);
             return Ok(result);
         }
     }

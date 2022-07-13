@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Exceptions.NotFound
 {
-    public class RegisterNotFoundException: NotFoundRegisterException
+    public class RegisterNotFoundException: NotFoundBaseException
     {
         public RegisterNotFoundException(int regId, int userId) : base(regId,userId)
         {

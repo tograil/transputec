@@ -10,6 +10,7 @@ using OpenIddict.Server.AspNetCore;
 namespace CC.Authority.Api.Controllers;
 
 [AllowAnonymous]
+[Route("/connect")]
 public class AuthorizationController : Controller
 {
     private const string CompanyIdClaimName = "company_id";
@@ -21,7 +22,7 @@ public class AuthorizationController : Controller
         _userManager = userManager;
     }
 
-    [HttpPost("~/connect/token")]
+    [HttpPost("token")]
     public async Task<IActionResult> Exchange()
     {
         var request = HttpContext.GetOpenIddictServerRequest();
@@ -53,7 +54,9 @@ public class AuthorizationController : Controller
             claimsPrincipal = new ClaimsPrincipal(identity);
             claimsPrincipal.SetResources("api");
 
-            claimsPrincipal.SetScopes(request.GetScopes());
+            var scopes = request.GetScopes();
+
+            claimsPrincipal.SetScopes(scopes);
         }
         else
         {

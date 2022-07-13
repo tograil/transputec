@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
@@ -8,8 +9,8 @@ using System.Threading.Tasks;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
-using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Exceptions.NotFound;
+using CrisesControl.Core.Locations;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -270,9 +271,9 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task<IEnumerable<User>> GetAllUsers(GetAllUserRequest request)
+    public async Task<IEnumerable<User>> GetAllUsers(GetAllUserRequestList request)
     {
-        var propertyInfo = typeof(GetAllUserRequest).GetProperty(request.OrderBy);
+        var propertyInfo = typeof(GetAllUserRequestList).GetProperty(request.OrderBy);
         var val = _context.Set<User>().FromSqlRaw($"Pro_Get_User_SelectAll @CompanyId = {companyId},@UserID = {userId},@RecordStart={request.RecordStart},@RecordLength={request.RecordLength},@SearchString={request.SearchString}," +
             $"@OrderBy = {request.OrderBy},@SkipDeleted= {request.SkipDeleted},@ActiveOnly = {request.ActiveOnly},@SkipInActive={request.SkipInActive},@KeyHolderOnly={request.KeyHolderOnly},@Filters={request.Filters},@UniqueKey = {request.CompanyKey}").OrderByDescending(o => propertyInfo.GetValue(o, null)).ToListAsync();
         return await _context.Set<User>().Where(t => t.CompanyId == companyId).ToListAsync();
@@ -389,11 +390,6 @@ public class UserRepository : IUserRepository
         }
         catch (Exception ex) { throw ex; }
         return DateTime.Now;
-    }
-
-    private string Left(string str, int lngth, int stpoint = 0)
-    {
-        return str.Substring(stpoint, Math.Min(str.Length, lngth));
     }
 
     public async Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "")
@@ -1677,5 +1673,1005 @@ public class UserRepository : IUserRepository
             return false;
         }
         return pwdNotUsed;
+    }
+    public async Task<List<UserGroup>> GetUserGroups(int userId)
+    {
+        try
+        {
+
+            var pUserId = new SqlParameter("@UserID", userId);
+
+            var result = await _context.Set<UserGroup>().FromSqlRaw("EXEC Get_User_Object_Relation @UserID", pUserId).ToListAsync();
+            return result;
+
+        }
+        catch (Exception ex)
+        {
+            throw new GroupUserNotFound(companyId, userId);
+        }
+    }
+
+    public async Task<dynamic> OffDuty(OffDutyModel request, CancellationToken cancellationToken)
+    {
+        OffDutyResponse RTO = new OffDutyResponse();
+        try
+        {
+            bool oncall_exist = false;
+            var oncall = await _context.Set<OffDuty>().Where(t => t.UserId == userId).FirstOrDefaultAsync();
+            if (oncall != null)
+                oncall_exist = true;
+
+            if (request.OffDutyAction.ToUpper() == "START")
+            {
+                if (oncall != null)
+                {
+                    RTO.ErrorCode = "E208";
+                    RTO.ErrorId = 208;
+                    RTO.Status = true;
+                    RTO.Message = "On Call already activated";
+                    return RTO;
+                }
+            }
+            else if (request.OffDutyAction.ToUpper() == "END" || request.OffDutyAction.ToUpper() == "CHECK")
+            {
+                if (oncall == null)
+                {
+                    RTO.ErrorCode = "E209";
+                    RTO.ErrorId = 209;
+                    RTO.Status = true;
+                    RTO.Message = "No active on call record is found";
+                    return RTO;
+                }
+            }
+            bool notifyFront = true;
+            if (oncall_exist)
+            {
+                DateTime CurrentDateTime = oncall.EndDateTime.LocalDateTime;
+                if (CurrentDateTime < DateTime.Now)
+                {
+                    request.OffDutyAction = "END";
+                    notifyFront = false;
+                }
+            }
+
+            if (request.OffDutyAction.ToUpper() == "CHECK" && oncall_exist && notifyFront)
+            {
+                return OffDutyCheck(oncall);
+            }
+            else if (request.OffDutyAction.ToUpper() == "START" && !oncall_exist)
+            {
+                return OffDutyStart(request, cancellationToken);
+            }
+            else if (request.OffDutyAction.ToUpper() == "CHANGE" && oncall_exist)
+            {
+                return OffDutyChange(request, cancellationToken);
+            }
+            else if (request.OffDutyAction.ToUpper() == "END" && oncall_exist)
+            {
+                return OffDutyEnd(request, notifyFront, cancellationToken);
+            }
+            else
+            {
+                RTO.ErrorCode = "E209";
+                RTO.ErrorId = 209;
+                RTO.Status = true;
+                RTO.Message = "No active on call record is found";
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return null;
+    }
+
+    public dynamic OffDutyCheck(OffDuty oncall)
+    {
+        OffDutyResponse RTO = new OffDutyResponse();
+        try
+        {
+            if (oncall != null)
+            {
+                RTO.Data = oncall;
+                RTO.Status = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return RTO;
+    }
+
+    public async Task<dynamic> OffDutyStart(OffDutyModel request, CancellationToken cancellationToken)
+    {
+        OffDutyResponse RTO = new OffDutyResponse();
+        try
+        {
+            var user = await _context.Set<User>().Where(t => t.UserId == userId && t.Status == 1).FirstOrDefaultAsync();
+            if (user != null)
+            {
+                request.AllowEmail = request.Source == "APP" ? true : request.AllowEmail;
+
+                OffDuty oc = new OffDuty();
+                oc.ActivationSource = request.Source;
+                oc.AllowEmail = request.AllowEmail;
+                oc.AllowPhone = request.AllowPhone;
+                oc.AllowPush = request.AllowPush;
+                oc.AllowText = request.AllowText;
+                oc.StartDateTime = _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime);
+                oc.EndDateTime = _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime);
+                oc.UserId = userId;
+
+                await _context.AddAsync(oc, cancellationToken);
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                if (_DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime) <= _DBC.GetDateTimeOffset(DateTime.Now) &&
+                    _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime) >= _DBC.GetDateTimeOffset(DateTime.Now))
+                {
+                    user.ActiveOffDuty = 1;
+
+                    if (request.AllowEmail || request.AllowPhone || request.AllowPush || request.AllowText)
+                    {
+                        user.ActiveOffDuty = 2;
+                    }
+                }
+                else
+                {
+                    user.ActiveOffDuty = 0;
+                    CreateOffDutyJob(userId, _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime), companyId, "START");
+                }
+
+                CreateOffDutyJob(userId, _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime),companyId, "END");
+
+                _context.SaveChangesAsync();
+
+                RTO.Data = oc;
+                RTO.Status = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return RTO;
+    }
+
+    public async Task<List<UserParams>> GetUserSystemInfo(int userId, int companyId)
+    {
+        List<UserParams> uparams = new List<UserParams>();
+        try
+        {
+            var pUserId = new SqlParameter("@UserID", userId);
+            var pCompanyID = new SqlParameter("@CompanyID", companyId);
+
+            uparams = await _context.Set<UserParams>().FromSqlRaw("EXEC Pro_Get_User_System_Info @UserID, @CompanyID", pUserId, pCompanyID).ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return uparams;
+    }
+
+    public async Task<dynamic> OffDutyChange(OffDutyModel request, CancellationToken cancellationToken)
+    {
+        OffDutyResponse RTO = new OffDutyResponse();
+        try
+        {
+            var user = await _context.Set<User>().Where(u => u.UserId == userId && u.Status == 1).FirstOrDefaultAsync();
+            if (user != null)
+            {
+                user.ActiveOffDuty = 0;
+                await _context.SaveChangesAsync();
+
+                CreateOffDutyHistory(userId, companyId, cancellationToken);
+
+                return OffDutyStart(request, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return RTO;
+    }
+
+    public async Task<dynamic> OffDutyEnd(OffDutyModel request, bool notifyFront, CancellationToken cancellationToken)
+    {
+        OffDutyResponse RTO = new OffDutyResponse();
+        try
+        {
+            var user = await _context.Set<User>().Where(u => u.UserId == userId && u.Status == 1).FirstOrDefaultAsync();
+            if (user != null)
+            {
+                CreateOffDutyHistory(userId, companyId, cancellationToken);
+
+                if (request.OffDutyAction.ToUpper() == "END")
+                {
+                    var alloncall = await _context.Set<OffDuty>().Where(t => t.UserId == userId).OrderByDescending(t => t.OffDutyId).ToListAsync();
+                    _context.Set<OffDuty>().RemoveRange(alloncall);
+                    await _context.SaveChangesAsync();
+                }
+
+                user.ActiveOffDuty = 0;
+                await _context.SaveChangesAsync();
+
+                _DBC.DeleteScheduledJob("OFF_DUTY_END_" +userId, "OFF_DUTY_JOB_END");
+
+                if (notifyFront == true)
+                {
+                    RTO.ErrorCode = "E210";
+                    RTO.ErrorId = 210;
+                    RTO.Message = "On Call has been deactivated successfully";
+                    RTO.Status = true;
+                }
+                else
+                {
+                    RTO.ErrorCode = "E209";
+                    RTO.ErrorId = 209;
+                    RTO.Message = "No active on call record is found";
+                    RTO.Status = true;
+                    RTO.Data = null;
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return RTO;
+    }
+
+    private async void CreateOffDutyHistory(int userId, int companyId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var oncall = await _context.Set<OffDuty>().Where(t => t.UserId == userId).OrderByDescending(t => t.OffDutyId).FirstOrDefaultAsync();
+            if (oncall != null)
+            {
+                OffDutyHistory OCH = new OffDutyHistory();
+                OCH.ActivationSource = oncall.ActivationSource;
+                OCH.AllowEmail = oncall.AllowEmail;
+                OCH.AllowPhone = oncall.AllowPhone;
+                OCH.AllowPush = oncall.AllowPush;
+                OCH.AllowText = oncall.AllowText;
+                OCH.StartDateTime = oncall.StartDateTime;
+                OCH.EndDateTime = oncall.EndDateTime;
+                OCH.UserId = oncall.UserId;
+                _context.Set<OffDutyHistory>().Add(OCH);
+                _context.Set<OffDuty>().Remove(oncall);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+
+    public async Task<User> GetUserId(int companyId, string email)
+    {
+        try
+        {
+
+            var result = await _context.Set<User>().Where(t => t.PrimaryEmail == email.ToLower()).FirstOrDefaultAsync();
+            if (result != null)
+            {
+                if (result.CompanyId == companyId)
+                {
+                    return new User { UserId = result.UserId };
+                }
+                else
+                {
+                    return new User { UserId = -1 };
+                }
+            }
+            else
+            {
+                return new User { UserId = 0 };
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+
+    public async Task<dynamic> OffDutyActivate(OffDutyModel request, bool exist, CancellationToken cancellationToken)
+    {
+        OffDutyResponse RTO = new OffDutyResponse();
+        try
+        {
+
+            string TimeZoneId = _DBC.GetTimeZoneVal(userId);
+            var user = await _context.Set<User>().Where(t => t.UserId == userId && t.Status == 1).FirstOrDefaultAsync();
+
+            if (request.OffDutyAction.ToUpper() == "END" || request.OffDutyAction.ToUpper() == "CHANGE" || request.OffDutyAction.ToUpper() == "CHECK")
+            {
+                var oncall = await _context.Set<OffDuty>().Where(t => t.UserId == userId).OrderByDescending(t => t.OffDutyId).FirstOrDefaultAsync();
+
+                bool NotifyFront = true;
+
+                if (oncall != null)
+                {
+
+                    DateTime CurrentDateTime = oncall.EndDateTime.LocalDateTime;
+                    if (CurrentDateTime < DateTime.Now)
+                    {
+                        user.ActiveOffDuty = 0;
+                        request.OffDutyAction = "END";
+                        NotifyFront = false;
+                    }
+
+                    if (request.OffDutyAction.ToUpper() == "END" || request.OffDutyAction.ToUpper() == "CHANGE")
+                    {
+                        OffDutyHistory OCH = new OffDutyHistory();
+                        OCH.ActivationSource = oncall.ActivationSource;
+                        OCH.AllowEmail = oncall.AllowEmail;
+                        OCH.AllowPhone = oncall.AllowPhone;
+                        OCH.AllowPush = oncall.AllowPush;
+                        OCH.AllowText = oncall.AllowText;
+                        OCH.StartDateTime = oncall.StartDateTime;
+                        OCH.EndDateTime = oncall.EndDateTime;
+                        OCH.UserId = oncall.UserId;
+                        await _context.Set<OffDutyHistory>().AddAsync(OCH);
+                        _context.Set<OffDuty>().Remove(oncall);
+                        user.ActiveOffDuty = 0;
+                        await _context.SaveChangesAsync(cancellationToken);
+
+                        RTO.ErrorCode = "E210";
+                        RTO.ErrorId = 210;
+                        RTO.Message = "On Call has been deactivated successfully";
+                        RTO.Status = true;
+
+                        if (request.OffDutyAction.ToUpper() == "END")
+                        {
+                            var alloncall = await _context.Set<OffDuty>().Where(t => t.UserId == userId).OrderByDescending(t => t.OffDutyId).ToListAsync();
+                            _context.Set<OffDuty>().RemoveRange(alloncall);
+                            await _context.SaveChangesAsync(cancellationToken);
+                        }
+
+                        _DBC.DeleteScheduledJob("OFF_DUTY_END_" + userId, "OFF_DUTY_JOB_END");
+                        _DBC.DeleteScheduledJob("OFF_DUTY_START_" +userId, "OFF_DUTY_JOB_START");
+
+                        if (request.OffDutyAction.ToUpper() == "END" && NotifyFront == true)
+                        {
+                            return RTO;
+                        }
+                    }
+
+                    if (request.OffDutyAction.ToUpper() == "CHECK" && NotifyFront == true)
+                    {
+                        RTO.Data = oncall;
+                        RTO.Status = true;
+                        return RTO;
+                    }
+
+                }
+
+                if (request.OffDutyAction.ToUpper() != "CHANGE" || (NotifyFront == false && request.OffDutyAction.ToUpper() == "END"))
+                {
+                    RTO.ErrorCode = "E209";
+                    RTO.ErrorId = 209;
+                    RTO.Message = "No active on call record is found";
+                    RTO.Status = true;
+                    RTO.Data = null;
+                    return RTO;
+                }
+            }
+
+            request.AllowEmail = request.Source == "APP" ? true : request.AllowEmail;
+            DateTimeOffset SrvStartDateTime = request.StartDateTime;
+            DateTimeOffset SrvEndDateTime = request.EndDateTime;
+
+            if ((!exist && request.OffDutyAction.ToUpper() == "START") || request.OffDutyAction.ToUpper() == "CHANGE")
+            {
+
+                OffDuty OC = new OffDuty();
+                OC.ActivationSource = request.Source;
+                OC.AllowEmail = request.AllowEmail;
+                OC.AllowPhone = request.AllowPhone;
+                OC.AllowPush = request.AllowPush;
+                OC.AllowText = request.AllowText;
+                OC.StartDateTime = _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime);
+                OC.EndDateTime = _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime);
+                OC.UserId = userId;
+                await _context.Set<OffDuty>().AddAsync(OC);
+
+                if (_DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime) <= _DBC.GetDateTimeOffset(DateTime.Now) &&
+                    _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime) >= _DBC.GetDateTimeOffset(DateTime.Now))
+                {
+                    user.ActiveOffDuty = 1;
+
+                    if (request.AllowEmail || request.AllowPhone || request.AllowPush || request.AllowText)
+                    {
+                        user.ActiveOffDuty = 2;
+                    }
+                }
+                else
+                {
+                    user.ActiveOffDuty = 0;
+                    CreateOffDutyJob(userId, _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime), companyId, "START");
+                }
+
+                CreateOffDutyJob(userId, _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime), companyId, "END");
+                await _context.SaveChangesAsync(cancellationToken);
+
+                RTO.Data = OC;
+                RTO.Status = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return RTO;
+    }
+
+    public async Task<dynamic> UpdateGroupMember(int targetId, int userId, int objMapId, string action, int currentUserId, int companyId, string timeZoneId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (action.ToUpper() == "ADD" && objMapId > 0)
+            {
+                _DBC.CreateNewObjectRelation(targetId, userId, objMapId, currentUserId, timeZoneId, companyId);
+            }
+            else if (objMapId > 0)
+            {
+                var delObjs = await _context.Set<ObjectRelation>().Where(t =>
+                                t.ObjectMappingId == objMapId &&
+                                t.SourceObjectPrimaryId == targetId &&
+                                t.TargetObjectPrimaryId == userId
+                                ).FirstOrDefaultAsync();
+                if (delObjs != null)
+                {
+                    _context.Set<ObjectRelation>().Remove(delObjs);
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+            }
+            else
+            {
+                await UpdateUserDepartment(userId, targetId, action, currentUserId, companyId, timeZoneId);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+
+    public void CreateOffDutyJob(int userId, DateTimeOffset offDutyDate, int companyId, string action = "START", string timeZoneId = "GMT Standard Time")
+    {
+        try
+        {
+            //string job_name = "OFF_DUTY_" + action + "_" + userId;
+
+            ////DBC.DeleteScheduledJob(job_name, "OFF_DUTY_JOB_" + Action);
+
+            //ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+            //IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+
+            //var jobDetail = new Quartz.Impl.JobDetailImpl(job_name, "OFF_DUTY_JOB_" + Action, typeof(OffDutyJob));
+            //jobDetail.JobDataMap["UserID"] = UserID;
+            //jobDetail.JobDataMap["Action"] = Action;
+            //jobDetail.JobDataMap["CompanyID"] = CompanyID;
+
+            //string CronExpressionStr = "0 " + OffDutyDate.Minute + " " + OffDutyDate.Hour + " " + OffDutyDate.Day + " " + OffDutyDate.Month + " ? " + OffDutyDate.Year;
+
+            //var trigger = TriggerBuilder.Create()
+            //                             .WithIdentity(job_name, "OFF_DUTY_JOB_" + Action)
+            //                             .WithCronSchedule(CronExpressionStr,
+            //                              x => x.InTimeZone(TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId))
+            //                             .WithMisfireHandlingInstructionDoNothing()
+            //                             ).ForJob(jobDetail)
+            //                             .Build();
+
+            //var run = _scheduler.ScheduleJob(jobDetail, trigger);
+            //_DBC.CreateLog("INFO", action + trigger.GetNextFireTimeUtc().ToString());
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<int> CreateUsers(int CompanyId, bool RegisteredUser, string FirstName, string PrimaryEmail, string Password,
+        int Status, int CreatedUpdatedBy, string TimeZoneId, string LastName = "", string MobileNo = "", string UserRole = "",
+        string UserPhoto = "no-photo.jpg", string ISDCode = "", string LLIsdCode = "", string LandLine = "", string SecondaryEmail = "",
+        string UniqueGuiD = "", string Lat = "", string Lng = "", string Token = "", bool ExpirePassword = true, string UserLanguage = "en",
+        bool SMSTrigger = false, bool FirstLogin = true, int DepartmentId = 0)
+    {
+        try
+        {
+
+            bool check_Email = await DuplicateEmail(PrimaryEmail);
+            if (check_Email)
+                return 0;
+
+            User NewUsers = new User();
+
+            NewUsers.CompanyId = CompanyId;
+            NewUsers.RegisteredUser = RegisteredUser;
+            NewUsers.FirstName = FirstName;
+
+            if (!string.IsNullOrEmpty(LastName))
+                NewUsers.LastName = LastName;
+
+            if (!string.IsNullOrEmpty(ISDCode))
+            {
+                NewUsers.Isdcode = _DBC.Left(ISDCode, 1) != "+" ? "+" + ISDCode : ISDCode;
+            }
+
+            if (!string.IsNullOrEmpty(MobileNo))
+                NewUsers.MobileNo = _DBC.FixMobileZero(MobileNo);
+
+            if (!string.IsNullOrEmpty(LLIsdCode))
+                NewUsers.Llisdcode = _DBC.Left(LLIsdCode, 1) != "+" ? "+" + LLIsdCode : LLIsdCode;
+
+            if (!string.IsNullOrEmpty(LandLine))
+                NewUsers.Landline = _DBC.FixMobileZero(LandLine);
+
+            NewUsers.PrimaryEmail = PrimaryEmail.ToLower();
+            NewUsers.UserHash = _DBC.PWDencrypt(PrimaryEmail.ToLower());
+
+            if (!string.IsNullOrEmpty(SecondaryEmail))
+                NewUsers.SecondaryEmail = SecondaryEmail;
+
+            NewUsers.Password = Password;
+
+            if (!string.IsNullOrEmpty(UniqueGuiD))
+                NewUsers.UniqueGuiId = UniqueGuiD;
+            else
+                NewUsers.UniqueGuiId = Guid.NewGuid().ToString();
+
+            NewUsers.Status = Status;
+
+            if (!string.IsNullOrEmpty(UserPhoto))
+                NewUsers.UserPhoto = UserPhoto;
+
+            if (!string.IsNullOrEmpty(UserRole))
+            {
+                NewUsers.UserRole = UserRole.ToUpper().Replace("STAFF", "USER");
+            }
+            else
+            {
+                NewUsers.UserRole = "USER";
+            }
+
+            if (!string.IsNullOrEmpty(Lat))
+                NewUsers.Lat = _DBC.Left(Lat, 15);
+
+            if (!string.IsNullOrEmpty(Lng))
+                NewUsers.Lng = _DBC.Left(Lng, 15);
+
+            string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", CompanyId);
+
+            if (CompExpirePwd == "true")
+            {
+                NewUsers.ExpirePassword = ExpirePassword;
+            }
+            else
+            {
+                NewUsers.ExpirePassword = false;
+            }
+
+            NewUsers.UserLanguage = UserLanguage;
+            NewUsers.PasswordChangeDate = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+            NewUsers.FirstLogin = FirstLogin;
+
+            NewUsers.CreatedBy = CreatedUpdatedBy;
+            NewUsers.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+            NewUsers.UpdatedBy = CreatedUpdatedBy;
+            NewUsers.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+            NewUsers.TrackingStartTime = SqlDateTime.MinValue.Value;
+            NewUsers.TrackingEndTime = SqlDateTime.MinValue.Value;
+            NewUsers.LastLocationUpdate = SqlDateTime.MinValue.Value;
+            NewUsers.DepartmentId = DepartmentId;
+            NewUsers.Otpexpiry = SqlDateTime.MinValue.Value;
+
+            var roles = _DBC.CCRoles(true);
+            NewUsers.Smstrigger = (roles.Contains(NewUsers.UserRole.ToUpper()) ? SMSTrigger : false);
+
+            await _context.Set<User>().AddAsync(NewUsers);
+            await _context.SaveChangesAsync();
+
+            if (CreatedUpdatedBy <= 0)
+            {
+                var usr = await _context.Set<User>().Where(t => t.UserId == NewUsers.UserId).FirstOrDefaultAsync();
+                usr.CreatedBy = NewUsers.UserId;
+                usr.UpdatedBy = NewUsers.UserId;
+                await _context.SaveChangesAsync();
+            }
+
+            AddPwdChangeHistory(NewUsers.UserId, Password, TimeZoneId);
+
+            await CreateUserSearch(NewUsers.UserId, FirstName, LastName, ISDCode, MobileNo, PrimaryEmail, CompanyId);
+
+            CreateSMSTriggerRight(CompanyId, NewUsers.UserId, NewUsers.UserRole, SMSTrigger, NewUsers.Isdcode, NewUsers.MobileNo);
+
+            return NewUsers.UserId;
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return 0;
+    }
+
+    public async Task<dynamic> DeleteUser(int userId, int companyId, int currentUserId, string timeZoneId, CancellationToken cancellationToken)
+    {
+
+        var tblUser = await _context.Set<User>().Where(t=>t.CompanyId == companyId && t.UserId == userId).FirstOrDefaultAsync();
+
+        if (tblUser != null)
+        {
+            if (tblUser.RegisteredUser != true)
+            {
+                tblUser.Status = 3;
+                //tblUser.TOKEN = "";
+                tblUser.PrimaryEmail = "DEL-" + tblUser.PrimaryEmail;
+                tblUser.UserHash = _DBC.PWDencrypt(tblUser.PrimaryEmail);
+                tblUser.UpdatedBy = userId;
+                tblUser.UpdatedOn = _DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
+               await _context.SaveChangesAsync(cancellationToken);
+
+                await CheckUserAssociation(userId, companyId);
+
+                //Remove all user devices;
+                RemoveUserDevice(userId);
+                DeleteUsercoms(userId, 0, true);
+
+                //_billing.AddUserRoleChange(CompanyId, UserId, tblUser.UserRole, TimeZoneId);
+                // Todo: billing should be added here
+            }
+            return tblUser.UserId;
+        }
+        return 0;
+    }
+
+    public async Task<bool> CheckUserAssociation(int userId, int companyId)
+    {
+        try
+        {
+            bool sendemail = false;
+
+            var pCompanyId = new SqlParameter("@CompanyId", companyId);
+            var pUserId = new SqlParameter("@UserID", userId);
+
+            var result =await _context.Set<ModuleLinks>().FromSqlRaw("EXEC Pro_Get_User_Association @UserID, @CompanyID", pUserId, pCompanyId).ToListAsync();
+
+            if (result.Count > 0)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("<table width=\"100%\" class=\"user_list\" style=\"border:1px solid #000000;border-collapse: collapse\"><tr width=\"25%\"><th style=\"text-align:left;\">Module</th><th width=\"75%\" style=\"text-align:left;\">Item Name</th></tr>");
+                sendemail = true;
+                foreach (var item in result)
+                {
+                    sb.AppendLine("<tr><td>" + item.Module + "</td><td>" + item.ModuleItem + "</td></tr>");
+                }
+                sb.AppendLine("</table>");
+                _SDE.SendUserAssociationsToAdmin(sb.ToString(), userId, companyId);
+            }
+
+            return sendemail;
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return false;
+    }
+
+    public async void UpdateUserComms(int companyId, int userId, int createdUpdatedBy, string timeZoneId = "GMT Standard Time", string pingMethods = "", string incidentMethods = "", bool isNewUser = false, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+
+            List<string> ImpPingMethods = pingMethods.Split(',').Select(p => p.Trim().ToUpper()).ToList();
+            List<string> ImpInciMethods = incidentMethods.Split(',').Select(p => p.Trim().ToUpper()).ToList();
+
+            if (isNewUser && (ImpPingMethods.Count <= 0 || ImpInciMethods.Count <= 0))
+            {
+                var comms = await (from CC in _context.Set<CompanyComm>()
+                             join CM in _context.Set<CommsMethod>() on CC.MethodId equals CM.CommsMethodId
+                             where CC.CompanyId == companyId
+                             select CM.MethodCode).ToListAsync();
+                if (ImpPingMethods.Count <= 0)
+                {
+                    ImpPingMethods = comms.ToList();
+                }
+
+                if (ImpInciMethods.Count <= 0)
+                {
+                    ImpInciMethods = comms.ToList();
+                }
+            }
+
+            if (ImpPingMethods.Count > 0)
+            {
+                ImportUsercomms(companyId, "Ping", userId, ImpPingMethods, createdUpdatedBy, timeZoneId, pingMethods, cancellationToken);
+            }
+
+            if (ImpInciMethods.Count > 0)
+            {
+                ImportUsercomms(companyId, "Incident", userId, ImpInciMethods, createdUpdatedBy, timeZoneId, incidentMethods, cancellationToken);
+            }
+
+        }
+        catch (Exception ex) {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+
+    public async void ImportUsercomms(int companyId, string messageType, int userId, List<string> methodList, int createdUpdatedBy, string timeZoneId, string rawMethodsList, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var CompanyCommsMethodid = await (from CM in _context.Set<CompanyComm>()
+                                        join CP in _context.Set<CommsMethod>() on CM.MethodId equals CP.CommsMethodId
+                                        where CM.CompanyId == companyId
+                                        select new { CM.MethodId, CP.MethodCode }).ToListAsync();
+
+            var UserMethods = (from UC in _context.Set<UserComm>()
+                               join CP in _context.Set<CommsMethod>() on UC.MethodId equals CP.CommsMethodId
+                               where UC.UserId == userId
+                               && UC.CompanyId == companyId
+                               select new { UC, CP }).ToList();
+
+            //Check and assign the default company methods when no ping/incident method are assigned to user
+            var incMethods = (from PM in UserMethods where PM.UC.MessageType == messageType select PM).ToList();
+            if (incMethods.Count <= 0 && (methodList.Count <= 0 && !string.IsNullOrEmpty(rawMethodsList)))
+            {
+                foreach (var comMethod in CompanyCommsMethodid)
+                {
+                    CreateUserComms(userId, companyId, comMethod.MethodId, createdUpdatedBy, timeZoneId, messageType);
+                }
+            }
+            else if (methodList.Count > 0 && !string.IsNullOrEmpty(rawMethodsList))
+            {
+                if (incMethods.Count > 0)
+                {
+                    _context.Set<UserComm>().RemoveRange(incMethods.Select(s => s.UC).ToList());
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                var method = (from m in CompanyCommsMethodid where methodList.Contains(m.MethodCode) select m).ToList();
+                foreach (var comMethod in method)
+                {
+                    CreateUserComms(userId, companyId, comMethod.MethodId, createdUpdatedBy, timeZoneId, messageType);
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+
+
+
+    }
+
+    public async Task<UserRelations> UserRelations(int userId, int companyId, string timeZoneId, CancellationToken cancellationToken)
+    {
+        UserRelations UR = new UserRelations();
+        try
+        {
+            bool showAllGroups = true;
+            bool.TryParse(_DBC.GetCompanyParameter("SHOW_ALL_GROUPS_TO_USERS", companyId), out showAllGroups);
+            UR.ShowAllGroups = showAllGroups;
+
+            if (!showAllGroups)
+            {
+                var userRelations = await (from UOR in _context.Set<ObjectRelation>()
+                                     join OBM in _context.Set<ObjectMapping>() on UOR.ObjectMappingId equals OBM.ObjectMappingId
+                                     join OBJ in _context.Set<Core.Models.Object>() on OBM.SourceObjectId equals OBJ.ObjectId
+                                     where UOR.TargetObjectPrimaryId == userId && (OBJ.ObjectTableName == "Group" || OBJ.ObjectTableName == "Location")
+                                     select new UGroup
+                                     {
+                                         ObjectTableName = OBJ.ObjectTableName,
+                                         SourceObjectPrimaryId = UOR.SourceObjectPrimaryId,
+                                         ObjectMappingId = OBM.ObjectMappingId
+                                     }).ToListAsync();
+                Core.Locations.Location newLocation = new Core.Locations.Location();
+                newLocation.CompanyId = companyId;
+                newLocation.LocationName = "ALL";
+                newLocation.Lat = "";
+                newLocation.Long = "";
+                newLocation.Desc = "All Locations";
+                newLocation.PostCode = "";
+                newLocation.Status = 1;
+                newLocation.CreatedBy = userId;
+                int newLocaionId = await _locationRepository.CreateLocation(newLocation, cancellationToken);
+                Core.Groups.Group newGroup = new Core.Groups.Group();
+                newGroup.CompanyId = companyId;
+                newGroup.GroupName = "ALL";
+                newGroup.Status = 1;
+                newGroup.CreatedBy = userId;
+                int newGroupId = await _groupRepository.CreateGroup(newGroup, cancellationToken);
+
+                UR.Groups = userRelations;
+
+                List<int> relatedUserId = new List<int>();
+
+                foreach (var relation in userRelations)
+                {
+
+                    if ((newLocaionId == relation.SourceObjectPrimaryId && relation.ObjectTableName == "Location") ||
+                        newGroupId == relation.SourceObjectPrimaryId && relation.ObjectTableName == "Group")
+                    {
+                        continue;
+                    }
+
+                    var getUser = await _context.Set<ObjectRelation>().Where(t => t.ObjectMappingId == relation.ObjectMappingId && t.SourceObjectPrimaryId == relation.SourceObjectPrimaryId).ToListAsync();
+                    foreach (var user in getUser)
+                    {
+                        relatedUserId.Add(user.TargetObjectPrimaryId);
+                    }
+                }
+                UR.Users = relatedUserId.Distinct().ToList();
+            }
+            return UR;
+
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+        return UR;
+    }
+
+    private dynamic _get_member_list(string Sp_Name, int UserID, int CompanyId, int ObjMapID, int TargetID, int RecordStart, int RecordLength, string SearchString,
+         string OrderBy, string OrderDir, bool ActiveOnly, string CompanyKey)
+    {
+        try
+        {
+            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+            var pUserID = new SqlParameter("@UserID", UserID);
+            var pObjMapID = new SqlParameter("@ObjMapID", ObjMapID);
+            var pTargetID = new SqlParameter("@TargetID", TargetID);
+            var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+            var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+            var pSearchString = new SqlParameter("@SearchString", SearchString);
+            var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+            var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+            var pActiveOnly = new SqlParameter("@ActiveOnly", ActiveOnly);
+            var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
+
+            var MainUserlist = new List<MemberUser>();
+            var propertyInfo = typeof(MemberUser).GetProperty(OrderBy);
+
+            if (OrderDir == "desc" && propertyInfo != null)
+            {
+                MainUserlist = _context.Set<MemberUser>().FromSqlRaw(Sp_Name + " @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                       pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                    .ToList().Select(c => {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                    .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+            }
+            else if (OrderDir == "asc" && propertyInfo != null)
+            {
+                MainUserlist = _context.Set<MemberUser>().FromSqlRaw(Sp_Name + " @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                       pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                    .ToList().Select(c => {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    })
+                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+            }
+            else
+            {
+                MainUserlist = _context.Set<MemberUser>().FromSqlRaw(Sp_Name + " @CompanyID, @UserID, @ObjMapID, @TargetID, @RecordStart,@RecordLength,@SearchString,@OrderBy,@OrderDir,@ActiveOnly,@UniqueKey",
+                       pCompanyId, pUserID, pObjMapID, pTargetID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pActiveOnly, pUniqueKey)
+                    .ToList().Select(c => {
+                        c.UserFullName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.PrimaryEmail = c.UserEmail;
+                        return c;
+                    }).ToList();
+            }
+
+            return MainUserlist;
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+
+    public async Task<dynamic> GetUserDashboard(string modulePage, int userId, bool reverse = false)
+    {
+        try
+        {
+            var pModulePage = new SqlParameter("@ModulePage", modulePage);
+            var pUserID = new SqlParameter("@UserID", userId);
+            var pReverse = new SqlParameter("@Reverse", reverse);
+
+            var result = await _context.Set<DashboardModule>().FromSqlRaw("EXEC Pro_Get_User_Dashboard @ModulePage, @UserID, @Reverse", pModulePage, pUserID, pReverse).ToListAsync();
+            return result;
+
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+
+    public async Task<dynamic> SaveDashboard(List<DashboardModule> moduleItems, string modulePage, int userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var olditems = (from UD in _context.Set<UserModuleLink>()
+                            join DM in _context.Set<DashboardModule>() on UD.ModuleId equals DM.ModuleId
+                            where UD.UserId == userId && DM.ModulePage == modulePage
+                            select UD).ToList();
+            if (olditems.Count > 0)
+            {
+                _context.Set<UserModuleLink>().RemoveRange(olditems);
+                await _context.SaveChangesAsync();
+            }
+
+            if (moduleItems.Count > 0)
+            {
+                foreach (var item in moduleItems)
+                {
+                    AddUserModuleItem(userId, item.ModuleId, item.Xpos, item.Ypos, item.Width, item.Height, cancellationToken);
+                }
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+
+    public async void AddUserModuleItem(int userId, int moduleId, decimal xPos, decimal yPos, decimal width, decimal height, CancellationToken cancellationToken)
+    {
+        try
+        {
+            UserModuleLink UM = new UserModuleLink();
+            UM.UserId = userId;
+            UM.ModuleId = moduleId;
+            UM.Xpos = xPos;
+            UM.Ypos = yPos;
+            UM.Width = width;
+            UM.Height = height;
+            await _context.Set<UserModuleLink>().AddAsync(UM);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+
+    public async Task<dynamic> AddDashlet(int moduleId, int userId, decimal xPos, decimal yPos)
+    {
+        try
+        {
+            var pModuleID = new SqlParameter("@ModuleID", moduleId);
+            var pUserID = new SqlParameter("@UserID", userId);
+            var pXPos = new SqlParameter("@XPos", xPos);
+            var pYPos = new SqlParameter("@YPos", yPos);
+
+            var result = await _context.Set<DashboardModule>().FromSqlRaw("EXEC Pro_Add_Dashlet @ModuleID, @UserID,@XPos, @YPos", pModuleID, pUserID, pXPos, pYPos).FirstOrDefaultAsync();
+            return result;
+
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
     }
 }

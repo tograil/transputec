@@ -29,6 +29,16 @@
       "applicationUrl": "https://localhost:7078;http://localhost:5078",
       "dotnetRunMessages": true
     },
+    "Hana": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Hana"
+      },
+      "applicationUrl": "https://localhost:7078;http://localhost:5078",
+      "dotnetRunMessages": true
+    },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
