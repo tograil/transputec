@@ -36,6 +36,8 @@ public class AuthorizationController : Controller
         {
             var user = await _userManager.FindByNameAsync(request.Username);
 
+            Console.WriteLine(user.Password);
+
             if (user is null)
                 return Unauthorized();
 

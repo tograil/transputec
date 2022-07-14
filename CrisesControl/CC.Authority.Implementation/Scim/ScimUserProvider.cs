@@ -215,6 +215,29 @@ namespace CC.Authority.Implementation.Scim
 
             user.Locale ??= "en-US";
 
+            var existingUser = await _authContext.Users.FirstOrDefaultAsync(x =>
+                string.Equals(x.PrimaryEmail, primaryEmail.Value));
+
+            if (existingUser != null)
+            {
+                existingUser.ExternalScimId = user.ExternalIdentifier;
+                existingUser.UpdatedOn = DateTimeOffset.UtcNow;
+                existingUser.UpdatedBy = _currentUser.UserId;
+
+                await _authContext.SaveChangesAsync();
+
+                user.Identifier = existingUser.UserId.ToString();
+
+                user.Metadata = new Core2Metadata
+                {
+                    ResourceType = "User",
+                    Created = existingUser.CreatedOn.DateTime,
+                    LastModified = existingUser.UpdatedOn.DateTime
+                };
+
+                return user;
+            }
+
             var newUser = new Models.User
             {
                 ExternalScimId = user.ExternalIdentifier,
@@ -349,6 +372,11 @@ namespace CC.Authority.Implementation.Scim
             {
                 userToUpdate.FirstName = user.Name.GivenName;
                 userToUpdate.LastName = user.Name.FamilyName;
+            }
+
+            if (user.ExternalIdentifier is not null)
+            {
+                userToUpdate.ExternalScimId = user.ExternalIdentifier;
             }
 
             if (primaryEmail != null)

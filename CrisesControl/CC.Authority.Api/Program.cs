@@ -100,6 +100,8 @@ builder.Services.AddOpenIddict()
 
         options.DisableSlidingRefreshTokenExpiration();
 
+        options.SetAccessTokenLifetime(TimeSpan.FromDays(30));
+        options.SetAuthorizationCodeLifetime(TimeSpan.FromDays(30));
         options.SetIdentityTokenLifetime(TimeSpan.FromDays(30));
 
     }).AddValidation(options => {
