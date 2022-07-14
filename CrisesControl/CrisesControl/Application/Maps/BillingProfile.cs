@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Billing.GetAllInvoices;
 using CrisesControl.Api.Application.Commands.Billing.GetBillingSummary;
 using CrisesControl.Api.Application.Commands.Billing.GetPaymentProfile;
 using CrisesControl.Core.Billing;
@@ -11,6 +12,8 @@ namespace CrisesControl.Api.Application.Maps {
             CreateMap<BillingPaymentProfile, GetPaymentProfileResponse>();
             CreateMap<BillingSummaryModel, GetBillingSummaryResponse>();
             CreateMap<GetBillingSummaryResponse, BillingSummaryModel>();
+            CreateMap<GetCompanyInvoicesReturn, GetAllInvoicesResponse>();
+            CreateMap<List<CompanyInvoices>, List<AllInvoices>>();
         }
     }
 }

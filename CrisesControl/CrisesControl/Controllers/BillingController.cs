@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.Billing.GetBillingSummary;
+﻿using CrisesControl.Api.Application.Commands.Billing.GetAllInvoices;
+using CrisesControl.Api.Application.Commands.Billing.GetBillingSummary;
 using CrisesControl.Api.Application.Commands.Billing.GetPaymentProfile;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +28,14 @@ namespace CrisesControl.Api.Controllers {
         [HttpPost]
         [Route("GetBillingSummary")]
         public async Task<IActionResult> GetBillingSummary(GetBillingSummaryRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetAllInvoices")]
+        public async Task<IActionResult> GetAllInvoices(GetAllInvoicesRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
