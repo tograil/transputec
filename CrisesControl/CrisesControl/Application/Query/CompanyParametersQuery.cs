@@ -12,6 +12,7 @@ using CrisesControl.Api.Application.Commands.CompanyParameters.SaveParameter;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SavePriority;
+using CrisesControl.Api.Application.Commands.CompanyParameters.AddCompanyParameter;
 
 namespace CrisesControl.Api.Application.Query {
     public class CompanyParametersQuery : ICompanyParametersQuery {
@@ -170,6 +171,33 @@ namespace CrisesControl.Api.Application.Query {
                 {
                     response.Result = result;
                     response.Message = "Priority not added";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<AddCompanyParameterResponse> AddCompanyParameter(AddCompanyParameterRequest request)
+        {
+            try
+            {
+                int CompanyParametersId = await _companyParametersRepository.AddCompanyParameter(request.Name, request.Value,  _currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
+                var result = _mapper.Map<int>(CompanyParametersId);
+                var response = new AddCompanyParameterResponse();
+                if (result>0)
+                {
+                    response.CompanyParametersId = result;
+                    response.Message = "Added Parameter";
+                }
+                else
+                {
+                    response.CompanyParametersId = result;
+                    response.Message = "Parameter not added";
                 }
 
                 return response;

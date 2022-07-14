@@ -31,5 +31,7 @@ public class EmailFieldLookupConfiguration : IEntityTypeConfiguration<EmailField
         builder.Property(e => e.ValidateField)
             .HasMaxLength(250)
             .IsUnicode(false);
+
+     
     }
 }
