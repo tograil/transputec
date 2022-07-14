@@ -70,5 +70,31 @@ namespace CrisesControl.Infrastructure.Repositories {
             }
             return BillInfo;
         }
+
+        public async Task<BillingSummaryModel> GetBillingSummary(int companyId, int userId)
+        {
+            BillingSummaryModel ResultDTO = new BillingSummaryModel();
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pUserID = new SqlParameter("@UserID", userId);
+                BillingSummaryModel billingInfo = await _context.Set<BillingSummaryModel>().FromSqlRaw("EXEC Pro_Billing_GetBillingSummary @CompanyID, @UserID", pCompanyID, pUserID).FirstOrDefaultAsync()!;
+
+                if (billingInfo != null)
+                {
+                    return billingInfo;
+                }
+                else
+                {
+                    ResultDTO.ErrorId = 110;
+                    ResultDTO.Message = "No record found.";
+                }
+                return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                return ResultDTO;
+            }
+        }
     }
 }

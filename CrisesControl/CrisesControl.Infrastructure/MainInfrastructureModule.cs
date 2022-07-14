@@ -77,6 +77,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<JobScheduleRepository>().As<IJobScheduleRepository>();
             builder.RegisterType<SettingsRepository>().As<ISettingsRepository>().SingleInstance();
             builder.RegisterType<QueueRepository>().As<IQueueRepository>();
+            builder.RegisterType<BillingRespository>().As<IBillingRepository>();
 
 
             builder.RegisterType<MessageService>().As<IMessageService>();
