@@ -381,12 +381,12 @@ namespace CC.Authority.Implementation.Scim
 
             if (primaryEmail != null)
             {
-                userToUpdate.PrimaryEmail = primaryEmail?.Value ?? string.Empty;
+                userToUpdate.PrimaryEmail = primaryEmail?.Value ?? userToUpdate.PrimaryEmail;
             }
 
             if (secondaryEmail != null)
             {
-                userToUpdate.SecondaryEmail = secondaryEmail?.Value ?? string.Empty;
+                userToUpdate.SecondaryEmail = secondaryEmail?.Value ?? userToUpdate.SecondaryEmail;
             }
 
             if (user.TimeZone != null)
@@ -396,6 +396,9 @@ namespace CC.Authority.Implementation.Scim
 
                 userToUpdate.TimezoneId = currentTimeZone?.TimeZoneId;
             }
+
+            userToUpdate.Status = user.Active ? 1 : 0;
+
 
             userToUpdate.UpdatedOn = DateTime.UtcNow;
 
