@@ -30,5 +30,7 @@ public class TaskActiveIncidentConfiguration : IEntityTypeConfiguration<TaskActi
         builder.Property(e => e.TaskOwnerId).HasColumnName("TaskOwnerID");
 
         builder.Property(e => e.TaskTitle).HasMaxLength(250);
+        builder.HasOne(e => e.TaskActiveIncidentParticipant).WithMany().HasForeignKey(e=>e.ActiveIncidentTaskId);
+        builder.HasOne(e => e.IncidentActivation).WithMany().HasForeignKey(e => e.ActiveIncidentTaskId);
     }
 }

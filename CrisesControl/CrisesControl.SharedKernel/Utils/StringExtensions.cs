@@ -46,4 +46,28 @@ public static class StringExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(logoType), logoType, null)
         };
     }
+    public static string Truncate(string value, int maxChars)
+    {
+        return value.Length <= maxChars ? value : value.Substring(0, maxChars) + "...";
+    }
+    public static string FormatMobile(string ISD, string Mobile)
+    {
+        if (!string.IsNullOrEmpty(Mobile))
+        {
+            Mobile = Mobile.TrimStart('0').TrimStart('+');
+            if (Mobile.Length > 4)
+            {
+                ISD = ISD.TrimStart('+').TrimStart('0');
+                return "+" + ISD + Mobile;
+            }
+            else
+            {
+                return "";
+            }
+        }
+        else
+        {
+            return "";
+        }
+    }
 }
