@@ -46,5 +46,6 @@ public class ApiModule : Module
 
         builder.RegisterType<CurrentUser>().As<ICurrentUser>();
         builder.RegisterType<AddressQuery>().As<IAddressQuery>();
+        builder.RegisterType<SopLibraryQuery>().As<ISopLibraryQuery>();
     }
 }
