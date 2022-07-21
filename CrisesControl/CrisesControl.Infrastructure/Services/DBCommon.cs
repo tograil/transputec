@@ -149,19 +149,19 @@ namespace CrisesControl.Api.Application.Helpers
         {
             try
             {
-                IncidentTaskNotes Note = new IncidentTaskNotes()
+                IncidentTaskNote Note = new IncidentTaskNote()
                 {
-                    UserID = UserID,
-                    ObjectID = ObjectID,
-                    CompanyID = CompanyID,
-                    IncidentTaskNotesID = ObjectID,
+                    UserId = UserID,
+                    ObjectId = ObjectID,
+                    CompanyId = CompanyID,
+                    IncidentTaskNotesId = ObjectID,
                     NoteType = NoteType,
                     Notes = Notes,
                     CreatedDate = DateTime.Now,
                 };
                await  _context.AddAsync(Note);
                 await _context.SaveChangesAsync();
-                return Note.IncidentTaskNotesID;
+                return Note.IncidentTaskNotesId;
             }
             catch (Exception ex)
             {

@@ -155,6 +155,11 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<TwilioPriceList>().HasNoKey();
             modelBuilder.Entity<MessageISDList>().HasNoKey();
             modelBuilder.Entity<TrackMeUsers>().HasNoKey();
+            modelBuilder.Entity<TaskAssignedUser>().HasNoKey();
+            modelBuilder.Entity<UsrResponse>().HasNoKey();
+            modelBuilder.Entity<ActiveCheckList>().HasNoKey();
+            modelBuilder.Entity<TaskAudit>().HasNoKey();
+            modelBuilder.Entity<FailedTaskList>().HasNoKey();
             
 
 

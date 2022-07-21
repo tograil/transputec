@@ -5,11 +5,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Common;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Tasks;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
@@ -17,6 +20,8 @@ using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
 using Location = CrisesControl.Core.Locations.Location;
 using Object = CrisesControl.Core.Models.Object;
@@ -31,12 +36,14 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     private string MessageSourceAction = string.Empty;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ICompanyRepository _companyRepository;
+    private readonly IConfiguration _configuration;
 
-    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ICompanyRepository companyRepository)
+    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ICompanyRepository companyRepository, IConfiguration configuration)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _companyRepository = companyRepository;
+        _configuration = configuration;
     }
 
     public async Task ProcessKeyHolders(int companyId, int incidentId, int activeIncidentId, int currentUserId,
@@ -220,7 +227,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 getTask.ExpectedCompletionTime = expectedCompletionTime;
                 getTask.UpdatedDate = DateTime.Now.GetDateTimeOffset();
                 getTask.UpdatedBy = currentUserId;
-
+                _context.Update(getTask);
                 await _context.SaveChangesAsync();
 
                 return activeIncidentTaskId;
@@ -351,14 +358,14 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         {
             var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
 
-            var result = _context.Set<TaskIncidentHeader>().FromSqlRaw("exec Pro_Get_Task_Incident_Header @ActiveIncidentID",pActiveIncidentID).AsEnumerable();
-           var task= result.FirstOrDefault();
+            var result = _context.Set<TaskIncidentHeader>().FromSqlRaw("exec Pro_Get_Task_Incident_Header @ActiveIncidentID", pActiveIncidentID).AsEnumerable();
+            var task = result.FirstOrDefault();
             return task;
         }
         catch (Exception ex)
         {
             throw ex;
-           // return new TaskIncidentHeader();
+            // return new TaskIncidentHeader();
         }
     }
     public async Task<List<IncidentTaskDetails>> GetActiveIncidentTasks(int ActiveIncidentID, int ActiveIncidentTaskID, int CompanyID, bool single = false)
@@ -376,14 +383,14 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             int reallocate_type = pt_type.Where(w => w.TaskParticipantTypeName == "REALLOCATION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
             int delegate_type = pt_type.Where(w => w.TaskParticipantTypeName == "DELEGATION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
 
-            var participent_list =await _active_participants(ActiveIncidentID);
+            var participent_list = await _active_participants(ActiveIncidentID);
 
             await FixActiveTaskOrder(ActiveIncidentID);
 
             //var users = (from U in db.Users where U.CompanyId == CompanyID where U.Status != 2 select U).ToList();
 
             var TaskList = await _active_incident_tasks(ActiveIncidentID, ActiveIncidentTaskID);
-                TaskList.Select(async c => {
+            TaskList.Select(async c => {
                 c.TaskDeclinedBy = (from TIA in participent_list
                                     where TIA.ActionStatus == "DECLINED" && TIA.ActiveIncidentTaskID == c.ActiveIncidentTaskID
                                     orderby TIA.ActiveIncidentTaskParticipantID descending
@@ -445,10 +452,10 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 pActiveIncidentID, pActiveIncidentTaskID).ToListAsync();
 
 
-                result.Select(c => {
-                    c.TaskOwner = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                    return c;
-                }).ToList();
+            result.Select(c => {
+                c.TaskOwner = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                return c;
+            }).ToList();
 
             return result;
         }
@@ -466,7 +473,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             var pActiveTaskID = new SqlParameter("@ActiveTaskID", ActiveTaskID);
             var pRecipientType = new SqlParameter("@RecipientType", RecipientType);
 
-            var result =await _context.Set<ActiveTaskParticiants>().FromSqlRaw("exec Pro_Get_Active_Task_Participant @ActiveIncidentID, @ActiveTaskID, @RecipientType",
+            var result = await _context.Set<ActiveTaskParticiants>().FromSqlRaw("exec Pro_Get_Active_Task_Participant @ActiveIncidentID, @ActiveTaskID, @RecipientType",
                 pActiveIncidentID, pActiveTaskID, pRecipientType).ToListAsync();
 
             return result;
@@ -481,8 +488,8 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         try
         {
             var rearrange_tasks = await _context.Set<TaskActiveIncident>()
-                                   .Where(IT=> IT.ActiveIncidentId == ActiveIncidentID)
-                                   .OrderBy(IT=> IT.TaskSequence).ToListAsync();
+                                   .Where(IT => IT.ActiveIncidentId == ActiveIncidentID)
+                                   .OrderBy(IT => IT.TaskSequence).ToListAsync();
             int newseq = 1;
             foreach (var rtask in rearrange_tasks)
             {
@@ -490,8 +497,8 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                     rtask.TaskSequence = newseq;
                 newseq++;
             }
-            
-           await _context.SaveChangesAsync();
+
+            await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -506,7 +513,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             var pActiveIncidentTaskID = new SqlParameter("@ActiveIncidentTaskID", ActiveIncidentTaskID);
             var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
 
-            var result = await  _context.Set<TaskPredecessorList>().FromSqlRaw("exec Pro_Get_Active_Task_Predeccessor @ActiveIncidentTaskID, @ActiveIncidentID",
+            var result = await _context.Set<TaskPredecessorList>().FromSqlRaw("exec Pro_Get_Active_Task_Predeccessor @ActiveIncidentTaskID, @ActiveIncidentID",
                 pActiveIncidentTaskID, pActiveIncidentID).ToListAsync();
 
             return result;
@@ -535,16 +542,16 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             throw ex;
         }
     }
-    public async Task<TaskActiveIncident> GetTaskActiveIncidentById(int ActiveIncidentTaskID,int CompanyID)
+    public async Task<TaskActiveIncident> GetTaskActiveIncidentById(int ActiveIncidentTaskID, int CompanyID)
     {
-        var task = await _context.Set<TaskActiveIncident>().Where(AIT=> AIT.ActiveIncidentTaskId == ActiveIncidentTaskID && AIT.CompanyId == CompanyID).FirstOrDefaultAsync();
+        var task = await _context.Set<TaskActiveIncident>().Where(AIT => AIT.ActiveIncidentTaskId == ActiveIncidentTaskID && AIT.CompanyId == CompanyID).FirstOrDefaultAsync();
         return task;
     }
     public async Task<List<TaskIncidentAction>> GetTaskIncidentActionByDeline(int ActiveIncidentTaskID)
     {
-        var check_declined = await _context.Set<TaskIncidentAction>().Where(TA=> TA.TaskActionTypeId == 3 && TA.ActiveIncidentTaskId == ActiveIncidentTaskID).ToListAsync();
-        
-            return check_declined;
+        var check_declined = await _context.Set<TaskIncidentAction>().Where(TA => TA.TaskActionTypeId == 3 && TA.ActiveIncidentTaskId == ActiveIncidentTaskID).ToListAsync();
+
+        return check_declined;
     }
 
     public async Task send_notifiation_to_groups(List<string> GroupType, int ActiveIncidentID, int ActiveIncidentTaskID,
@@ -572,7 +579,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             MSG.TimeZoneId = TimeZoneId;
             MSG.CascadePlanID = CascadePlanID;
             MSG.MessageSourceAction = sourceAction;
-            int tblmessageid =await MSG.CreateMessage(CompanyID, Message, "Incident", ActiveIncidentID, 999, CurrentUserID,
+            int tblmessageid = await MSG.CreateMessage(CompanyID, Message, "Incident", ActiveIncidentID, 999, CurrentUserID,
                 Source, DateTime.Now.GetDateTimeOffset(TimeZoneId), false, null, 99, 0, ActiveIncidentTaskID, false, false, MessageMethod);
 
 
@@ -598,13 +605,13 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 var pIncludeActionList = new SqlParameter("@IncludeActionList", IncludeActionList);
                 var pIncludeEscalationList = new SqlParameter("@IncludeEscalationList", IncludeEscalationList);
                 var pIncludeNotificationList = new SqlParameter("@IncludeNotificationList", IncludeNotificationList);
-                var pCustomerTime = new SqlParameter("@CustomerTime", DateTime.Now.GetDateTimeOffset( TimeZoneId));
+                var pCustomerTime = new SqlParameter("@CustomerTime", DateTime.Now.GetDateTimeOffset(TimeZoneId));
                 var pCurrentUserID = new SqlParameter("@CurrentUserID", CurrentUserID);
 
-                var RowsCount =await _context.Set<Result>().FromSqlRaw("exec Pro_Task_Update_Message_List @IncidentActivationID,@ActiveIncidentTaskID,@MessageID,@IncludeKeyContact,@IncludeActionList,@IncludeEscalationList,@IncludeNotificationList,@CustomerTime,@CurrentUserID",
+                var RowsCount = await _context.Set<Result>().FromSqlRaw("exec Pro_Task_Update_Message_List @IncidentActivationID,@ActiveIncidentTaskID,@MessageID,@IncludeKeyContact,@IncludeActionList,@IncludeEscalationList,@IncludeNotificationList,@CustomerTime,@CurrentUserID",
                        pIncidentActivationId, pActiveIncidentTaskID, pMessageId, pIncludeKeyContact, pIncludeActionList, pIncludeEscalationList, pIncludeNotificationList, pCustomerTime, pCurrentUserID).FirstOrDefaultAsync();
 
-                IsFundAvailable =await MSG.CalculateMessageCost(CompanyID, tblmessageid, Message);
+                IsFundAvailable = await MSG.CalculateMessageCost(CompanyID, tblmessageid, Message);
 
                 Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, CascadePlanID));
                 //QueueHelper.MessageDevicePublish(tblmessageid, 1);
@@ -650,11 +657,11 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             List<NotificationUserList> TaskPtcpntList = new List<NotificationUserList>();
             if (IncludeKeyContact)
             {
-                var KeyContacts = await  _context.Set<ActiveIncidentKeyContact>().Where(KC=>KC.IncidentActivationId == ActiveIncidentID).Select(KC=> new { KC.UserId }).ToListAsync();
+                var KeyContacts = await _context.Set<ActiveIncidentKeyContact>().Where(KC => KC.IncidentActivationId == ActiveIncidentID).Select(KC => new { KC.UserId }).ToListAsync();
 
                 foreach (var Keycon in KeyContacts)
                 {
-                    TaskPtcpntList.Add(new NotificationUserList(Keycon.UserId, false ));
+                    TaskPtcpntList.Add(new NotificationUserList(Keycon.UserId, false));
                 }
             }
 
@@ -665,7 +672,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             MSG.CascadePlanID = CascadePlanID;
             MSG.MessageSourceAction = MessageSourceAction;
 
-            int tblmessageid = await  MSG.CreateMessage(CompanyID, Message, "Incident", ActiveIncidentID, 999, CurrentUserID, Source,
+            int tblmessageid = await MSG.CreateMessage(CompanyID, Message, "Incident", ActiveIncidentID, 999, CurrentUserID, Source,
                        DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId), false, null, 99, 0, ActiveIncidentTaskID, false, false, MessageMetod);
 
             if (tblmessageid > 0)
@@ -685,89 +692,28 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         }
     }
 
-    //public object TakeOwnership(int ActiveIncidentTaskID, int CurrentUserID, int CompanyID, string TimeZoneId)
-    //{
-    //    try
-    //    {
-    //        MessageSourceAction = SourceAction.TaskTakeOver;
-    //        var task = (from AIT in db.TaskActiveIncident where AIT.ActiveIncidentTaskID == ActiveIncidentTaskID && AIT.CompanyID == CompanyID select AIT).FirstOrDefault();
-
-    //        if (task != null)
-    //        {
-    //            CommonDTO result = new CommonDTO();
-    //            if (task.TaskOwnerID == CurrentUserID)
-    //            {
-    //                result.ErrorId = 189;
-    //                result.Message = "Task already accepted";
-    //                return result;
-    //            }
-    //            else if (task.TaskStatus == 7)
-    //            {
-    //                result.ErrorId = 190;
-    //                result.Message = "Cannot take ownership, task is completed";
-    //                return result;
-    //            }
-
-    //            int previousOwner = task.TaskOwnerID;
-    //            if (task.DelayedComplete.Year > 2000 && CurrentUserID != task.TaskOwnerID && task.TaskStatus != 7)
-    //            {
-
-    //                task.PreviousOwnerID = previousOwner;
-    //                task.TaskOwnerID = CurrentUserID;
-    //                task.UpdatedDate = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
-    //                task.UpdatedBy = CurrentUserID;
-    //                db.SaveChanges(CurrentUserID, CompanyID);
-
-    //                //Get Action By username
-    //                var action_user = (from U in db.Users where U.UserId == CurrentUserID select U).FirstOrDefault();
-    //                string username = "";
-    //                if (action_user != null)
-    //                {
-    //                    username = action_user.FirstName + " " + action_user.LastName;
-    //                }
-
-    //                string task_action = "Task ownership is taken by " + username;
-
-    //                //Add task action history
-    //                AddTaskAction(ActiveIncidentTaskID, task_action, CurrentUserID, 9, TimeZoneId);
-
-    //                List<NotificationUserList> TaskPtcpntList = new List<NotificationUserList>();
-    //                TaskPtcpntList.Add(new NotificationUserList { UserId = previousOwner, IsTaskRecipient = true });
+    public async Task<List<GetAllUser>> GetTaskUserList(int Start, int Length, Search Search, string TypeName, int ActiveIncidentTaskID, string CompanyKey, int OutLoginUserId, int OutUserCompanyId)
+    {
+        var RecordStart = Start == 0 ? 0 : Start;
+        var RecordLength = Length == 0 ? int.MaxValue : Length;
+        var SearchString = !string.IsNullOrEmpty(Search.Value) ? Search.Value : "";
 
 
-    //                bool NotifyKeyContact = false;
-    //                bool.TryParse(DBC.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", CompanyID), out NotifyKeyContact);
+        var pCompanyId = new SqlParameter("@CompanyId", OutUserCompanyId);
+        var pUserId = new SqlParameter("@UserID", OutLoginUserId);
+        var pActiveIncidentTaskID = new SqlParameter("@ActiveIncidentTaskID", ActiveIncidentTaskID);
+        var pTypeName = new SqlParameter("@TypeName", TypeName);
+        var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+        var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+        var pSearchString = new SqlParameter("@SearchString", SearchString);
+        var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-    //                string action_update = "Task " + task.TaskSequence + ": \"" + DBC.Truncate(task.TaskTitle, 50) + "\" is now owned by " + username + ".";
-    //                await notify_users(task.ActiveIncidentID, task.ActiveIncidentTaskID, TaskPtcpntList, action_update, CurrentUserID, CompanyID, TimeZoneId, NotifyKeyContact, 3);
-
-    //                //List<string> grp = new List<string>();
-    //                //if(task.TaskEscalatedDate.Year > 2000) {
-    //                //    grp.Add("ESCALATION");
-    //                //    grp.Add("ACTION");
-    //                //} else {
-    //                //    grp.Add("ACTION");
-    //                //}
-    //                //string action_update = "Task " + task.TaskSequence + ": \"" + DBC.Truncate(task.TaskTitle, 50) + "\" is now owned by " + username + ".";
-    //                //send_notifiation_to_groups(grp, task.ActiveIncidentID, task.ActiveIncidentTaskID, action_update, CurrentUserID, CompanyID, TimeZoneId, NotifyKeyContact, 3);
-
-    //            }
-    //            else if (task.DelayedComplete.Year < 2000 || new List<int> { 1, 4, 6, 7 }.Contains(task.TaskStatus))
-    //            {
-    //                result.ErrorId = 191;
-    //                result.Message = "Invalid request";
-    //                return result;
-    //            }
-
-    //            return task;
-    //        }
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        throw ex;
-    //    }
-    //    return null;
-    //}
+        //TODODONE - filter the users based on the parameter and user profile
+        var MainUserlist = await _context.Set<GetAllUser>().FromSqlRaw(" exec Pro_Get_Task_User_SelectAll @CompanyId,@ActiveIncidentTaskID, @TypeName, @UserID, @RecordStart, @RecordLength, @SearchString,@UniqueKey",
+            pCompanyId, pActiveIncidentTaskID, pTypeName, pUserId, pRecordStart, pRecordLength, pSearchString, pUniqueKey)
+            .OrderBy(o => o.FirstName).ToListAsync();
+        return MainUserlist;
+    }
     public async Task<List<NotificationUserList>> GetActiveParticipantList(int IncidentActivationId, string GroupType = "ACTION", int ActiveIncidentTaskID = 0, bool IsTaskRecipient = true)
     {
         List<NotificationUserList> PTList = new List<NotificationUserList>();
@@ -782,30 +728,30 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                               select OM.ObjectMappingId).FirstOrDefault();
 
             //Get the group type of of the participant to fetch
-            int pt_type = await  _context.Set<TaskParticipantType>()
-                           .Where(PT=> PT.TaskParticipantTypeName == GroupType)
-                           .Select(PT=> PT.TaskParticipantTypeId).FirstOrDefaultAsync();
+            int pt_type = await _context.Set<TaskParticipantType>()
+                           .Where(PT => PT.TaskParticipantTypeName == GroupType)
+                           .Select(PT => PT.TaskParticipantTypeId).FirstOrDefaultAsync();
 
             //Get all the participant list from incident participant table
-            var pt_list = await _context.Set< TaskActiveIncident >().Include(ty=>ty.TaskActiveIncidentParticipant)
-                           .Where(IT=> IT.ActiveIncidentId == IncidentActivationId && (IT.TaskActiveIncidentParticipant.ParticipantTypeId == pt_type || IT.TaskActiveIncidentParticipant.ActionStatus == "UNALLOCATED"))
+            var pt_list = await _context.Set<TaskActiveIncident>().Include(ty => ty.TaskActiveIncidentParticipant)
+                           .Where(IT => IT.ActiveIncidentId == IncidentActivationId && (IT.TaskActiveIncidentParticipant.ParticipantTypeId == pt_type || IT.TaskActiveIncidentParticipant.ActionStatus == "UNALLOCATED"))
                            .ToListAsync();
 
             if (ActiveIncidentTaskID > 0)
             {
-                pt_list = pt_list.Where(NL=> NL.TaskActiveIncidentParticipant.ActiveIncidentTaskId == ActiveIncidentTaskID).ToList();
+                pt_list = pt_list.Where(NL => NL.TaskActiveIncidentParticipant.ActiveIncidentTaskId == ActiveIncidentTaskID).ToList();
             }
             //Fetch the user list of the groups provided in incidenttask participant
             var GroupUserList = (from TIP in pt_list
                                  join OM in _context.Set<ObjectRelation>() on new { SourceID = TIP.TaskActiveIncidentParticipant.ParticipantGroupId, ObjectMappingId = obj_map_id }
                                  equals new { SourceID = OM.SourceObjectPrimaryId, ObjectMappingId = OM.ObjectMappingId }
                                  where TIP.ActiveIncidentId == IncidentActivationId && TIP.TaskActiveIncidentParticipant.ParticipantGroupId > 0
-                                 select new NotificationUserList(OM.TargetObjectPrimaryId, IsTaskRecipient = IsTaskRecipient )).ToList();
+                                 select new NotificationUserList(OM.TargetObjectPrimaryId, IsTaskRecipient = IsTaskRecipient)).ToList();
 
             //Get the lsit of individual user from incident task participant
-            var UserList =  pt_list
-                            .Where(TIP=> TIP.TaskActiveIncidentParticipant.ParticipantUserId > 0)
-                            .Select(IT=> new NotificationUserList( IT.TaskActiveIncidentParticipant.ParticipantUserId, IsTaskRecipient)).ToList();
+            var UserList = pt_list
+                            .Where(TIP => TIP.TaskActiveIncidentParticipant.ParticipantUserId > 0)
+                            .Select(IT => new NotificationUserList(IT.TaskActiveIncidentParticipant.ParticipantUserId, IsTaskRecipient)).ToList();
 
             PTList = GroupUserList.Union(UserList).Distinct().ToList();
             return PTList;
@@ -815,7 +761,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             throw ex;
             return PTList;
         }
-       
+
     }
 
     /// <summary>
@@ -832,11 +778,11 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     {
         try
         {
-            List<NotificationUserList> UList =await GetActiveParticipantList(ActiveIncidentID, Group, ActiveIncidentTaskID);
+            List<NotificationUserList> UList = await GetActiveParticipantList(ActiveIncidentID, Group, ActiveIncidentTaskID);
             if (UList.Count == 1)
                 return true;
 
-            int rejected_list = await _context.Set<TaskIncidentAction>().Where(TA=> TA.ActiveIncidentTaskId == ActiveIncidentTaskID && TA.TaskActionTypeId == 3).CountAsync();
+            int rejected_list = await _context.Set<TaskIncidentAction>().Where(TA => TA.ActiveIncidentTaskId == ActiveIncidentTaskID && TA.TaskActionTypeId == 3).CountAsync();
 
             if (UList.Count == rejected_list)
             {
@@ -870,24 +816,24 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         {
             MessageSourceAction = SourceAction.TaskReallocated;
             string Message = "";
-            var task = await _context.Set<TaskActiveIncident>().Where(AIT=> AIT.ActiveIncidentTaskId == ActiveIncidentTaskID && AIT.CompanyId == CompanyID).FirstOrDefaultAsync();
+            var task = await _context.Set<TaskActiveIncident>().Where(AIT => AIT.ActiveIncidentTaskId == ActiveIncidentTaskID && AIT.CompanyId == CompanyID).FirstOrDefaultAsync();
 
             if (task != null)
             {
-               
+
                 if (new List<int> { 1, 7 }.Contains(task.TaskStatus))
                 {
-                  Message = "Cannot reallocated this task.";
-                   
+                    Message = "Cannot reallocated this task.";
+
                 }
                 else if (task.TaskOwnerId != CurrentUserID)
                 {
-                    
+
                     Message = "Cannot Rellocate! You are no longer the owner of the task";
-                    
+
                 }
 
-                int pt_type = await _context.Set<TaskParticipantType>().Where(PT=>PT.TaskParticipantTypeName == "REALLOCATION").Select(PT=> PT.TaskParticipantTypeId).FirstOrDefaultAsync();
+                int pt_type = await _context.Set<TaskParticipantType>().Where(PT => PT.TaskParticipantTypeName == "REALLOCATION").Select(PT => PT.TaskParticipantTypeId).FirstOrDefaultAsync();
 
                 await change_participant_type(ReallocateTo, ActiveIncidentTaskID, pt_type, "REALLOCATED");
 
@@ -896,7 +842,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 task.UpdatedBy = CurrentUserID;
                 await _context.SaveChangesAsync();
 
-                var action_user = await _context.Set<User>().Where(U=> U.UserId == ReallocateTo).FirstOrDefaultAsync();
+                var action_user = await _context.Set<User>().Where(U => U.UserId == ReallocateTo).FirstOrDefaultAsync();
 
                 string username = "";
                 if (action_user != null)
@@ -905,10 +851,10 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 }
 
                 //Add task action history
-               await  AddTaskAction(ActiveIncidentTaskID, "Task reallocated to " + username + "<br/>Comment:" + TaskActionReason, CurrentUserID, task.TaskStatus, TimeZoneId);
+                await AddTaskAction(ActiveIncidentTaskID, "Task reallocated to " + username + "<br/>Comment:" + TaskActionReason, CurrentUserID, task.TaskStatus, TimeZoneId);
 
                 List<NotificationUserList> TaskPtcpntList = new List<NotificationUserList>();
-                TaskPtcpntList.Add(new NotificationUserList( ReallocateTo,  true ));
+                TaskPtcpntList.Add(new NotificationUserList(ReallocateTo, true));
                 string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" is reassigned to " + username + ". " + Environment.NewLine + " with comment: " + TaskActionReason;
 
                 //bool NotifyKeyContact = false;
@@ -942,19 +888,19 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         {
             string Message = string.Empty;
             MessageSourceAction = SourceAction.TaskDelegated;
-            var task = await _context.Set<TaskActiveIncident>().Where(AIT=> AIT.ActiveIncidentTaskId == ActiveIncidentTaskID && AIT.CompanyId == CompanyID).FirstOrDefaultAsync();
+            var task = await _context.Set<TaskActiveIncident>().Where(AIT => AIT.ActiveIncidentTaskId == ActiveIncidentTaskID && AIT.CompanyId == CompanyID).FirstOrDefaultAsync();
 
             if (task != null)
             {
 
                 if (task.TaskOwnerId != CurrentUserID)
                 {
-                   
+
                     Message = "Cannot Deletegate!. You are no longer the owner of the task";
-                  
+
                 }
 
-                int pt_type = await _context.Set<TaskParticipantType>().Where(PT=> PT.TaskParticipantTypeName == "DELEGATION").Select(PT=> PT.TaskParticipantTypeId).FirstOrDefaultAsync();
+                int pt_type = await _context.Set<TaskParticipantType>().Where(PT => PT.TaskParticipantTypeName == "DELEGATION").Select(PT => PT.TaskParticipantTypeId).FirstOrDefaultAsync();
 
                 task.TaskStatus = 5;
                 task.UpdatedDate = DateTime.Now.GetDateTimeOffset(TimeZoneId);
@@ -968,24 +914,24 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 foreach (int delegatee in DelegateTo)
                 {
                     await change_participant_type(delegatee, ActiveIncidentTaskID, pt_type, "DELEGATED");
-                    var action_user = await _context.Set<User>().Where(U=> U.UserId == delegatee).FirstOrDefaultAsync();
+                    var action_user = await _context.Set<User>().Where(U => U.UserId == delegatee).FirstOrDefaultAsync();
                     if (action_user != null)
                     {
                         username += delim + action_user.FirstName + " " + action_user.LastName;
                         delim = ", ";
                     }
-                    TaskPtcpntList.Add(new NotificationUserList(delegatee, true ));
+                    TaskPtcpntList.Add(new NotificationUserList(delegatee, true));
                 }
 
                 //Add task action history
-               await AddTaskAction(ActiveIncidentTaskID, "Task delegated to " + username + "<br/>Comment:" + TaskActionReason, CurrentUserID, task.TaskStatus, TimeZoneId);
+                await AddTaskAction(ActiveIncidentTaskID, "Task delegated to " + username + "<br/>Comment:" + TaskActionReason, CurrentUserID, task.TaskStatus, TimeZoneId);
 
                 string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" delegated to " + username + ". " + Environment.NewLine + " With comment: " + TaskActionReason;
 
                 //bool NotifyKeyContact = false;
                 //bool.TryParse(DBC.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", CompanyID), out NotifyKeyContact);
 
-               await notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, CurrentUserID, CompanyID, TimeZoneId, false, 3, MessageMethod, CascadePlanID);
+                await notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, CurrentUserID, CompanyID, TimeZoneId, false, 3, MessageMethod, CascadePlanID);
 
                 return task;
             }
@@ -1021,25 +967,25 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
                 if (ActionUsers.Length > 0)
                 {
-                    int act_type = await _context.Set<TaskParticipantType>().Where(PT=> PT.TaskParticipantTypeName == "ACTION").Select(PT=> PT.TaskParticipantTypeId).FirstOrDefaultAsync();
+                    int act_type = await _context.Set<TaskParticipantType>().Where(PT => PT.TaskParticipantTypeName == "ACTION").Select(PT => PT.TaskParticipantTypeId).FirstOrDefaultAsync();
                     foreach (int ActUser in ActionUsers)
                     {
                         await change_participant_type(ActUser, ActiveIncidentTaskID, act_type, "UNALLOCATED", true);
 
                         if (task.TaskActivationDate.Year > 2000) //only add when the task is started
-                            TaskPtcpntList.Add(new NotificationUserList( ActUser, true));
+                            TaskPtcpntList.Add(new NotificationUserList(ActUser, true));
                     }
                 }
 
                 if (EscalationUsers.Length > 0)
                 {
-                    int esc_type = await  _context.Set<TaskParticipantType>().Where(PT=> PT.TaskParticipantTypeName == "ESCALATION" ).Select(PT=> PT.TaskParticipantTypeId).FirstOrDefaultAsync();
+                    int esc_type = await _context.Set<TaskParticipantType>().Where(PT => PT.TaskParticipantTypeName == "ESCALATION").Select(PT => PT.TaskParticipantTypeId).FirstOrDefaultAsync();
                     foreach (int EcsUser in EscalationUsers)
                     {
                         await change_participant_type(EcsUser, ActiveIncidentTaskID, esc_type, "UNALLOCATED", true);
 
                         if (task.TaskActivationDate.Year > 2000) //only add when the task is started
-                            TaskPtcpntList.Add(new NotificationUserList(EcsUser, true ));
+                            TaskPtcpntList.Add(new NotificationUserList(EcsUser, true));
                     }
                 }
 
@@ -1092,18 +1038,18 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     /// <param name="CompanyID"></param>
     /// <param name="TimeZoneId"></param>
     /// <returns></returns>
-   
+
 
     public async Task CompleteAllTask(int ActiveIncidentID, int CurrentUserID, int CompanyID, string TimeZoneId)
     {
         try
         {
             DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
-            var tasks = await  _context.Set<TaskActiveIncident>()
-                         .Where(AIT=> AIT.ActiveIncidentId == ActiveIncidentID && AIT.TaskStatus != 7 && AIT.CompanyId == CompanyID)
+            var tasks = await _context.Set<TaskActiveIncident>()
+                         .Where(AIT => AIT.ActiveIncidentId == ActiveIncidentID && AIT.TaskStatus != 7 && AIT.CompanyId == CompanyID)
                          .ToListAsync();
             //Get Action By username
-            var get_user = await  _context.Set<User>().Where(U=> U.UserId == CurrentUserID).FirstOrDefaultAsync();
+            var get_user = await _context.Set<User>().Where(U => U.UserId == CurrentUserID).FirstOrDefaultAsync();
             string username = "";
             if (get_user != null)
             {
@@ -1118,10 +1064,10 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                     task.UpdatedBy = CurrentUserID;
                     task.TaskCompletedBy = CurrentUserID;
                     _context.Update(task);
-                   await _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync();
 
                     string task_action = "Task completed forcefully by " + username + " upon closing the incident.";
-                   await AddTaskAction(task.ActiveIncidentTaskId, task_action, CurrentUserID, task.TaskStatus, TimeZoneId);
+                    await AddTaskAction(task.ActiveIncidentTaskId, task_action, CurrentUserID, task.TaskStatus, TimeZoneId);
 
                     //Delete Scheduled jobs for the incident
                     DBC.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
@@ -1149,8 +1095,8 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     {
         try
         {
-            var pt =  await _context.Set<TaskActiveIncidentParticipant>()
-                      .Where(PT=> PT.ActiveIncidentTaskId == ActiveIncidentTaskID && PT.ActionStatus == "DELEGATED"
+            var pt = await _context.Set<TaskActiveIncidentParticipant>()
+                      .Where(PT => PT.ActiveIncidentTaskId == ActiveIncidentTaskID && PT.ActionStatus == "DELEGATED"
                       ).FirstOrDefaultAsync();
             if (pt != null)
             {
@@ -1164,7 +1110,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 {
                     _context.Remove(pt);
                 }
-               await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
@@ -1177,7 +1123,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         try
         {
             var participant = await _context.Set<TaskActiveIncidentParticipant>()
-                               .Where(TAIP=> TAIP.ActiveIncidentTaskId == ActiveIncidentTaskID && TAIP.ParticipantUserId == UserID
+                               .Where(TAIP => TAIP.ActiveIncidentTaskId == ActiveIncidentTaskID && TAIP.ParticipantUserId == UserID
                                ).FirstOrDefaultAsync();
             if (participant != null && AddNew == false)
             {
@@ -1224,7 +1170,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 ITP.ParticipantUserId = (objtype == "USER" ? ObjectId : 0);
                 ITP.ParticipantGroupId = (objtype == "GROUP" ? ObjectId : 0);
                 ITP.ActionStatus = ActionStatus;
-               await _context.AddAsync(ITP);
+                await _context.AddAsync(ITP);
             }
 
             await _context.SaveChangesAsync();
@@ -1305,7 +1251,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                     {
                         grp.Add("ACTION");
                         string action_update = "Task " + task.AIT.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.AIT.TaskTitle, 50) + "\" is now available.";
-                       await send_notifiation_to_groups(grp, task.AIT.ActiveIncidentId, task.AIT.ActiveIncidentTaskId, action_update, CurrentUserID, task.AIT.CompanyId, TimeZoneId, false, 3, sourceAction: SourceAction.TaskAvailable);
+                        await send_notifiation_to_groups(grp, task.AIT.ActiveIncidentId, task.AIT.ActiveIncidentTaskId, action_update, CurrentUserID, task.AIT.CompanyId, TimeZoneId, false, 3, sourceAction: SourceAction.TaskAvailable);
                     }
 
                 }
@@ -1363,8 +1309,8 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     public async Task<int> GetTaskActiveIncidentParticipantIdByStatus(int ActiveIncidentTaskID)
     {
         var pType = await _context.Set<TaskActiveIncidentParticipant>()
-                            .Where(PT=> PT.ActiveIncidentTaskId == ActiveIncidentTaskID &&
-                                                 PT.ActionStatus == "DELEGATED").Select(a=>a.ParticipantUserId).FirstOrDefaultAsync();
+                            .Where(PT => PT.ActiveIncidentTaskId == ActiveIncidentTaskID &&
+                                                 PT.ActionStatus == "DELEGATED").Select(a => a.ParticipantUserId).FirstOrDefaultAsync();
         return pType;
     }
 
@@ -1374,4 +1320,376 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         await _context.SaveChangesAsync();
         return task.ActiveIncidentTaskId;
     }
+    public async Task<List<TaskAssignedUser>> GetTaskAssignedUsers(int ActiveIncidentTaskID, string TypeName, int CompanyID)
+    {
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pTypeName = new SqlParameter("@TypeName", TypeName);
+            var pActiveIncidentTaskID = new SqlParameter("@ActiveIncidentTaskID", ActiveIncidentTaskID);
+            var pt_list = await _context.Set<TaskAssignedUser>().FromSqlRaw("exec Pro_ActiveIncidentTask_GetTaskAssignedUsers @ActiveIncidentTaskID,@TypeName,@CompanyID", pActiveIncidentTaskID, pTypeName, pCompanyID).ToListAsync();
+
+            return pt_list;
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<ActiveCheckList>> GetActiveTaskCheckList(int ActiveIncidentTaskID, int CompanyID, int UserID)
+    {
+        try
+        {
+
+            var pActiveIncidentTaskID = new SqlParameter("@ActiveIncidentTaskID", ActiveIncidentTaskID);
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pUserID = new SqlParameter("@UserID", UserID);
+
+            var qresult = await _context.Set<JsonResult>().FromSqlRaw("Pro_Get_Active_TaskCheckList @ActiveIncidentTaskID, @CompanyID, @UserID",
+                pActiveIncidentTaskID, pCompanyID, pUserID).FirstOrDefaultAsync();
+
+            if (qresult.Result != null)
+            {
+                var result = JsonConvert.DeserializeObject<List<ActiveCheckList>>(qresult.Result);
+                //return result;
+                var newresult = result.ToList().Select(c => {
+                    if (c.UserResponse != null)
+                    {
+                        foreach (UsrResponse UR in c.UserResponse)
+                        {
+                            var user = _context.Set<User>().Where(w => w.UserId == UR.CreatedBy).FirstOrDefault();
+                            UR.FirstName = user.FirstName;
+                            UR.LastName = user.LastName;
+                        }
+                    }
+                    return c;
+                }).ToList();
+
+                return newresult;
+            }
+            return null;
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<TaskAudit>> GetTaskAudit(int ActiveIncidentTaskID)
+    {
+        try
+        {
+            var pActiveIncidentTaskID = new SqlParameter("@ActiveIncidentTaskID", ActiveIncidentTaskID);
+
+            var AuditData = await _context.Set<TaskAudit>().FromSqlRaw("exec Pro_Get_Task_Audit @ActiveIncidentTaskID", pActiveIncidentTaskID).ToListAsync();
+
+
+            AuditData.Select(c => {
+                c.ActionBy = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                return c;
+            });
+            return AuditData;
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+
+    }
+    public async Task<dynamic> GetTaskDetails(int ActiveIncidentTaskID, int CompanyID)
+    {
+        try
+        {
+
+            var participants = _context.Set<ActiveTaskParticiants>().FromSqlRaw("EXEC Pro_ActiveIncidentTask_GetActiveIncidenTasktParticipantList @ActiveIncidentTaskID, @ParticipantTypeID");
+
+            var action_participants = participants.Where(w => w.ParticipantTypeID == 1).ToList();
+            var escalation_participants = participants.Where(w => w.ParticipantTypeID == 2).ToList();
+            var task = await _context.Set<TaskActiveIncident>().Include(x => x.IncidentActivation)
+                        .Where(AT => AT.ActiveIncidentTaskId == ActiveIncidentTaskID && AT.CompanyId == CompanyID)
+                        .Select(AT => new
+                        {
+                            AT,
+                            AT.IncidentActivation.LaunchedOn,
+                            AT.IncidentActivation.Name,
+                            AT.IncidentActivation.IncidentIcon,
+                            TaskDelegatedTo = (from RPT in participants
+                                               where RPT.ActionStatus == "DELEGATED" && RPT.ActiveIncidentTaskID == ActiveIncidentTaskID
+                                               orderby RPT.ActiveIncidentTaskParticipantID descending
+                                               select new DelegatedList { FirstName = RPT.FirstName, LastName = RPT.LastName, DelegatedTo = RPT.ParticipantUserID }).FirstOrDefault(),
+                            TaskOwnerName = _context.Set<User>()
+                                             .Where(U => U.UserId == AT.TaskOwnerId)
+                                             .Select(U => new UserFullName { Firstname = U.FirstName, Lastname = U.LastName }).FirstOrDefault()
+                        }).FirstOrDefaultAsync();
+            return new { task, action_participants, escalation_participants };
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+
+    }
+    public async Task<List<IncidentTaskAudit>> GetIncidentTasksAudit(int ActiveIncidentID, int CompanyID)
+    {
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+
+            var AuditData = await _context.Set<IncidentTaskAudit>().FromSqlRaw("exec Pro_Get_Incident_Tasks_Audit @ActiveIncidentID, @CompanyID",
+                pActiveIncidentID, pCompanyID).ToListAsync();
+            return AuditData;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<Incidents> GetIncidentActivation(int ActiveIncidentID)
+    {
+     
+        var Incident = await _context.Set<TaskHeader>().Include(x=>x.IncidentActivation)                     
+                 .Where(IA=>IA.IncidentActivation.IncidentActivationId == ActiveIncidentID)
+                 .Select(IA=> new Incidents()
+                 {
+                     Name=  IA.IncidentActivation.Name,
+                     IncidentIcon= IA.IncidentActivation.IncidentIcon,
+                     LaunchedOn=IA.IncidentActivation.LaunchedOn,
+                     RTO = IA.Rto == null ? 0 : IA.Rto,
+                     RPO = IA.Rpo == null ? 0 : IA.Rpo
+                 }).FirstOrDefaultAsync();
+        return Incident;
+    }
+    public async Task<List<FailedTaskList>> get_unattended_tasks(int CompanyID, int UserID, int ActiveIncidentID)
+    {
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pUserID = new SqlParameter("@UserID", UserID);
+            var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+
+            var AuditData = await _context.Set<FailedTaskList>().FromSqlRaw("exec Pro_Get_Unattended_Tasks @CompanyID, @UserID, @ActiveIncidentID",
+                pCompanyID, pUserID, pActiveIncidentID).ToListAsync();
+
+            AuditData.Select(async c => {
+                    c.TaskPredecessor = await  _active_incident_tasks_predeccessor(c.ActiveIncidentTaskID, c.IncidentActivationId);
+                    return c;
+                });
+            return AuditData;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<int> NewAdHocTask(int ActiveIncidentID,string TaskTitle,string TaskDescription, int[] ActionUsers, int[] ActionGroups, int[] EscalationUsers, int[] EscalationGroups, double EscalationDuration, double ExpectedCompletionTime, int CompanyID, int UserID, string TimeZoneId)
+    {
+        try
+        {
+            DateTime ActivationDate = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneId);
+            int LastTaskSeq = 1;
+            var lasttask = await  _context.Set<TaskActiveIncident>().Where(TAI=> TAI.ActiveIncidentId == ActiveIncidentID).ToListAsync();
+            if (lasttask != null && lasttask.Count() > 0)
+            {
+                LastTaskSeq = lasttask.Max(m => m.TaskSequence) + 1;
+            }
+
+            int ActiveIncidentTaskID =await CreateActiveIncidentTask(0, ActiveIncidentID, -1, TaskTitle, TaskDescription, false,
+                   EscalationDuration, ExpectedCompletionTime, LastTaskSeq, 0, (DateTime)SqlDateTime.Null, (DateTime)SqlDateTime.Null,
+                    1, 0, 0, 0,0,  ActivationDate, UserID, CompanyID);
+
+            //Create active incident participents list
+            if (ActiveIncidentID > 0)
+            {
+               await AdHocIncidentTaskParticipants(ActiveIncidentID, ActiveIncidentTaskID, ActionUsers, ActionGroups, EscalationUsers, EscalationGroups);
+
+                CreateTaskEscalationJob(ActiveIncidentTaskID, ActivationDate, EscalationDuration, TimeZoneId);
+
+                List<string> grp = new List<string>();
+                grp.Add("ACTION");
+
+                string action_update = "Task " + LastTaskSeq + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(TaskTitle, 50) + "\" is now available.";
+               await send_notifiation_to_groups(grp, ActiveIncidentID, ActiveIncidentTaskID, action_update, UserID, CompanyID, TimeZoneId, false, 3, sourceAction: SourceAction.NewAdHocTask);
+
+                var actincident = await _context.Set<IncidentActivation>().Where(w => w.IncidentActivationId == ActiveIncidentID).FirstOrDefaultAsync();
+                if (actincident != null)
+                {
+                    actincident.HasTask = true;
+                    await _context.SaveChangesAsync();
+                }
+
+                return ActiveIncidentTaskID;
+            }
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task AdHocIncidentTaskParticipants(int ActiveIncidentID, int ActiveIncidentTaskID, int[] ActionUsers, int[] ActionGroups, int[] EscalationUsers, int[] EscalationGroups)
+    {
+        try
+        {
+            var pt_type = await  _context.Set<TaskParticipantType>().ToListAsync();
+            int action_type =pt_type.Where(w => w.TaskParticipantTypeName == "ACTION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
+            int escal_type = pt_type.Where(w => w.TaskParticipantTypeName == "ESCALATION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
+
+            var pt_list = await _context.Set<AdHocTaskParticipant>().Where(IPD=> IPD.ActiveIncidentTaskId == ActiveIncidentTaskID).ToListAsync();
+            _context.RemoveRange(pt_list);
+            await _context.SaveChangesAsync();
+
+            //Create action list.
+            if (ActionUsers != null)
+               await adhoc_create_participant_list(ActionUsers, ActiveIncidentTaskID, action_type, "USER");
+            if (ActionGroups != null)
+               await adhoc_create_participant_list(ActionGroups, ActiveIncidentTaskID, action_type, "GROUP");
+
+            //Create escalation list
+            if (EscalationUsers != null)
+               await adhoc_create_participant_list(EscalationUsers, ActiveIncidentTaskID, escal_type, "USER");
+            if (EscalationGroups != null)
+               await adhoc_create_participant_list(EscalationGroups, ActiveIncidentTaskID, escal_type, "GROUP");
+
+            //Create Active Task Participent list
+
+            
+                using (SqlCommand command = new SqlCommand())
+                {
+                    command.CommandText = "Pro_AdHoc_Create_Task_Receipient_List @IncidentActivationID, @ActiveIncidentTaskID";
+                    SqlParameter parameters1 = new SqlParameter("@IncidentActivationID", ActiveIncidentID);
+                    SqlParameter parameters2 = new SqlParameter("@ActiveIncidentTaskID", ActiveIncidentTaskID);
+
+                    command.Parameters.Add(parameters1);
+                    command.Parameters.Add(parameters2);
+
+                    using (SqlConnection con = new SqlConnection(_configuration.GetConnectionString("CrisesControlDatabase")))
+                    {
+                        command.Connection = con;
+                        if (command.Connection.State != System.Data.ConnectionState.Open)
+                        {
+                            command.Connection.Open();
+                        }
+                        var rslt = command.ExecuteNonQuery();
+                        command.Parameters.Clear();
+                    }
+                }
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task adhoc_create_participant_list(int[] UList, int ActiveIncidentTaskID, int PaticipentTypeId, string objtype)
+    {
+        try
+        {
+            if (UList != null)
+            {
+                foreach (int item in UList)
+                {
+                    if (ActiveIncidentTaskID > 0 && PaticipentTypeId > 0)
+                    {
+                        AdHocTaskParticipant ATP = new AdHocTaskParticipant();
+                        ATP.ActiveIncidentTaskId = ActiveIncidentTaskID;
+                        ATP.ParticipantTypeId = PaticipentTypeId;
+                        ATP.ParticipantUserId = (objtype == "USER" ? item : 0);
+                        ATP.ParticipantGroupId = (objtype == "GROUP" ? item : 0);
+                       await _context.AddAsync(ATP);
+                       
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<bool> SaveActiveCheckListResponse(int ActiveIncidentTaskID, List<CheckListOption> CheckListResponse, int UserID, int CompanyID, string TimeZoneId)
+    {
+        try
+        {
+            var checklist = await  GetActiveTaskCheckList(ActiveIncidentTaskID, CompanyID, UserID);
+            foreach (CheckListOption chkopt in CheckListResponse)
+            {
+                var chklistitem = checklist.Where(w => w.ActiveCheckListID == chkopt.ActiveCheckListId).FirstOrDefault();
+                bool capture_response = true;
+
+                //Check if the last response and the current response is not same then skip it.
+                if (chklistitem.UserResponse != null)
+                {
+                    if (chkopt.MarkDone == false)
+                    {
+                        if (chklistitem.DoneOnly || chkopt.ActiveCheckListResponseId <= 0)
+                        {
+                            var usrresponse = await _context.Set<TaskActiveCheckListUserResponse>().Where(w => w.ActiveCheckListId == chkopt.ActiveCheckListId).ToListAsync();
+                            _context.RemoveRange(usrresponse);
+                            await _context.SaveChangesAsync();
+                            return true;
+                        }
+                    }
+
+                    var last_response = chklistitem.UserResponse.OrderByDescending(o => o.ActiveReponseID).FirstOrDefault();
+                    if (last_response != null)
+                    {
+                        if (last_response.Comment != chkopt.Response)
+
+                            if (last_response.ActiveReponseID == chkopt.ActiveCheckListResponseId && last_response.Comment == chkopt.Response
+                                && last_response.Done == chkopt.MarkDone)
+                            {
+                                capture_response = false;
+                            }
+                    }
+                }
+
+                if (capture_response)
+                {
+                    int UpdateActionID = 12;
+
+                    TaskActiveCheckListUserResponse TACLUR = new TaskActiveCheckListUserResponse();
+                    TACLUR.ActiveCheckListId = chkopt.ActiveCheckListId;
+                    TACLUR.Comment = chkopt.Response;
+
+                    if (chklistitem.DoneOnly)
+                    {
+                        TACLUR.ActiveReponseId = 0;
+                        TACLUR.Done = true;
+                    }
+                    else
+                    {
+                        TACLUR.ActiveReponseId = chkopt.ActiveCheckListResponseId;
+                        TACLUR.Done = chkopt.MarkDone;
+                    }
+                    if (chklistitem.DoneOnly || chkopt.MarkDone)
+                    {
+                        UpdateActionID = 13;
+                    }
+
+                    TACLUR.CreatedBy = UserID;
+                    TACLUR.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    await _context.AddAsync(TACLUR);
+                    await _context.SaveChangesAsync();
+
+                    var responselabel = chklistitem.CheckListOptions.Where(w => w.ActiveCheckListResponseId == chkopt.ActiveCheckListResponseId).Select(s => s.Response).FirstOrDefault();
+                    string audit_text = chklistitem.Description + "<br>Response: " + responselabel + "<br/>Comment: " + chkopt.Response;
+
+                   await AddTaskAction(ActiveIncidentTaskID, audit_text, UserID, UpdateActionID, TimeZoneId);
+                    return true;
+                }
+              
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+
 }

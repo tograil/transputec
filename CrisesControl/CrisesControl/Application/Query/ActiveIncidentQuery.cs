@@ -1,13 +1,33 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AcceptTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ActiveIncidentTasks;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddNotes;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.CompleteTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.DeclineTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.DelegateTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetActiveTaskCheckList;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetIncidentTasksAudit;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskAssignedUsers;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskAudit;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskDetails;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskUserList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetUserTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.NewAdHocTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReallocateTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReassignTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveCheckListResponse;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SendTaskUpdate;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.TakeOwnership;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.UnattendedTask;
 using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Api.Maintenance.Interfaces;
 using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
+using CrisesControl.Core.Models;
+using CrisesControl.Core.Tasks;
+using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.SharedKernel.Utils;
 
@@ -23,7 +43,8 @@ namespace CrisesControl.Api.Application.Query
         private readonly ICompanyRepository _companyRepository;
         private readonly DBCommon _dBCommon;
         private string MessageSourceAction = string.Empty;
-        public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, IUserRepository userRepository, IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser, ICompanyRepository companyRepository, DBCommon dBCommon)
+        private readonly IPaging _paging;
+        public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, IUserRepository userRepository, IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser, ICompanyRepository companyRepository, DBCommon dBCommon, IPaging paging)
         {
             this._activeIncidentRepository = activeIncidentRepository;
             this._mapper = mapper;
@@ -32,6 +53,7 @@ namespace CrisesControl.Api.Application.Query
             this._userRepository = userRepository;
             this._companyRepository = companyRepository;
             this._dBCommon = dBCommon;
+            this._paging = paging;
         }
 
         public async Task<AcceptTaskResponse> AcceptTask(AcceptTaskRequest request)
@@ -378,7 +400,170 @@ namespace CrisesControl.Api.Application.Query
             }
             return null;
         }
-    
+
+        public async Task<DelegateTaskResponse> DelegateTask(DelegateTaskRequest request)
+        {
+            try
+            {
+                var Delegate = await _activeIncidentRepository.DelegateTask(request.ActiveIncidentTaskID,request.TaskActionReason, request.DelegateTo, request.MessageMethod,request.CascadePlanID,_currentUser.UserId, _currentUser.CompanyId,_currentUser.TimeZone);
+                var result = _mapper.Map<TaskActiveIncident>(Delegate);
+                var response = new DelegateTaskResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Data has been loaded.";
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Message = "Cannot Deletegate!. You are no longer the owner of the task.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetActiveTaskCheckListResponse> GetActiveTaskCheckList(GetActiveTaskCheckListRequest request)
+        {
+            try
+            {
+                var activeChecks = await _activeIncidentRepository.GetActiveTaskCheckList(request.ActiveIncidentTaskID,   _currentUser.CompanyId, _currentUser.UserId);
+                var result = _mapper.Map<List<ActiveCheckList>>(activeChecks);
+                var response = new GetActiveTaskCheckListResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    
+                }
+                else
+                {
+                    response.Data = result;
+                   
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTaskAssignedUsersResponse> GetTaskAssignedUsers(GetTaskAssignedUsersRequest request)
+        {
+            try
+            {
+                var Delegate = await _activeIncidentRepository.GetTaskAssignedUsers(request.ActiveIncidentTaskID, request.TypeName, _currentUser.CompanyId);
+                var result = _mapper.Map<List<TaskAssignedUser>>(Delegate);
+                var response = new GetTaskAssignedUsersResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Data has been loaded.";
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Message = "No user assigned.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTaskAuditResponse> GetTaskAudit(GetTaskAuditRequest request)
+        {
+            try
+            {
+                var groups = await _activeIncidentRepository.GetTaskAudit(request.ActiveIncidentTaskID);
+                var result = _mapper.Map<List<TaskAudit>>(groups);
+                var response = new GetTaskAuditResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Data has been loaded.";
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Message = "No record found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTaskDetailsResponse> GetTaskDetails(GetTaskDetailsRequest request)
+        {
+            try
+            {
+                var details = await _activeIncidentRepository.GetTaskDetails(request.ActiveIncidentTaskID,_currentUser.CompanyId);
+                
+                var response = new GetTaskDetailsResponse();
+                if (details != null)
+                {
+                    response.Data = details;
+                   
+                }
+                else
+                {
+                    response.Data = details;
+                   
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTaskUserListResponse> GetTaskUserList(GetTaskUserListRequest request)
+        {
+            try
+            {
+                var MainUserlist = await _activeIncidentRepository.GetTaskUserList(_paging.PageNumber,_paging.PageSize,request.Search,request.TypeName, request.ActiveIncidentTaskID, request.CompanyKey,request.OutLoginUserId,request.OutLoginCompanyId );
+                var result = _mapper.Map<List<GetAllUser>>(MainUserlist);
+                
+                
+                var response = new GetTaskUserListResponse();
+                request.Search.Value = "";
+               
+
+                var TotalUsers = await _activeIncidentRepository.GetTaskUserList(_paging.PageNumber, _paging.PageSize, request.Search, request.TypeName, request.ActiveIncidentTaskID, request.CompanyKey, request.OutLoginUserId, request.OutLoginCompanyId); 
+
+                DataTablePaging rtn = new DataTablePaging();
+
+                if (MainUserlist != null)
+                {
+                    rtn.Draw = request.draw;
+                    rtn.RecordsTotal = TotalUsers.Count;
+                    rtn.RecordsFiltered = MainUserlist.Count;
+                    rtn.Data = MainUserlist;
+                    response.tablePaging = rtn;
+                    response.Message = "Data Loaded.";
+
+                }
+                else
+                {
+                    response.tablePaging = null;
+                    response.Message = "No record found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         public async Task<GetUserTaskResponse> GetUserTasks(GetUserTaskRequest request)
         {
@@ -396,6 +581,332 @@ namespace CrisesControl.Api.Application.Query
                 {
                     response.Data = result;
                     response.Message = "No record found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<ReallocateTaskResponse> ReallocateTask(ReallocateTaskRequest request)
+        {
+            try
+            {
+                var Delegate = await _activeIncidentRepository.ReallocateTask(request.ActiveIncidentTaskID, request.TaskActionReason, request.ReallocateTo, request.MessageMethod, request.CascadePlanID, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
+                var result = _mapper.Map<TaskActiveIncident>(Delegate);
+                var response = new ReallocateTaskResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Reqllocated.";
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Message = "Cannot Reallocate!. You are no longer the owner of the task.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<SendTaskUpdateResponse> SendTaskUpdate(SendTaskUpdateRequest request)
+        {
+            try
+            {
+                bool NotifyKeyContact = false;
+                var task = await _activeIncidentRepository.GetTaskActiveIncidentById(request.ActiveIncidentTaskID,_currentUser.CompanyId);
+                var result = new SendTaskUpdateResponse();
+                if (task != null)
+                {
+
+                    if (task.TaskOwnerId != _currentUser.UserId && task.TaskStatus != 5)
+                    {
+                       
+                        
+                        result.Message = "Cannot send update, You are no longer the owner";
+                        return result;
+                    }
+
+                    List<string> grp = new List<string>();
+
+                    //Get list of existing participant of the task
+                    if (request.SendUpdateTo.Contains("ACTION_MEMBERS"))
+                    {
+                        grp.Add("ACTION");
+                    }
+
+                    if (request.SendUpdateTo.Contains("INCIDENT_MEMBERS"))
+                    {
+                        grp.Add("INCIDENT");
+                    }
+
+                    if (request.SendUpdateTo.Contains("ESCALATION_MEMBERS"))
+                    {
+                        grp.Add("ESCALATION");
+                    }
+
+                    //Get list of existing participant of the task
+                    if (request.SendUpdateTo.Contains("KEY_CONTACTS"))
+                    {
+                        NotifyKeyContact = true;
+                    }
+
+                    string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" update. : " + request.TaskActionReason;
+
+                  await _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone,
+                        NotifyKeyContact, 3, request.MessageMethod, request.MembersToNotify, sourceAction: SourceAction.TaskUpdate);
+
+                    await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, "Task Update: " + request.TaskActionReason, _currentUser.UserId, 8, _currentUser.TimeZone);
+
+                    result.Data = task;
+                    return result;
+                }
+                //Collect receipent List
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            
+        }
+
+        public async Task<TakeOwnershipResponse> TakeOwnership(TakeOwnershipRequest request)
+        {
+            try
+            {
+                MessageSourceAction = SourceAction.TaskTakeOver;
+                var task = await _activeIncidentRepository.GetTaskActiveIncidentById(request.ActiveIncidentTaskID, _currentUser.CompanyId);
+                var result = new TakeOwnershipResponse();
+
+                if (task != null)
+                {
+                   
+                    if (task.TaskOwnerId == _currentUser.UserId)
+                    {
+                        
+                        result.Message = "Task already accepted";
+                        return result;
+                    }
+                    else if (task.TaskStatus == 7)
+                    {
+                       
+                        result.Message = "Cannot take ownership, task is completed";
+                        return result;
+                    }
+
+                    int previousOwner = task.TaskOwnerId;
+                    if (task.DelayedComplete.Year > 2000 && _currentUser.UserId != task.TaskOwnerId && task.TaskStatus != 7)
+                    {
+
+                        task.PreviousOwnerId = previousOwner;
+                        task.TaskOwnerId = _currentUser.UserId;
+                        task.UpdatedDate = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone);
+                        task.UpdatedBy = _currentUser.UserId;
+                        var intUpdateId = await _activeIncidentRepository.UpdateTaskActiveIncident(task);
+
+                        //Get Action By username
+                        var action_user = await _userRepository.GetUser(_currentUser.CompanyId,_currentUser.UserId);
+                        string username = "";
+                        if (action_user != null)
+                        {
+                            username = action_user.FirstName + " " + action_user.LastName;
+                        }
+
+                        string task_action = "Task ownership is taken by " + username;
+
+                        //Add task action history
+                        await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, task_action, _currentUser.UserId, 9, _currentUser.TimeZone);
+
+                        List<NotificationUserList> TaskPtcpntList = new List<NotificationUserList>();
+                        TaskPtcpntList.Add(new NotificationUserList(previousOwner,true ));
+
+
+                        bool NotifyKeyContact = false;
+                        bool.TryParse(await _companyRepository.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", _currentUser.CompanyId), out NotifyKeyContact);
+
+                        string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 50) + "\" is now owned by " + username + ".";
+                        await _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
+
+                      }
+                    else if (task.DelayedComplete.Year < 2000 || new List<int> { 1, 4, 6, 7 }.Contains(task.TaskStatus))
+                    {
+                       
+                        result.Message = "Invalid request";
+                        return result;
+                    }
+
+                    result.Data = task;
+                    return result;
+                }
+                return new TakeOwnershipResponse();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            
+        }
+
+        public async Task<GetIncidentTasksAuditResponse> GetIncidentTasksAudit(GetIncidentTasksAuditRequest request)
+        {
+            try
+            {
+                var TasksAudit = await _activeIncidentRepository.GetIncidentTasksAudit(request.ActiveIncidentTaskID, request.CompanyId);
+                var result = _mapper.Map<List<IncidentTaskAudit>>(TasksAudit);
+                var Incident = await _activeIncidentRepository.GetIncidentActivation(request.ActiveIncidentTaskID);
+                var response = new GetIncidentTasksAuditResponse();
+                if (result != null && Incident!=null)
+                {
+                    response.Data = result;
+                    response.Incident = Incident;
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Incident = Incident;
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<UnattendedTaskResponse> UnattendedTask(UnattendedTaskRequest request)
+        {
+            try
+            {
+                var TaskList = await _activeIncidentRepository.get_unattended_tasks(request.OutUserCompanyId, request.OutLoginUserId, request.ActiveIncidentID);
+                
+                var result = _mapper.Map<List<FailedTaskList>>(TaskList);
+                var response = new UnattendedTaskResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Data Loaded";
+
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Message = "No record found.";
+
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<ReassignTaskResponse> ReassignTask(ReassignTaskRequest request)
+        {
+            try
+            {
+                var TaskList = await _activeIncidentRepository.ReassignTask(request.ActiveIncidentTaskID, request.ActionUsers, request.EscalationUsers,request.TaskActionReason,request.RemoveCurrentOwner, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
+
+                var result = _mapper.Map<TaskActiveIncident>(TaskList);
+                var response = new ReassignTaskResponse();
+                if (result != null)
+                {
+                    response.data = result;
+                    response.Message = "Data Loaded";
+
+                }
+                else
+                {
+                    response.data = result;
+                    response.Message = "No record found.";
+
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<NewAdHocTaskResponse> NewAdHocTask(NewAdHocTaskRequest request)
+        {
+            try
+            {
+                var TaskList = await _activeIncidentRepository.NewAdHocTask(request.ActiveIncidentID,request.TaskTitle,request.TaskDescription, request.ActionUsers,request.ActionGroups,request.EscalationUsers,request.EscalationGroups,request.EscalationDuration,request.ExpectedCompletionTime, _currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
+
+                var result = _mapper.Map<int>(TaskList);
+                var response = new NewAdHocTaskResponse();
+                if (result >0)
+                {
+                    response.result = result;
+                   
+                }
+                else
+                {
+                    response.result = result;
+                    
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<AddNotesResponse> AddNotes(AddNotesRequest request)
+        {
+            try
+            {
+                var TaskAction = await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, request.TaskCompletionNote, _currentUser.UserId, 10, _currentUser.TimeZone);
+
+                var result = _mapper.Map<int>(TaskAction);
+                var response = new AddNotesResponse();
+                if (result > 0)
+                {
+                    response.result = result;
+
+                }
+                else
+                {
+                    response.result = result;
+
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<SaveActiveCheckListResponse> SaveActiveCheckListResponse(SaveActiveCheckListResponseRequest request)
+        {
+            try
+            {
+             var task= await _activeIncidentRepository.SaveActiveCheckListResponse(request.ActiveIncidentTaskID, request.CheckListResponse, _currentUser.UserId, _currentUser.CompanyId,_currentUser.TimeZone);
+
+                var result = _mapper.Map<bool>(task);
+                var response = new SaveActiveCheckListResponse();
+                if (result)
+                {
+                    response.result = true;
+                    response.Message = "Addedd";
+
+                }
+                else
+                {
+                    response.result = false;
+                    response.Message = "Not added";
+
                 }
                 return response;
             }

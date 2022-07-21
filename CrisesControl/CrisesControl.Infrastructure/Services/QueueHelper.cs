@@ -38,7 +38,7 @@ namespace CrisesControl.Infrastructure.Services
                     if (CascadePlanID > 0)
                         sp_name = "Pro_Create_Message_Queue_Cascading ";
 
-                    await DBC.LocalException(MessageID.ToString(), sp_name, Priority.ToString());
+                     DBC.LocalException(MessageID.ToString(), sp_name, Priority.ToString());
 
                     var List = db.Database.ExecuteSqlRaw(sp_name + " @MessageID, @MessageType, @Priority", pMessageId, pMessageType, pPriority);
 

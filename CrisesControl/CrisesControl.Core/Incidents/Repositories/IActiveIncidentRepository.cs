@@ -1,4 +1,7 @@
-﻿using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Models;
+using CrisesControl.Core.Tasks;
+using CrisesControl.Core.Users;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -63,6 +66,21 @@ public interface IActiveIncidentRepository
     Task<List<NotificationUserList>> GetActiveParticipantList(int IncidentActivationId, string GroupType = "ACTION", int ActiveIncidentTaskID = 0, bool IsTaskRecipient = true);
     Task<TaskActiveIncident> ReallocateTask(int ActiveIncidentTaskID, string TaskActionReason, int ReallocateTo, int[] MessageMethod, int CascadePlanID, int CurrentUserID, int CompanyID, string TimeZoneId);
     Task CreatePredecessorJobs(int ActiveIncidentID, int IncidentTaskID, int CurrentUserID, string TimeZoneId);
+    Task<TaskActiveIncident> DelegateTask(int ActiveIncidentTaskID, string TaskActionReason, int[] DelegateTo, int[] MessageMethod, int CascadePlanID, int CurrentUserID, int CompanyID, string TimeZoneId);
+    Task<List<TaskAssignedUser>> GetTaskAssignedUsers(int ActiveIncidentTaskID, string TypeName, int CompanyID);
+    Task<List<ActiveCheckList>> GetActiveTaskCheckList(int ActiveIncidentTaskID, int CompanyID, int UserID);
+    Task<List<TaskAudit>> GetTaskAudit(int ActiveIncidentTaskID);
+    Task<dynamic> GetTaskDetails(int ActiveIncidentTaskID, int CompanyID);
+    Task<List<IncidentTaskAudit>> GetIncidentTasksAudit(int ActiveIncidentID, int CompanyID);
+    Task<List<FailedTaskList>> get_unattended_tasks(int CompanyID, int UserID, int ActiveIncidentID);
+    Task<List<GetAllUser>> GetTaskUserList(int Start, int Length, Search Search, string TypeName, int ActiveIncidentTaskID, string CompanyKey, int OutLoginUserId, int OutUserCompanyId);
+    Task<Incidents> GetIncidentActivation(int ActiveIncidentID);
+    Task<TaskActiveIncident> ReassignTask(int ActiveIncidentTaskID, int[] ActionUsers, int[] EscalationUsers,
+        string TaskActionReason, bool RemoveCurrentOwner, int CurrentUserID, int CompanyID, string TimeZoneId);
+    Task<int> NewAdHocTask(int ActiveIncidentID, string TaskTitle, string TaskDescription, int[] ActionUsers, int[] ActionGroups, int[] EscalationUsers, int[] EscalationGroups, double EscalationDuration, double ExpectedCompletionTime, int CompanyID, int UserID, string TimeZoneId);
+    Task AdHocIncidentTaskParticipants(int ActiveIncidentID, int ActiveIncidentTaskID, int[] ActionUsers, int[] ActionGroups, int[] EscalationUsers, int[] EscalationGroups);
+    Task adhoc_create_participant_list(int[] UList, int ActiveIncidentTaskID, int PaticipentTypeId, string objtype);
+    Task<bool> SaveActiveCheckListResponse(int ActiveIncidentTaskID, List<CheckListOption> CheckListResponse, int UserID, int CompanyID, string TimeZoneId);
 
 
 }
