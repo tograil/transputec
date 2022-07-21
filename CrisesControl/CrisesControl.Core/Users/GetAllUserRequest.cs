@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Users
 {
-    public class GetAllUserRequest
+    public class GetAllUserRequestList
     {
         public int RecordStart { get; set; }
         public int RecordLength { get; set; }

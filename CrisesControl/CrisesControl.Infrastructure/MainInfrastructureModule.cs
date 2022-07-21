@@ -31,6 +31,7 @@ using CrisesControl.Core.Payments.Repositories;
 using CrisesControl.Core.AddressDetails.Repositories;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Academy.Repositories;
+using CrisesControl.Core.SopLibrary.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -78,6 +79,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<JobScheduleRepository>().As<IJobScheduleRepository>();
             builder.RegisterType<SettingsRepository>().As<ISettingsRepository>().SingleInstance();
             builder.RegisterType<QueueRepository>().As<IQueueRepository>();
+            builder.RegisterType<BillingRespository>().As<IBillingRepository>();
 
 
             builder.RegisterType<MessageService>().As<IMessageService>();
@@ -100,6 +102,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<AddressRepository>().As<IAddressRepository>();
             builder.RegisterType<SendEmail>().As<SendEmail>();
             builder.RegisterType<DBCommon>().As<DBCommon>();
+            builder.RegisterType<SopLibraryRepository>().As<ISopLibraryRepository>();
             builder.RegisterType<AcademyRepository>().As<IAcademyRepository>();
         }
 

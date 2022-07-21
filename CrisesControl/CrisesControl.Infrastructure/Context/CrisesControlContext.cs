@@ -147,6 +147,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyPackageItems>().HasNoKey();
             modelBuilder.Entity<AcademyVideos>().HasNoKey();
             
+            modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
 
 
 

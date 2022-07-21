@@ -461,7 +461,9 @@ namespace CC.Authority.Implementation.Data
 
             modelBuilder.Entity<User>(entity =>
             {
-                entity.HasNoKey();
+                entity.ToTable("Users");
+
+                entity.HasKey(x => x.UserId);
 
                 entity.Property(e => e.FirstName)
                     .HasMaxLength(70)

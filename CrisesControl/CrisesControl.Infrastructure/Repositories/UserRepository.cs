@@ -271,9 +271,9 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task<IEnumerable<User>> GetAllUsers(GetAllUserRequest request)
+    public async Task<IEnumerable<User>> GetAllUsers(GetAllUserRequestList request)
     {
-        var propertyInfo = typeof(GetAllUserRequest).GetProperty(request.OrderBy);
+        var propertyInfo = typeof(GetAllUserRequestList).GetProperty(request.OrderBy);
         var val = _context.Set<User>().FromSqlRaw($"Pro_Get_User_SelectAll @CompanyId = {companyId},@UserID = {userId},@RecordStart={request.RecordStart},@RecordLength={request.RecordLength},@SearchString={request.SearchString}," +
             $"@OrderBy = {request.OrderBy},@SkipDeleted= {request.SkipDeleted},@ActiveOnly = {request.ActiveOnly},@SkipInActive={request.SkipInActive},@KeyHolderOnly={request.KeyHolderOnly},@Filters={request.Filters},@UniqueKey = {request.CompanyKey}").OrderByDescending(o => propertyInfo.GetValue(o, null)).ToListAsync();
         return await _context.Set<User>().Where(t => t.CompanyId == companyId).ToListAsync();

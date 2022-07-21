@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Billing;
+﻿using AutoMapper;
+using CrisesControl.Core.Billing;
 using CrisesControl.Core.Billing.Repositories;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Models;
@@ -9,14 +10,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CrisesControl.Infrastructure.Repositories {
     public class BillingRespository : IBillingRepository {
         private readonly CrisesControlContext _context;
+        private readonly IMapper _mapper;
 
-        public BillingRespository(CrisesControlContext context) {
+        public BillingRespository(CrisesControlContext context, IMapper mapper) {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<BillingPaymentProfile> GetPaymentProfile(int companyID) {
@@ -69,6 +73,59 @@ namespace CrisesControl.Infrastructure.Repositories {
 
             }
             return BillInfo;
+        }
+
+        public async Task<BillingSummaryModel> GetBillingSummary(int companyId, int userId)
+        {
+            BillingSummaryModel ResultDTO = new BillingSummaryModel();
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pUserID = new SqlParameter("@UserID", userId);
+                BillingSummaryModel billingInfo = await _context.Set<BillingSummaryModel>().FromSqlRaw("EXEC Pro_Billing_GetBillingSummary @CompanyID, @UserID", pCompanyID, pUserID).FirstOrDefaultAsync()!;
+
+                if (billingInfo != null)
+                {
+                    return billingInfo;
+                }
+                else
+                {
+                    ResultDTO.ErrorId = 110;
+                    ResultDTO.Message = "No record found.";
+                }
+                return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                return ResultDTO;
+            }
+        }
+
+        public async Task<GetCompanyInvoicesReturn> GetAllInvoices(int CompanyId, CancellationToken cancellationToken)
+        {
+            GetCompanyInvoicesReturn result = new GetCompanyInvoicesReturn();
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+                var companyInvoices = await _context.Set<CompanyInvoices>().FromSqlRaw("EXEC Pro_Billing_GetAllInvoicesByCompanyRef @CompanyID", pCompanyID).ToListAsync();
+
+                if (companyInvoices.Count > 0)
+                {
+                    result.AllInvoices = _mapper.Map<List<CompanyInvoices>>(companyInvoices);
+                    return result;
+                }
+                else
+                {
+                    result.ErrorId = 110;
+                    result.Message = "No record found.";
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return result;
+            }
+
         }
     }
 }

@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CC.Authority.Api.Controllers.SCIM
 {
     [Route(ServiceConstants.RouteServiceConfiguration)]
-    [Authorize]
+    [AllowAnonymous]
     [ApiController]
     public sealed class ServiceProviderConfigurationController : ControllerTemplate
     {

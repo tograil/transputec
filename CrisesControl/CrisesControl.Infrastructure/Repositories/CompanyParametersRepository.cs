@@ -591,6 +591,35 @@ namespace CrisesControl.Infrastructure.Repositories {
                 throw ex;
             }
         }
+        //public int AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
+        //{
+        //    try
+        //    {
+        //        var comp_param = (from CP in db.CompanyParameters where CP.CompanyId == CompanyId && CP.Name == Name select CP).Any();
+        //        if (!comp_param)
+        //        {
+        //            CompanyParameters NewCompanyParameters = new CompanyParameters()
+        //            {
+        //                CompanyId = CompanyId,
+        //                Name = Name,
+        //                Value = Value,
+        //                Status = 1,
+        //                CreatedBy = CurrentUserId,
+        //                UpdatedBy = CurrentUserId,
+        //                CreatedOn = DateTime.Now,
+        //                UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId)
+        //            };
+        //            db.CompanyParameters.Add(NewCompanyParameters);
+        //            db.SaveChanges(CurrentUserId, CompanyId);
+        //            return NewCompanyParameters.CompanyParametersId;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        catchException(ex);
+        //    }
+        //    return 0;
+        //}
 
 
     }
