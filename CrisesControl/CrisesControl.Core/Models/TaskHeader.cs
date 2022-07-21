@@ -18,5 +18,6 @@ namespace CrisesControl.Core.Models
         public string? ReviewFrequency { get; set; }
         public decimal? Rto { get; set; }
         public decimal? Rpo { get; set; }
+        public IncidentActivation IncidentActivation { get; set; }
     }
 }

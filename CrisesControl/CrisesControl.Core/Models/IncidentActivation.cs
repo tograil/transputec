@@ -34,5 +34,6 @@ namespace CrisesControl.Core.Models
         public bool HasTask { get; set; }
         public string? SocialHandle { get; set; }
         public int CascadePlanId { get; set; }
+        
     }
 }
