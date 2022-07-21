@@ -41,7 +41,7 @@ builder.Services.AddSpaStaticFiles(configuration =>
     configuration.RootPath = "ClientApp/dist";
 });
 
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddDbContext<OpenIddictContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlOpenIddict"));
@@ -98,11 +98,7 @@ builder.Services.AddOpenIddict()
             .EnableTokenEndpointPassthrough()
             .DisableTransportSecurityRequirement();
 
-        options.DisableSlidingRefreshTokenExpiration();
-
-        options.SetAccessTokenLifetime(TimeSpan.FromDays(30));
-        options.SetAuthorizationCodeLifetime(TimeSpan.FromDays(30));
-        options.SetIdentityTokenLifetime(TimeSpan.FromDays(30));
+        options.SetAccessTokenLifetime(TimeSpan.FromDays(300));
 
     }).AddValidation(options => {
         // Note: the validation handler uses OpenID Connect discovery
