@@ -4,5 +4,6 @@
     {
         public const string Name = "CrisesControlServer";
         public string ApiEndpoint { get; set; }
+        public string ApiSecret { get; set; }
     }
 }

@@ -27,7 +27,7 @@ namespace CC.Authority.Implementation.Services
             var crisesControlServerConfig = options.Value;
 
             _baseUri = new Uri(crisesControlServerConfig.ApiEndpoint);
-            _httpClient.DefaultRequestHeaders.Add("X-ApiKey", "e7c1b7fda142045f5fe8908ad46ab65d");
+            _httpClient.DefaultRequestHeaders.Add("X-ApiKey", crisesControlServerConfig.ApiSecret);
         }
 
         public async Task<UserResponse> AddUser(UserInput userInput)
