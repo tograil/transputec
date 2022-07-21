@@ -146,6 +146,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<AppLanguages>().HasNoKey();
             modelBuilder.Entity<CompanyPackageItems>().HasNoKey();
             
+            modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
             modelBuilder.Entity<CompanyCommunication>().HasNoKey();
             modelBuilder.Entity<ReplyChannel>().HasNoKey();
             modelBuilder.Entity<CompanyAccount>().HasNoKey();
