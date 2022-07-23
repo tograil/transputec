@@ -26,6 +26,8 @@ using System.Threading.Tasks;
 using Quartz;
 using Quartz.Impl.Matchers;
 using CrisesControl.Core.Locations;
+using System.Net;
+using System.Xml.Linq;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -337,7 +339,7 @@ namespace CrisesControl.Api.Application.Helpers
                             }
                             else if (relationName.ToUpper() == "LOCATION")
                             {
-                                newSourceObjectId = _context.Set<Core.Models.Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
+                                newSourceObjectId = _context.Set<Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
                             }
                             CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
                         }
@@ -646,6 +648,82 @@ namespace CrisesControl.Api.Application.Helpers
                 allchars[i] = allchars[bytes[i] % allchars.Length];
                 allchars[bytes[i] % allchars.Length] = tmp;
             }
+
+            // Create the random values to select the characters
+            Array.Resize(ref bytes, length);
+            char[] result = new char[length];
+
+            while (true)
+            {
+                csp.GetBytes(bytes);
+                // Obtain the character of the class for each random byte
+                for (int i = 0; i < length; i++)
+                    result[i] = allchars[bytes[i] % allchars.Length];
+
+                // Verify that it does not start or end with whitespace
+                if (Char.IsWhiteSpace(result[0]) || Char.IsWhiteSpace(result[(length - 1) % length]))
+                    continue;
+
+                string testResult = new string(result);
+                // Verify that all character classes are represented
+                if (0 != classes.Take(complexity).Count(c => testResult.IndexOfAny(c) < 0))
+                    continue;
+
+                return testResult;
+            }
+        }
+        public void RemoveUserObjectRelation(string RelationName, int UserId, int SourceObjectId, int CompanyId, int CurrentUserId, string TimeZoneId)
+        {
+            try
+            {
+                if (RelationName.ToUpper() == "GROUP" || RelationName.ToUpper() == "LOCATION")
+                {
+                    var ObjMapId = (from OM in _context.Set<ObjectMapping>()
+                                    join OBJ in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals OBJ.ObjectId
+                                    where OBJ.ObjectTableName == RelationName
+                                    select OM).Select(a => a.ObjectMappingId).FirstOrDefault();
+
+                    var getRelationRec = (from OR in _context.Set<ObjectRelation>()
+                                          where OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == UserId &&
+                                          OR.SourceObjectPrimaryId == SourceObjectId
+                                          select OR).FirstOrDefault();
+                    if (getRelationRec != null)
+                    {
+                        _context.Set<ObjectRelation>().Remove(getRelationRec);
+                        _context.SaveChanges();
+                    }
+                }
+                else if (RelationName.ToUpper() == "DEPARTMENT")
+                {
+                    UpdateUserDepartment(UserId, 0, CurrentUserId, CompanyId, TimeZoneId);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+
+            }
+        }
+        public void RemoveUserDevice(int UserID, bool TokenReset = false)
+        {
+            try
+            {
+                var devices = (from UD in _context.Set<UserDevice>() where UD.UserId == UserID select UD).ToList();
+                if (!TokenReset)
+                {
+                    _context.Set<UserDevice>().RemoveRange(devices);
+                }
+                else
+                {
+                    devices.ForEach(s => s.DeviceToken = "");
+                }
+                _context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public async void MessageProcessLog(int MessageID, string EventName, string MethodName = "", string QueueName = "", string AdditionalInfo = "")
         {
             try
@@ -726,39 +804,6 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public bool connectUNCPath(string UNCPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "")
-        {
-            try
-            {
-                if (!string.IsNullOrEmpty(UNCPath))
-                    UNCPath = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UNCPath"]);
-                if (!string.IsNullOrEmpty(UseUNC))
-                    UseUNC = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UseUNC"]);
-                if (!string.IsNullOrEmpty(strUncUsername))
-                    strUncUsername = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UncUserName"]);
-                if (!string.IsNullOrEmpty(strUncPassword))
-                    strUncPassword = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UncPassword"]);
-
-                if (UseUNC == "true")
-                {
-                    UNCAccessWithCredentials.disconnectRemote(@UNCPath);
-                    if (string.IsNullOrEmpty(UNCAccessWithCredentials.connectToRemote(@UNCPath, strUncUsername, strUncPassword)))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-            return true;
-        }
-
         public string FormatMobile(string ISD, string Mobile)
         {
             if (!string.IsNullOrEmpty(Mobile))
@@ -942,26 +987,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return false;
         }
-        public async Task<string> GetTimeZoneByCompany(int CompanyID)
-        {
-            try
-            {
-                string tmpZoneVal = "GMT Standard Time";
-                var Companytime = await _context.Set<Company>().Include(t=>t.StdTimeZone)
-                                  .Where(C=> C.CompanyId == CompanyID)
-                                  .Select(T=> new
-                                   {
-                                       CompanyTimezone = T.StdTimeZone.ZoneLabel
-                                   }).FirstOrDefaultAsync();
-                if (Companytime != null)
-                {
-                    tmpZoneVal = Companytime.CompanyTimezone;
-                }
-                return tmpZoneVal;
-            }
-            catch (Exception ex) { throw ex; }
-            return "GMT Standard Time";
-        }
+        
         public void CancelJobsByGroup(string JobGroup)
         {
             try

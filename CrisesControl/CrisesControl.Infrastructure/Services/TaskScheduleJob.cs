@@ -45,7 +45,7 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     if (task.TaskStatus != 7)
                     {
-                        string TimeZoneId =await DBC.GetTimeZoneByCompany(task.CompanyId);
+                        string TimeZoneId = DBC.GetTimeZoneByCompany(task.CompanyId);
                         DateTimeOffset checkTime = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                         if (task.TaskStatus == 1 && task.TaskEscalatedDate.Year < 2000 && task.TaskStatus != 6)
                         {
