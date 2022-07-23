@@ -36,6 +36,6 @@ namespace CrisesControl.Core.Incidents
         public bool HasTask { get; set; }
         public string? SocialHandle { get; set; }
         public int CascadePlanId { get; set; }
-       //public TaskHeader TaskHeader { get; set; }
+      
     }
 }

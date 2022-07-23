@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.Core.Incidents;
+using System;
 
 namespace CrisesControl.Core.Models
 {

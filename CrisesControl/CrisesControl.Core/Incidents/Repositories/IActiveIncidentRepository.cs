@@ -80,7 +80,10 @@ public interface IActiveIncidentRepository
     Task<int> NewAdHocTask(int ActiveIncidentID, string TaskTitle, string TaskDescription, int[] ActionUsers, int[] ActionGroups, int[] EscalationUsers, int[] EscalationGroups, double EscalationDuration, double ExpectedCompletionTime, int CompanyID, int UserID, string TimeZoneId);
     Task AdHocIncidentTaskParticipants(int ActiveIncidentID, int ActiveIncidentTaskID, int[] ActionUsers, int[] ActionGroups, int[] EscalationUsers, int[] EscalationGroups);
     Task adhoc_create_participant_list(int[] UList, int ActiveIncidentTaskID, int PaticipentTypeId, string objtype);
+    Task<string> GetCompanyParameter(string key, int companyId, string @default = "",string customerId = "");
+    Task<string> LookupWithKey(string Key, string Default = "");
     Task<bool> SaveActiveCheckListResponse(int ActiveIncidentTaskID, List<CheckListOption> CheckListResponse, int UserID, int CompanyID, string TimeZoneId);
+    Task CompleteAllTask(int ActiveIncidentID, int CurrentUserID, int CompanyID, string TimeZoneId);
 
 
 }

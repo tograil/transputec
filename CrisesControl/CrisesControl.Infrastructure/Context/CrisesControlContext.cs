@@ -160,7 +160,11 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ActiveCheckList>().HasNoKey();
             modelBuilder.Entity<TaskAudit>().HasNoKey();
             modelBuilder.Entity<FailedTaskList>().HasNoKey();
-            
+            modelBuilder.Entity<IncidentMessagesRtn>().HasNoKey();
+            modelBuilder.Entity<Incidents>().HasNoKey();
+            modelBuilder.Entity<CallToAction>().HasNoKey();
+            modelBuilder.Entity<IncidentSOSRequest>().HasNoKey();
+            modelBuilder.Entity<IncidentTask>().HasNoKey();
 
 
 

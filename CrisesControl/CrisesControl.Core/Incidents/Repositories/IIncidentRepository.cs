@@ -56,4 +56,19 @@ public interface IIncidentRepository
     Task<int> ActivateSampleIncident(int UserID, int CompanyID, string TimeZoneID);
     Task<int> CreateSOSIncident(int UserID, int CompanyID, string TimeZoneID);
     Task CheckSOSIncident(int CompanyID, int UserID, string TimeZoneID);
+    Task<List<Attachment>> _get_attachments(int ObjectID, string AttachmentType);
+    Task<List<IncidentTask>> GetNotes(int ObjectID, string NoteType, bool GetAttachments, string AttachmentType, int CompanyId);
+    Task<List<Attachment>> GetAttachments(int ObjectID, string AttachmentType);
+    Task<List<IncidentMessagesRtn>> GetIndidentTimeline(int IncidentActivationID, int CompanyID, int UserID);
+    Task<int> IncidentNote(int ObjectID, string NoteType, string Notes, int CompanyID, int UserID);
+    Task<bool> AddIncidentNote(int ActiveIncidentID, string Note, List<Attachment> Attachments, int UserID, int CompanyID, string TimeZoneId);
+    Task<bool> InsertAttachment(int ObjectID, string Title, string OrigFileName, string FileName, string MimeType, string AttachmentType, decimal? FileSize);
+    Task<CallToAction> GetCallToAction(int ActiveIncidentID, int UserID, int CompanyID, string TimeZoneId);
+    Task<int> CheckUserSOS(int ActiveIncidentID, int UserID);
+    Task<bool> UpdateSOS(int SOSAlertID, int UserID, string SOSClosureNotes, bool CloseSOS, bool CloseAllSOS,
+            bool MultiNotes, int[] CaseNoteIDs, bool CloseSOSIncident, int ActiveIncidentID, int CurrentUserId, int CompanyId, string TimeZoneId);
+    Task<UpdateIncidentStatusReturn> UpdateIncidentStatus(int CompanyId, int IncidentActivationId, string Type, string TimeZoneId, int CurrentUserId,
+            string UserRole, string Reason, int NumberOfKeyHolder, string CompletionNotes = "", int[] MessageMethod = null, int CascadePlanID = 0, bool isSos = false);
+    Task<List<IncidentSOSRequest>> GetIncidentSOSRequest(int IncidentActivationId);
+    Task<UpdateIncidentStatusReturn> GetActiveIncidentBasic(int CompanyId, int IncidentActivationId);
 }

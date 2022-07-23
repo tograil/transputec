@@ -61,21 +61,21 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
         [HttpGet]
-        [Route("CompleteTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
+        [Route("CompleteTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote}/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
         public async Task<IActionResult> CompleteTask([FromRoute] CompleteTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpGet]
-        [Route("DelegateTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
+        [Route("DelegateTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote}/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
         public async Task<IActionResult> DelegateTask([FromRoute] DelegateTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpGet]
-        [Route("ReallocateTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
+        [Route("ReallocateTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote}/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
         public async Task<IActionResult> ReallocateTask([FromRoute] ReallocateTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -123,22 +123,22 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        //[HttpPost]
+        //[Route("SaveActiveCheckListResponseRequest/{ActiveIncidentTaskID}/{CheckListResponse}")]
+        //public async Task<IActionResult> SaveActiveCheckListResponse([FromRoute] SaveActiveCheckListResponseRequest request, CancellationToken cancellationToken)
+        //{
+        //    var result = await _mediator.Send(request, cancellationToken);
+        //    return Ok(result);
+        //}
         [HttpPost]
-        [Route("SaveActiveCheckListResponseRequest/{ActiveIncidentTaskID}/{CheckListResponse}")]
-        public async Task<IActionResult> SaveActiveCheckListResponse([FromRoute] SaveActiveCheckListResponseRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpPost]
-        [Route("SaveActiveCheckListResponseRequest/{ActiveIncidentTaskID}/{OutUserCompanyId}/{OutLoginUserId}")]
+        [Route("UnattendedTask/{ActiveIncidentID}/{OutUserCompanyId}/{OutLoginUserId}")]
         public async Task<IActionResult> UnattendedTask([FromRoute] UnattendedTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpPost]
-        [Route("NewAdHocTask")]
+        [Route("NewAdHocTask/{ActiveIncidentID}/{TaskTitle}")]
         public async Task<IActionResult> NewAdHocTask([FromRoute] NewAdHocTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

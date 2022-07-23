@@ -23,6 +23,9 @@ using Microsoft.Extensions.Logging;
 using System.Reflection;
 using CrisesControl.Core.Incidents;
 using System.Threading.Tasks;
+using Quartz;
+using Quartz.Impl.Matchers;
+using CrisesControl.Core.Locations;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -802,6 +805,25 @@ namespace CrisesControl.Api.Application.Helpers
             }
             catch (Exception ex) { throw ex; }
             return "GMT Standard Time";
+        }
+        public void CancelJobsByGroup(string JobGroup)
+        {
+            try
+            {
+                ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+                var groupMatcher = GroupMatcher<JobKey>.GroupContains(JobGroup);
+                var jobKeys = _scheduler.GetJobKeys(groupMatcher).Result;
+                foreach (var jobKey in jobKeys)
+                {
+
+                    _scheduler.DeleteJob(jobKey);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }
