@@ -1275,6 +1275,74 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
+
+        public async Task SendMenuAccessAssociationsToAdmin(string Items, int SecurityGroupId, int CompanyID)
+        {
+            try
+            {
+                var roles = _DBC.CCRoles();
+                var secgroup = await _context.Set<SecurityGroup>().Where(SG => SG.SecurityGroupId == SecurityGroupId).Select(SG => SG.Name).FirstOrDefaultAsync();
+                if (secgroup != null)
+                {
+                    var adminuser = _context.Set<User>()
+                                     .Where(U => roles.Contains(U.UserRole) && U.CompanyId == CompanyID && U.Status == 1)
+                                     .Select(U => new { U.PrimaryEmail, U.FirstName, U.LastName }).ToList();
+
+                    var company = await _context.Set<Company>().Include(CP => CP.CompanyPaymentProfiles)
+                                   .Where(C => C.CompanyId == CompanyID)
+                                   .FirstOrDefaultAsync();
+                    if (company != null)
+                    {
+                        string templatename = "MENU_ACCESS_DELETE_ALERT";
+                        string Subject = string.Empty;
+                        string message = Convert.ToString(_DBC.ReadHtmlFile(templatename, "DB", company.CompanyId, out Subject));
+
+                        var sysparms = await _context.Set<SysParameter>()
+                                        .Where(SP => SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
+                                        || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO")
+                                        .Select(SP => new { SP.Name, SP.Value }).ToListAsync();
+
+                        string Website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
+                        string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+
+                        string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+                        string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
+                        string CompanyLogo = Portal + "/uploads/" + company.CompanyId + "/companylogos/" + company.CompanyLogoPath;
+
+                        if (string.IsNullOrEmpty(company.CompanyLogoPath))
+                        {
+                            CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                        }
+
+                        if ((message != null) && (hostname != null) && (fromadd != null))
+                        {
+                            string messagebody = message;
+
+                            messagebody = messagebody.Replace("{COMPANY_NAME}", company.CompanyName);
+                            messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                            messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
+                            messagebody = messagebody.Replace("{PORTAL}", Portal);
+                            messagebody = messagebody.Replace("{SECURITY_NAME}", secgroup);
+                            messagebody = messagebody.Replace("{SECURITY_LINKS}", Items);
+                            messagebody = messagebody.Replace("{CUSTOMER_ID}", company.CustomerId);
+
+                            foreach (var admin in adminuser)
+                            {
+                                string sendbody = messagebody;
+                                sendbody = sendbody.Replace("{RECIPIENT_NAME}", admin.FirstName + " " + admin.LastName);
+                                string[] adm_email = { admin.PrimaryEmail };
+                                Email(adm_email, sendbody, fromadd, hostname, Subject);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public void SendPaymentTransactionAlert(int CompanyID, decimal TransactionAmount, string TimeZoneId = "GMT Standard Time")
         {
             try

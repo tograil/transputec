@@ -144,6 +144,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<EmailTemplateList>().HasNoKey();
             modelBuilder.Entity<AppLanguages>().HasNoKey();
             modelBuilder.Entity<CompanyPackageItems>().HasNoKey();
+            
+            modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
             modelBuilder.Entity<UserTaskHead>().HasNoKey();
             modelBuilder.Entity<IncidentTaskDetails>().HasNoKey();
             modelBuilder.Entity<ActiveTaskParticiants>().HasNoKey();
