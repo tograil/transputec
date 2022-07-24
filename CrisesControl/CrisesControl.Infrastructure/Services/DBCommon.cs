@@ -14,10 +14,6 @@ using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using CrisesControl.Core.Exceptions.InvalidOperation;
 using System.Text.RegularExpressions;
-using CrisesControl.Core.Locations;
-using System.Net;
-using System.Xml.Linq;
-using CrisesControl.Infrastructure.Services;
 using Microsoft.Data.SqlClient;
 using CrisesControl.Core.CompanyParameters;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +23,12 @@ using Microsoft.Extensions.Logging;
 using System.Reflection;
 using CrisesControl.Core.Incidents;
 using System.Threading.Tasks;
+using Quartz;
+using Quartz.Impl.Matchers;
+using CrisesControl.Core.Locations;
+using System.Net;
+using System.Xml.Linq;
+using Location = CrisesControl.Core.Locations.Location;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -91,7 +93,7 @@ namespace CrisesControl.Api.Application.Helpers
 
                         if (provider.ToUpper() != "OFFICE365")
                         {
-                            var desc = (from MSG in  _context.Set<EmailTemplate>()
+                            var desc = (from MSG in _context.Set<EmailTemplate>()
                                         where MSG.Code == "DISCLAIMER_TEXT"
                                         where MSG.CompanyId == 0
                                         select MSG)
@@ -163,7 +165,7 @@ namespace CrisesControl.Api.Application.Helpers
                     Notes = Notes,
                     CreatedDate = DateTime.Now,
                 };
-               await  _context.AddAsync(Note);
+                await _context.AddAsync(Note);
                 await _context.SaveChangesAsync();
                 return Note.IncidentTaskNotesId;
             }
@@ -274,39 +276,39 @@ namespace CrisesControl.Api.Application.Helpers
 
         public DateTimeOffset GetDateTimeOffset(DateTime crTime, string timeZoneId = "GMT Standard Time")
         {
-                if (crTime.Year <= 2000)
-                    return crTime;
+            if (crTime.Year <= 2000)
+                return crTime;
 
-                if (crTime.Year > 3000)
-                {
-                    crTime = DateTime.MaxValue.AddHours(-48);
-                }
+            if (crTime.Year > 3000)
+            {
+                crTime = DateTime.MaxValue.AddHours(-48);
+            }
 
-                TimeZoneInfo cet = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-                var offset = cet.GetUtcOffset(crTime);
+            TimeZoneInfo cet = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            var offset = cet.GetUtcOffset(crTime);
 
-                DateTimeOffset newvals = new DateTimeOffset(new DateTime(crTime.Year, crTime.Month, crTime.Day, crTime.Hour, crTime.Minute, crTime.Second, crTime.Millisecond));
+            DateTimeOffset newvals = new DateTimeOffset(new DateTime(crTime.Year, crTime.Month, crTime.Day, crTime.Hour, crTime.Minute, crTime.Second, crTime.Millisecond));
 
-                DateTimeOffset convertedtime = newvals.ToOffset(offset);
+            DateTimeOffset convertedtime = newvals.ToOffset(offset);
 
-                return convertedtime;
+            return convertedtime;
         }
 
         public DateTime GetLocalTime(string timeZoneId, DateTime? paramTime = null)
         {
-                if (string.IsNullOrEmpty(timeZoneId))
-                    timeZoneId = "GMT Standard Time";
+            if (string.IsNullOrEmpty(timeZoneId))
+                timeZoneId = "GMT Standard Time";
 
-                DateTime retDate = DateTime.Now.ToUniversalTime();
+            DateTime retDate = DateTime.Now.ToUniversalTime();
 
-                DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
+            DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
 
-                DateTime timeUtc = DateTime.UtcNow;
+            DateTime timeUtc = DateTime.UtcNow;
 
-                TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-                retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
+            TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
 
-                return retDate;
+            return retDate;
         }
 
         public void CreateObjectRelationship(int targetObjectId, int sourceObjectId, string relationName, int companyId, int createdUpdatedBy, string timeZoneId, string relatinFilter = "")
@@ -334,11 +336,11 @@ namespace CrisesControl.Api.Application.Helpers
                         {
                             if (relationName.ToUpper() == "GROUP")
                             {
-                                newSourceObjectId = _context.Set<Core.Groups.Group>().Where(t=>t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t=>t.GroupId).FirstOrDefault();
+                                newSourceObjectId = _context.Set<Core.Groups.Group>().Where(t => t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t => t.GroupId).FirstOrDefault();
                             }
                             else if (relationName.ToUpper() == "LOCATION")
                             {
-                                newSourceObjectId = _context.Set<Core.Models.Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
+                                newSourceObjectId = _context.Set<Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
                             }
                             CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
                         }
@@ -349,7 +351,8 @@ namespace CrisesControl.Api.Application.Helpers
                     UpdateUserDepartment(targetObjectId, sourceObjectId, createdUpdatedBy, companyId, timeZoneId);
                 }
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new RelationNameNotFoundException(companyId, userId);
             }
         }
@@ -474,7 +477,8 @@ namespace CrisesControl.Api.Application.Helpers
 
                 return tmpZoneVal;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new UserNotFoundException(companyId, userId);
             }
             return "GMT Standard Time";
@@ -647,49 +651,6 @@ namespace CrisesControl.Api.Application.Helpers
                 allchars[i] = allchars[bytes[i] % allchars.Length];
                 allchars[bytes[i] % allchars.Length] = tmp;
             }
-        public async void MessageProcessLog(int MessageID, string EventName, string MethodName = "", string QueueName = "", string AdditionalInfo = "")
-        {
-            try
-            {
-                var pMessageID = new SqlParameter("@MessageID", MessageID);
-                var pEventName = new SqlParameter("@EventName", EventName);
-                var pMethodName = new SqlParameter("@MethodName", MethodName);
-                var pQueueName = new SqlParameter("@QueueName", QueueName);
-                var pAdditionalInfo = new SqlParameter("@AdditionalInfo", AdditionalInfo);
-
-               await  _context.Set<Result>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
-                    pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).FirstOrDefaultAsync();
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
-        {
-
-            if (Level.ToUpper() == "INFO")
-            {
-                string CreateLog = LookupWithKey("COLLECT_PERFORMANCE_LOG");
-                if (CreateLog == "false")
-                    return;
-            }
-
-            LogicalThreadContext.Properties["ControllerName"] = Controller;
-            LogicalThreadContext.Properties["MethodName"] = Method;
-            LogicalThreadContext.Properties["CompanyId"] = CompanyId;
-            if (Level.ToUpper() == "ERROR")
-            {
-                Logger.Error(Message, Ex);
-            }
-            else if (Level.ToUpper() == "DEBUG")
-            {
-                Logger.Debug(Message, Ex);
-            }
-            else if (Level.ToUpper() == "INFO")
-            {
-                Logger.Info(Message, Ex);
-            }
 
             // Create the random values to select the characters
             Array.Resize(ref bytes, length);
@@ -714,7 +675,6 @@ namespace CrisesControl.Api.Application.Helpers
                 return testResult;
             }
         }
-
         public void RemoveUserObjectRelation(string RelationName, int UserId, int SourceObjectId, int CompanyId, int CurrentUserId, string TimeZoneId)
         {
             try
@@ -747,7 +707,6 @@ namespace CrisesControl.Api.Application.Helpers
 
             }
         }
-
         public void RemoveUserDevice(int UserID, bool TokenReset = false)
         {
             try
@@ -768,6 +727,51 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
+        public async void MessageProcessLog(int MessageID, string EventName, string MethodName = "", string QueueName = "", string AdditionalInfo = "")
+        {
+            try
+            {
+                var pMessageID = new SqlParameter("@MessageID", MessageID);
+                var pEventName = new SqlParameter("@EventName", EventName);
+                var pMethodName = new SqlParameter("@MethodName", MethodName);
+                var pQueueName = new SqlParameter("@QueueName", QueueName);
+                var pAdditionalInfo = new SqlParameter("@AdditionalInfo", AdditionalInfo);
+
+                await _context.Set<Result>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
+                     pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
+        {
+
+            if (Level.ToUpper() == "INFO")
+            {
+                string CreateLog = LookupWithKey("COLLECT_PERFORMANCE_LOG");
+                if (CreateLog == "false")
+                    return;
+            }
+
+            LogicalThreadContext.Properties["ControllerName"] = Controller;
+            LogicalThreadContext.Properties["MethodName"] = Method;
+            LogicalThreadContext.Properties["CompanyId"] = CompanyId;
+            if (Level.ToUpper() == "ERROR")
+            {
+                Logger.Error(Message, Ex);
+            }
+            else if (Level.ToUpper() == "DEBUG")
+            {
+                Logger.Debug(Message, Ex);
+            }
+            else if (Level.ToUpper() == "INFO")
+            {
+                Logger.Info(Message, Ex);
+            }
+
+
 
             if (Ex != null)
                 Console.WriteLine(Message + Ex.ToString());
@@ -803,39 +807,6 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public bool connectUNCPath(string UNCPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "")
-        {
-            try
-            {
-                if (!string.IsNullOrEmpty(UNCPath))
-                    UNCPath = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UNCPath"]);
-                if (!string.IsNullOrEmpty(UseUNC))
-                    UseUNC = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UseUNC"]);
-                if (!string.IsNullOrEmpty(strUncUsername))
-                    strUncUsername = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UncUserName"]);
-                if (!string.IsNullOrEmpty(strUncPassword))
-                    strUncPassword = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UncPassword"]);
-
-                if (UseUNC == "true")
-                {
-                    UNCAccessWithCredentials.disconnectRemote(@UNCPath);
-                    if (string.IsNullOrEmpty(UNCAccessWithCredentials.connectToRemote(@UNCPath, strUncUsername, strUncPassword)))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-            return true;
-        }
-
         public string FormatMobile(string ISD, string Mobile)
         {
             if (!string.IsNullOrEmpty(Mobile))
@@ -880,7 +851,7 @@ namespace CrisesControl.Api.Application.Helpers
         }
         public dynamic InitComms(string API_CLASS, string APIClass = "", string ClientId = "", string ClientSecret = "")
         {
-            DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
+            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
             try
             {
 
@@ -957,39 +928,39 @@ namespace CrisesControl.Api.Application.Helpers
                 return null;
             }
         }
-            public string GetValueByIndex(List<string> ValueList, int IndexVal)
+        public string GetValueByIndex(List<string> ValueList, int IndexVal)
+        {
+            try
             {
-                try
+
+                bool isModed = false;
+                if (IndexVal > ValueList.Count)
                 {
-
-                    bool isModed = false;
-                    if (IndexVal > ValueList.Count)
-                    {
-                        IndexVal %= ValueList.Count;
-                        isModed = true;
-                    }
-
-                    if (IndexVal == 0 && isModed == true)
-                        IndexVal = ValueList.Count;
-
-                    if (IndexVal < 0)
-                        IndexVal = 0;
-
-                    if (ValueList.ElementAtOrDefault(IndexVal) != null)
-                    {
-                        return ValueList.ElementAtOrDefault(IndexVal);
-                    }
-                    else
-                    {
-                        return GetValueByIndex(ValueList, 0);
-                    }
+                    IndexVal %= ValueList.Count;
+                    isModed = true;
                 }
-                catch (Exception ex)
+
+                if (IndexVal == 0 && isModed == true)
+                    IndexVal = ValueList.Count;
+
+                if (IndexVal < 0)
+                    IndexVal = 0;
+
+                if (ValueList.ElementAtOrDefault(IndexVal) != null)
                 {
-                throw ex;
-                    return "+441212855004";
+                    return ValueList.ElementAtOrDefault(IndexVal);
+                }
+                else
+                {
+                    return GetValueByIndex(ValueList, 0);
                 }
             }
+            catch (Exception ex)
+            {
+                throw ex;
+                return "+441212855004";
+            }
+        }
         public async Task LocalException(string Error, string Message, string Controller = "", string Method = "", int CompanyId = 0)
         {
             ExceptionLog el = new ExceptionLog();
@@ -1019,25 +990,25 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return false;
         }
-        public async Task<string> GetTimeZoneByCompany(int CompanyID)
+
+        public void CancelJobsByGroup(string JobGroup)
         {
             try
             {
-                string tmpZoneVal = "GMT Standard Time";
-                var Companytime = await _context.Set<Company>().Include(t=>t.StdTimeZone)
-                                  .Where(C=> C.CompanyId == CompanyID)
-                                  .Select(T=> new
-                                   {
-                                       CompanyTimezone = T.StdTimeZone.ZoneLabel
-                                   }).FirstOrDefaultAsync();
-                if (Companytime != null)
+                ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+                var groupMatcher = GroupMatcher<JobKey>.GroupContains(JobGroup);
+                var jobKeys = _scheduler.GetJobKeys(groupMatcher).Result;
+                foreach (var jobKey in jobKeys)
                 {
-                    tmpZoneVal = Companytime.CompanyTimezone;
+
+                    _scheduler.DeleteJob(jobKey);
                 }
-                return tmpZoneVal;
             }
-            catch (Exception ex) { throw ex; }
-            return "GMT Standard Time";
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }
