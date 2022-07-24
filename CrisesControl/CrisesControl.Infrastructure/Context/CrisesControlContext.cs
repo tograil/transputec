@@ -161,6 +161,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<TaskAudit>().HasNoKey();
             modelBuilder.Entity<FailedTaskList>().HasNoKey();
             
+            modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
 
 
 
