@@ -304,6 +304,10 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         }
         return result;
     }
+    public async Task<User?> GetUserById(int id)
+    {
+        return await _context.Set<User>().FirstOrDefaultAsync(x => x.UserId == id);
+    }
     public async Task<List<UserTaskHead>> GetUserTasks(int CurrentUserID)
     {
         try
@@ -858,7 +862,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" is reassigned to " + username + ". " + Environment.NewLine + " with comment: " + TaskActionReason;
 
                 //bool NotifyKeyContact = false;
-                //bool.TryParse(DBC.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", CompanyID), out NotifyKeyContact);
+               // bool.TryParse(_DBC.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", CompanyID), out NotifyKeyContact);
 
                 await notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, CurrentUserID, CompanyID, TimeZoneId, false, 3, MessageMethod, CascadePlanID);
 
@@ -1402,12 +1406,14 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     {
         try
         {
-
-            var participants = _context.Set<ActiveTaskParticiants>().FromSqlRaw("EXEC Pro_ActiveIncidentTask_GetActiveIncidenTasktParticipantList @ActiveIncidentTaskID, @ParticipantTypeID");
+           
+            var pActiveIncidentTaskID = new SqlParameter("@ActiveIncidentTaskID", ActiveIncidentTaskID);
+            
+            var participants = _context.Set<ActiveTaskParticiants>().FromSqlRaw("EXEC Pro_ActiveIncidentTask_GetActiveIncidenTasktParticipantList @ActiveIncidentTaskID", pActiveIncidentTaskID).AsEnumerable();
 
             var action_participants = participants.Where(w => w.ParticipantTypeID == 1).ToList();
             var escalation_participants = participants.Where(w => w.ParticipantTypeID == 2).ToList();
-            var task = await _context.Set<TaskActiveIncident>().Include(x => x.IncidentActivation)
+            var task =  _context.Set<TaskActiveIncident>().Include(x => x.IncidentActivation)
                         .Where(AT => AT.ActiveIncidentTaskId == ActiveIncidentTaskID && AT.CompanyId == CompanyID)
                         .Select(AT => new
                         {
@@ -1415,14 +1421,15 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                             AT.IncidentActivation.LaunchedOn,
                             AT.IncidentActivation.Name,
                             AT.IncidentActivation.IncidentIcon,
-                            TaskDelegatedTo = (from RPT in participants
-                                               where RPT.ActionStatus == "DELEGATED" && RPT.ActiveIncidentTaskID == ActiveIncidentTaskID
-                                               orderby RPT.ActiveIncidentTaskParticipantID descending
-                                               select new DelegatedList { FirstName = RPT.FirstName, LastName = RPT.LastName, DelegatedTo = RPT.ParticipantUserID }).FirstOrDefault(),
+                            TaskDelegatedTo = participants.Where(RPT=> RPT.ActionStatus == "DELEGATED" && RPT.ActiveIncidentTaskID == ActiveIncidentTaskID)
+                                               .OrderByDescending(RPT=>RPT.ActiveIncidentTaskParticipantID)                                               
+                                               .Select(RPT=> new DelegatedList { FirstName = RPT.FirstName, LastName = RPT.LastName, DelegatedTo = RPT.ParticipantUserID })                                               
+                                               .FirstOrDefault(),
                             TaskOwnerName = _context.Set<User>()
-                                             .Where(U => U.UserId == AT.TaskOwnerId)
-                                             .Select(U => new UserFullName { Firstname = U.FirstName, Lastname = U.LastName }).FirstOrDefault()
-                        }).FirstOrDefaultAsync();
+                                            .Where(U => U.UserId == AT.TaskOwnerId)
+                                            .Select(U => new UserFullName { Firstname = U.FirstName, Lastname = U.LastName }).FirstOrDefault()
+                        }).AsAsyncEnumerable();
+            //task.FirstOrDefault();
             return new { task, action_participants, escalation_participants };
         }
         catch (Exception ex)

@@ -81,6 +81,6 @@ public interface IActiveIncidentRepository
     Task AdHocIncidentTaskParticipants(int ActiveIncidentID, int ActiveIncidentTaskID, int[] ActionUsers, int[] ActionGroups, int[] EscalationUsers, int[] EscalationGroups);
     Task adhoc_create_participant_list(int[] UList, int ActiveIncidentTaskID, int PaticipentTypeId, string objtype);
     Task<bool> SaveActiveCheckListResponse(int ActiveIncidentTaskID, List<CheckListOption> CheckListResponse, int UserID, int CompanyID, string TimeZoneId);
-
+    Task<User?> GetUserById(int id);
 
 }
