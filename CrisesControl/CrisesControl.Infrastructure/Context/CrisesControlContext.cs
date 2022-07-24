@@ -25,6 +25,7 @@ using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Administrator;
+using CrisesControl.Core.System;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -160,6 +161,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ActiveCheckList>().HasNoKey();
             modelBuilder.Entity<TaskAudit>().HasNoKey();
             modelBuilder.Entity<FailedTaskList>().HasNoKey();
+            modelBuilder.Entity<TrackingExport>().HasNoKey();
             
             modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
 
