@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CrisesControl.Core.Billing;
 using CrisesControl.Core.Billing.Repositories;
+using CrisesControl.Core.Common;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
@@ -127,5 +128,121 @@ namespace CrisesControl.Infrastructure.Repositories {
             }
 
         }
+
+        private async Task<int> CreateOrderHeader(int companyId, int orderId, decimal contractValue, int contractDuration, DateTime orderDate,
+            string paymentMethod, int keyholderCount, int staffCount, string tigerOrderNo, string invoiceNumber,
+            string status, decimal netTotal, decimal vatTotal, DateTime contractStartDate, int currentUserId, string contractType, int activated, decimal discount)
+        {
+            try
+            {
+                var pCompanyId = new SqlParameter("@CompanyId", companyId);
+                var pOrderId = new SqlParameter("@OrderId", orderId);
+                var pContractValue = new SqlParameter("@ContractValue", contractValue);
+                var pContractDuration = new SqlParameter("@ContractDuration", contractDuration);
+                var pPaymentMethod = new SqlParameter("@PaymentMethod", paymentMethod);
+                var pKeyholderCount = new SqlParameter("@KeyholderCount", keyholderCount);
+                var pStaffCount = new SqlParameter("@StaffCount", staffCount);
+                var pTigerOrderNo = new SqlParameter("@TigerOrderNo", tigerOrderNo);
+                var pInvoiceNumber = new SqlParameter("@InvoiceNumber", invoiceNumber);
+                var pOrderDate = new SqlParameter("@OrderDate", orderDate);
+                var pStatus = new SqlParameter("@Status", status);
+                var pNetTotal = new SqlParameter("@NetTotal", netTotal);
+                var pVatTotal = new SqlParameter("@VatTotal", vatTotal);
+                var pContractStartDate = new SqlParameter("@ContractStartDate", contractStartDate);
+                var pCurrentUserId = new SqlParameter("@CurrentUserId", currentUserId);
+                var pContractType = new SqlParameter("@ContractType", contractType);
+                var pActivated = new SqlParameter("@Activated", activated);
+                var pDiscount = new SqlParameter("@Discount", discount);
+
+                var result = await _context.Set<JsonResult>().FromSqlRaw("EXEC Billing_Create_Order @CompanyId, @OrderId, @ContractValue, @ContractDuration, @PaymentMethod, " +
+                    "@KeyholderCount, @StaffCount, @TigerOrderNo, @InvoiceNumber, @OrderDate, @Status, @NetTotal, @VatTotal,@ContractStartDate, @CurrentUserId, " +
+                    "@ContractType, @Activated, @Discount",
+                pCompanyId, pOrderId, pContractValue, pContractDuration, pPaymentMethod, pKeyholderCount, pStaffCount, pTigerOrderNo, pInvoiceNumber, pOrderDate, pStatus,
+                pNetTotal, pVatTotal, pContractStartDate, pCurrentUserId, pContractType, pActivated, pDiscount).FirstOrDefaultAsync();
+                if (result != null)
+                {
+                    return result.ResultId;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        private async Task<int> CreateOrderItem(int orderId, int moduleId, decimal rate, int unit, decimal amount, string added, decimal discount)
+        {
+            try
+            {
+                var pOrderID = new SqlParameter("@OrderID", orderId);
+                var pModuleID = new SqlParameter("@ModuleID", moduleId);
+                var pRate = new SqlParameter("@Rate", rate);
+                var pUnit = new SqlParameter("@Unit", unit);
+                var pAmount = new SqlParameter("@Amount", amount);
+                var pAdded = new SqlParameter("@Added", added);
+                var pDiscount = new SqlParameter("@Discount", discount);
+
+
+                var result = await _context.Set<JsonResult>().FromSqlRaw("EXEC Billing_Create_Order_Item @OrderID, @ModuleID, @Rate, @Unit, @Amount, @Added, @Discount",
+                    pOrderID, pModuleID, pRate, pUnit, pAmount, pAdded, pDiscount).FirstOrDefaultAsync();
+
+                if (result != null)
+                {
+                    return result.ResultId;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                return 0;
+            }
+        }
+
+        public async Task<int> CreateOrder(OrderModel IP)
+        {
+            int orderId = 0;
+            try
+            {
+
+                orderId = await CreateOrderHeader(IP.CustomerId, IP.OrderId, IP.ContractValue, IP.ContractDuration, IP.OrderDate,
+                IP.PaymentMethod, IP.KeyholderCount, IP.StaffCount, IP.TigerOrderNo, IP.InvoiceNumber, IP.OrderStatus, IP.NetTotal, IP.VatTotal,
+                IP.ContractStartDate, IP.CurrentUserId, IP.ContractType, IP.Activated, IP.Discount);
+
+                if (orderId > 0)
+                {
+                    foreach (Product item in IP.Products)
+                    {
+                        await CreateOrderItem(orderId, item.ModuleID, item.Rate, item.Unit, item.Amount, item.Added, item.Discount);
+                    }
+
+                    //Create Transactions in the transactions table
+                    if (IP.ContractStartDate <= DateTime.Now.Date && IP.OrderStatus.ToUpper() == "PAYMENT_COLLECTED" && IP.Activated == 1)
+                    {
+                        //ProcessOrderTransactions(orderId, IP.CustomerId, IP.CurrentUserId, IP.ContractType);
+                        //ProcessPendingOrder(IP.OrderId, IP.CustomerId);
+                    }
+
+                    var removefalse = await (from OD in _context.Set<OrderDetail>() where OD.OrderId == orderId && OD.Added == "false" select OD).ToListAsync();
+                    if (removefalse != null)
+                    {
+                        _context.Set<OrderDetail>().RemoveRange(removefalse);
+                       await _context.SaveChangesAsync();
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+            }
+            return orderId;
+        }
+
     }
 }
