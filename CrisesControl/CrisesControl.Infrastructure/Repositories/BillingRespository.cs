@@ -127,5 +127,79 @@ namespace CrisesControl.Infrastructure.Repositories {
             }
 
         }
+
+        public async Task<List<InvoiceSchReturn>> GetInvItems(int orderId, int monthVal, int yearVal)
+        {
+            try
+            {
+                var pOrderId = new SqlParameter("@OrderId", orderId);
+                var pMonthVal = new SqlParameter("@MonthValue", monthVal);
+                var pYearVal = new SqlParameter("@YearValue", yearVal);
+
+                var result = await _context.Set<InvoiceSchReturn>().FromSqlRaw("EXEC Billing_Get_Invoice_Schedule @OrderId, @MonthValue, @YearValue",
+                    pOrderId, pMonthVal, pYearVal).ToListAsync();
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return new List<InvoiceSchReturn>();
+        }
+
+        public async Task<dynamic> GetOrder(int orderId, int companyId, string customerId, int originalOrderId)
+        {
+            try
+            {
+                    var pOrderId = new SqlParameter("@OrderId", orderId);
+                    var pOriginalOrderId = new SqlParameter("@OriginalOrderId", originalOrderId);
+                    var pCompanyId = new SqlParameter("@CompanyId", companyId);
+                    var pCustomerId = new SqlParameter("@CustomerId", customerId);
+
+                    var result = await _context.Set<OrderListReturn>().FromSqlRaw("EXEC Billing_Get_Order @OrderId, @OriginalOrderId, @CompanyId, @CustomerId",
+                        pOrderId, pOriginalOrderId, pCompanyId, pCustomerId).ToListAsync();
+
+                    if (result != null)
+                    {
+                        if (orderId > 0 || originalOrderId > 0)
+                        {
+                            var newresult = result.FirstOrDefault();
+                            newresult.Modules = await GetProducts(newresult.OrderID, companyId);
+                            newresult.InvItems = await GetInvItems(newresult.OrderID, DateTime.Now.Month, DateTime.Now.Year);
+
+                            return newresult;
+                        }
+                        return result;
+                    }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return null;
+        }
+
+        public async Task<List<CompanyPackageFeatures>> GetProducts(int OrderId, int CompanyId)
+        {
+            try
+            {
+                var pOrderId = new SqlParameter("@OrderId", OrderId);
+                var pCompanyId = new SqlParameter("@CompanyId", CompanyId);
+
+                var result = await _context.Set<CompanyPackageFeatures>().FromSqlRaw("EXEC Billing_Get_Order_Items @OrderId, @CompanyId", pOrderId, pCompanyId).ToListAsync();
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return new List<CompanyPackageFeatures>();
+        }
     }
 }

@@ -1,5 +1,7 @@
 ﻿using CrisesControl.Api.Application.Commands.Billing.GetAllInvoices;
 using CrisesControl.Api.Application.Commands.Billing.GetBillingSummary;
+using CrisesControl.Api.Application.Commands.Billing.GetInvSchedule;
+using CrisesControl.Api.Application.Commands.Billing.GetOrders;
 using CrisesControl.Api.Application.Commands.Billing.GetPaymentProfile;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -36,6 +38,22 @@ namespace CrisesControl.Api.Controllers {
         [HttpPost]
         [Route("GetAllInvoices")]
         public async Task<IActionResult> GetAllInvoices(GetAllInvoicesRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetInvSchedule")]
+        public async Task<IActionResult> GetInvSchedule(GetInvScheduleRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetOrders")]
+        public async Task<IActionResult> GetOrders(GetOrdersRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
