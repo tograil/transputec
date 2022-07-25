@@ -4,6 +4,7 @@ using CrisesControl.Core.Reports;
 using CrisesControl.Core.Reports.Repositories;
 using FluentValidation;
 using MediatR;
+using System.Net;
 
 namespace CrisesControl.Api.Application.Commands.Reports.GetPingReportChart
 {
@@ -43,7 +44,7 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetPingReportChart
                     {
                         KPILimit = PingMinLimit,
                         KPIMaxLimit=PingMaxLimit,
-                        ErrorCode = System.Net.HttpStatusCode.OK,
+                        ErrorCode = HttpStatusCode.OK,
                         Message ="Ping Chart Has been loaded"
                     };
 
@@ -52,7 +53,7 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetPingReportChart
                 {
                     KPILimit = PingMinLimit,
                     KPIMaxLimit = PingMaxLimit,
-                    ErrorCode = System.Net.HttpStatusCode.NotFound,
+                    ErrorCode = HttpStatusCode.NotFound,
                     Message = "No Data Found for Chart"
                 };
             }

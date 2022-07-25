@@ -511,7 +511,7 @@ namespace CrisesControl.Api.Application.Helpers
                     {
                         string messagebody = message;
 
-                        var InciRow = (from IA in _context.Set<Core.Models.IncidentActivation>()
+                        var InciRow = (from IA in _context.Set<IncidentActivation>()
                                        join L in _context.Set<Location>() on IA.ImpactedLocationId equals L.LocationId
                                        //join I in db.Incident on IA.IncidentId equals I.IncidentId
                                        where IA.IncidentActivationId == inciActId
