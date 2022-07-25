@@ -25,6 +25,7 @@ using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Administrator;
+using CrisesControl.Core.System;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -167,6 +168,9 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CallToAction>().HasNoKey();
             modelBuilder.Entity<IncidentSOSRequest>().HasNoKey();
             modelBuilder.Entity<IncidentTask>().HasNoKey();
+            modelBuilder.Entity<TrackingExport>().HasNoKey();
+            
+            modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
 
 
 

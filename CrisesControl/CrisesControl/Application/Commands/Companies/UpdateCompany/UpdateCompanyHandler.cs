@@ -6,6 +6,7 @@ using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.SharedKernel.Utils;
 using MediatR;
 using Serilog;
+using System.Net;
 
 namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompany
 {
@@ -48,7 +49,7 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompany
 
                     return new UpdateCompanyResponse() { 
                     CompanyId = request.CompanyId,
-                    ErrorCode = System.Net.HttpStatusCode.OK,
+                    ErrorCode = HttpStatusCode.OK,
                     Message= "Company has been updated"
 
                     };
@@ -56,7 +57,7 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompany
                 return new UpdateCompanyResponse()
                 {
                     CompanyId = 0,
-                    ErrorCode = System.Net.HttpStatusCode.NotFound,
+                    ErrorCode = HttpStatusCode.NotFound,
                     Message = "NOT Found"
 
                 };

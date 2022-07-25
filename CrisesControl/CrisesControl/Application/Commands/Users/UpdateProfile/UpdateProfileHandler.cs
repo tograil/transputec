@@ -10,6 +10,7 @@ using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using MediatR;
+using System.Net;
 using Object = CrisesControl.Core.Models.Object;
 
 namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
@@ -103,7 +104,7 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
                         return new UpdateProfileResponse()
                         {
                             userId = Id,
-                            ErrorCode = System.Net.HttpStatusCode.OK,
+                            ErrorCode = HttpStatusCode.OK,
                             Message = "User Profile has been updated"
 
                         };
@@ -112,7 +113,7 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
                 return new UpdateProfileResponse()
                     {
                         userId = 0,
-                        ErrorCode = System.Net.HttpStatusCode.NotFound,
+                        ErrorCode = HttpStatusCode.NotFound,
                         Message = "NOT Found"
 
                     };

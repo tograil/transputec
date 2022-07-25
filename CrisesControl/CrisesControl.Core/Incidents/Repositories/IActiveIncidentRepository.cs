@@ -85,5 +85,6 @@ public interface IActiveIncidentRepository
     Task<bool> SaveActiveCheckListResponse(int ActiveIncidentTaskID, List<CheckListOption> CheckListResponse, int UserID, int CompanyID, string TimeZoneId);
     Task CompleteAllTask(int ActiveIncidentID, int CurrentUserID, int CompanyID, string TimeZoneId);
 
+    Task<User?> GetUserById(int id);
 
 }

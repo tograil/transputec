@@ -40,8 +40,12 @@ namespace CrisesControl.Api.Application.Query
         private readonly ILogger<ActiveIncidentQuery> _logger;
         private readonly ICurrentUser _currentUser;
         private readonly IUserRepository _userRepository;
+        //private readonly IUserRepository _userRepository;
+        //private readonly ICompanyRepository _companyRepository;
+        private readonly DBCommon _dBCommon;
         private string MessageSourceAction = string.Empty;
         private readonly IPaging _paging;
+        public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, /*IUserRepository userRepository,*/ IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser,/* ICompanyRepository companyRepository,*/ DBCommon dBCommon, IPaging paging)
         private DBCommon _dBCommon;
         public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, IUserRepository userRepository, IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser, DBCommon dBCommon, IPaging paging)
         {
@@ -50,7 +54,8 @@ namespace CrisesControl.Api.Application.Query
             this._logger = logger;
             this._currentUser = currentUser;
             this._userRepository = userRepository;
-            this._dBCommon = dBCommon; ;
+            this._companyRepository = companyRepository;
+            this._dBCommon = dBCommon;
             this._paging = paging;
         }
 
@@ -237,12 +242,12 @@ namespace CrisesControl.Api.Application.Query
                     }
 
                     //Get Action By username
-                    var action_user = await _userRepository.GetUser(_currentUser.CompanyId, _currentUser.UserId);
+                    //var action_user = await _userRepository.GetUser(_currentUser.CompanyId, _currentUser.UserId);
                     string username = "";
-                    if (action_user != null)
-                    {
-                        username = action_user.FirstName + " " + action_user.LastName;
-                    }
+                    //if (action_user != null)
+                    //{
+                    //    username = action_user.FirstName + " " + action_user.LastName;
+                    //}
 
                     string task_action = "Task completed by " + username + "<br/>Comment:" + request.TaskActionReason;
 
@@ -358,7 +363,7 @@ namespace CrisesControl.Api.Application.Query
                     }
                    var taskActiveIncidenId= await _activeIncidentRepository.UpdateTaskActiveIncident(task);
 
-                    var action_user = await _userRepository.GetUser(_currentUser.CompanyId, _currentUser.UserId);
+                    var action_user = await _activeIncidentRepository.GetUserById( _currentUser.UserId);
                     string username = "";
                     if (action_user != null)
                     {
@@ -710,7 +715,7 @@ namespace CrisesControl.Api.Application.Query
                         var intUpdateId = await _activeIncidentRepository.UpdateTaskActiveIncident(task);
 
                         //Get Action By username
-                        var action_user = await _userRepository.GetUser(_currentUser.CompanyId,_currentUser.UserId);
+                        var action_user = await _activeIncidentRepository.GetUserById(_currentUser.UserId);
                         string username = "";
                         if (action_user != null)
                         {

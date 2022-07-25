@@ -28,6 +28,7 @@ using Quartz.Impl.Matchers;
 using CrisesControl.Core.Locations;
 using System.Net;
 using System.Xml.Linq;
+using Location = CrisesControl.Core.Locations.Location;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -92,7 +93,7 @@ namespace CrisesControl.Api.Application.Helpers
 
                         if (provider.ToUpper() != "OFFICE365")
                         {
-                            var desc = (from MSG in  _context.Set<EmailTemplate>()
+                            var desc = (from MSG in _context.Set<EmailTemplate>()
                                         where MSG.Code == "DISCLAIMER_TEXT"
                                         where MSG.CompanyId == 0
                                         select MSG)
@@ -164,7 +165,7 @@ namespace CrisesControl.Api.Application.Helpers
                     Notes = Notes,
                     CreatedDate = DateTime.Now,
                 };
-               await  _context.AddAsync(Note);
+                await _context.AddAsync(Note);
                 await _context.SaveChangesAsync();
                 return Note.IncidentTaskNotesId;
             }
@@ -275,39 +276,39 @@ namespace CrisesControl.Api.Application.Helpers
 
         public DateTimeOffset GetDateTimeOffset(DateTime crTime, string timeZoneId = "GMT Standard Time")
         {
-                if (crTime.Year <= 2000)
-                    return crTime;
+            if (crTime.Year <= 2000)
+                return crTime;
 
-                if (crTime.Year > 3000)
-                {
-                    crTime = DateTime.MaxValue.AddHours(-48);
-                }
+            if (crTime.Year > 3000)
+            {
+                crTime = DateTime.MaxValue.AddHours(-48);
+            }
 
-                TimeZoneInfo cet = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-                var offset = cet.GetUtcOffset(crTime);
+            TimeZoneInfo cet = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            var offset = cet.GetUtcOffset(crTime);
 
-                DateTimeOffset newvals = new DateTimeOffset(new DateTime(crTime.Year, crTime.Month, crTime.Day, crTime.Hour, crTime.Minute, crTime.Second, crTime.Millisecond));
+            DateTimeOffset newvals = new DateTimeOffset(new DateTime(crTime.Year, crTime.Month, crTime.Day, crTime.Hour, crTime.Minute, crTime.Second, crTime.Millisecond));
 
-                DateTimeOffset convertedtime = newvals.ToOffset(offset);
+            DateTimeOffset convertedtime = newvals.ToOffset(offset);
 
-                return convertedtime;
+            return convertedtime;
         }
 
         public DateTime GetLocalTime(string timeZoneId, DateTime? paramTime = null)
         {
-                if (string.IsNullOrEmpty(timeZoneId))
-                    timeZoneId = "GMT Standard Time";
+            if (string.IsNullOrEmpty(timeZoneId))
+                timeZoneId = "GMT Standard Time";
 
-                DateTime retDate = DateTime.Now.ToUniversalTime();
+            DateTime retDate = DateTime.Now.ToUniversalTime();
 
-                DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
+            DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
 
-                DateTime timeUtc = DateTime.UtcNow;
+            DateTime timeUtc = DateTime.UtcNow;
 
-                TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-                retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
+            TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
 
-                return retDate;
+            return retDate;
         }
 
         public void CreateObjectRelationship(int targetObjectId, int sourceObjectId, string relationName, int companyId, int createdUpdatedBy, string timeZoneId, string relatinFilter = "")
@@ -335,7 +336,7 @@ namespace CrisesControl.Api.Application.Helpers
                         {
                             if (relationName.ToUpper() == "GROUP")
                             {
-                                newSourceObjectId = _context.Set<Core.Groups.Group>().Where(t=>t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t=>t.GroupId).FirstOrDefault();
+                                newSourceObjectId = _context.Set<Core.Groups.Group>().Where(t => t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t => t.GroupId).FirstOrDefault();
                             }
                             else if (relationName.ToUpper() == "LOCATION")
                             {
@@ -350,7 +351,8 @@ namespace CrisesControl.Api.Application.Helpers
                     UpdateUserDepartment(targetObjectId, sourceObjectId, createdUpdatedBy, companyId, timeZoneId);
                 }
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new RelationNameNotFoundException(companyId, userId);
             }
         }
@@ -475,7 +477,8 @@ namespace CrisesControl.Api.Application.Helpers
 
                 return tmpZoneVal;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new UserNotFoundException(companyId, userId);
             }
             return "GMT Standard Time";
@@ -700,6 +703,100 @@ namespace CrisesControl.Api.Application.Helpers
             }
             catch (Exception ex)
             {
+                return false;
+            }
+            return true;
+        }
+        public string PureAscii(string str, bool KeepAccent = false)
+        {
+            if (!KeepAccent)
+            {
+                return Regex.Replace(str, @"[^\u001F-\u007F]", string.Empty);
+            }
+            else
+            {
+                return Regex.Replace(str, @"[^[a-zA-Z\u00C0-\u017F]+,\s[a-zA-Z\u00C0-\u017F\p{L}]+$", string.Empty);
+            }
+        }
+
+        public string RandomPassword(int length = 8, int complexity = 4)
+        {
+            RNGCryptoServiceProvider csp = new RNGCryptoServiceProvider();
+            // Define the possible character classes where complexity defines the number
+            // of classes to include in the final output.
+            char[][] classes =
+                                {
+                                @"abcdefghijklmnopqrstuvwxyz".ToCharArray(),
+                                @"ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray(),
+                                @"0123456789".ToCharArray(),
+                                @"!#$%&*@^".ToCharArray(),
+                                };
+
+            complexity = Math.Max(1, Math.Min(classes.Length, complexity));
+            if (length < complexity)
+                throw new ArgumentOutOfRangeException("length");
+
+            char[] allchars = classes.Take(complexity).SelectMany(c => c).ToArray();
+            byte[] bytes = new byte[allchars.Length];
+            csp.GetBytes(bytes);
+            for (int i = 0; i < allchars.Length; i++)
+            {
+                char tmp = allchars[i];
+                allchars[i] = allchars[bytes[i] % allchars.Length];
+                allchars[bytes[i] % allchars.Length] = tmp;
+            }
+
+            // Create the random values to select the characters
+            Array.Resize(ref bytes, length);
+            char[] result = new char[length];
+
+            while (true)
+            {
+                csp.GetBytes(bytes);
+                // Obtain the character of the class for each random byte
+                for (int i = 0; i < length; i++)
+                    result[i] = allchars[bytes[i] % allchars.Length];
+
+                // Verify that it does not start or end with whitespace
+                if (Char.IsWhiteSpace(result[0]) || Char.IsWhiteSpace(result[(length - 1) % length]))
+                    continue;
+
+                string testResult = new string(result);
+                // Verify that all character classes are represented
+                if (0 != classes.Take(complexity).Count(c => testResult.IndexOfAny(c) < 0))
+                    continue;
+
+                return testResult;
+            }
+        }
+        public void RemoveUserObjectRelation(string RelationName, int UserId, int SourceObjectId, int CompanyId, int CurrentUserId, string TimeZoneId)
+        {
+            try
+            {
+                if (RelationName.ToUpper() == "GROUP" || RelationName.ToUpper() == "LOCATION")
+                {
+                    var ObjMapId = (from OM in _context.Set<ObjectMapping>()
+                                    join OBJ in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals OBJ.ObjectId
+                                    where OBJ.ObjectTableName == RelationName
+                                    select OM).Select(a => a.ObjectMappingId).FirstOrDefault();
+
+                    var getRelationRec = (from OR in _context.Set<ObjectRelation>()
+                                          where OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == UserId &&
+                                          OR.SourceObjectPrimaryId == SourceObjectId
+                                          select OR).FirstOrDefault();
+                    if (getRelationRec != null)
+                    {
+                        _context.Set<ObjectRelation>().Remove(getRelationRec);
+                        _context.SaveChanges();
+                    }
+                }
+                else if (RelationName.ToUpper() == "DEPARTMENT")
+                {
+                    UpdateUserDepartment(UserId, 0, CurrentUserId, CompanyId, TimeZoneId);
+                }
+            }
+            catch (Exception ex)
+            {
                 throw ex;
 
             }
@@ -734,8 +831,8 @@ namespace CrisesControl.Api.Application.Helpers
                 var pQueueName = new SqlParameter("@QueueName", QueueName);
                 var pAdditionalInfo = new SqlParameter("@AdditionalInfo", AdditionalInfo);
 
-               await  _context.Set<Result>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
-                    pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).FirstOrDefaultAsync();
+                await _context.Set<Result>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
+                     pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -848,7 +945,7 @@ namespace CrisesControl.Api.Application.Helpers
         }
         public dynamic InitComms(string API_CLASS, string APIClass = "", string ClientId = "", string ClientSecret = "")
         {
-            DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
+            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
             try
             {
 
@@ -925,39 +1022,39 @@ namespace CrisesControl.Api.Application.Helpers
                 return null;
             }
         }
-            public string GetValueByIndex(List<string> ValueList, int IndexVal)
+        public string GetValueByIndex(List<string> ValueList, int IndexVal)
+        {
+            try
             {
-                try
+
+                bool isModed = false;
+                if (IndexVal > ValueList.Count)
                 {
-
-                    bool isModed = false;
-                    if (IndexVal > ValueList.Count)
-                    {
-                        IndexVal %= ValueList.Count;
-                        isModed = true;
-                    }
-
-                    if (IndexVal == 0 && isModed == true)
-                        IndexVal = ValueList.Count;
-
-                    if (IndexVal < 0)
-                        IndexVal = 0;
-
-                    if (ValueList.ElementAtOrDefault(IndexVal) != null)
-                    {
-                        return ValueList.ElementAtOrDefault(IndexVal);
-                    }
-                    else
-                    {
-                        return GetValueByIndex(ValueList, 0);
-                    }
+                    IndexVal %= ValueList.Count;
+                    isModed = true;
                 }
-                catch (Exception ex)
+
+                if (IndexVal == 0 && isModed == true)
+                    IndexVal = ValueList.Count;
+
+                if (IndexVal < 0)
+                    IndexVal = 0;
+
+                if (ValueList.ElementAtOrDefault(IndexVal) != null)
                 {
-                throw ex;
-                    return "+441212855004";
+                    return ValueList.ElementAtOrDefault(IndexVal);
+                }
+                else
+                {
+                    return GetValueByIndex(ValueList, 0);
                 }
             }
+            catch (Exception ex)
+            {
+                throw ex;
+                return "+441212855004";
+            }
+        }
         public async Task LocalException(string Error, string Message, string Controller = "", string Method = "", int CompanyId = 0)
         {
             ExceptionLog el = new ExceptionLog();
@@ -1005,6 +1102,17 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex)
             {
                 throw ex;
+            }
+        }
+        public void DeleteOldFiles(string dirName)
+        {
+            string[] files = Directory.GetFiles(@dirName);
+
+            foreach (string file in files)
+            {
+                FileInfo fi = new FileInfo(file);
+                if (fi.CreationTime < DateTime.Now.AddDays(-1))
+                    fi.Delete();
             }
         }
     }

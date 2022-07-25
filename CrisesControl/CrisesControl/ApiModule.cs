@@ -48,5 +48,6 @@ public class ApiModule : Module
         builder.RegisterType<AddressQuery>().As<IAddressQuery>();
         builder.RegisterType<SopLibraryQuery>().As<ISopLibraryQuery>();
         builder.RegisterType<ActiveIncidentQuery>().As<IActiveIncidentQuery>();
+        builder.RegisterType<SystemQuery>().As<ISystemQuery>();
     }
 }

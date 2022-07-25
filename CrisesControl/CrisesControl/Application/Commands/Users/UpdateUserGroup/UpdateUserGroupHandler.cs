@@ -3,6 +3,7 @@ using AutoMapper;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Users.Repositories;
 using MediatR;
+using System.Net;
 
 namespace CrisesControl.Api.Application.Commands.Users.UpdateUserGroup
 {
@@ -29,14 +30,14 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateUserGroup
                 {
                     return new UpdateUserGroupResponse
                     {
-                        StatusCode = System.Net.HttpStatusCode.OK,
+                        StatusCode = HttpStatusCode.OK,
                         Message = "Update Successfully",
                         result = results
                     };
                 }
                 return new UpdateUserGroupResponse
                 {
-                    StatusCode = System.Net.HttpStatusCode.IMUsed,
+                    StatusCode = HttpStatusCode.IMUsed,
                     Message = "Not data Found",
                     result = results
                 };

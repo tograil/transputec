@@ -2,6 +2,6 @@
 {
     public class GetTaskDetailsResponse
     {
-        public List<Object> Data { get; set; }
+        public Object Data { get; set; }
     }
 }

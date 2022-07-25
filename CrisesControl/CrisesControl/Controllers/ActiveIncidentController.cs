@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AcceptTask;
+﻿using CrisesControl.Api.Application.Commands.ActiveIncidentTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AcceptTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ActiveIncidentTasks;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddNotes;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.CompleteTask;
@@ -32,6 +33,7 @@ namespace CrisesControl.Api.Controllers
         {
             _mediator = mediator;
         }
+       
         [HttpGet]
         [Route("[action]")]
         public async Task<IActionResult> GetUserTask([FromRoute] GetUserTaskRequest request, CancellationToken cancellationToken)
