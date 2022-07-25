@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.Core.Incidents;
+using System;
 
 namespace CrisesControl.Core.Models
 {
@@ -29,5 +30,7 @@ namespace CrisesControl.Core.Models
         public int UpdatedBy { get; set; }
         public bool HasNotes { get; set; }
         public int HasCheckList { get; set; }
+        public TaskActiveIncidentParticipant TaskActiveIncidentParticipant { get; set; }
+        public IncidentActivation IncidentActivation { get; set; }
     }
 }

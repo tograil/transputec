@@ -5,6 +5,7 @@ using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using MediatR;
 using Serilog;
+using System.Net;
 
 namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyLogo
 {
@@ -46,14 +47,14 @@ namespace CrisesControl.Api.Application.Commands.Companies.UpdateCompanyLogo
                     {
                         CompanyId = request.CompanyId,
                         CompanyLogo = (company.CompanyLogoPath == null || company.CompanyLogoPath == "") ? "" : company.CompanyLogoPath,
-                        StatusCode = System.Net.HttpStatusCode.OK,
+                        StatusCode = HttpStatusCode.OK,
                         Message = "Company Logo has been uploaded successfully"
                     };
                 }
                 return new UpdateCompanyLogoResponse
                 {
                     Message = "Company not found",
-                    StatusCode = System.Net.HttpStatusCode.BadRequest
+                    StatusCode = HttpStatusCode.BadRequest
                 };
             }
             catch (Exception ex)

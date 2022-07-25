@@ -25,5 +25,6 @@ public class TaskHeaderConfiguration : IEntityTypeConfiguration<TaskHeader>
             .HasColumnType("decimal(18, 2)")
             .HasColumnName("RTO")
             .HasDefaultValueSql("((0))");
+        builder.HasOne(x => x.IncidentActivation).WithMany().HasForeignKey(x => x.IncidentId);
     }
 }
