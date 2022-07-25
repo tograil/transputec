@@ -4,6 +4,7 @@ using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
 using MediatR;
 using Serilog;
+using System.Net;
 
 namespace CrisesControl.Api.Application.Commands.Messaging.MessageAcknowledged
 {
@@ -35,14 +36,14 @@ namespace CrisesControl.Api.Application.Commands.Messaging.MessageAcknowledged
                         MessageAckDetails = response,
                         MessageListData=Msglist,
                         MessageListId = response.MessageListId,
-                        ErrorCode = System.Net.HttpStatusCode.OK,
+                        ErrorCode =HttpStatusCode.OK,
                         Message = "Data has been loaded Succesfully"
                     };
                 }
                 return new MessageAcknowledgeResponse
                 {
                     MessageListId = response.MessageListId,
-                    ErrorCode = System.Net.HttpStatusCode.NotFound,
+                    ErrorCode =HttpStatusCode.NotFound,
                     Message = "Data Not Found"
                 };
 

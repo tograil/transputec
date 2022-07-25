@@ -1,9 +1,4 @@
-﻿using CrisesControl.Api.Application.Commands.Security.AddSecurityGroup;
-using CrisesControl.Api.Application.Commands.Security.DeleteSecurityGroup;
-using CrisesControl.Api.Application.Commands.Security.GetAllSecurityObjects;
-using CrisesControl.Api.Application.Commands.Security.GetCompanySecurityGroup;
-using CrisesControl.Api.Application.Commands.Security.GetSecurityGroup;
-using CrisesControl.Api.Application.Commands.Security.UpdateSecurityGroup;
+﻿using CrisesControl.Api.Application.Commands.Security.GetCompanySecurityGroup;
 using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -28,42 +23,6 @@ namespace CrisesControl.Api.Controllers
         [HttpGet]
         [Route("GetCompanySecurityGroup/{CompanyID:int}")]
         public async Task<IActionResult> GetCompanySecurityGroup([FromRoute] GetCompanySecurityGroupRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpGet]
-        [Route("GetSecurityGroup/{SecurityGroupId:int}")]
-        public async Task<IActionResult> GetSecurityGroup([FromRoute] GetSecurityGroupRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-
-        }
-        [HttpGet]
-        [Route("GetAllSecurityObjects")]
-        public async Task<IActionResult> GetAllSecurityObjects([FromRoute] GetAllSecurityObjectsRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpPost]
-        [Route("AddSecurityGroup")]
-        public async Task<IActionResult> AddSecurityGroup([FromBody] AddSecurityGroupRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpPut]
-        [Route("UpdateSecurityGroup")]
-        public async Task<IActionResult> UpdateSecurityGroup([FromBody] UpdateSecurityGroupRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpDelete]
-        [Route("DeleteSecurityGroup/{SecurityGroupId}")]
-        public async Task<IActionResult> DeleteSecurityGroup([FromRoute] DeleteSecurityGroupRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

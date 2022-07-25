@@ -5,6 +5,7 @@ using CrisesControl.Core.Reports.Repositories;
 using FluentValidation;
 using MediatR;
 using Serilog;
+using System.Net;
 
 namespace CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
 
@@ -36,14 +37,14 @@ public class GetIndidentMessageNoAckHandler: IRequestHandler<GetIndidentMessageN
                 {
                     data = result,
                     Message = "No record found.",
-                    StatusCode = System.Net.HttpStatusCode.OK
+                    StatusCode = HttpStatusCode.OK
                 };
             }
             return new GetIndidentMessageNoAckResponse
             {
                 data = new List<DataTablePaging>(),
                 Message = "Loaded Succesfull.",
-                StatusCode = System.Net.HttpStatusCode.NotFound
+                StatusCode =HttpStatusCode.NotFound
 
             };
         }
