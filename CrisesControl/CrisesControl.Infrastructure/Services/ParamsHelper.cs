@@ -1,6 +1,8 @@
-﻿using CrisesControl.Core.Models;
+﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Models;
 using CrisesControl.Core.Queues;
 using CrisesControl.Infrastructure.Context;
+using Microsoft.AspNetCore.Http;
 using CrisesControl.SharedKernel.Utils;
 using Newtonsoft.Json;
 using System;
@@ -13,14 +15,17 @@ namespace CrisesControl.Infrastructure.Services
 {
     public  class ParamsHelper
     {
-        
+        private static CrisesControlContext _context;
+        private static IHttpContextAccessor _httpContextAccessor;
         public ParamsHelper()
         {
-          
+
         }
 
         public static EmailMessage GetEmailParams()
         {
+
+           
             EmailMessage item = new EmailMessage();
             try
             {
@@ -29,37 +34,37 @@ namespace CrisesControl.Infrastructure.Services
                             MyTaskURL = "", TaskURLLabel = "", Templatepath = "", EmailFrom = "", SMTPHost = "", EmailSub = "", SendGridAPIKey = "",
                             AwsSesAccessKey = "", AWSSESSecretKey = "", Office365Host = "";
 
+                DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
+               
 
+                    TwiterLink = DBC.LookupWithKey("CC_TWITTER_PAGE");
+                    TwiterIcon = DBC.LookupWithKey("CC_TWITTER_ICON");
+                    FacebookLink = DBC.LookupWithKey("CC_FB_PAGE");
+                    FacebookIcon = DBC.LookupWithKey("CC_FB_ICON");
+                    LinkedinLink = DBC.LookupWithKey("CC_LINKEDIN_PAGE");
+                    LinkedinIcon = DBC.LookupWithKey("CC_LINKEDIN_ICON");
+                    Domain = DBC.LookupWithKey("DOMAIN");
+                    Portal = DBC.LookupWithKey("PORTAL");
+                    AckURL = DBC.LookupWithKey("ACKNOWLEDGE_URL");
+                    UsersupportLink = DBC.LookupWithKey("CC_USER_SUPPORT_LINK");
+                    CCimage = DBC.LookupWithKey("CCLOGO");
+                    Templatepath = DBC.LookupWithKey("COMMS_TEMPLATE_PATH");
+                    EmailFrom = DBC.LookupWithKey("ALERT_EMAILFROM");
+                    SMTPHost = DBC.LookupWithKey("SMTPHOST");
+                    EmailSub = DBC.LookupWithKey("EMAILSUB");
+                    MyTaskURL = DBC.LookupWithKey("INCIDENT_TASK_URL");
+                    TaskURLLabel = DBC.LookupWithKey("TASK_URL_LABEL");
+                    SendGridAPIKey = DBC.LookupWithKey("SEND_GRID_API_KEY");
+                    AwsSesAccessKey = DBC.LookupWithKey("AWS_SES_ACCCESS_KEY");
+                    AWSSESSecretKey = DBC.LookupWithKey("AWS_SES_SECRET_KEY");
+                    Office365Host = DBC.LookupWithKey("OFFICE365_HOST");
 
-
-                TwiterLink = LookupWithKey("CC_TWITTER_PAGE");
-                TwiterIcon = LookupWithKey("CC_TWITTER_ICON");
-                FacebookLink = LookupWithKey("CC_FB_PAGE");
-                FacebookIcon = LookupWithKey("CC_FB_ICON");
-                LinkedinLink = LookupWithKey("CC_LINKEDIN_PAGE");
-                LinkedinIcon = LookupWithKey("CC_LINKEDIN_ICON");
-                Domain = LookupWithKey("DOMAIN");
-                Portal = LookupWithKey("PORTAL");
-                AckURL = LookupWithKey("ACKNOWLEDGE_URL");
-                UsersupportLink = LookupWithKey("CC_USER_SUPPORT_LINK");
-                CCimage = LookupWithKey("CCLOGO");
-                Templatepath = LookupWithKey("COMMS_TEMPLATE_PATH");
-                EmailFrom = LookupWithKey("ALERT_EMAILFROM");
-                SMTPHost = LookupWithKey("SMTPHOST");
-                EmailSub = LookupWithKey("EMAILSUB");
-                MyTaskURL = LookupWithKey("INCIDENT_TASK_URL");
-                TaskURLLabel = LookupWithKey("TASK_URL_LABEL");
-                SendGridAPIKey = LookupWithKey("SEND_GRID_API_KEY");
-                AwsSesAccessKey = LookupWithKey("AWS_SES_ACCCESS_KEY");
-                AWSSESSecretKey = LookupWithKey("AWS_SES_SECRET_KEY");
-                Office365Host = LookupWithKey("OFFICE365_HOST");
-
-                item.TwitterIcon = TwiterIcon; item.FacebookIcon = FacebookIcon; item.LinkedInIcon = LinkedinIcon; item.Domain = Domain;
-                item.TwitterPage = TwiterLink; item.FacebookPage = FacebookLink; item.LinkedInPage = LinkedinLink; item.SupportEmail = UsersupportLink;
-                item.CCLogo = CCimage; item.PortalURL = Portal; item.ACKUrl = AckURL; item.TemplatePath = Templatepath; item.EmailFrom = EmailFrom;
-                item.SMTPHost = SMTPHost; item.EmailSub = EmailSub; item.TaskURL = MyTaskURL; item.TaskURLLabel = TaskURLLabel; item.SendGridAPIKey = SendGridAPIKey;
-                item.AwsSesAccessKey = AwsSesAccessKey; item.AWSSESSecretKey = AWSSESSecretKey; item.Office365Host = Office365Host;
-
+                    item.TwitterIcon = TwiterIcon; item.FacebookIcon = FacebookIcon; item.LinkedInIcon = LinkedinIcon; item.Domain = Domain;
+                    item.TwitterPage = TwiterLink; item.FacebookPage = FacebookLink; item.LinkedInPage = LinkedinLink; item.SupportEmail = UsersupportLink;
+                    item.CCLogo = CCimage; item.PortalURL = Portal; item.ACKUrl = AckURL; item.TemplatePath = Templatepath; item.EmailFrom = EmailFrom;
+                    item.SMTPHost = SMTPHost; item.EmailSub = EmailSub; item.TaskURL = MyTaskURL; item.TaskURLLabel = TaskURLLabel; item.SendGridAPIKey = SendGridAPIKey;
+                    item.AwsSesAccessKey = AwsSesAccessKey; item.AWSSESSecretKey = AWSSESSecretKey; item.Office365Host = Office365Host;
+               
                 return item;
             }
             catch (System.Exception)
@@ -76,8 +81,8 @@ namespace CrisesControl.Infrastructure.Services
                 if (Globals.ContainsKey(Key))
                 {
                     return Globals[Key];
-                }
-              
+        }
+
 
                 var LKP = _context.Set<SysParameter>()
                            .Where(L=> L.Name == Key
@@ -106,29 +111,28 @@ namespace CrisesControl.Infrastructure.Services
                             BB_PASSOWRD = "", BBPUSHURL = "", WINAPP_PACKAGE_NAME = "", WINAPP_SID = "", WINAPP_CLIENT_SECRET = "",
                             WINDESK_PACKAGE_NAME = "", WINDESK_SID = "", WINDESK_CLIENT_SECRET = "";
 
-               
+                DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
 
-                
 
-                    APPLECERPWD = LookupWithKey("APPLECERPWD");
-                    APPLECERTPATH = LookupWithKey("APPLECERTPATH");
-                    APPLEPUSHMODE = Convert.ToBoolean(LookupWithKey("APPLEPUSHMODE"));
-                    GOOGLE_API_KEY = LookupWithKey("GOOGLE_API_KEY");
-                    SOUNDFILE = LookupWithKey("PUSH_SOUND_FILE");
-                    WINAPP_PACKAGE_NAME = LookupWithKey("WINAPP_PACKAGE_NAME");
-                    WINAPP_SID =LookupWithKey("WINAPP_SID");
-                    WINAPP_CLIENT_SECRET = LookupWithKey("WINAPP_CLIENT_SECRET");
-                    WINDESK_PACKAGE_NAME = LookupWithKey("WINDESK_PACKAGE_NAME");
-                    WINDESK_SID = LookupWithKey("WINDESK_SID");
-                    WINDESK_CLIENT_SECRET = LookupWithKey("WINDESK_CLIENT_SECRET");
+                APPLECERPWD = DBC.LookupWithKey("APPLECERPWD");
+                    APPLECERTPATH = DBC.LookupWithKey("APPLECERTPATH");
+                    APPLEPUSHMODE = Convert.ToBoolean(DBC.LookupWithKey("APPLEPUSHMODE"));
+                    GOOGLE_API_KEY = DBC.LookupWithKey("GOOGLE_API_KEY");
+                    SOUNDFILE = DBC.LookupWithKey("PUSH_SOUND_FILE");
+                    WINAPP_PACKAGE_NAME = DBC.LookupWithKey("WINAPP_PACKAGE_NAME");
+                    WINAPP_SID = DBC.LookupWithKey("WINAPP_SID");
+                    WINAPP_CLIENT_SECRET = DBC.LookupWithKey("WINAPP_CLIENT_SECRET");
+                    WINDESK_PACKAGE_NAME = DBC.LookupWithKey("WINDESK_PACKAGE_NAME");
+                    WINDESK_SID = DBC.LookupWithKey("WINDESK_SID");
+                    WINDESK_CLIENT_SECRET = DBC.LookupWithKey("WINDESK_CLIENT_SECRET");
 
                     item.AppleCertPath = APPLECERTPATH; item.AppleCertPwd = APPLECERPWD; item.ApplePushMode = APPLEPUSHMODE;
                     item.BBApplicationID = BB_APPLICATION_ID; item.BBPassword = BB_PASSOWRD; item.BBPushURL = BBPUSHURL;
                     item.GoogleApiKey = GOOGLE_API_KEY; item.SoundFileName = SOUNDFILE;
                     item.WinAppSID = WINAPP_SID; item.WinPackageName = WINAPP_PACKAGE_NAME; item.WinClientSecret = WINAPP_CLIENT_SECRET;
                     item.WinDeskSID = WINDESK_SID; item.WinDeskPackageName = WINDESK_PACKAGE_NAME; item.WinDeskClientSecret = WINDESK_CLIENT_SECRET;
-                    item.PortalUrl = LookupWithKey("PORTAL");
-              
+                    item.PortalUrl = DBC.LookupWithKey("PORTAL");
+                
                 return item;
             }
             catch (System.Exception)
@@ -145,17 +149,20 @@ namespace CrisesControl.Infrastructure.Services
                 bool USE_MESSAGING_COPILOT = false;
                 //MESSAGING_COPILOT_SID = "",
                 string MyTaskURL = "", TaskURLLabel = "";
-               
-                    MyTaskURL = LookupWithKey("INCIDENT_TASK_URL");
-                    TaskURLLabel = LookupWithKey("TASK_URL_LABEL");
+                DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
 
-                    USE_MESSAGING_COPILOT = Convert.ToBoolean(LookupWithKey("USE_MESSAGING_COPILOT"));
+
+
+                MyTaskURL = DBC.LookupWithKey("INCIDENT_TASK_URL");
+                    TaskURLLabel = DBC.LookupWithKey("TASK_URL_LABEL");
+
+                    USE_MESSAGING_COPILOT = Convert.ToBoolean(DBC.LookupWithKey("USE_MESSAGING_COPILOT"));
                     //MESSAGING_COPILOT_SID = DBC.LookupWithKey("MESSAGING_COPILOT_SID");
 
                     //item.CoPilotID = MESSAGING_COPILOT_SID; 
                     item.UseCopilot = USE_MESSAGING_COPILOT;
                     item.TaskURL = MyTaskURL; item.TaskURLLabel = TaskURLLabel;
-               
+                
                 return item;
             }
             catch (System.Exception)
@@ -171,17 +178,19 @@ namespace CrisesControl.Infrastructure.Services
             {
 
                 string WAInComingApi = "", WAStatusCallback = "", MyTaskURL = "", TaskURLLabel = "";
+                DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
 
+               
 
-                MyTaskURL = LookupWithKey("INCIDENT_TASK_URL");
-                TaskURLLabel = LookupWithKey("TASK_URL_LABEL");
+                    MyTaskURL = DBC.LookupWithKey("INCIDENT_TASK_URL");
+                    TaskURLLabel = DBC.LookupWithKey("TASK_URL_LABEL");
 
-                WAInComingApi = LookupWithKey("WHATSAPP_INCOMING_API");
-                WAStatusCallback =LookupWithKey("WHATSAPP_STATUS_CALLBACK");
+                    WAInComingApi = DBC.LookupWithKey("WHATSAPP_INCOMING_API");
+                    WAStatusCallback = DBC.LookupWithKey("WHATSAPP_STATUS_CALLBACK");
 
-                item.WAInComingApi = WAInComingApi; item.WAStatusCallback = WAStatusCallback;
-                item.TaskURL = MyTaskURL; item.TaskURLLabel = TaskURLLabel;
-
+                    item.WAInComingApi = WAInComingApi; item.WAStatusCallback = WAStatusCallback;
+                    item.TaskURL = MyTaskURL; item.TaskURLLabel = TaskURLLabel;
+                
                 return item;
             }
             catch (System.Exception)
@@ -242,7 +251,7 @@ namespace CrisesControl.Infrastructure.Services
         public static string MergePhoneParams(PhoneMessage item, MessageQueueItem mqitem)
         {
             string message = string.Empty;
-
+           
             item.MessageDeviceId = mqitem.MessageDeviceId;
             item.CommsDebug = mqitem.CommsDebug;
             item.Status = mqitem.Status;

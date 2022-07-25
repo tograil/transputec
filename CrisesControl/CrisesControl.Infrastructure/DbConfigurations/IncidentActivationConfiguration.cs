@@ -9,7 +9,7 @@ public class IncidentActivationConfiguration : IEntityTypeConfiguration<Incident
     public void Configure(EntityTypeBuilder<IncidentActivation> builder)
     {
         builder.ToTable("IncidentActivation");
-
+       
         builder.HasIndex(e => e.ImpactedLocationId, "IDX_ImpactedLocationId")
             .HasFillFactor(100);
 
@@ -35,5 +35,6 @@ public class IncidentActivationConfiguration : IEntityTypeConfiguration<Incident
             .IsUnicode(false);
 
         builder.HasOne(x => x.Incident).WithMany().HasForeignKey(x => x.IncidentId);
+        
     }
 }

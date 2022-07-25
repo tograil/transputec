@@ -25,6 +25,7 @@ using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Administrator;
+using CrisesControl.Core.System;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -144,6 +145,23 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<EmailTemplateList>().HasNoKey();
             modelBuilder.Entity<AppLanguages>().HasNoKey();
             modelBuilder.Entity<CompanyPackageItems>().HasNoKey();
+            modelBuilder.Entity<UserTaskHead>().HasNoKey();
+            modelBuilder.Entity<IncidentTaskDetails>().HasNoKey();
+            modelBuilder.Entity<ActiveTaskParticiants>().HasNoKey();
+            modelBuilder.Entity<DeclinedList>().HasNoKey();
+            modelBuilder.Entity<ReallocatedList>().HasNoKey();
+            modelBuilder.Entity<DelegatedList>().HasNoKey();
+            modelBuilder.Entity<TaskPredecessorList>().HasNoKey();
+            modelBuilder.Entity<TaskIncidentHeader>().HasNoKey();
+            modelBuilder.Entity<TwilioPriceList>().HasNoKey();
+            modelBuilder.Entity<MessageISDList>().HasNoKey();
+            modelBuilder.Entity<TrackMeUsers>().HasNoKey();
+            modelBuilder.Entity<TaskAssignedUser>().HasNoKey();
+            modelBuilder.Entity<UsrResponse>().HasNoKey();
+            modelBuilder.Entity<ActiveCheckList>().HasNoKey();
+            modelBuilder.Entity<TaskAudit>().HasNoKey();
+            modelBuilder.Entity<FailedTaskList>().HasNoKey();
+            modelBuilder.Entity<TrackingExport>().HasNoKey();
             
             modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
 
