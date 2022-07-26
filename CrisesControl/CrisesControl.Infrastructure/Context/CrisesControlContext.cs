@@ -26,6 +26,7 @@ using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.System;
+using CrisesControl.Core.Academy;
 using CrisesControl.Core.Companies;
 
 namespace CrisesControl.Infrastructure.Context
@@ -146,6 +147,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<EmailTemplateList>().HasNoKey();
             modelBuilder.Entity<AppLanguages>().HasNoKey();
             modelBuilder.Entity<CompanyPackageItems>().HasNoKey();
+            
+            modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
             modelBuilder.Entity<UserTaskHead>().HasNoKey();
             modelBuilder.Entity<IncidentTaskDetails>().HasNoKey();
             modelBuilder.Entity<ActiveTaskParticiants>().HasNoKey();
@@ -162,7 +165,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ActiveCheckList>().HasNoKey();
             modelBuilder.Entity<TaskAudit>().HasNoKey();
             modelBuilder.Entity<FailedTaskList>().HasNoKey();
+            modelBuilder.Entity<IncidentMessagesRtn>().HasNoKey();
+            modelBuilder.Entity<Incidents>().HasNoKey();
+            modelBuilder.Entity<CallToAction>().HasNoKey();
+            modelBuilder.Entity<IncidentSOSRequest>().HasNoKey();
+            modelBuilder.Entity<IncidentTask>().HasNoKey();
             modelBuilder.Entity<TrackingExport>().HasNoKey();
+            modelBuilder.Entity<AcademyVideos>().HasNoKey();
             
             modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
             modelBuilder.Entity<CompanyCommunication>().HasNoKey();
@@ -171,6 +180,24 @@ namespace CrisesControl.Infrastructure.Context
 
 
 
+            modelBuilder.Entity<IncidentMessagesRtn>().HasNoKey();
+            modelBuilder.Entity<UserPieChart>().HasNoKey();
+            modelBuilder.Entity<UserIncidentReportResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentUserMessageResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentStatsResponse>().HasNoKey();
+            modelBuilder.Entity<IncidentStat>().HasNoKey();
+            modelBuilder.Entity<PerformanceReport>().HasNoKey();
+            modelBuilder.Entity<PingReportGrid>().HasNoKey();
+            modelBuilder.Entity<ResponseCordinates>().HasNoKey();
+            modelBuilder.Entity<TrackingExport>().HasNoKey();
+            modelBuilder.Entity<TaskPerformance>().HasNoKey();
+            modelBuilder.Entity<FailedTaskReport>().HasNoKey();
+            modelBuilder.Entity<FailedTaskList>().HasNoKey();
+            modelBuilder.Entity<UserItems>().HasNoKey();
+            modelBuilder.Entity<IncidentResponseSummary>().HasNoKey();
+            modelBuilder.Entity<FailedAttempts>().HasNoKey();
+            modelBuilder.Entity<DeliveryDetails>().HasNoKey();
+            modelBuilder.Entity<PingReport>().HasNoKey();
 
 
             //modelBuilder.Entity<Location>().HasNoKey();

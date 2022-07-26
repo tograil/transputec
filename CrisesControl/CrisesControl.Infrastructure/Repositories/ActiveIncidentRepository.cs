@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Common;
+using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
@@ -35,14 +36,12 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     public bool IsFundAvailable = true;
     private string MessageSourceAction = string.Empty;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly ICompanyRepository _companyRepository;
-    private readonly IConfiguration _configuration;
+    private IConfiguration _configuration;
 
-    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ICompanyRepository companyRepository, IConfiguration configuration)
+    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
-        _companyRepository = companyRepository;
         _configuration = configuration;
     }
 
@@ -997,19 +996,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                     task.TaskOwnerId = 0;
 
                 task.TaskStatus = 1;
-                //task.TaskAcceptedDate = (DateTime)SqlDateTime.MinValue;
-
-                //if(task.TaskActivationDate.AddMinutes(EscalationDuration) > DateTime.Now && task.EscalationDuration != EscalationDuration) {
-                //    task.DelayedAccept = (DateTime)SqlDateTime.MinValue;
-                //    CreateTaskEscalationJob(ActiveIncidentTaskID, task.TaskActivationDate, EscalationDuration);
-                //}
-
-                //if(task.TaskAcceptedDate.AddMinutes(ExpectedCompletionTime) > DateTime.Now && task.ExpectedCompletionTime != ExpectedCompletionTime) {
-                //    task.DelayedAccept = (DateTime)SqlDateTime.MinValue;
-                //}
-
-                //task.UpdatedDate = DateTime.Now;
-                //task.UpdatedBy = CurrentUserID;
+                
                 await _context.SaveChangesAsync();
 
 
@@ -1019,7 +1006,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" is available for action." + Environment.NewLine + " Comment: " + TaskActionReason;
 
                 bool NotifyKeyContact = false;
-                bool.TryParse(await _companyRepository.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", CompanyID), out NotifyKeyContact);
+                bool.TryParse(await GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", CompanyID), out NotifyKeyContact);
                 await notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, CurrentUserID, CompanyID, TimeZoneId, NotifyKeyContact, 3);
 
                 return task;
@@ -1032,18 +1019,69 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         return null;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="ActiveIncidentTaskID"></param>
-    /// <param name="TaskActionReason"></param>
-    /// <param name="CurrentUserID"></param>
-    /// <param name="TaskCompletionNote"></param>
-    /// <param name="CompanyID"></param>
-    /// <param name="TimeZoneId"></param>
-    /// <returns></returns>
+    public async Task<string> GetCompanyParameter(string key, int companyId, string @default = "",
+            string customerId = "")
+    {
 
+        key = key.ToUpper();
 
+        if (companyId > 0)
+        {
+            var lkp = await _context.Set<CompanyParameter>()
+                .FirstOrDefaultAsync(x => x.Name == key && x.CompanyId == companyId);
+
+            if (lkp != null)
+            {
+                @default = lkp.Value;
+            }
+            else
+            {
+                var lpr = await _context.Set<LibCompanyParameter>()
+                    .FirstOrDefaultAsync(x => x.Name == key);
+
+                @default = lpr != null ? lpr.Value : await LookupWithKey(key, @default);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(customerId) && !string.IsNullOrEmpty(key))
+        {
+            var cmp = await _context.Set<Company>().FirstOrDefaultAsync(w => w.CustomerId == customerId);
+            if (cmp != null)
+            {
+                var lkp = await _context.Set<CompanyParameter>()
+                    .FirstOrDefaultAsync(x => x.Name == key && x.CompanyId == cmp.CompanyId);
+                if (lkp != null)
+                {
+                    @default = lkp.Value;
+                }
+            }
+            else
+            {
+                @default = "NOT_EXIST";
+            }
+        }
+
+        return @default;
+    }
+
+    public async Task<string> LookupWithKey(string Key, string Default = "")
+    {
+        try
+        {
+            var LKP = await _context.Set<SysParameter>()
+                       .Where(L => L.Name == Key
+                       ).FirstOrDefaultAsync();
+            if (LKP != null)
+            {
+                Default = LKP.Value;
+            }
+            return Default;
+        }
+        catch (Exception ex)
+        {
+            return Default;
+        }
+    }
     public async Task CompleteAllTask(int ActiveIncidentID, int CurrentUserID, int CompanyID, string TimeZoneId)
     {
         try
@@ -1196,7 +1234,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             string taskTrigger = "START_ACPT_TASK_" + ActiveIncidentTaskID;
 
             var jobDetail = new Quartz.Impl.JobDetailImpl(jobName, "TASK_SCHEDULE", typeof(TaskScheduleJob));
-            jobDetail.JobDataMap["ActiveIncidentTaskID"] = ActiveIncidentTaskID;
+            jobDetail.JobDataMap["ActiveIncidentTaskId"] = ActiveIncidentTaskID;
             jobDetail.JobDataMap["ACTION"] = "COMPLETION";
 
             //DateTimeOffset taskStartTime = DateTime.Now.AddDays(-2);

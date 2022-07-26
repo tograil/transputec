@@ -1,4 +1,6 @@
-﻿using CC.Authority.Implementation.Data;
+﻿using AutoMapper;
+using CC.Authority.Core.UserManagement;
+using CC.Authority.Implementation.Data;
 using CC.Authority.Implementation.Helpers;
 using CC.Authority.SCIM.Protocol;
 using CC.Authority.SCIM.Schemas;
@@ -33,13 +35,13 @@ namespace CC.Authority.Implementation.Scim
                 () =>
                     new Core2ResourceType[] { SampleResourceTypes.UserResourceType, SampleResourceTypes.GroupResourceType });
 
-        public ScimProvider(CrisesControlAuthContext context, ICurrentUser currentUser)
+        public ScimProvider(CrisesControlAuthContext context, ICurrentUser currentUser, IUserManager userManager, IMapper mapper)
         {
             _authContext = context;
             _currentUser = currentUser;
 
             this._groupProvider = new ScimGroupProvider(this._authContext, currentUser);
-            this._userProvider = new ScimUserProvider(this._authContext, currentUser);
+            this._userProvider = new ScimUserProvider(this._authContext, currentUser, userManager, mapper);
         }
 
         public override Task<Resource> CreateAsync(Resource resource, string correlationIdentifier)

@@ -125,22 +125,22 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        //[HttpPost]
+        //[Route("SaveActiveCheckListResponseRequest/{ActiveIncidentTaskID}/{CheckListResponse}")]
+        //public async Task<IActionResult> SaveActiveCheckListResponse([FromRoute] SaveActiveCheckListResponseRequest request, CancellationToken cancellationToken)
+        //{
+        //    var result = await _mediator.Send(request, cancellationToken);
+        //    return Ok(result);
+        //}
         [HttpPost]
-        [Route("SaveActiveCheckListResponseRequest/{ActiveIncidentTaskID}/{CheckListResponse}")]
-        public async Task<IActionResult> SaveActiveCheckListResponse([FromRoute] SaveActiveCheckListResponseRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpPost]
-        [Route("SaveActiveCheckListResponseRequest/{ActiveIncidentTaskID}/{OutUserCompanyId}/{OutLoginUserId}")]
+        [Route("UnattendedTask/{ActiveIncidentID}/{OutUserCompanyId}/{OutLoginUserId}")]
         public async Task<IActionResult> UnattendedTask([FromRoute] UnattendedTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpPost]
-        [Route("NewAdHocTask")]
+        [Route("NewAdHocTask/{ActiveIncidentID}/{TaskTitle}")]
         public async Task<IActionResult> NewAdHocTask([FromRoute] NewAdHocTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

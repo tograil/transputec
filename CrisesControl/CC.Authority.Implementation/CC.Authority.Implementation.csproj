@@ -18,11 +18,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CC.Authority.Core\CC.Authority.Core.csproj" />
     <ProjectReference Include="..\CC.Authority.SCIM\CC.Authority.SCIM.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Helpers\" />
+    <Folder Include="Config\" />
+    <Folder Include="Mapping\" />
+    <Folder Include="Services\" />
     <Folder Include="Scim\" />
   </ItemGroup>
 

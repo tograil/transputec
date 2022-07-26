@@ -1,7 +1,9 @@
 ﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Models;
 using CrisesControl.Core.Queues;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.AspNetCore.Http;
+using CrisesControl.SharedKernel.Utils;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -19,6 +21,7 @@ namespace CrisesControl.Infrastructure.Services
         {
 
         }
+
         public static EmailMessage GetEmailParams()
         {
 
@@ -67,6 +70,34 @@ namespace CrisesControl.Infrastructure.Services
             catch (System.Exception)
             {
                 return item;
+            }
+        }
+        public static string LookupWithKey(string Key, string Default = "")
+        {
+            try
+            {
+                CrisesControlContext _context=null;
+        Dictionary<string, string> Globals = CCConstants.GlobalVars;
+                if (Globals.ContainsKey(Key))
+                {
+                    return Globals[Key];
+        }
+
+
+                var LKP = _context.Set<SysParameter>()
+                           .Where(L=> L.Name == Key
+                           ).FirstOrDefault();
+                if (LKP != null)
+                {
+                    Default = LKP.Value;
+                }
+
+                return Default;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return Default;
             }
         }
 
@@ -245,6 +276,7 @@ namespace CrisesControl.Infrastructure.Services
         public static string MergeTextParams(TextMessage item, MessageQueueItem mqitem)
         {
             string message = string.Empty;
+
             item.MessageDeviceId = mqitem.MessageDeviceId;
             item.CommsDebug = mqitem.CommsDebug;
             item.Status = mqitem.Status;

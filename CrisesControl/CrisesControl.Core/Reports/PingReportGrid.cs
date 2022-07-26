@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Core.Users;
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrisesControl.Core.Reports;
 public class PingReportGrid
@@ -10,6 +11,7 @@ public class PingReportGrid
     public int UserId { get; set; }
     public string Lat { get; set; }
     public string Lng { get; set; }
+    [NotMapped]
     public UserFullName UserName { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }

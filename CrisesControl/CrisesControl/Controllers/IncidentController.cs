@@ -1,9 +1,19 @@
-﻿using CrisesControl.Api.Application.Commands.Incidents.AddCompanyIncident;
+﻿
+using CrisesControl.Api.Application.Commands.Incidents.AddCompanyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.AddNotes;
+using CrisesControl.Api.Application.Commands.Incidents.CheckUserSOS;
 using CrisesControl.Api.Application.Commands.Incidents.CloneIncident;
 using CrisesControl.Api.Application.Commands.Incidents.CopyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.GetActiveIncidentBasic;
+using CrisesControl.Api.Application.Commands.Incidents.GetAttachments;
+using CrisesControl.Api.Application.Commands.Incidents.GetCallToAction;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentSOSRequest;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTaskNotes;
+using CrisesControl.Api.Application.Commands.Incidents.GetIndidentTimeline;
 using CrisesControl.Api.Application.Commands.Incidents.InitiateAndLaunchIncident;
 using CrisesControl.Api.Application.Commands.Incidents.InitiateCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.LaunchCompanyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.UpdateSOS;
 using CrisesControl.Api.Application.Query;
 using CrisesControl.Core.Compatibility;
 using MediatR;
@@ -182,6 +192,71 @@ public class IncidentController : Controller
     public IActionResult GetCompanyIncidentById([FromRoute] int companyId, [FromRoute] int incidentId, [FromRoute] string userStatus) //TODO: Change UserStatus to enum
     {
         var result = _incidentQuery.GetCompanyIncidentById(companyId, incidentId, userStatus);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    [Route("[action]/{ObjectID}/{NoteType}/{AttachmentType}")]
+    public async Task<IActionResult> GetIncidentTaskNotes([FromRoute] GetIncidentTaskNotesRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("[action]/{IncidentActivationId}")]
+    public async Task<IActionResult> GetIncidentSOSRequest([FromRoute] GetIncidentSOSRequest request, CancellationToken cancellationToken) //TODO: Change UserStatus to enum
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("[action]/{ActiveIncidentId}")]
+    public async Task<IActionResult> CheckUserSOS([FromRoute] CheckUserSOSRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("[action]")]
+    public async Task<IActionResult> UpdateSOS([FromBody] UpdateSOSRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("[action]/{IncidentActivationId}")]
+    public async Task<IActionResult> GetActiveIncidentBasic([FromRoute] GetActiveIncidentBasicRequest request, CancellationToken cancellationToken) //TODO: Change UserStatus to enum
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+
+    }
+    [HttpGet]
+    [Route("[action]/{ActiveIncidentId}")]
+    public async Task<IActionResult> GetCallToAction([FromRoute] GetCallToActionRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    //[HttpPost]
+    //[Route("[action]")]
+    //public async Task<IActionResult> AddNotes([FromBody] AddNotesRequest request, CancellationToken cancellationToken)
+    //{
+    //    var result = await _mediator.Send(request, cancellationToken);
+    //    return Ok(result);
+    //}
+    [HttpGet]
+    [Route("[action]/{ObjectId}/{AttachmentsType}")]
+    public async Task<IActionResult> GetAttachments([FromRoute] GetAttachmentsRequest request, CancellationToken cancellationToken) //TODO: Change UserStatus to enum
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("[action]/{IncidentActivationId}")]
+    public async Task<IActionResult> GetIndidentTimeline([FromRoute] GetIndidentTimelineRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 }

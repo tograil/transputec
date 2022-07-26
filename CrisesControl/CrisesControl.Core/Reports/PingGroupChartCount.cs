@@ -26,8 +26,8 @@ namespace CrisesControl.Core.Reports
         //public int TotalCountOutMinKPI { get; set; }
         public int TotalCountOutMaxKPI { get; set; }
         public int TotalCountNoResponse { get; set; }
-       // public int KPILimit { get; set; }
-        //public int KPIMaxLimit { get; set; }
+        public int KPILimit { get; set; }
+        public int KPIMaxLimit { get; set; }
         public int TotalGoldenHour { get; set; }
         public int TotalWithinCutOff { get; set; }
     }

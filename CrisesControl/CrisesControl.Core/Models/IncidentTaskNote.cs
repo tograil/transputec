@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace CrisesControl.Core.Models
 {
@@ -11,5 +12,6 @@ namespace CrisesControl.Core.Models
         public string? NoteType { get; set; }
         public string? Notes { get; set; }
         public DateTimeOffset CreatedDate { get; set; }
+        
     }
 }

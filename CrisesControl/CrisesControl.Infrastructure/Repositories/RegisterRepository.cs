@@ -3,6 +3,7 @@ using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Exceptions.NotFound.Base;
 using CrisesControl.Core.Incidents.Repositories;
+using CrisesControl.Core.Locations;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Register.Repositories;
