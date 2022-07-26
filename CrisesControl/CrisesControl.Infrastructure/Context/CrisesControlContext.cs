@@ -151,6 +151,11 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<GetSopResponse>().HasNoKey();
             modelBuilder.Entity<Profit>().HasNoKey();
             modelBuilder.Entity<PaymentResponse>().HasNoKey();
+            modelBuilder.Entity<ContentTags>().HasNoKey();
+            modelBuilder.Entity<ContentSectionData>().HasNoKey();
+            modelBuilder.Entity<SectionGroup>().HasNoKey();
+            modelBuilder.Entity<SOPContentTag>().HasNoKey();
+            modelBuilder.Entity<Section>().HasNoKey();
 
 
 

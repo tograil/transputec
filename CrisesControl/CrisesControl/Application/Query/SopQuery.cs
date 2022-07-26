@@ -1,6 +1,15 @@
-﻿using CrisesControl.Api.Application.Commands.Sop.SaveSOPHeader;
+﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Sop.GetCompanySOP;
+using CrisesControl.Api.Application.Commands.Sop.GetSopSection;
+using CrisesControl.Api.Application.Commands.Sop.GetSopSections;
+using CrisesControl.Api.Application.Commands.Sop.GetTagList;
+using CrisesControl.Api.Application.Commands.Sop.RemoveSection;
+using CrisesControl.Api.Application.Commands.Sop.ReorderSection;
+using CrisesControl.Api.Application.Commands.Sop.SaveSOPHeader;
+using CrisesControl.Api.Application.Commands.Sop.SaveSopSection;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Sop;
 using CrisesControl.Core.Sop.Respositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
@@ -13,98 +22,205 @@ namespace CrisesControl.Api.Application.Query
         private readonly ISopRepository _sopRepository;
         private readonly ICurrentUser _currentUser;
         private readonly ILogger<SopQuery> _logger;
-        private readonly CrisesControlContext _context;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        //private readonly CrisesControlContext _context;
+        //private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IMapper _mapper;
         
-        public SopQuery(ISopRepository sopRepository, ICurrentUser currentUser, ILogger<SopQuery> logger,CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+        public SopQuery(ISopRepository sopRepository, ICurrentUser currentUser, ILogger<SopQuery> logger, IMapper _mapper)
         {
             this._currentUser = currentUser;
             this._sopRepository = sopRepository;
             this._logger = logger;
-            this._context = context;
-            this._httpContextAccessor = httpContextAccessor;
+           
         }
+
+        public async Task<GetCompanySOPResponse> GetCompanySOP(GetCompanySOPRequest request)
+        {
+            try
+            {
+                var sop = await _sopRepository.GetSOPSectionLibrary();
+                var result = _mapper.Map<List<LibSopSection>>(sop);
+                var response = new GetCompanySOPResponse();
+                if (result != null)
+                {
+                    response.data = result;
+                    response.Message = "Data loaded Successfully";
+                }
+                else
+                {
+                    response.data = result;
+                    response.Message = "No record found.";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetSopSectionResponse> GetSopSection(GetSopSectionRequest request)
+        {
+            try
+            {
+                var sop = await _sopRepository.GetSOPSections(request.SOPHeaderID, _currentUser.CompanyId, request.ContentSectionID);
+                var result = _mapper.Map<ContentSectionData>(sop); 
+                var response = new GetSopSectionResponse();
+                if (result != null)
+                {
+                    response.data = result;
+                    response.Message = "Data loaded Successfully";
+                }
+                else
+                {
+                    response.data = result;
+                    response.Message = "No record found.";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetSopSectionsResponse> GetSopSections(GetSopSectionsRequest request)
+        {
+            try
+            {
+                var sop = await _sopRepository.GetSOPSections(request.SOPHeaderID, _currentUser.CompanyId);
+                var result = _mapper.Map<ContentSectionData>(sop);
+                var response = new GetSopSectionsResponse();
+                if (result != null)
+                {
+                    response.data = result;
+                    response.Message = "Data loaded Successfully";
+                }
+                else
+                {
+                    response.data = result;
+                    response.Message = "No record found.";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTagListResponse> GetTagList(GetTagListRequest request)
+        {
+            try
+            {
+                var sop = await _sopRepository.GetContentTags();
+                var result = _mapper.Map<List<ContentTags>>(sop);
+                var response = new GetTagListResponse();
+                if (result != null)
+                {
+                    response.data = result;
+                    response.Message = "Data loaded Successfully";
+                }
+                else
+                {
+                    response.data = result;
+                    response.Message = "No record found.";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<RemoveSectionResponse> RemoveSection(RemoveSectionRequest request)
+        {
+            try
+            {
+               
+                var response = new RemoveSectionResponse();
+                if (request.ContentSectionID > 0) 
+                { 
+                await _sopRepository.DeleteSections(request.ContentSectionID);
+                response.data = true;
+                response.Message = "Deleted";
+                }
+                else
+                {
+                    response.data = false;
+                    response.Message = "No data found";
+                }
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public Task<ReorderSectionResponse> ReorderSection(ReorderSectionRequest request)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<SaveSOPHeaderResponse> SaveSOPHeader(SaveSOPHeaderRequest request)
         {
             try
             {
-                UsageCalculation _usagecalc = new UsageCalculation();
-                DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+                var sop = await _sopRepository.AU_SOPHeader(request.SOPHeaderID, request.IncidentID, request.SOPVersion, request.SOPOwner, request.ContentText, request.ReviewDate, request.ReviewFrequency, request.ContentID, request.ContentSectionID,_currentUser.UserId,_currentUser.CompanyId);
+                var result = _mapper.Map<int>(sop);
                 var response = new SaveSOPHeaderResponse();
-                int Rt_SopHeaderId = 0;
-                int ReminderCount = 0;
-                if (request.SOPHeaderID > 0)
+                if (result > 0)
                 {
-                    var sop_head = await _sopRepository.GetSopheaderById(request.SOPHeaderID); 
-                    if (sop_head != null)
-                    {
-                        sop_head.Sopowner = request.SOPOwner;
-                        sop_head.ReviewDate = request.ReviewDate;
-                        sop_head.ReviewFrequency = request.ReviewFrequency;
-                        sop_head.ReminderCount = ReminderCount;
-                        sop_head.Sopversion = request.SOPVersion;
-                        sop_head.UpdatedBy = _currentUser.UserId;
-                        sop_head.Status = 1;
-                        sop_head.UpdatedOn = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone);
-                       var updatedId= await _sopRepository.UPdateSOPHeader(sop_head);
-
-                       await _sopRepository.LinkSOPWithIncident(updatedId, request.IncidentID, _currentUser.UserId,_currentUser.TimeZone);
-                        Rt_SopHeaderId = updatedId;
-                        ReminderCount = sop_head.ReminderCount;
-                    }
+                    response.SopHeaderId = result;
+                    response.Message = "Data loaded Successfully";
                 }
                 else
                 {
-                    Sopheader sop_head = new Sopheader();
-                    sop_head.ReviewDate = request.ReviewDate;
-                    sop_head.Sopowner = request.SOPOwner;
-                    sop_head.ReviewFrequency = request.ReviewFrequency;
-                    sop_head.CompanyId = _currentUser.CompanyId;
-                    sop_head.Sopversion = request.SOPVersion;
-                    sop_head.CreatedBy = _currentUser.UserId;
-                    sop_head.CreatedOn = DateTime.Now.GetDateTimeOffset( _currentUser.TimeZone);
-                    sop_head.Status = 1;
-                    sop_head.ReminderCount = ReminderCount;
-                    sop_head.UpdatedBy = _currentUser.UserId;
-                    sop_head.UpdatedOn = DateTime.Now.GetDateTimeOffset( _currentUser.TimeZone);
-                    var NewSopheaderID = await _sopRepository.SaveSOPHeader(sop_head);
-
-                    await _sopRepository.LinkSOPWithIncident(NewSopheaderID, request.IncidentID, _currentUser.UserId, _currentUser.TimeZone);
-
-                    Rt_SopHeaderId = NewSopheaderID;
-                    //using (var dbContextTransaction = db.Database.BeginTransaction())
-                    //{
-
-                        int TextTransacTypeId =await _sopRepository.GetTransactionTypeID("ISOPUSAGE");
-
-                        decimal VATRate = 20M;
-                      var profile = await _sopRepository.GetCompanyProfile(_currentUser.CompanyId);
-                        VATRate = (decimal)profile.VATRate;
-
-                        decimal VatValue = (profile.SOPTokenValue * VATRate) / 100;
-                        decimal iSOPNetValue = profile.SOPTokenValue - VatValue;
-
-                   await  _sopRepository.UpdateTransactionDetails(0, _currentUser.CompanyId, TextTransacTypeId, iSOPNetValue, iSOPNetValue, 1, iSOPNetValue, iSOPNetValue, VatValue, profile.SOPTokenValue,
-                            Rt_SopHeaderId, DateTime.Now, _currentUser.UserId, "SOPDOC" + Rt_SopHeaderId.ToString(), _currentUser.TimeZone);
-
-                       await _usagecalc.update_company_balance(_currentUser.CompanyId, profile.SOPTokenValue);
-                  
+                    response.SopHeaderId = result;
+                    response.Message = "No record found.";
                 }
-                if (request.Status != 1)
-                {
-                    DBC.DeleteScheduledJob("SOP_REVIEW_" + Rt_SopHeaderId, "REVIEW_REMINDER");
-                }
-                else
-                {
-                   await _sopRepository.CreateSOPReviewReminder(request.IncidentID, Rt_SopHeaderId, _currentUser.CompanyId, request.ReviewDate, request.ReviewFrequency, ReminderCount);
-                }
-
-                //Creating the contents for breif description
-                //int rtContentSectionID = AU_ContentSection(ContentSectionID, Rt_SopHeaderId, "BRIEF_DESCRIPTION", 1, "INFO", 0);
-                //int rtContentID = AU_Content(ContentID, BriefDescription, "INFO", 1);
-                //AU_SOPDetail(Rt_SopHeaderId, rtContentID, rtContentSectionID);
 
                 return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<SaveSopSectionResponse> SaveSopSection(SaveSopSectionRequest request)
+        {
+            try
+            {
+                var section_id = await _sopRepository.AU_Section(request.SOPHeaderID, request.ContentID, request.ContentSectionID, request.SectionType, request.SectionName, request.SectionDescription, request.SectionStatus, request.SectionOrder, request.SOPGroups, request.SOPContentTags, _currentUser.UserId);
+                var section = await _sopRepository.GetSOPSections(request.SOPHeaderID,_currentUser.CompanyId, section_id);
+                var result = _mapper.Map<ContentSectionData>(section);
+                var response = new SaveSopSectionResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Data loaded Successfully";
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Message = "No record found.";
+                }
+
+                return response;
+
             }
             catch (Exception ex)
             {

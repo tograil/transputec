@@ -2,5 +2,7 @@
 {
     public class SaveSOPHeaderResponse
     {
+        public int SopHeaderId { get; set; }
+        public string Message { get; set; }
     }
 }
