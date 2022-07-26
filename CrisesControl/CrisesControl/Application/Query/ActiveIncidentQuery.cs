@@ -39,19 +39,22 @@ namespace CrisesControl.Api.Application.Query
         private readonly IMapper _mapper;
         private readonly ILogger<ActiveIncidentQuery> _logger;
         private readonly ICurrentUser _currentUser;
+        private readonly IUserRepository _userRepository;
         //private readonly IUserRepository _userRepository;
         //private readonly ICompanyRepository _companyRepository;
         private readonly DBCommon _dBCommon;
         private string MessageSourceAction = string.Empty;
         private readonly IPaging _paging;
         public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, /*IUserRepository userRepository,*/ IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser,/* ICompanyRepository companyRepository,*/ DBCommon dBCommon, IPaging paging)
+        private DBCommon _dBCommon;
+        public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, IUserRepository userRepository, IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser, DBCommon dBCommon, IPaging paging)
         {
             this._activeIncidentRepository = activeIncidentRepository;
             this._mapper = mapper;
             this._logger = logger;
             this._currentUser = currentUser;
-           // this._userRepository = userRepository;
-            //this._companyRepository = companyRepository;
+            this._userRepository = userRepository;
+            this._companyRepository = companyRepository;
             this._dBCommon = dBCommon;
             this._paging = paging;
         }
@@ -121,12 +124,12 @@ namespace CrisesControl.Api.Application.Query
                        var ActivetaskId= await _activeIncidentRepository.UpdateTaskActiveIncident(task);
                     }
                     //Get Action By username
-                    //var action_user =await _userRepository.GetUser(_currentUser.CompanyId,_currentUser.UserId);
+                    var action_user =await _userRepository.GetUser(_currentUser.CompanyId,_currentUser.UserId);
                     string username = "";
-                    //if (action_user != null)
-                    //{
-                    //    username = action_user.FirstName + " " + action_user.LastName;
-                    //}
+                    if (action_user != null)
+                    {
+                        username = action_user.FirstName + " " + action_user.LastName;
+                    }
 
                     string task_action = "Task accepted by " + username;
 
@@ -134,7 +137,7 @@ namespace CrisesControl.Api.Application.Query
                     await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, task_action, _currentUser.UserId, task.TaskStatus, _currentUser.TimeZone);
 
                     bool NotifyKeyContact = false;
-                    //bool.TryParse(await _companyRepository.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", _currentUser.CompanyId), out NotifyKeyContact);
+                    bool.TryParse(await _activeIncidentRepository.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", _currentUser.CompanyId), out NotifyKeyContact);
 
                     List<NotificationUserList> TaskPtcpntList = new List<NotificationUserList>();
 
@@ -235,7 +238,7 @@ namespace CrisesControl.Api.Application.Query
 
                     if (!string.IsNullOrEmpty(request.TaskCompletionNote))
                     {
-                       await _dBCommon.IncidentNote(task.ActiveIncidentTaskId, "TASK", request.TaskCompletionNote, _currentUser.CompanyId, _currentUser.UserId);
+                      await _dBCommon.IncidentNote(task.ActiveIncidentTaskId, "TASK", request.TaskCompletionNote, _currentUser.CompanyId, _currentUser.UserId);
                     }
 
                     //Get Action By username
@@ -279,7 +282,7 @@ namespace CrisesControl.Api.Application.Query
                   await  _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3, request.MessageMethod, null, request.CascadePlanID, sourceAction: SourceAction.TaskCompleted);
 
                     _dBCommon.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
-                    _dBCommon.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
+                   _dBCommon.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
 
                     //Start the escalation job for the successor tasks
                   await _activeIncidentRepository.CreatePredecessorJobs(task.ActiveIncidentId, task.IncidentTaskId, _currentUser.UserId, _currentUser.TimeZone);
@@ -372,7 +375,7 @@ namespace CrisesControl.Api.Application.Query
                    await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, task_action, _currentUser.UserId, 3, _currentUser.TimeZone);
 
                     bool NotifyKeyContact = false;
-                    bool.TryParse( _dBCommon.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", _currentUser.CompanyId), out NotifyKeyContact);
+                    bool.TryParse(await _activeIncidentRepository.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", _currentUser.CompanyId), out NotifyKeyContact);
 
                     if (ActionStatus == "REALLOCATED" && task.TaskOwnerId > 0)
                     {
@@ -729,7 +732,7 @@ namespace CrisesControl.Api.Application.Query
 
 
                         bool NotifyKeyContact = false;
-                        bool.TryParse(_dBCommon.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", _currentUser.CompanyId), out NotifyKeyContact);
+                        bool.TryParse(await _activeIncidentRepository.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", _currentUser.CompanyId), out NotifyKeyContact);
 
                         string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 50) + "\" is now owned by " + username + ".";
                         await _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);

@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Core.Companies;
 using CrisesControl.Core.Compatibility.Jobs;
 using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Locations;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
