@@ -57,4 +57,15 @@ public static class MessageTypeExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(membershipType), membershipType, null)
         };
     }
+    public static string ToGrString(this GroupType groupType)
+    {
+        return groupType switch
+        {
+            GroupType.DEPARTMENT => "DEPARTMENT",
+            GroupType.GROUP => "GROUP",
+            GroupType.LOCATION=>"LOCATION",
+
+            _ => throw new ArgumentOutOfRangeException(nameof(groupType), groupType, null)
+        };
+    }
 }

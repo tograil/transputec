@@ -86,4 +86,31 @@ public static class StringExtensions
             return "";
         }
     }
+    public static string SectoTime( int secs)
+    {
+        int hours = secs / 3600;
+        int mins = (secs % 3600) / 60;
+        secs %= 60;
+        return string.Format("{0:D2}h:{1:D2}m:{2:D2}s", hours, mins, secs);
+    }
+    public static string FormatMobile(string ISD, string Mobile)
+    {
+        if (!string.IsNullOrEmpty(Mobile))
+        {
+            Mobile = Mobile.TrimStart('0').TrimStart('+');
+            if (Mobile.Length > 4)
+            {
+                ISD = ISD.TrimStart('+').TrimStart('0');
+                return "+" + ISD + Mobile;
+            }
+            else
+            {
+                return "";
+            }
+        }
+        else
+        {
+            return "";
+        }
+    }
 }

@@ -365,4 +365,159 @@ public class QueueService : IQueueService
 
         return hosts.Split(",");
     }
+    public  async Task<bool> AppInvitationQueue(int CompanyID)
+    {
+        try
+        {
+            string RabbitMQUser = await _companyRepository.LookupWithKey("RABBITMQ_USER");
+            string RabbitMQPassword = await _companyRepository.LookupWithKey("RABBITMQ_PASSWORD");
+            ushort RabbitMQHeartBeat = Convert.ToUInt16(await _companyRepository.LookupWithKey("RABBIT_HEARTBEAT_CHECK"));
+            var rabbithost = RabbitHosts();
+            var factory = new ConnectionFactory()
+            {
+                AutomaticRecoveryEnabled = true,
+                TopologyRecoveryEnabled = true,
+                NetworkRecoveryInterval = new TimeSpan(0, 0, 15),
+                RequestedHeartbeat = TimeSpan.FromTicks(RabbitMQHeartBeat),
+                UserName = RabbitMQUser,
+                Password = RabbitMQPassword,
+                VirtualHost = rabbithost.ToString()
+            };
+
+            using (var connection = factory.CreateConnection())
+            using (var model = connection.CreateModel())
+            {
+                string exchange_name = await _companyRepository.LookupWithKey("RABBITMQ_QUEUE_EXCHANGE");
+                model.ExchangeDeclare(exchange: exchange_name, type: "direct", durable: true, autoDelete: false);
+
+                IBasicProperties properties = model.CreateBasicProperties();
+                properties.Persistent = true;
+                properties.DeliveryMode = 2;
+
+                List<MessageQueueItem> device_list = new List<MessageQueueItem>();
+                device_list = await GetAppUserQueue(CompanyID);
+
+                if (device_list.Count > 0)
+                {
+                    bool CommsDebug = true;
+                    string EmailProvider = "";
+
+                    var emailitem = new EmailMessage();
+
+                    bool.TryParse(await _companyRepository.LookupWithKey("COMMS_DEBUG_MODE"), out CommsDebug);
+                    emailitem = ParamsHelper.GetEmailParams();
+
+                    List<string> RoutingKeys = new List<string>();
+                    string routingKey = "app_invitation" + "_" + CompanyID; ;
+
+                    model.QueueDeclare(queue: routingKey, durable: true, exclusive: false, autoDelete: false);
+                    model.QueueBind(queue: routingKey, exchange: exchange_name, routingKey: routingKey);
+
+                    EmailProvider = await _companyRepository.GetCompanyParameter("EMAIL_PROVIDER", CompanyID);
+
+                    foreach (var item in device_list)
+                    {
+                        item.CommsDebug = CommsDebug;
+
+                        emailitem.EmailProvider = EmailProvider;
+                        string message = ParamsHelper.MergeEmailParams(emailitem, item);
+
+                        var body = Encoding.UTF8.GetBytes(message);
+
+                        model.BasicPublish(exchange: exchange_name, routingKey: routingKey, basicProperties: properties, body: body);
+                    }
+                }
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return false;
+        }
+    }
+
+    public async  Task<List<MessageQueueItem>> GetAppUserQueue(int CompanyID)
+    {
+       
+        try
+        {
+            
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var List = await _context.Set<MessageQueueItem>().FromSqlRaw("exec Pro_App_Invite_Queue @CompanyID",
+                pCompanyID).ToListAsync();
+                    List.Select(c => {
+                        c.SenderName = c.SenderFirstName + " " + c.SenderLastName;
+                        c.DeviceAddress = c.UserEmail;
+                        return c;
+                    }).ToList();
+                return List;
+           
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        return new List<MessageQueueItem>();
+    }
+
+    public async Task<List<MessageQueueItem>> GetDeviceQueue(int MessageID, string Method, int MessageDeviceId = 0, int Priority = 1)
+    {
+        
+        try
+        {
+            
+                var pMessageId = new SqlParameter("@MessageID", MessageID);
+                var pMethod = new SqlParameter("@Method", Method);
+                var pMessageDeviceId = new SqlParameter("@MessageDeviceID", MessageDeviceId);
+                var pPriority = new SqlParameter("@Priority", Priority);
+
+
+
+            var List = await _context.Set<MessageQueueItem>().FromSqlRaw("exec Pro_Get_Message_Device_Queue @MessageID,@Method,@MessageDeviceID,@Priority",
+                pMessageId, pMethod, pMessageDeviceId, pPriority).ToListAsync();
+                    List.Select(c => {
+                        c.SenderName = c.SenderFirstName + " " + c.SenderLastName;
+                        if (c.Method.ToUpper() == "EMAIL")
+                        {
+                            c.DeviceAddress = c.UserEmail;
+                        }
+                        return c;
+                    }).ToList();
+
+                Console.WriteLine("Queue Count for " + Method + " is " + List.Count);
+                return List;
+           
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        return new List<MessageQueueItem>();
+    }
+    public async Task<List<MessageQueueItem>> GetFailedDeviceQueue(int MessageID, string Method, int MessageDeviceId = 0)
+    {
+       
+        try
+        {
+            
+                var pMessageId = new SqlParameter("@MessageID", MessageID);
+                var pMethod = new SqlParameter("@Method", Method);
+                var pMessageDeviceId = new SqlParameter("@MessageDeviceID", MessageDeviceId);
+                
+                var List = await _context.Set<MessageQueueItem>().FromSqlRaw("exec Pro_Get_Failed_Device_Queue @MessageID,@Method,@MessageDeviceID",
+                    pMessageId, pMethod, pMessageDeviceId).ToListAsync();
+                return List;
+         
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        return new List<MessageQueueItem>();
+    }
+
+
+ 
+
 }

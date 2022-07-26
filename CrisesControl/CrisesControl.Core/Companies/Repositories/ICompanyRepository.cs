@@ -33,4 +33,5 @@ public interface ICompanyRepository
     Task<Site> GetSite(int SiteID, int CompanyID);
     Task<List<Site>> GetSites(int CompanyID);
 
+    Task<string> LookupWithKey(string Key, string Default = "");
 }
