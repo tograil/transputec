@@ -1379,5 +1379,260 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return returndt;
         }
+        public void SendFailedPaymentAlert(int CompanyID, decimal TransactionAmount, string Response)
+        {
+            try
+            {
+
+                //                string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "PaymentTransactionFailed.html";
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile("PAYMENT_TRANSACTION_FAILED", "DB", CompanyID, out Subject));
+                if (!string.IsNullOrEmpty(message))
+                {
+
+
+                    var company = (from C in _context.Set<Company>()
+                                   join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                                   where C.CompanyId == CompanyID
+                                   select new { C, CP }).FirstOrDefault();
+                    if (company != null)
+                    {
+
+
+                        var sysparms = (from SP in _context.Set<SysParameter>()
+                                        where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
+                                        || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO"
+                                        select new { SP.Name, SP.Value }).ToList();
+
+                        string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+                        string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+                        string fromadd = sysparms.Where(w => w.Name == "ALERT_EMAILFROM").Select(s => s.Value).FirstOrDefault();
+
+                        string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+                        if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                        {
+                            CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                        }
+
+                        if ((message != null) && (hostname != null) && (fromadd != null))
+                        {
+                            string messagebody = message;
+
+                            string billing_email = _DBC.LookupWithKey("BILLING_EMAIL");
+
+                            //Get company billing email list.
+                            string billing_users = _DBC.GetCompanyParameter("BILLING_USERS", company.C.CompanyId);
+
+                            List<string> emaillist = new List<string>();
+
+                            if (!string.IsNullOrEmpty(billing_users))
+                            {
+                                var user_ids = billing_users.Split(',').Select(int.Parse).ToList();
+                                if (user_ids.Count > 0)
+                                {
+                                    var get_user = (from U in _context.Set<User>()
+                                                    where user_ids.Contains(U.UserId) && U.Status != 3
+                                                    select new
+                                                    {
+                                                        U.PrimaryEmail
+                                                    }).ToList();
+                                    foreach (var bill_user in get_user)
+                                    {
+                                        emaillist.Add(bill_user.PrimaryEmail);
+                                    }
+                                }
+                            }
+
+                            decimal remaing_credit_limit = 0;
+                            if (company.CP.CreditLimit > 0)
+                            {
+                                remaing_credit_limit = company.CP.CreditLimit;
+                            }
+                            else
+                            {
+                                remaing_credit_limit = company.CP.CreditLimit + company.CP.CreditBalance;
+                            }
+
+                            messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                            messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+                            messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                            messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                            messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                            messagebody = messagebody.Replace("{CREDIT_BALANCE}", _DBC.ToCurrency(company.CP.CreditBalance));
+                            messagebody = messagebody.Replace("{MINIMUM_BALANCE}", _DBC.ToCurrency(company.CP.MinimumBalance));
+                            messagebody = messagebody.Replace("{CREDIT_LIMIT}", _DBC.ToCurrency(remaing_credit_limit));
+                            messagebody = messagebody.Replace("{TRANSACTION_AMOUNT}", _DBC.ToCurrency(TransactionAmount));
+                            messagebody = messagebody.Replace("{REASON}", Response);
+
+                            string[] toEmails = emaillist.ToArray();
+                            string[] adm_email = { billing_email };
+                            Email(adm_email, messagebody, fromadd, hostname, Subject);
+                            Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public void SendMonthlyPartialPaymentAlert(int CompanyID, decimal TotalMonthlyDebitAmount, decimal TotalAmountDebited, decimal VatAmount, string email_items)
+        {
+            try
+            {
+
+                //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "MonthlyPaymentFailed.html";
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile("MONTHLY_PAYMENT_FAILED", "DB", CompanyID, out Subject));
+
+                if (!string.IsNullOrEmpty(message))
+                {
+
+
+                    var company = (from C in _context.Set<Company>()
+                                   join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                                   where C.CompanyId == CompanyID
+                                   select new { C, CP }).FirstOrDefault();
+                    if (company != null)
+                    {
+
+
+                        var sysparms = (from SP in _context.Set<SysParameter>()
+                                        where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
+                                        || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO"
+                                        select new { SP.Name, SP.Value }).ToList();
+
+                        string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+                        string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+                        string fromadd = sysparms.Where(w => w.Name == "ALERT_EMAILFROM").Select(s => s.Value).FirstOrDefault();
+
+                        string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+                        if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                        {
+                            CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                        }
+
+                        if ((message != null) && (hostname != null) && (fromadd != null))
+                        {
+                            string messagebody = message;
+
+                            string billing_email = _DBC.LookupWithKey("BILLING_EMAIL");
+
+                            //Get company billing email list.
+                            string billing_users = _DBC.GetCompanyParameter("BILLING_USERS", company.C.CompanyId);
+
+                            List<string> emaillist = new List<string>();
+
+                            if (!string.IsNullOrEmpty(billing_users))
+                            {
+                                var user_ids = billing_users.Split(',').Select(int.Parse).ToList();
+                                if (user_ids.Count > 0)
+                                {
+                                    var get_user = (from U in _context.Set<User>()
+                                                    where user_ids.Contains(U.UserId) && U.Status != 3
+                                                    select new
+                                                    {
+                                                        U.PrimaryEmail
+                                                    }).ToList();
+                                    foreach (var bill_user in get_user)
+                                    {
+                                        emaillist.Add(bill_user.PrimaryEmail);
+                                    }
+                                }
+                            }
+                            decimal remining_balance = TotalMonthlyDebitAmount - TotalAmountDebited;
+
+                            messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                            messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+                            messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                            messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                            messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                            messagebody = messagebody.Replace("{TOTAL_PAYMENT_WITH_VAT}", _DBC.ToCurrency(TotalMonthlyDebitAmount));
+                            messagebody = messagebody.Replace("{VAT_VALUE}", _DBC.ToCurrency(VatAmount));
+                            messagebody = messagebody.Replace("{PAYMENT_COLLECTED}", _DBC.ToCurrency(TotalAmountDebited));
+                            messagebody = messagebody.Replace("{BALANCE_REMAINING}", _DBC.ToCurrency(remining_balance));
+                            messagebody = messagebody.Replace("{TRANSACTION_ITEMS}", email_items);
+
+                            string[] toEmails = emaillist.ToArray();
+                            string[] adm_email = { billing_email };
+                            Email(adm_email, messagebody, fromadd, hostname, Subject);
+                            Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public void InvoicePaymentAlert(int CompanyID, decimal TransactionAmount)
+        {
+            try
+            {
+
+                //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "InvoicePaymentAlert.html";
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile("INVOICE_PAYMENT_ALERT", "DB", CompanyID, out Subject));
+                if (!string.IsNullOrEmpty(message))
+                {
+
+
+                    var company = (from C in _context.Set<Company>()
+                                   join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                                   where C.CompanyId == CompanyID
+                                   select new { C, CP }).FirstOrDefault();
+                    if (company != null)
+                    {
+
+
+                        var sysparms = (from SP in _context.Set<SysParameter>()
+                                        where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
+                                        || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO"
+                                        select new { SP.Name, SP.Value }).ToList();
+
+                        string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+                        string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
+                        string fromadd = sysparms.Where(w => w.Name == "ALERT_EMAILFROM").Select(s => s.Value).FirstOrDefault();
+
+                        string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+                        if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                        {
+                            CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                        }
+
+                        if ((message != null) && (hostname != null) && (fromadd != null))
+                        {
+                            string messagebody = message;
+
+                            string billing_email = _DBC.LookupWithKey("BILLING_EMAIL");
+
+
+                            messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                            messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+                            messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                            messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                            messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                            messagebody = messagebody.Replace("{TRANSACTION_AMOUNT}", _DBC.ToCurrency(TransactionAmount));
+
+                            string[] adm_email = { billing_email };
+                            Email(adm_email, messagebody, fromadd, hostname, Subject);
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
     }
 }

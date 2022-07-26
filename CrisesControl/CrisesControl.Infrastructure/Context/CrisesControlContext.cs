@@ -25,6 +25,8 @@ using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Administrator;
+using CrisesControl.Core.Sop;
+using CrisesControl.Core.Payments;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -144,7 +146,11 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<EmailTemplateList>().HasNoKey();
             modelBuilder.Entity<AppLanguages>().HasNoKey();
             modelBuilder.Entity<CompanyPackageItems>().HasNoKey();
-            
+            modelBuilder.Entity<SOPList>().HasNoKey();
+            modelBuilder.Entity<SOP>().HasNoKey();
+            modelBuilder.Entity<GetSopResponse>().HasNoKey();
+            modelBuilder.Entity<Profit>().HasNoKey();
+            modelBuilder.Entity<PaymentResponse>().HasNoKey();
 
 
 
