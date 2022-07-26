@@ -312,7 +312,7 @@ namespace CC.Authority.Implementation.Data
 
             modelBuilder.Entity<Group>(entity =>
             {
-                entity.HasNoKey();
+                entity.HasKey(e => e.GroupId);
 
                 entity.ToTable("Group");
 

@@ -36,12 +36,7 @@ var monitoringBehavior = new ConsoleMonitor();
 
 builder.Services.AddSingleton(typeof(IMonitor), monitoringBehavior);
 
-builder.Services.AddSpaStaticFiles(configuration =>
-{
-    configuration.RootPath = "ClientApp/dist";
-});
-
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddDbContext<OpenIddictContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlOpenIddict"));
@@ -98,9 +93,7 @@ builder.Services.AddOpenIddict()
             .EnableTokenEndpointPassthrough()
             .DisableTransportSecurityRequirement();
 
-        options.DisableSlidingRefreshTokenExpiration();
-
-        options.SetIdentityTokenLifetime(TimeSpan.FromDays(30));
+        options.SetAccessTokenLifetime(TimeSpan.FromDays(300));
 
     }).AddValidation(options => {
         // Note: the validation handler uses OpenID Connect discovery
@@ -232,11 +225,6 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseSpaStaticFiles();
-}
-
 app.UseRouting();
 
 app.UseAuthentication();
@@ -270,18 +258,21 @@ await using (var scope = app.Services.CreateAsyncScope())
     }
 }
 
-app.UseSpa(spa =>
+if (app.Environment.IsDevelopment())
 {
-    // To learn more about options for serving an Angular SPA from ASP.NET Core,
-    // see https://go.microsoft.com/fwlink/?linkid=864501
-
-    spa.Options.SourcePath = "ClientApp";
-
-    if (app.Environment.IsDevelopment())
+    app.UseSpa(spa =>
     {
-        spa.UseAngularCliServer(npmScript: "start");
-        // spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
-    }
-});
+        // To learn more about options for serving an Angular SPA from ASP.NET Core,
+        // see https://go.microsoft.com/fwlink/?linkid=864501
+
+        spa.Options.SourcePath = "ClientApp";
+
+        if (app.Environment.IsDevelopment())
+        {
+            spa.UseAngularCliServer(npmScript: "start");
+            // spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
+        }
+    });
+}
 
 app.Run();

@@ -15,7 +15,9 @@
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "AZURE_CLIENT_ID": "fb31a95b-d241-4266-bd6a-6986181af4a5"
+        "AZURE_CLIENT_SECRET": "Z_cYtm6vtRVt3Qzth_9JbI2--T5iY78w7K",
+        "AZURE_CLIENT_ID": "d2f66328-f578-416f-baa1-94202e31f290",
+        "AZURE_TENANT_ID": "a4030eb5-d5f1-411d-9393-ee201c024e52"
       },
       "applicationUrl": "https://localhost:7198;http://localhost:5198",
       "dotnetRunMessages": true
@@ -27,6 +29,19 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "Asif": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Asif",
+        "AZURE_CLIENT_SECRET": "Z_cYtm6vtRVt3Qzth_9JbI2--T5iY78w7K",
+        "AZURE_CLIENT_ID": "d2f66328-f578-416f-baa1-94202e31f290",
+        "AZURE_TENANT_ID": "a4030eb5-d5f1-411d-9393-ee201c024e52"
+      },
+      "applicationUrl": "https://localhost:7198;http://localhost:5198",
+      "dotnetRunMessages": true
     }
   }
 }

@@ -800,7 +800,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                                 LatLng LL = _DBC.GetCoordinates(uploadData.LocationAddress);
 
-                                var locUpdate = await _context.Set<Core.Models.Location>().Where(t=>t.LocationId == uploadData.LocationId).FirstOrDefaultAsync();
+                                var locUpdate = await _context.Set<Location>().Where(t=>t.LocationId == uploadData.LocationId).FirstOrDefaultAsync();
                                 if (locUpdate != null)
                                 {
                                     locUpdate.Status = Status;

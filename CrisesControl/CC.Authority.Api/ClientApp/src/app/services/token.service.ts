@@ -11,7 +11,7 @@ export class TokenService {
 
   saveToken(token:string): void {
     sessionStorage.setItem("token", token);
-    sessionStorage.setItem("token_saved", moment().format())
+    sessionStorage.setItem("token_saved", moment().format());
   }
 
   getToken() {
@@ -25,6 +25,11 @@ export class TokenService {
      return false;
 
     return !this.isExpired();
+  }
+
+  removeToken() : void {
+    sessionStorage.removeItem("token_saved");
+    sessionStorage.removeItem("token");
   }
 
   isExpired(): boolean {

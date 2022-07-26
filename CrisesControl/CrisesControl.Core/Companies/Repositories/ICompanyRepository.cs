@@ -44,4 +44,5 @@ public interface ICompanyRepository
     Task ResetActiveIncident(int CompanyID);
     Task<int> DeactivateCompany(Company company);
     Task<int> ReactivateCompany(Company company);
+    Task<string> LookupWithKey(string Key, string Default = "");
 }
