@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Linq.Expressions;
+using System.Net;
 using System.Web.Http;
 using CC.Authority.Implementation.Data;
 using CC.Authority.Implementation.Helpers;
@@ -7,6 +8,7 @@ using CC.Authority.SCIM;
 using CC.Authority.SCIM.Protocol;
 using CC.Authority.SCIM.Schemas;
 using CC.Authority.SCIM.Service;
+using Microsoft.SCIM.WebHostSample.Provider;
 using Microsoft.Win32.SafeHandles;
 
 namespace CC.Authority.Implementation.Scim
@@ -65,6 +67,87 @@ namespace CC.Authority.Implementation.Scim
             resource.Identifier = newGroup.GroupId.ToString();
            
             return resource;
+        }
+
+        public override Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
+        {
+            if (parameters == null)
+            {
+                throw new ArgumentNullException(nameof(parameters));
+            }
+
+            if (string.IsNullOrWhiteSpace(correlationIdentifier))
+            {
+                throw new ArgumentNullException(nameof(correlationIdentifier));
+            }
+
+            if (null == parameters.AlternateFilters)
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+            }
+
+            if (string.IsNullOrWhiteSpace(parameters.SchemaIdentifier))
+            {
+                throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+            }
+
+            var results = _authContext.Groups.Select(group => new Core2Group
+            {
+                DisplayName = group.GroupName,
+                Identifier = group.GroupId.ToString(),
+                Metadata = new Core2Metadata
+                {
+                    ResourceType = "Group",
+                    Created = group.CreatedOn.DateTime,
+                    LastModified = group.UpdatedOn.DateTime
+                }
+            }).ToArray();
+
+            IFilter queryFilter = parameters.AlternateFilters.SingleOrDefault();
+
+            var predicate = PredicateBuilder.False<Core2Group>();
+            Expression<Func<Core2Group, bool>> predicateAnd;
+            predicateAnd = PredicateBuilder.True<Core2Group>();
+
+            if (queryFilter == null)
+            {
+                results = results.ToArray();
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(queryFilter.AttributePath))
+                {
+                    throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+                }
+
+                if (string.IsNullOrWhiteSpace(queryFilter.ComparisonValue))
+                {
+                    throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
+                }
+
+                if (queryFilter.FilterOperator != ComparisonOperator.Equals)
+                {
+                    throw new NotSupportedException(string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterOperatorNotSupportedTemplate, queryFilter.FilterOperator));
+                }
+
+
+                if (queryFilter.AttributePath.Equals(AttributeNames.DisplayName))
+                {
+
+                    string displayName = queryFilter.ComparisonValue;
+                    predicateAnd = predicateAnd.And(p => string.Equals(p.DisplayName, displayName, StringComparison.OrdinalIgnoreCase));
+
+                }
+                else
+                {
+                    throw new NotSupportedException(string.Format(SystemForCrossDomainIdentityManagementServiceResources.ExceptionFilterAttributePathNotSupportedTemplate, queryFilter.AttributePath));
+                }
+            }
+
+            predicate = predicate.Or(predicateAnd);
+            results = results.Where(predicate.Compile()).ToArray();
+
+            return Task.FromResult(results.Select(group => group as Resource).ToArray());
         }
 
         public override Task DeleteAsync(IResourceIdentifier resourceIdentifier, string correlationIdentifier)
