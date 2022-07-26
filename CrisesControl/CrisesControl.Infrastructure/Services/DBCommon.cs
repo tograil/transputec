@@ -703,104 +703,12 @@ namespace CrisesControl.Api.Application.Helpers
             }
             catch (Exception ex)
             {
-                return false;
-            }
-            return true;
-        }
-        public string PureAscii(string str, bool KeepAccent = false)
-        {
-            if (!KeepAccent)
-            {
-                return Regex.Replace(str, @"[^\u001F-\u007F]", string.Empty);
-            }
-            else
-            {
-                return Regex.Replace(str, @"[^[a-zA-Z\u00C0-\u017F]+,\s[a-zA-Z\u00C0-\u017F\p{L}]+$", string.Empty);
-            }
-        }
-
-        public string RandomPassword(int length = 8, int complexity = 4)
-        {
-            RNGCryptoServiceProvider csp = new RNGCryptoServiceProvider();
-            // Define the possible character classes where complexity defines the number
-            // of classes to include in the final output.
-            char[][] classes =
-                                {
-                                @"abcdefghijklmnopqrstuvwxyz".ToCharArray(),
-                                @"ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray(),
-                                @"0123456789".ToCharArray(),
-                                @"!#$%&*@^".ToCharArray(),
-                                };
-
-            complexity = Math.Max(1, Math.Min(classes.Length, complexity));
-            if (length < complexity)
-                throw new ArgumentOutOfRangeException("length");
-
-            char[] allchars = classes.Take(complexity).SelectMany(c => c).ToArray();
-            byte[] bytes = new byte[allchars.Length];
-            csp.GetBytes(bytes);
-            for (int i = 0; i < allchars.Length; i++)
-            {
-                char tmp = allchars[i];
-                allchars[i] = allchars[bytes[i] % allchars.Length];
-                allchars[bytes[i] % allchars.Length] = tmp;
-            }
-
-            // Create the random values to select the characters
-            Array.Resize(ref bytes, length);
-            char[] result = new char[length];
-
-            while (true)
-            {
-                csp.GetBytes(bytes);
-                // Obtain the character of the class for each random byte
-                for (int i = 0; i < length; i++)
-                    result[i] = allchars[bytes[i] % allchars.Length];
-
-                // Verify that it does not start or end with whitespace
-                if (Char.IsWhiteSpace(result[0]) || Char.IsWhiteSpace(result[(length - 1) % length]))
-                    continue;
-
-                string testResult = new string(result);
-                // Verify that all character classes are represented
-                if (0 != classes.Take(complexity).Count(c => testResult.IndexOfAny(c) < 0))
-                    continue;
-
-                return testResult;
-            }
-        }
-        public void RemoveUserObjectRelation(string RelationName, int UserId, int SourceObjectId, int CompanyId, int CurrentUserId, string TimeZoneId)
-        {
-            try
-            {
-                if (RelationName.ToUpper() == "GROUP" || RelationName.ToUpper() == "LOCATION")
-                {
-                    var ObjMapId = (from OM in _context.Set<ObjectMapping>()
-                                    join OBJ in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals OBJ.ObjectId
-                                    where OBJ.ObjectTableName == RelationName
-                                    select OM).Select(a => a.ObjectMappingId).FirstOrDefault();
-
-                    var getRelationRec = (from OR in _context.Set<ObjectRelation>()
-                                          where OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == UserId &&
-                                          OR.SourceObjectPrimaryId == SourceObjectId
-                                          select OR).FirstOrDefault();
-                    if (getRelationRec != null)
-                    {
-                        _context.Set<ObjectRelation>().Remove(getRelationRec);
-                        _context.SaveChanges();
-                    }
-                }
-                else if (RelationName.ToUpper() == "DEPARTMENT")
-                {
-                    UpdateUserDepartment(UserId, 0, CurrentUserId, CompanyId, TimeZoneId);
-                }
-            }
-            catch (Exception ex)
-            {
                 throw ex;
-
             }
+          
         }
+       
+       
         public void RemoveUserDevice(int UserID, bool TokenReset = false)
         {
             try

@@ -23,7 +23,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
+using CrisesControl.Core.Reports;
 using Location = CrisesControl.Core.Locations.Location;
 using Object = CrisesControl.Core.Models.Object;
 

@@ -13,6 +13,7 @@ using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Reports;
 
 namespace CrisesControl.Api.Application.Query;
 

@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Reports;
 using CrisesControl.Core.Tasks;
 using CrisesControl.Core.Users;
 using System;

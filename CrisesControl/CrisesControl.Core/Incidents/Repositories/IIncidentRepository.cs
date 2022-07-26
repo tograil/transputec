@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Reports;
 
 namespace CrisesControl.Core.Incidents.Repositories;
 
