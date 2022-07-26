@@ -26,6 +26,7 @@ using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.System;
+using CrisesControl.Core.Academy;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -169,6 +170,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<IncidentSOSRequest>().HasNoKey();
             modelBuilder.Entity<IncidentTask>().HasNoKey();
             modelBuilder.Entity<TrackingExport>().HasNoKey();
+            modelBuilder.Entity<AcademyVideos>().HasNoKey();
             
             modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
 
