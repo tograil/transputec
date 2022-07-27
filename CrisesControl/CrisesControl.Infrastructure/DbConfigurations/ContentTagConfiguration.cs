@@ -15,5 +15,7 @@ public class ContentTagConfiguration : IEntityTypeConfiguration<ContentTag>
         builder.Property(e => e.ContentId).HasColumnName("ContentID");
 
         builder.Property(e => e.TagId).HasColumnName("TagID");
+        builder.HasOne(x => x.Tag)
+           .WithMany().HasForeignKey(x => x.TagId);
     }
 }

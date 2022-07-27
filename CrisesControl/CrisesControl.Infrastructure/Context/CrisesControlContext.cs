@@ -156,7 +156,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<SectionGroup>().HasNoKey();
             modelBuilder.Entity<SOPContentTag>().HasNoKey();
             modelBuilder.Entity<Section>().HasNoKey();
-
+            modelBuilder.Entity<LibraryText>().HasNoKey();
 
 
 

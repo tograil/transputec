@@ -831,6 +831,91 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
+        public async Task<List<LibraryText>> GetLibraryText(string IncidentName, string IncidentType, string Sector, string SectionTitle)
+        {
+            try
+            {
+                var pSectionTitle = new SqlParameter("@SectionTitle", SectionTitle);
+                var pIncidentName = new SqlParameter("@IncidentName", IncidentName);
+                var pIncidentType = new SqlParameter("@IncidentType", IncidentType);
+                var sections = await _context.Set<LibraryText>().FromSqlRaw("exec Pro_Get_Library_Text @SectionTitle,@IncidentType, @IncidentName", pSectionTitle, pIncidentType, pIncidentName).ToListAsync();
+                             sections.Select(SH=> new
+                                {
+                                    Author = new UserFullName { Firstname = SH.Author.Firstname, Lastname = SH.Author.Lastname },
+                                    SH.CompanyName,
+                                    SH.LibSOPHeaderID,
+                                    SH.LibSectionID,
+                                    SH.LibContentID,
+                                    SH.SectionDescription,
+                                    SH.SectionName,
+                                    SH.UpdatedOn,
+                                    SH.TotalVotes,
+                                    SH.NoOfUse,
+                                    SH.TotalRating,
+                                    SOPContentTags =  _context.Set<ContentTag>().Include(x=>x.Tag)
+                                                      .Where(CT=> CT.ContentId == SH.LibContentID)
+                                                      .Select(CT=> new { CT.TagId }).ToList()
+                                }).ToList();
+                return sections;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<bool> DeleteSOP(int LibSOPHeaderID, int CurrentUserID, int CompanyID, string TimeZoneId="GMT Standard Time")
+        {
+
+            try
+            {
+                var section = await _context.Set<Sopheader>().Include(i=>i.IncidentSOP)
+                               .Where(SH=> SH.SopheaderId == LibSOPHeaderID && SH.CompanyId == CompanyID).FirstOrDefaultAsync();
+                if (section != null)
+                {
+
+                    section.Status = 3;
+                    section.UpdatedBy = CurrentUserID;
+                    section.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+
+                    var incident = await _context.Set<Incident>().Where(I=> I.IncidentId == section.IncidentSOP.IncidentId).FirstOrDefaultAsync();
+                    if (incident != null)
+                    {
+                        incident.IsSopdoc = false;
+                        incident.SopdocId = 0;
+                    }
+                    _context.Update(incident);
+                   await _context.SaveChangesAsync();
+                }
+                return true;
+            }
+            catch (Exception)
+            {
+              
+                return false;
+            }
+        }
+        public async Task<bool> UpdateSOPAsset(int SOPHeaderID, int AssetID, int CurrentUserID, int CompanyID, string TimeZoneId="GMT Standard Time")
+        {
+
+            try
+            {
+                var section = await _context.Set<Sopheader>().Include(i => i.IncidentSOP)
+                               .Where(SH => SH.SopheaderId == SOPHeaderID && SH.CompanyId == CompanyID).FirstOrDefaultAsync();
+                if (section != null)
+                {
+                    section.IncidentSOP.AssetId = AssetID;
+                    section.IncidentSOP.UpdatedBy = CurrentUserID;
+                    section.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    _context.Update(section);
+                    await _context.SaveChangesAsync();
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
 
     }
 }

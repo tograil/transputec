@@ -37,5 +37,8 @@ namespace CrisesControl.Core.Sop.Respositories
         Task AU_ContentTag(int ContentID, List<int> Tags, int CurrentUserID, string TimeZoneId = "GMT Standard Time");
         Task<int> ReorderSection(List<Section> SectionOrder);
         Task<bool> AttachSOPToIncident(int SOPHeaderID, string SOPFileName, int CurrentUserID, int CompanyID, string TimeZoneId = "GMT Standard Time");
+        Task<List<LibraryText>> GetLibraryText(string IncidentName, string IncidentType, string Sector, string SectionTitle);
+        Task<bool> UpdateSOPAsset(int SOPHeaderID, int AssetID, int CurrentUserID, int CompanyID, string TimeZoneId = "GMT Standard Time");
+        Task<bool> DeleteSOP(int LibSOPHeaderID, int CurrentUserID, int CompanyID, string TimeZoneId = "GMT Standard Time");
     }
 }

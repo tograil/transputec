@@ -1,21 +1,22 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Sop.AttachSOPToIncident;
+using CrisesControl.Api.Application.Commands.Sop.DeleteSOP;
 using CrisesControl.Api.Application.Commands.Sop.GetCompanySOP;
 using CrisesControl.Api.Application.Commands.Sop.GetSopSection;
 using CrisesControl.Api.Application.Commands.Sop.GetSOPSectionLibrary;
 using CrisesControl.Api.Application.Commands.Sop.GetSopSections;
 using CrisesControl.Api.Application.Commands.Sop.GetTagList;
+using CrisesControl.Api.Application.Commands.Sop.LibraryTextModel;
 using CrisesControl.Api.Application.Commands.Sop.RemoveSection;
 using CrisesControl.Api.Application.Commands.Sop.ReorderSection;
 using CrisesControl.Api.Application.Commands.Sop.SaveSOPHeader;
 using CrisesControl.Api.Application.Commands.Sop.SaveSopSection;
+using CrisesControl.Api.Application.Commands.Sop.UpdateSOPAsset;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Sop;
 using CrisesControl.Core.Sop.Respositories;
-using CrisesControl.Infrastructure.Context;
-using CrisesControl.Infrastructure.Services;
-using CrisesControl.SharedKernel.Utils;
+
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -52,6 +53,33 @@ namespace CrisesControl.Api.Application.Query
                 {
                     response.result = false;
                  
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<DeleteSOPResponse> DeleteSOP(DeleteSOPRequest request)
+        {
+            try
+            {
+                var sop = await _sopRepository.DeleteSOP(request.SOPHeaderID, _currentUser.UserId,_currentUser.CompanyId,_currentUser.TimeZone);
+                var result = _mapper.Map<bool>(sop);
+                var response = new DeleteSOPResponse();
+                if (result)
+                {
+                    response.result = result;
+                    response.Message = "Deleted ";
+                }
+                else
+                {
+                    response.result = result;
+                    response.Message = "No record found.";
                 }
 
                 return response;
@@ -198,6 +226,33 @@ namespace CrisesControl.Api.Application.Query
             }
         }
 
+        public async Task<LibraryTextModelResponse> LibraryTextModel(LibraryTextModelRequest request)
+        {
+            try
+            {
+                var libraryTexts = await _sopRepository.GetLibraryText(request.IncidentName, request.IncidentType, request.Sector, request.SectionTitle);
+                var result = _mapper.Map<List<LibraryText>>(libraryTexts);
+                var response = new LibraryTextModelResponse();
+                if (result != null)
+                {
+
+                    response.data = result;
+                }
+                else
+                {
+
+                    response.data = result;
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public async Task<RemoveSectionResponse> RemoveSection(RemoveSectionRequest request)
         {
             try
@@ -297,6 +352,33 @@ namespace CrisesControl.Api.Application.Query
                     response.Message = "No record found.";
                 }
 
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<UpdateSOPAssetResponse> UpdateSOPAsset(UpdateSOPAssetRequest request)
+        {
+            try
+            {
+                var sopAssest= await _sopRepository.UpdateSOPAsset(request.SOPHeaderID, request.AssetID, _currentUser.UserId,_currentUser.CompanyId, _currentUser.TimeZone);
+                var result = _mapper.Map<bool>(sopAssest);
+                var response = new UpdateSOPAssetResponse();
+                if (result)
+                {
+                    
+                    response.result = true;
+                    response.Message = "Updated";
+                }
+                else
+                {
+                    response.result = false;
+                    response.Message = "No data found";
+                }
                 return response;
 
             }
