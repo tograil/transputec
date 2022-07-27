@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Reports;
 
 namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.UnattendedTask
 {

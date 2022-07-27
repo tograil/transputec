@@ -26,6 +26,8 @@ using CrisesControl.Core.Queues.Services;
 using CrisesControl.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using System.Text;
+using IncidentMessagesRtn = CrisesControl.Core.Reports.IncidentMessagesRtn;
+using FailedTaskList = CrisesControl.Core.Reports.FailedTaskList;
 
 namespace CrisesControl.Infrastructure.Repositories
 {

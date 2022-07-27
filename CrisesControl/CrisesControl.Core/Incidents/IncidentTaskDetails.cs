@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Users;
+﻿using CrisesControl.Core.Reports;
+using CrisesControl.Core.Users;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;

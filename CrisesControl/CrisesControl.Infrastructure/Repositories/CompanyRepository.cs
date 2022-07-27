@@ -1057,7 +1057,18 @@ public class CompanyRepository : ICompanyRepository
         }
     }
 
+    public async Task<List<Site>> GetSites(int CompanyID)
+    {
+        try
+        {
 
+            var sites = await _context.Set<Site>().Where(S =>  S.CompanyId == CompanyID).ToListAsync();
+            return sites;
 
-
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
 }

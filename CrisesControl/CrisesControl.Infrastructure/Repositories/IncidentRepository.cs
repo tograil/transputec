@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using CrisesControl.Core.Reports;
 using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
 
 namespace CrisesControl.Infrastructure.Repositories;

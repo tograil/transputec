@@ -26,6 +26,7 @@ using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Reports;
 using CrisesControl.Core.Tasks;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
@@ -45,8 +46,7 @@ namespace CrisesControl.Api.Application.Query
         private readonly DBCommon _dBCommon;
         private string MessageSourceAction = string.Empty;
         private readonly IPaging _paging;
-        public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, /*IUserRepository userRepository,*/ IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser,/* ICompanyRepository companyRepository,*/ DBCommon dBCommon, IPaging paging)
-        private DBCommon _dBCommon;
+       
         public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, IUserRepository userRepository, IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser, DBCommon dBCommon, IPaging paging)
         {
             this._activeIncidentRepository = activeIncidentRepository;
@@ -54,7 +54,7 @@ namespace CrisesControl.Api.Application.Query
             this._logger = logger;
             this._currentUser = currentUser;
             this._userRepository = userRepository;
-            this._companyRepository = companyRepository;
+         
             this._dBCommon = dBCommon;
             this._paging = paging;
         }
