@@ -13,5 +13,6 @@ namespace CrisesControl.Core.Models
         public int UpdatedBy { get; set; }
         public DateTimeOffset UpdatedOn { get; set; }
         public bool ServiceStatus { get; set; }
+        public CommsMethod CommsMethod { get; set; }
     }
 }

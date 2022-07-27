@@ -33,5 +33,16 @@ public interface ICompanyRepository
     Task<Site> GetSite(int SiteID, int CompanyID);
     Task<List<Site>> GetSites(int CompanyID);
 
+    Task<string> CheckFunds(int CompanyID, string UserRole);
+    Task<ReplyChannel> GetReplyChannel(int CompanyID, int UserID);
+    Task<CompanyCommunication> GetCompanyComms(int CompanyID, int UserID);
+    Task<CompanyAccount> GetCompanyAccount(int CompanyID);
+    Task<ReplyChannel> UpdateCompanyComms(int CompanyID, int[] MethodId, int[] BillingUsers, int CurrentAdmin, int CurrentUserID, string TimeZoneId, string Source = "PORTAL");
+    Task<bool> CompanyDataReset(string[] ResetOptions, int CompanyID, string TimeZoneId);
+    Task ResetGlobalConfig(int CompanyID, string TimeZoneId);
+    Task ResetPings(int CompanyID);
+    Task ResetActiveIncident(int CompanyID);
+    Task<int> DeactivateCompany(Company company);
+    Task<int> ReactivateCompany(Company company);
     Task<string> LookupWithKey(string Key, string Default = "");
 }
