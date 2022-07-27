@@ -15,6 +15,12 @@ using CrisesControl.Api.Application.Commands.Companies.SaveSite;
 using CrisesControl.Api.Application.Commands.GetStarted;
 using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
 using CrisesControl.Api.Application.Commands.Companies.SaveSocialIntegration;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyComms;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyAccount;
+using CrisesControl.Api.Application.Commands.Companies.UpdateCompanyComms;
+using CrisesControl.Api.Application.Commands.Companies.CompanyDataReset;
+using CrisesControl.Api.Application.Commands.Companies.DeactivateCompany;
+using CrisesControl.Api.Application.Commands.Companies.ReactivateCompany;
 
 namespace CrisesControl.Api.Controllers;
 
@@ -141,6 +147,54 @@ public class CompanyController : Controller
     [HttpPost]
     [Route("SaveSocialIntegration")]
     public async Task<IActionResult> SaveSocialIntegrationRequest([FromBody] SaveSocialIntegrationRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("GetCompanyComms")]
+    public async Task<IActionResult> GetCompanyComms([FromRoute] GetCompanyCommsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("GetCompanyAccount")]
+    public async Task<IActionResult> GetCompanyAccount([FromRoute] GetCompanyAccountRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpPut]
+    [Route("UpdateCompanyComms")]
+    public async Task<IActionResult> UpdateCompanyComms([FromBody] UpdateCompanyCommsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpGet]
+    [Route("CompanyDataReset/{ResetOptions}")]
+    public async Task<IActionResult> CompanyDataReset([FromRoute] CompanyDataResetRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpPut]
+    [Route("DeactivateCompany/{TargetCompanyID}")]
+    public async Task<IActionResult> DeactivateCompany([FromRoute] DeactivateCompanyRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+
+        return Ok(result);
+    }
+    [HttpPut]
+    [Route("ReactivateCompany/{ActivateReactivateCompanyId}")]
+    public async Task<IActionResult> ReactivateCompany([FromRoute] ReactivateCompanyRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
 

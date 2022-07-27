@@ -8,10 +8,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Register.Repositories;
 using CrisesControl.Core.Users;
+using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Utils;
@@ -28,6 +31,8 @@ public class CompanyRepository : ICompanyRepository
     private readonly IGlobalParametersRepository _globalParametersRepository;
     private readonly ILogger<CompanyRepository> _logger;
     private readonly ISenderEmailService _senderEmailService;
+    //private readonly ICompanyParametersRepository _companyParametersRepository;
+   // private readonly IUserRepository _userRepository;
 
     public CompanyRepository(CrisesControlContext context, ISenderEmailService senderEmailService, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
     {
@@ -35,6 +40,8 @@ public class CompanyRepository : ICompanyRepository
         _globalParametersRepository = globalParametersRepository;
         _logger = logger;
         _senderEmailService = senderEmailService;
+       // _companyParametersRepository = companyParametersRepository;
+        //_userRepository = userRepository;
      }
 
     public async Task<IEnumerable<Company>> GetAllCompanies()
@@ -496,10 +503,561 @@ public class CompanyRepository : ICompanyRepository
             return false;
         }
     }
-
-    public async Task<List<Site>> GetSites(int CompanyID)
+    public async Task<CompanyCommunication> GetCompanyComms(int CompanyID, int UserID)
     {
-        var sites = await _context.Set<Site>().Where(S => S.CompanyId == CompanyID).ToListAsync();
-        return sites;
+
+        try
+        {
+            var t_bill_users = await GetCompanyParameter("BILLING_USERS", CompanyID);
+            var billUsers = new object();
+            
+            if (!string.IsNullOrEmpty(t_bill_users))
+            {
+                List<int> uids = t_bill_users.Split(',').Select(int.Parse).ToList();
+                 billUsers = await _context.Set<User>()
+                              .Where(U=> uids.Contains(U.UserId) && U.Status == 1)
+                              .Select(U=> new { U.UserId, UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName } }).ToListAsync();
+            }
+
+            var URole =await _context.Set<User>().Where(w => w.UserId == UserID).Select(s => s.UserRole).FirstOrDefaultAsync();
+            string HasLowBalance = await CheckFunds(CompanyID, URole);
+            var ObjectInfo = await _context.Set<CompanyComm>().Include(CC => CC.CommsMethod)
+                            .Where(CC => CC.CompanyId == CompanyID)
+                            .Select(CC => new
+                                   {
+                                        CC.MethodId,
+                                        CC.ServiceStatus,
+                                        CC.Status,
+                                        CC.CommsMethod.MethodName
+                                    }).FirstOrDefaultAsync();
+            var Priority = await _context.Set<PriorityInterval>().Where(PR=> PR.CompanyId == CompanyID).OrderBy(o => o.MessageType).ThenBy(t => t.Priority).ToListAsync();
+
+            var PriorityMethod =await _context.Set<PriorityMethod>().Where(PM=> PM.CompanyId == CompanyID).OrderBy(PM=> PM.PriorityLevel).ToListAsync();
+            CompanyCommunication comms = new CompanyCommunication();
+
+            comms.BillUsers = billUsers;
+            comms.HasLowBalance = HasLowBalance;
+            comms.MethodId = ObjectInfo.MethodId;
+            comms.MethodName = ObjectInfo.MethodName;
+            comms.ServiceStatus = ObjectInfo.ServiceStatus;
+            comms.Status = ObjectInfo.Status;
+            comms.Priority = Priority;
+            comms.PriorityMethod = PriorityMethod;
+            
+
+            return comms;
+           
+           
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
     }
+
+    public async Task<ReplyChannel> GetReplyChannel(int CompanyID, int UserID)
+    {
+        try
+        {
+            var t_reply_channel = await GetCompanyParameter("DEFAULT_REPLY_CHANNEL", CompanyID);
+            //var ObjectInfo = new object();
+
+            ReplyChannel channel = new ReplyChannel();
+
+            if (!string.IsNullOrEmpty(t_reply_channel))
+            {
+                List<int> methodid = t_reply_channel.Split(',').Select(int.Parse).ToList();
+             
+             var ObjectInfo = await _context.Set<CompanyComm>().Include(CC => CC.CommsMethod)
+                            .Where(CC=>CC.CompanyId == CompanyID && methodid.Contains(CC.MethodId)).Select(CC => new
+                            {
+                                CC.MethodId,
+                                CC.ServiceStatus,
+                                CC.Status,
+                                CC.CommsMethod.MethodName
+                            }).FirstOrDefaultAsync();
+
+                channel.Status = ObjectInfo.Status;
+                channel.MethodId = ObjectInfo.MethodId;
+                channel.MethodName = ObjectInfo.MethodName;
+                channel.ServiceStatus = ObjectInfo.ServiceStatus;
+
+
+
+            }
+
+            var URole = await _context.Set<User>().Where(w => w.UserId == UserID).Select(s => s.UserRole).FirstOrDefaultAsync();
+            string HasLowBalance = await CheckFunds(CompanyID, URole);
+            channel.HasLowBalance = HasLowBalance;
+
+
+
+
+            return channel;
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<string> CheckFunds(int CompanyID, string UserRole)
+    {
+        string ErrorCode = "";
+        try
+        {
+            string WarningRole = await GetCompanyParameter("SHOW_LOW_BALANCE_WARNING_TO", CompanyID);
+
+            if (UserRole == "USER" && WarningRole == "KEYHOLDER")
+            {
+                return ErrorCode;
+            }
+
+            var cpp = await _context.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == CompanyID).FirstOrDefaultAsync();
+            if (cpp != null)
+            {
+                if (cpp.CreditBalance < -cpp.CreditLimit)
+                {
+                    ErrorCode = "E1001";
+                }
+                else if ((cpp.CreditBalance < 0 && cpp.CreditBalance >= (-cpp.CreditLimit)) ||
+                  (cpp.CreditBalance < cpp.MinimumBalance))
+                {
+                    ErrorCode = "E1002";
+                }
+            }
+            return ErrorCode;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        
+    }
+    public async Task<CompanyAccount> GetCompanyAccount(int CompanyID)
+    {
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var companyDetails = await _context.Set<CompanyAccount>().FromSqlRaw("exec Pro_Company_GetCompanyAccount @CompanyID", pCompanyID).FirstOrDefaultAsync();
+
+            if (companyDetails != null)
+            {
+                var pCompanyID2 = new SqlParameter("@CompanyID", CompanyID);
+                companyDetails.ContractOffer = await _context.Set<PreContractOffer>().FromSqlRaw("exec Pro_Company_GetCompanyAccount_ContractOffer @CompanyID", pCompanyID2).FirstOrDefaultAsync();
+
+                var pCompanyID3 = new SqlParameter("@CompanyID", CompanyID);
+                companyDetails.TransactionTypes = await _context.Set<CompanyTransactionType>().FromSqlRaw("exec Pro_Company_GetCompanyAccount_TransactionTypes @CompanyID", pCompanyID3).ToListAsync();
+
+                var pCompanyID4 = new SqlParameter("@CompanyID", CompanyID);
+                companyDetails.ActivationKey = await _context.Set<CompanyActivation>().FromSqlRaw("exec Pro_Company_GetCompanyAccount_Activation @CompanyID", pCompanyID4).FirstOrDefaultAsync();
+
+                var pCompanyID5 = new SqlParameter("@CompanyID", CompanyID);
+                companyDetails.PaymentProfile = await _context.Set<CompanyPaymentProfile>().FromSqlRaw(" exec Pro_Company_GetCompanyAccount_PaymentProfile @CompanyID", pCompanyID5).FirstOrDefaultAsync();
+
+                var pCompanyID6 = new SqlParameter("@CompanyID", CompanyID);
+                companyDetails.PackageItems = await _context.Set<CompanyPackageItem>().FromSqlRaw(" exec Pro_Company_GetCompanyAccount_PackageItems @CompanyID", pCompanyID6).ToListAsync();
+            }
+            
+                return companyDetails;
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+
+    }
+    public async Task<ReplyChannel> UpdateCompanyComms(int CompanyID, int[] MethodId, int[] BillingUsers, int CurrentAdmin, int CurrentUserID, string TimeZoneId, string Source = "PORTAL")
+    {
+        try
+        {
+            if (MethodId.Count() > 0)
+            {
+
+                var company = (from CP in _context.Set<CompanyPaymentProfile>()
+                               where CP.CompanyId == CompanyID
+                               select CP).FirstOrDefault();
+
+
+                var DelCommList = (from CC in _context.Set<CompanyComm>()
+                                   where CC.CompanyId == CompanyID
+                                   select CC).ToList();
+
+                List<int> CILIst = new List<int>();
+                foreach (int NewMethodId in MethodId)
+                {
+                    var ISExist = DelCommList.FirstOrDefault(s => s.MethodId == NewMethodId && s.CompanyId == CompanyID);
+                    if (ISExist == null)
+                    {
+                        CompanyComm CompanyComms = new CompanyComm()
+                        {
+                            MethodId = NewMethodId,
+                            CompanyId = CompanyID,
+                            Status = 1,
+                            ServiceStatus = true,
+                            CreatedBy = CurrentUserID,
+                            UpdatedBy = CurrentUserID,
+                            UpdatedOn = DateTimeOffset.Now,
+                            CreatedOn = DateTimeOffset.Now
+                        };
+                        _context.Add(CompanyComms);
+                    }
+                    else
+                    {
+                        CILIst.Add(ISExist.CompanyCommsId);
+                    }
+                }
+
+                foreach (var Ditem in DelCommList)
+                {
+                    bool ISDEL = CILIst.Any(s => s == Ditem.CompanyCommsId);
+                    if (!ISDEL)
+                    {
+                        Ditem.Status = 3;
+                    }
+                    else
+                    {
+                        Ditem.Status = 1;
+                    }
+                }
+                _context.SaveChanges();
+
+                //Delete from the UserComms table - all that are not in the company comms 
+                var MethodRemoved = (from CM in _context.Set<CommsMethod>() select CM.CommsMethodId).Except(MethodId).ToList();
+                foreach (int RmId in MethodRemoved)
+                {
+                   UpdateUserComms(CompanyID, RmId, 0);
+                    if (Source == "ADMIN")
+                    {
+                        var rmc = _context.Set<CompanyComm>().Where(w => w.MethodId == RmId && w.CompanyId == CompanyID).FirstOrDefault();
+                        if (rmc != null)
+                        {
+                            _context.Remove(rmc);
+                        }
+                    }
+                }
+                _context.SaveChanges();
+
+                //Add back the method ids to the user for enabled one.
+                foreach (int ActiveMethod in MethodId)
+                {
+                  UpdateUserComms(CompanyID, ActiveMethod, 1);
+                }
+            }
+
+            if (BillingUsers.Count() > 0)
+            {
+                var CompanyParameter = (from CP in _context.Set<CompanyParameter>()
+                                        where CP.CompanyId == CompanyID && CP.Name == "BILLING_USERS"
+                                        select CP).FirstOrDefault();
+                string joined_list = string.Join(",", BillingUsers);
+
+                if (CompanyParameter != null)
+                {
+                    CompanyParameter.Value = joined_list;
+                    _context.SaveChanges();
+                }
+                else
+                {
+                    
+                  await AddCompanyParameter("BILLING_USERS", joined_list, CompanyID, CurrentUserID, TimeZoneId);
+                }
+            }
+
+            if (Source == "ADMIN")
+            {
+                var curadmin = await _context.Set<User>().Where(U=> U.RegisteredUser == true && U.CompanyId == CompanyID && U.UserId != CurrentAdmin).FirstOrDefaultAsync();
+                if (curadmin != null)
+                {
+                    var newadmin = await  _context.Set<User>().Where(U=> U.UserId == CurrentAdmin && U.CompanyId == CompanyID).FirstOrDefaultAsync();
+                    if (newadmin != null)
+                    {
+                        curadmin.RegisteredUser = false;
+                        curadmin.UserRole = "ADMIN";
+                        newadmin.RegisteredUser = true;
+                        newadmin.UserRole = "SUPERADMIN";
+                        _context.SaveChanges();
+                    }
+                }
+            }
+
+            var ObjectInfo = await _context.Set<CompanyComm>().Include(CM=>CM.CommsMethod)
+                              .Where(CC => CC.CompanyId == CompanyID)
+                              .Select (CC => new 
+                              {
+                                  CC.MethodId,
+                                  CC.ServiceStatus,
+                                  CC.Status,
+                                  CC.CommsMethod.MethodName
+                                  }).FirstOrDefaultAsync();
+
+            string bill_users = await GetCompanyParameter("BILLING_USERS", CompanyID);
+            ReplyChannel replyChannel = new ReplyChannel();
+
+            replyChannel.Status = ObjectInfo.Status;
+            replyChannel.MethodId = ObjectInfo.MethodId;
+            replyChannel.MethodName = ObjectInfo.MethodName;
+            replyChannel.ServiceStatus = ObjectInfo.ServiceStatus;
+            replyChannel.HasLowBalance = bill_users;
+            return replyChannel;
+           
+                      
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<bool> CompanyDataReset(string[] ResetOptions, int CompanyID, string TimeZoneId)
+    {
+        try
+        {
+            foreach (string option in ResetOptions)
+            {
+                if (option.ToUpper() == "PINGS")
+                {
+                   await ResetPings(CompanyID);
+                }
+                else if (option.ToUpper() == "ACTIVEINCIDENT")
+                {
+                   await ResetActiveIncident(CompanyID);
+                }
+                else if (option.ToUpper() == "GLOBALCONFIG")
+                {
+                   await ResetGlobalConfig(CompanyID, TimeZoneId);
+                }
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        return false;
+    }
+
+    public async Task ResetGlobalConfig(int CompanyID, string TimeZoneId)
+    {
+        try
+        {
+            DateTimeOffset CreatedNow = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pCreatedNow = new SqlParameter("@CreatedOnOffset", CreatedNow);
+          await  _context.Set<Result>().FromSqlRaw("exec Pro_DC_Global_Config @CompanyID, @CreatedOnOffset", pCompanyID, pCreatedNow).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task ResetPings(int CompanyID)
+    {
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+           await _context.Set<Result>().FromSqlRaw("exec Pro_DC_Ping @CompanyID", pCompanyID).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task ResetActiveIncident(int CompanyID)
+    {
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+           await _context.Set<Result>().FromSqlRaw("exec Pro_DC_Active_Incident @CompanyID", pCompanyID).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<int> DeactivateCompany(Company company)
+    {
+
+        try
+        {
+
+            _context.Update(company);
+            await _context.SaveChangesAsync();
+            return company.CompanyId;
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<int> ReactivateCompany(Company company)
+    {
+        try
+        {
+            _context.Update(company);
+            await _context.SaveChangesAsync();
+            return company.CompanyId;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<int> AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
+    {
+        try
+        {
+            var comp_param = await _context.Set<CompanyParameter>().Where(CP => CP.CompanyId == CompanyId && CP.Name == Name).AnyAsync();
+            if (!comp_param)
+            {
+                CompanyParameter NewCompanyParameters = new CompanyParameter()
+                {
+                    CompanyId = CompanyId,
+                    Name = Name,
+                    Value = Value,
+                    Status = 1,
+                    CreatedBy = CurrentUserId,
+                    UpdatedBy = CurrentUserId,
+                    CreatedOn = DateTime.Now,
+                    UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId)
+                };
+                await _context.AddAsync(NewCompanyParameters);
+                await _context.SaveChangesAsync();
+                return NewCompanyParameters.CompanyParametersId;
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+        return 0;
+    }
+    private async void UpdateUserComms(int companyId, int userId, int createdUpdatedBy, string timeZoneId = "GMT Standard Time", string pingMethods = "", string incidentMethods = "", bool isNewUser = false, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+
+            List<string> ImpPingMethods = pingMethods.Split(',').Select(p => p.Trim().ToUpper()).ToList();
+            List<string> ImpInciMethods = incidentMethods.Split(',').Select(p => p.Trim().ToUpper()).ToList();
+
+            if (isNewUser && (ImpPingMethods.Count <= 0 || ImpInciMethods.Count <= 0))
+            {
+                var comms = await (from CC in _context.Set<CompanyComm>()
+                                   join CM in _context.Set<CommsMethod>() on CC.MethodId equals CM.CommsMethodId
+                                   where CC.CompanyId == companyId
+                                   select CM.MethodCode).ToListAsync();
+                if (ImpPingMethods.Count <= 0)
+                {
+                    ImpPingMethods = comms.ToList();
+                }
+
+                if (ImpInciMethods.Count <= 0)
+                {
+                    ImpInciMethods = comms.ToList();
+                }
+            }
+
+            if (ImpPingMethods.Count > 0)
+            {
+                ImportUsercomms(companyId, "Ping", userId, ImpPingMethods, createdUpdatedBy, timeZoneId, pingMethods, cancellationToken);
+            }
+
+            if (ImpInciMethods.Count > 0)
+            {
+                ImportUsercomms(companyId, "Incident", userId, ImpInciMethods, createdUpdatedBy, timeZoneId, incidentMethods, cancellationToken);
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+    public async void ImportUsercomms(int companyId, string messageType, int userId, List<string> methodList, int createdUpdatedBy, string timeZoneId, string rawMethodsList, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var CompanyCommsMethodid = await (from CM in _context.Set<CompanyComm>()
+                                              join CP in _context.Set<CommsMethod>() on CM.MethodId equals CP.CommsMethodId
+                                              where CM.CompanyId == companyId
+                                              select new { CM.MethodId, CP.MethodCode }).ToListAsync();
+
+            var UserMethods = (from UC in _context.Set<UserComm>()
+                               join CP in _context.Set<CommsMethod>() on UC.MethodId equals CP.CommsMethodId
+                               where UC.UserId == userId
+                               && UC.CompanyId == companyId
+                               select new { UC, CP }).ToList();
+
+            //Check and assign the default company methods when no ping/incident method are assigned to user
+            var incMethods = (from PM in UserMethods where PM.UC.MessageType == messageType select PM).ToList();
+            if (incMethods.Count <= 0 && (methodList.Count <= 0 && !string.IsNullOrEmpty(rawMethodsList)))
+            {
+                foreach (var comMethod in CompanyCommsMethodid)
+                {
+                    CreateUserComms(userId, companyId, comMethod.MethodId, createdUpdatedBy, timeZoneId, messageType);
+                }
+            }
+            else if (methodList.Count > 0 && !string.IsNullOrEmpty(rawMethodsList))
+            {
+                if (incMethods.Count > 0)
+                {
+                    _context.Set<UserComm>().RemoveRange(incMethods.Select(s => s.UC).ToList());
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                var method = (from m in CompanyCommsMethodid where methodList.Contains(m.MethodCode) select m).ToList();
+                foreach (var comMethod in method)
+                {
+                    CreateUserComms(userId, companyId, comMethod.MethodId, createdUpdatedBy, timeZoneId, messageType);
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw new UserNotFoundException(companyId, userId);
+        }
+    }
+    public async void CreateUserComms(int UserId, int CompanyId, int MethodId, int CreatedUpdatedBy, string TimeZoneId, string CommType)
+    {
+        try
+        {
+            var IsCommExist = await _context.Set<UserComm>().Where(UCMM => UCMM.UserId == UserId && UCMM.CompanyId == CompanyId
+                             && UCMM.MethodId == MethodId
+                            && UCMM.MessageType == CommType).FirstOrDefaultAsync();
+            if (IsCommExist == null)
+            {
+                UserComm NewUserComms = new UserComm()
+                {
+                    UserId = UserId,
+                    CompanyId = CompanyId,
+                    MethodId = MethodId,
+                    MessageType = CommType,
+                    Status = 1,
+                    Priority = 1,
+                    CreatedBy = CreatedUpdatedBy,
+                    UpdatedBy = CreatedUpdatedBy,
+                    CreatedOn = DateTime.Now,
+                    UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId)
+                };
+                await _context.AddAsync(NewUserComms);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                IsCommExist.Status = 1;
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+
+
+
 }

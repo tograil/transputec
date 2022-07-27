@@ -26,6 +26,7 @@ using CrisesControl.Core.Groups;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.System;
+using CrisesControl.Core.Companies;
 using CrisesControl.Core.Academy;
 
 namespace CrisesControl.Infrastructure.Context
@@ -173,6 +174,9 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<AcademyVideos>().HasNoKey();
             
             modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
+            modelBuilder.Entity<CompanyCommunication>().HasNoKey();
+            modelBuilder.Entity<ReplyChannel>().HasNoKey();
+            modelBuilder.Entity<CompanyAccount>().HasNoKey();
 
 
 
