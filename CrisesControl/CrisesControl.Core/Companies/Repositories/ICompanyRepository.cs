@@ -33,7 +33,6 @@ public interface ICompanyRepository
     Task<Site> GetSite(int SiteID, int CompanyID);
     Task<List<Site>> GetSites(int CompanyID);
 
-    Task<string> LookupWithKey(string Key, string Default = "");
     Task<string> CheckFunds(int CompanyID, string UserRole);
     Task<ReplyChannel> GetReplyChannel(int CompanyID, int UserID);
     Task<CompanyCommunication> GetCompanyComms(int CompanyID, int UserID);
@@ -45,4 +44,5 @@ public interface ICompanyRepository
     Task ResetActiveIncident(int CompanyID);
     Task<int> DeactivateCompany(Company company);
     Task<int> ReactivateCompany(Company company);
+    Task<string> LookupWithKey(string Key, string Default = "");
 }
