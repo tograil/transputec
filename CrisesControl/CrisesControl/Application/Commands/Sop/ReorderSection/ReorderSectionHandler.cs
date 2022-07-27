@@ -13,9 +13,10 @@ namespace CrisesControl.Api.Application.Commands.Sop.ReorderSection
             _sopQuery = sopQuery;
             _logger = logger;
         }
-        public Task<ReorderSectionResponse> Handle(ReorderSectionRequest request, CancellationToken cancellationToken)
+        public async Task<ReorderSectionResponse> Handle(ReorderSectionRequest request, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var result = await _sopQuery.ReorderSection(request);
+            return result;
         }
     }
 }

@@ -2,5 +2,6 @@
 {
     public class ReorderSectionResponse
     {
+      public string Message { get; set; }
     }
 }

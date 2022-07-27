@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Sop.AttachSOPToIncident;
 using CrisesControl.Api.Application.Commands.Sop.GetCompanySOP;
 using CrisesControl.Api.Application.Commands.Sop.GetSopSection;
+using CrisesControl.Api.Application.Commands.Sop.GetSOPSectionLibrary;
 using CrisesControl.Api.Application.Commands.Sop.GetSopSections;
 using CrisesControl.Api.Application.Commands.Sop.GetTagList;
 using CrisesControl.Api.Application.Commands.Sop.RemoveSection;
@@ -32,6 +34,33 @@ namespace CrisesControl.Api.Application.Query
             this._sopRepository = sopRepository;
             this._logger = logger;
            
+        }
+
+        public async Task<AttachSOPToIncidentResponse> AttachSOPToIncident(AttachSOPToIncidentRequest request)
+        {
+            try
+            {
+                var sop = await _sopRepository.AttachSOPToIncident(request.SOPHeaderID, request.SOPFileName, _currentUser.UserId,_currentUser.CompanyId,_currentUser.TimeZone);
+                var result = _mapper.Map<bool>(sop);
+                var response = new AttachSOPToIncidentResponse();
+                if (result)
+                {
+                    response.result = result;
+                   
+                }
+                else
+                {
+                    response.result = false;
+                 
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         public async Task<GetCompanySOPResponse> GetCompanySOP(GetCompanySOPRequest request)
@@ -76,6 +105,33 @@ namespace CrisesControl.Api.Application.Query
                 else
                 {
                     response.data = result;
+                    response.Message = "No record found.";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetSOPSectionLibraryResponse> GetSOPSectionLibrary(GetSOPSectionLibraryRequest request)
+        {
+            try
+            {
+                var sop = await _sopRepository.GetSOPSectionLibrary();
+                var result = _mapper.Map<List<LibSopSection>>(sop);
+                var response = new GetSOPSectionLibraryResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Data loaded Successfully";
+                }
+                else
+                {
+                    response.Data = result;
                     response.Message = "No record found.";
                 }
 
@@ -168,9 +224,31 @@ namespace CrisesControl.Api.Application.Query
             }
         }
 
-        public Task<ReorderSectionResponse> ReorderSection(ReorderSectionRequest request)
+        public async Task<ReorderSectionResponse> ReorderSection(ReorderSectionRequest request)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var sop = await _sopRepository.ReorderSection(request.SectionOrder);
+                var result = _mapper.Map<int>(sop);
+                var response = new ReorderSectionResponse();
+                if (result > 0)
+                {
+                   
+                    response.Message = "Reordered";
+                }
+                else
+                {
+                   
+                    response.Message = "No record found.";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         public async Task<SaveSOPHeaderResponse> SaveSOPHeader(SaveSOPHeaderRequest request)

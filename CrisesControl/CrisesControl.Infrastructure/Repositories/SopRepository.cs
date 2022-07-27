@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Sop;
 using CrisesControl.Core.Sop.Respositories;
@@ -26,11 +27,13 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly ILogger<SopRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly DBCommon DBC;
         public SopRepository(IHttpContextAccessor httpContextAccessor, ILogger<SopRepository> logger, CrisesControlContext context)
         {
            this._context = context;
            this._logger = logger;
            this._httpContextAccessor = httpContextAccessor;
+            this.DBC = new DBCommon(_context,_httpContextAccessor);
         }
         public async Task<List<LibSopSection>> GetSOPSectionLibrary()
         {
@@ -44,6 +47,45 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
            
+        }
+        public async Task<bool> AttachSOPToIncident(int SOPHeaderID, string SOPFileName, int CurrentUserID,int CompanyID, string TimeZoneId="GMT Standard Time")
+        {
+            try
+            {
+                var sop = await _context.Set<IncidentSop>().Where(SH=>SH.SopheaderId == SOPHeaderID).FirstOrDefaultAsync();
+                if (sop != null)
+                {
+                    var incident = await _context.Set<Incident>().Where(I=> I.IncidentId == sop.IncidentId).FirstOrDefaultAsync();
+                    if (incident != null)
+                    {
+                        //incident.IncidentPlanDoc = SOPFileName;
+                        incident.IsSopdoc = true;
+                        incident.PlanAssetId = sop.AssetId;
+                        incident.SopdocId = SOPHeaderID;
+                        incident.UpdatedBy = CurrentUserID;
+                        incident.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                        _context.Update(incident);
+                        await _context.SaveChangesAsync();
+
+                        var asset = await _context.Set<Assets>().Where(A=> A.AssetId == sop.AssetId).FirstOrDefaultAsync();
+                        if (asset != null)
+                        {
+                            asset.AssetTypeId = 5;
+                            _context.Update(asset);
+                            await _context.SaveChangesAsync();
+                        }
+
+                        SendEmail SDE = new SendEmail(_context, DBC);
+                        await SDE.NotifyKeyContactForSOPAttach(incident.IncidentId, CompanyID);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
         public async Task<GetSopResponse> GetSOP(int CompanyId,int SOPHeaderID = 0)
         {

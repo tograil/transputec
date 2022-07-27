@@ -1633,6 +1633,84 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
+        public async Task NotifyKeyContactForSOPAttach(int IncidentID, int CompanyID)
+        {
+            try
+            {
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile("SOP_EDITED_ALERT", "DB", CompanyID, out Subject));
+
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+                    string messagebody = message;
+
+
+                    string inidate = string.Empty;
+                    string actionby = string.Empty;
+                    string domain = string.Empty;
+                    string LoginLink = string.Empty;
+                    string logo = string.Empty;
+
+                    var sysparms = await _context.Set<SysParameter>()
+                                    .Where(SP=> SP.Name == "DOMAIN" || SP.Name == "PORTAL" || SP.Name == "CCLOGO")
+                                    .Select(SP=> new { SP.Name, SP.Value }).ToListAsync();
+
+
+                    domain = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
+                    LoginLink = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+                    logo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+
+
+                    var CompanyInfo = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyID).FirstOrDefaultAsync();
+
+                    string CompanyLogo = LoginLink + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
+                    if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
+                    {
+                        CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                    }
+
+                    var keycontacts = (from IU in _context.Set<IncidentKeyContact>()
+                                       join U in _context.Set<User>() on IU.UserId equals U.UserId
+                                       join I in _context.Set<Incident>() on IU.IncidentId equals I.IncidentId
+                                       where I.IncidentId == IncidentID && U.Status == 1
+                                       select new
+                                       {
+                                           IncidentIcon = I.IncidentIcon,
+                                           IncidentName = I.Name,
+                                           I.UpdatedOn,
+                                           IU.UserId,
+                                           UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                                           U.PrimaryEmail
+                                       }).ToList();
+
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", CompanyInfo.CompanyName);
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                    messagebody = messagebody.Replace("{PORTAL}", LoginLink);
+                    messagebody = messagebody.Replace("{CC_WEBSITE}", domain);
+
+                    foreach (var kc in keycontacts)
+                    {
+                        string sendbody = messagebody;
+                        sendbody = sendbody.Replace("{RECIPIENT_NAME}", _DBC.UserName(kc.UserName));
+                        sendbody = sendbody.Replace("{RECIPIENT_EMAIL}", kc.PrimaryEmail);
+                        sendbody = sendbody.Replace("{INCIDENT_NAME}", kc.IncidentName);
+                        sendbody = sendbody.Replace("{SOP_LAST_UPDATED}", kc.UpdatedOn.ToString("dd-MMM-yy HH:mm"));
+                        sendbody = sendbody.Replace("{INCIDENT_ICON}", kc.IncidentIcon == null || kc.IncidentIcon == "" ? "" : LoginLink + "/assets/images/incident-icons/" + kc.IncidentIcon);
+
+                        string[] toEmails = { kc.PrimaryEmail };
+                        bool ismailsend = Email(toEmails, sendbody, fromadd, hostname, Subject);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
 
     }
 }

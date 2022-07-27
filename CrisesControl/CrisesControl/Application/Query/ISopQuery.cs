@@ -1,5 +1,7 @@
-﻿using CrisesControl.Api.Application.Commands.Sop.GetCompanySOP;
+﻿using CrisesControl.Api.Application.Commands.Sop.AttachSOPToIncident;
+using CrisesControl.Api.Application.Commands.Sop.GetCompanySOP;
 using CrisesControl.Api.Application.Commands.Sop.GetSopSection;
+using CrisesControl.Api.Application.Commands.Sop.GetSOPSectionLibrary;
 using CrisesControl.Api.Application.Commands.Sop.GetSopSections;
 using CrisesControl.Api.Application.Commands.Sop.GetTagList;
 using CrisesControl.Api.Application.Commands.Sop.RemoveSection;
@@ -19,5 +21,7 @@ namespace CrisesControl.Api.Application.Query
         Task<RemoveSectionResponse> RemoveSection(RemoveSectionRequest request);
         Task<GetSopSectionResponse> GetSopSection(GetSopSectionRequest request);
         Task<ReorderSectionResponse> ReorderSection(ReorderSectionRequest request);
+        Task<GetSOPSectionLibraryResponse> GetSOPSectionLibrary(GetSOPSectionLibraryRequest request);
+        Task<AttachSOPToIncidentResponse> AttachSOPToIncident(AttachSOPToIncidentRequest request);
     }
 }
