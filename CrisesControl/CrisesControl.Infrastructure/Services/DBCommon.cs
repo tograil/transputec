@@ -741,6 +741,17 @@ namespace CrisesControl.Api.Application.Helpers
                 return CurrentReviewDate.AddYears(-1).Date;
             }
         }
+        public bool verifyLength(string str, int minLength, int maxLength)
+        {
+            if (str.Length >= minLength && str.Length <= maxLength)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
         public bool IsPropertyExist(dynamic settings, string name)
         {
             return settings.GetType().GetProperty(name) != null;
