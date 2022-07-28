@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.Core.Models;
+using System;
 
 namespace CrisesControl.Core.Incidents
 {
@@ -35,5 +36,6 @@ namespace CrisesControl.Core.Incidents
         public bool HasTask { get; set; }
         public string? SocialHandle { get; set; }
         public int CascadePlanId { get; set; }
+      
     }
 }

@@ -16,4 +16,8 @@ public interface IQueueService
     Task EnqueueMessage(int messageId, ICollection<string> rabbitHosts, MessageMethod method);
 
     ICollection<string> RabbitHosts();
+    Task<bool> AppInvitationQueue(int CompanyID);
+    Task<List<MessageQueueItem>> GetAppUserQueue(int CompanyID);
+    Task<List<MessageQueueItem>> GetDeviceQueue(int MessageID, string Method, int MessageDeviceId = 0, int Priority = 1);
+    Task<List<MessageQueueItem>> GetFailedDeviceQueue(int MessageID, string Method, int MessageDeviceId = 0);
 }

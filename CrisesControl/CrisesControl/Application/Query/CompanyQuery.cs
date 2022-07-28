@@ -1,11 +1,17 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Companies.CheckCompany;
+using CrisesControl.Api.Application.Commands.Companies.CompanyDataReset;
+using CrisesControl.Api.Application.Commands.Companies.DeactivateCompany;
 using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyAccount;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyComms;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
 using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
+using CrisesControl.Api.Application.Commands.Companies.ReactivateCompany;
 using CrisesControl.Api.Application.Commands.Companies.SaveSite;
+using CrisesControl.Api.Application.Commands.Companies.UpdateCompanyComms;
 using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.ViewModels.Company;
@@ -270,6 +276,182 @@ public class CompanyQuery : ICompanyQuery {
             {
 
                 response.Message = "No record found.";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<GetCompanyCommsResponse> GetCompanyComms(GetCompanyCommsRequest request)
+    {
+        try
+        {
+            var comms = await _companyRepository.GetCompanyComms(_currentUser.CompanyId, _currentUser.UserId);
+            var result = _mapper.Map<CompanyCommunication>(comms);
+            var response = new GetCompanyCommsResponse();
+            if (result != null)
+            {
+                response.Comms = result;
+               
+
+            }
+            else
+            {
+
+                response.Comms = result;
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<GetCompanyAccountResponse> GetCompanyAccount(GetCompanyAccountRequest request)
+    {
+        try
+        {
+            var comms = await _companyRepository.GetCompanyAccount(_currentUser.CompanyId);
+            var result = _mapper.Map<CompanyAccount>(comms);
+            var response = new GetCompanyAccountResponse();
+            if (result != null)
+            {
+                response.Account = result;
+                response.Message = "Data Loaded";
+
+
+            }
+            else
+            {
+
+                response.Account = result;
+                response.Message = "No Data found";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<UpdateCompanyCommsResponse> UpdateCompanyComms(UpdateCompanyCommsRequest request)
+    {
+        try
+        {
+            var update = await _companyRepository.UpdateCompanyComms(_currentUser.CompanyId, request.MethodId, request.BillingUsers, request.CurrentSuperUser, _currentUser.UserId, _currentUser.TimeZone, request.Source); 
+            var result = _mapper.Map<ReplyChannel>(update);
+            var response = new UpdateCompanyCommsResponse();
+            if (result != null)
+            {
+                response.Data = result;
+                response.Message = "updated";
+
+
+            }
+            else
+            {
+
+                response.Data = result;
+                response.Message = "Not Updated";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<DeactivateCompanyResponse> DeactivateCompany(DeactivateCompanyRequest request)
+    {
+        try
+        {
+            var response = new DeactivateCompanyResponse();
+            var CompanyToDelete =await _companyRepository.GetCompanyByID(request.TargetCompanyID);
+            if (CompanyToDelete != null)
+            {
+                CompanyToDelete.Status = 0;
+                CompanyToDelete.UpdatedBy = _currentUser.UserId;
+                CompanyToDelete.UpdatedOn = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone);
+                var updateId = await _companyRepository.DeactivateCompany(CompanyToDelete);
+
+                response.CompanyId = updateId;
+                response.Message = "Company Deactivated successfully";
+            }
+            else
+            {
+                response.CompanyId = 0;
+                response.Message = "No record found to delete.";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<ReactivateCompanyResponse> ReactivateCompany(ReactivateCompanyRequest request)
+    {
+
+        try
+        {
+            var response = new ReactivateCompanyResponse();
+            var CompanyToReactivate = await _companyRepository.GetCompanyByID(request.ActivateReactivateCompanyId);
+            if (CompanyToReactivate != null)
+            {
+                CompanyToReactivate.Status = 1;
+                CompanyToReactivate.UpdatedBy = _currentUser.UserId;
+                CompanyToReactivate.UpdatedOn = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone);
+                int ActivatedCompnayId = await _companyRepository.ReactivateCompany(CompanyToReactivate);
+
+                response.CompanyId = ActivatedCompnayId;
+                response.Message = "Company reactivated successfully";
+
+            }
+            else
+            {
+                response.CompanyId = 0;
+                response.Message = "No record found to delete.";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<CompanyDataResetResponse> CompanyDataReset(CompanyDataResetRequest request)
+    {
+        try
+        {
+            var dataReset = await _companyRepository.CompanyDataReset(request.ResetOptions,_currentUser.CompanyId, _currentUser.TimeZone);
+            var result = _mapper.Map<bool>(dataReset);
+            var response = new CompanyDataResetResponse();
+            if (result != null)
+            {
+                response.IsReset = result;
+                response.Message = "updated";
+
+
+            }
+            else
+            {
+
+                response.IsReset = result;
+                response.Message = "Not Updated";
             }
             return response;
 

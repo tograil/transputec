@@ -3,17 +3,20 @@ import {
   HttpRequest,
   HttpHandler,
   HttpEvent,
-  HttpInterceptor
+  HttpInterceptor,
+  HttpErrorResponse
 } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { catchError, Observable, throwError } from 'rxjs';
 import { TokenService } from '../services/token.service';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class LoggedUserInterceptor implements HttpInterceptor {
 
-  constructor(private tokenService: TokenService) {}
+  constructor(private tokenService: TokenService,
+    private router: Router) {}
 
-  intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
+  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
 
     var tokenValid = this.tokenService.validateToken();
     if (tokenValid) {
@@ -24,6 +27,16 @@ export class LoggedUserInterceptor implements HttpInterceptor {
       });
    }
 
-    return next.handle(request);
+    return next.handle(request).pipe<HttpEvent<any>>(
+      catchError((err) => {
+        if (err instanceof HttpErrorResponse) {
+            if (err.status === 401) {
+              this.tokenService.removeToken();
+         
+              this.router.navigate(['/login']);
+         }
+      }
+      return throwError(err);
+    }));
   }
 }

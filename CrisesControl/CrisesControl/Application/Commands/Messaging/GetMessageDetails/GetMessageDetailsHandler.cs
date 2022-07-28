@@ -4,6 +4,7 @@ using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
 using MediatR;
 using Serilog;
+using System.Net;
 
 namespace CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails
 {
@@ -29,14 +30,14 @@ namespace CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails
                 if(msgResponse != null) { 
                 return new GetMessageDetailsResponse {
                     Data = response,
-                    ErrorCode = System.Net.HttpStatusCode.OK,
+                    ErrorCode = HttpStatusCode.OK,
                     Message="Data has been loaded Succesfully"
                     };
                 }
                 return new GetMessageDetailsResponse
                 {
                     Data = response,
-                    ErrorCode = System.Net.HttpStatusCode.OK,
+                    ErrorCode = HttpStatusCode.OK,
                     Message = "Data Not Found"
                 };
 

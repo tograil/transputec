@@ -2,6 +2,9 @@
 using System.Linq.Expressions;
 using System.Net;
 using System.Web.Http;
+using AutoMapper;
+using CC.Authority.Core.UserManagement;
+using CC.Authority.Core.UserManagement.Models;
 using CC.Authority.Implementation.Data;
 using CC.Authority.Implementation.Helpers;
 using CC.Authority.SCIM;
@@ -10,7 +13,6 @@ using CC.Authority.SCIM.Schemas;
 using CC.Authority.SCIM.Service;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SCIM.WebHostSample.Provider;
-using User = CC.Authority.Implementation.Models.User;
 
 namespace CC.Authority.Implementation.Scim
 {
@@ -18,11 +20,15 @@ namespace CC.Authority.Implementation.Scim
     {
         private readonly CrisesControlAuthContext _authContext;
         private readonly ICurrentUser _currentUser;
+        private readonly IUserManager _userManager;
+        private readonly IMapper _mapper;
 
-        public ScimUserProvider(CrisesControlAuthContext authContext, ICurrentUser currentUser)
+        public ScimUserProvider(CrisesControlAuthContext authContext, ICurrentUser currentUser, IUserManager userManager, IMapper mapper)
         {
             _authContext = authContext;
             _currentUser = currentUser;
+            _userManager = userManager;
+            _mapper = mapper;
         }
 
         public override async Task<Resource[]> QueryAsync(IQueryParameters parameters, string correlationIdentifier)
@@ -213,46 +219,69 @@ namespace CC.Authority.Implementation.Scim
             var primaryEmail = user.ElectronicMailAddresses?.FirstOrDefault(x => x.Primary);
             var secondaryEmail = user.ElectronicMailAddresses?.FirstOrDefault(x => !x.Primary);
 
+            var mobilePhone = user.PhoneNumbers?.FirstOrDefault(x => x.ItemType == "mobile");
+
+            if (mobilePhone is null)
+            {
+                throw new HttpResponseException(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Content = new StringContent("Mobile phone is mandatory")
+                });
+            }
+
             user.Locale ??= "en-US";
 
-            var newUser = new Models.User
+            var (isExists, existingUser) = await _userManager.UserExists(primaryEmail.Value, user.ExternalIdentifier);
+
+            if (isExists && existingUser is not null)
             {
-                ExternalScimId = user.ExternalIdentifier,
+                existingUser.ExternalScimId = user.ExternalIdentifier;
+                
+                await _authContext.SaveChangesAsync();
+
+                user.Identifier = existingUser.UserId.ToString();
+
+                user.Metadata = new Core2Metadata
+                {
+                    ResourceType = "User",
+                    Created = existingUser.CreatedOn,
+                    LastModified = existingUser.UpdatedOn
+                };
+
+                return user;
+            }
+
+            var userInput = new UserInput
+            {
+                Status = user.Active ? 1 : 0,
+                CompanyId = _currentUser.CompanyId,
                 FirstName = user.Name.GivenName,
                 LastName = user.Name.FamilyName,
-                Status = user.Active ? 1 : 0,
-                UserLanguage = new CultureInfo(user.Locale).TwoLetterISOLanguageName,
-                TimezoneId = currentTimeZone?.TimeZoneId,
+                ExternalScimId = user.ExternalIdentifier,
+                CurrentUserId = _currentUser.UserId,
+                ExpirePassword = false,
                 PrimaryEmail = primaryEmail?.Value ?? string.Empty,
                 SecondaryEmail = secondaryEmail?.Value ?? string.Empty,
-                CreatedBy = _currentUser.UserId,
-                CreatedOn = DateTimeOffset.UtcNow,
-                UpdatedBy = _currentUser.UserId,
-                UpdatedOn = DateTimeOffset.UtcNow,
-                CompanyId = _currentUser.CompanyId,
+                UserLanguage = new CultureInfo(user.Locale).TwoLetterISOLanguageName,
+                MobileISDCode = string.Empty, //Otherwise error
+                MobileNo = mobilePhone.Value,
+                UserRole = "USER",
                 Password = string.Empty,
-                ExpirePassword = false,
-                Otpexpiry = DateTimeOffset.MaxValue,
-                Smstrigger = false,
-                ActiveOffDuty = 0,
-                LastLocationUpdate = DateTimeOffset.UtcNow,
-                TrackingStartTime = DateTimeOffset.MinValue,
-                TrackingEndTime = DateTimeOffset.MaxValue,
-                PasswordChangeDate = DateTimeOffset.UtcNow,
-                UniqueGuiId = Guid.NewGuid().ToString()
+                LLISDCode = string.Empty,
+                Landline = string.Empty,
+                TimezoneId = currentTimeZone?.TimeZoneId ?? 1
             };
 
-            await _authContext.Users.AddAsync(newUser);
+            var userResponse = await _userManager.AddUser(userInput);
 
-            await _authContext.SaveChangesAsync();
-
-            user.Identifier = newUser.UserId.ToString();
+            user.Identifier = userResponse.UserId.ToString();
 
             user.Metadata = new Core2Metadata
             {
                 ResourceType = "User",
-                Created = newUser.CreatedOn.DateTime,
-                LastModified = newUser.UpdatedOn.DateTime
+                Created = userResponse.CreatedOn,
+                LastModified = userResponse.UpdatedOn
             };
 
             return user;
@@ -267,16 +296,18 @@ namespace CC.Authority.Implementation.Scim
 
             var identifier = resourceIdentifier.Identifier;
 
-            var user = await _authContext.Users.FirstOrDefaultAsync(x => x.UserId.ToString() == identifier);
+            var user = await _userManager.GetUser(int.Parse(resourceIdentifier.Identifier));
 
             if (user == null)
             {
                 throw new HttpResponseException(HttpStatusCode.NotFound);
             }
 
-            _authContext.Remove(user);
+            var userInput = _mapper.Map<UserInput>(user);
 
-            await _authContext.SaveChangesAsync();
+            userInput.Status = 3;
+
+            await _userManager.UpdateUser(userInput);
         }
 
         public override async Task<Resource> RetrieveAsync(IResourceRetrievalParameters parameters, string correlationIdentifier)
@@ -298,7 +329,7 @@ namespace CC.Authority.Implementation.Scim
 
             var identifier = parameters.ResourceIdentifier.Identifier;
 
-            var user = await _authContext.Users.FirstOrDefaultAsync(x => x.UserId.ToString() == identifier);
+            var user = await _userManager.GetUser(int.Parse(identifier));
 
             if (user == null)
             {
@@ -326,21 +357,23 @@ namespace CC.Authority.Implementation.Scim
             }
 
             var userToUpdate =
-                await _authContext.Users.FirstOrDefaultAsync(x => x.UserId.ToString() == resource.Identifier);
+                await _userManager.GetUser(int.Parse(resource.Identifier));
 
             if (userToUpdate is null)
             {
                 throw new HttpResponseException(HttpStatusCode.NotFound);
             }
 
-            await UpdateUser(user, userToUpdate);
+            var userToSend = _mapper.Map<UserInput>(userToUpdate);
+
+            await UpdateUser(user, userToSend);
 
             user = ToCore2EnterpriseUser(userToUpdate);
 
             return user;
         }
 
-        private async Task UpdateUser(Core2EnterpriseUser user, User userToUpdate)
+        private async Task UpdateUser(Core2EnterpriseUser user, UserInput userToUpdate)
         {
             var primaryEmail = user.ElectronicMailAddresses?.FirstOrDefault(x => x.Primary);
             var secondaryEmail = user.ElectronicMailAddresses?.FirstOrDefault(x => !x.Primary);
@@ -351,14 +384,19 @@ namespace CC.Authority.Implementation.Scim
                 userToUpdate.LastName = user.Name.FamilyName;
             }
 
+            if (user.ExternalIdentifier is not null)
+            {
+                userToUpdate.ExternalScimId = user.ExternalIdentifier;
+            }
+
             if (primaryEmail != null)
             {
-                userToUpdate.PrimaryEmail = primaryEmail?.Value ?? string.Empty;
+                userToUpdate.PrimaryEmail = primaryEmail?.Value ?? userToUpdate.PrimaryEmail;
             }
 
             if (secondaryEmail != null)
             {
-                userToUpdate.SecondaryEmail = secondaryEmail?.Value ?? string.Empty;
+                userToUpdate.SecondaryEmail = secondaryEmail?.Value ?? userToUpdate.SecondaryEmail;
             }
 
             if (user.TimeZone != null)
@@ -366,12 +404,12 @@ namespace CC.Authority.Implementation.Scim
                 var currentTimeZone = await _authContext.StdTimeZones
                     .FirstOrDefaultAsync(x => x.PortalTimeZone == user.TimeZone);
 
-                userToUpdate.TimezoneId = currentTimeZone?.TimeZoneId;
+                userToUpdate.TimezoneId = currentTimeZone?.TimeZoneId ?? 1;
             }
 
-            userToUpdate.UpdatedOn = DateTime.UtcNow;
+            userToUpdate.Status = user.Active ? 1 : 0;
 
-            await _authContext.SaveChangesAsync();
+            await _userManager.UpdateUser(userToUpdate);
         }
 
         public override async Task UpdateAsync(IPatch patch, string correlationIdentifier)
@@ -406,8 +444,7 @@ namespace CC.Authority.Implementation.Scim
             }
 
             var userToUpdate =
-                await _authContext.Users.FirstOrDefaultAsync(x =>
-                    x.UserId.ToString() == patch.ResourceIdentifier.Identifier);
+                await _userManager.GetUser(int.Parse(patch.ResourceIdentifier.Identifier));
 
             if (userToUpdate is null)
             {
@@ -418,10 +455,12 @@ namespace CC.Authority.Implementation.Scim
 
             user.Apply(patchRequest);
 
-            await UpdateUser(user, userToUpdate);
+            var userToSend = _mapper.Map<UserInput>(userToUpdate);
+
+            await UpdateUser(user, userToSend);
         }
 
-        private static Core2EnterpriseUser ToCore2EnterpriseUser(User userToUpdate)
+        private static Core2EnterpriseUser ToCore2EnterpriseUser(UserResponse userToUpdate)
         {
             return new Core2EnterpriseUser
             {
@@ -445,8 +484,8 @@ namespace CC.Authority.Implementation.Scim
                 Metadata = new Core2Metadata
                 {
                     ResourceType = "User",
-                    Created = userToUpdate.CreatedOn.DateTime,
-                    LastModified = userToUpdate.UpdatedOn.DateTime
+                    Created = userToUpdate.CreatedOn,
+                    LastModified = userToUpdate.UpdatedOn
                 }
             };
         }

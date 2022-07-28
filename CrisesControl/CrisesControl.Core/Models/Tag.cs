@@ -12,6 +12,7 @@ namespace CrisesControl.Core.Models
         public DateTimeOffset CreatedOn { get; set; }
         public int UpdatedBy { get; set; }
         public DateTimeOffset UpdatedOn { get; set; }
+        public LibContentTag LibContentTag { get; set; }
         public TagCategory TagCategory { get; set; }
     }
 }
