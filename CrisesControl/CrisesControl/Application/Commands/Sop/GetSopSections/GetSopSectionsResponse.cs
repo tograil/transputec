@@ -4,7 +4,7 @@ namespace CrisesControl.Api.Application.Commands.Sop.GetSopSections
 {
     public class GetSopSectionsResponse
     {
-        public ContentSectionData data { get; set; }
+        public List<ContentSectionData> data { get; set; }
         public string Message { get; set; }
     }
 }

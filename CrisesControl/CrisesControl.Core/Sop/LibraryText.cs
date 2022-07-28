@@ -22,7 +22,7 @@ namespace CrisesControl.Core.Sop
         public int TotalRating { get; set; }
         [NotMapped]
         public UserFullName Author { get; set; }
-        [NotMapped]
-        public List<int> SOPContentTags { get; set; }
+        //[NotMapped]
+       // public List<int> SOPContentTags { get; set; }
     }
 }

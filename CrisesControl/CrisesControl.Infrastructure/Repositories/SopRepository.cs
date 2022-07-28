@@ -125,7 +125,8 @@ namespace CrisesControl.Infrastructure.Repositories
             }
            
         }
-        public async Task<ContentSectionData> GetSOPSections(int SOPHeaderID, int CompanyID, int ContentSectionID = 0)
+        // TODO : Linq to Store Procedure
+        public async Task<List<ContentSectionData>> GetSOPSections(int SOPHeaderID, int CompanyID, int ContentSectionID = 0)
         {
             try
             {
@@ -137,37 +138,38 @@ namespace CrisesControl.Infrastructure.Repositories
                                          where SD.SopheaderId == SOPHeaderID && U.Status == 1
                                          select new { SDG.SopgroupId, U.FirstName, U.LastName, SD.ContentSectionId }).ToList();
 
-                    var sections = (from CS in _context.Set<ContentSection>()
-                                    join SD in _context.Set<Sopdetail>() on CS.ContentSectionId equals SD.ContentSectionId
-                                    join C in _context.Set<Content>() on SD.ContentId equals C.ContentId
-                                    join SH in _context.Set<Sopheader>() on CS.SopheaderId equals SH.SopheaderId
-                                    where CS.SopheaderId == SOPHeaderID && SH.CompanyId == CompanyID && CS.SectionName != "BRIEF_DESCRIPTION"
-                                    select new ContentSectionData
-                                    {
-                                        UpdatedOn = SH.UpdatedOn,
-                                        SOPHeaderID = SH.SopheaderId,
-                                        ContentSectionID = CS.ContentSectionId,
-                                        ContentID = C.ContentId,
-                                        SectionType = CS.SectionType,
-                                        SectionDescription = C.ContentText,
-                                        SectionName = CS.SectionName,
-                                        SectionOrder = CS.SectionOrder,
-                                        SOPContentTags = (from CT in _context.Set<ContentTag>()
-                                                          join T in _context.Set<Tag>() on CT.TagId equals T.TagId
-                                                          where CT.ContentId == C.ContentId
-                                                          select new SOPContentTag { TagID = CT.TagId }).ToList()
-                                    }).OrderBy(o => o.SectionOrder).ToList()
-                                    .Select(c => {
-                                        c.SectionGroups = SectionOwners.Where(w => w.ContentSectionId == c.ContentSectionID).Select(s => new SectionGroup
-                                        {
-                                            SOPGroupID = s.SopgroupId,
-                                            OwnerName = new UserFullName { Firstname = s.FirstName, Lastname = s.LastName }
-                                        }
-                                            ).ToList();
-                                        return c;
-                                    });
+                    var sections = await (from CS in _context.Set<ContentSection>()
+                                          join SD in _context.Set<Sopdetail>() on CS.ContentSectionId equals SD.ContentSectionId
+                                          join C in _context.Set<Content>() on SD.ContentId equals C.ContentId
+                                          join SH in _context.Set<Sopheader>() on CS.SopheaderId equals SH.SopheaderId
+                                          where CS.SopheaderId == SOPHeaderID && SH.CompanyId == CompanyID && CS.SectionName != "BRIEF_DESCRIPTION"
+                                          select new ContentSectionData
+                                          {
+                                              UpdatedOn = SH.UpdatedOn,
+                                              SOPHeaderID = SH.SopheaderId,
+                                              ContentSectionID = CS.ContentSectionId,
+                                              ContentID = C.ContentId,
+                                              SectionType = CS.SectionType,
+                                              SectionDescription = C.ContentText,
+                                              SectionName = CS.SectionName,
+                                              SectionOrder = CS.SectionOrder,
+                                              SOPContentTags = (from CT in _context.Set<ContentTag>()
+                                                                join T in _context.Set<Tag>() on CT.TagId equals T.TagId
+                                                                where CT.ContentId == C.ContentId
+                                                                select new SOPContentTag { TagID = CT.TagId }).ToList()
+                                          }).OrderBy(o => o.SectionOrder).ToListAsync();
+                    sections.Select(c =>
+                    {
+                        c.SectionGroups = SectionOwners.Where(w => w.ContentSectionId == c.ContentSectionID).Select(s => new SectionGroup
+                        {
+                            SOPGroupID = s.SopgroupId,
+                            OwnerName = new UserFullName { Firstname = s.FirstName, Lastname = s.LastName }
+                        }
+                            ).ToList();
+                        return c;
+                    });
 
-                    return (ContentSectionData)sections;
+                    return sections;
                 }
                 else
                 {
@@ -181,29 +183,35 @@ namespace CrisesControl.Infrastructure.Repositories
                                              OwnerName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName }
                                          }).ToList();
 
-                    var section = (from CS in _context.Set<ContentSection>()
-                                   join SD in _context.Set<Sopdetail>() on CS.ContentSectionId equals SD.ContentSectionId
-                                   join C in _context.Set<Content>() on SD.ContentId equals C.ContentId
-                                   join SH in _context.Set<Sopheader>() on CS.SopheaderId equals SH.SopheaderId
-                                   where CS.SopheaderId == SOPHeaderID && SH.CompanyId == CompanyID && CS.ContentSectionId == ContentSectionID
-                                   select new ContentSectionData
-                                   {
-                                       UpdatedOn = SH.UpdatedOn,
-                                       SOPHeaderID = SH.SopheaderId,
-                                       ContentSectionID = CS.ContentSectionId,
-                                       ContentID = C.ContentId,
-                                       SectionType = CS.SectionType,
-                                       SectionDescription = C.ContentText,
-                                       SectionName = CS.SectionName,
-                                       SectionOrder = CS.SectionOrder,
-                                       SOPContentTags = (from CT in _context.Set<ContentTag>()
-                                                         join T in _context.Set<Tag>() on CT.TagId equals T.TagId
-                                                         where CT.ContentId == C.ContentId
-                                                         select new SOPContentTag { TagID = CT.TagId }).ToList()
-                                   }).FirstOrDefault();
-                    section.SectionGroups = SectionOwners;
+                    var section = await (from CS in _context.Set<ContentSection>()
+                                         join SD in _context.Set<Sopdetail>() on CS.ContentSectionId equals SD.ContentSectionId
+                                         join C in _context.Set<Content>() on SD.ContentId equals C.ContentId
+                                         join SH in _context.Set<Sopheader>() on CS.SopheaderId equals SH.SopheaderId
+                                         where CS.SopheaderId == SOPHeaderID && SH.CompanyId == CompanyID && CS.ContentSectionId == ContentSectionID
+                                         select new ContentSectionData
+                                         {
+                                             UpdatedOn = SH.UpdatedOn,
+                                             SOPHeaderID = SH.SopheaderId,
+                                             ContentSectionID = CS.ContentSectionId,
+                                             ContentID = C.ContentId,
+                                             SectionType = CS.SectionType,
+                                             SectionDescription = C.ContentText,
+                                             SectionName = CS.SectionName,
+                                             SectionOrder = CS.SectionOrder,
+                                             SOPContentTags = (from CT in _context.Set<ContentTag>()
+                                                               join T in _context.Set<Tag>() on CT.TagId equals T.TagId
+                                                               where CT.ContentId == C.ContentId
+                                                               select new SOPContentTag { TagID = CT.TagId }).ToList()
+                                         }).ToListAsync();
+                    section.Select(c =>
+                    {
+                        c.SectionGroups = SectionOwners;
+
+                        return c;
+                    });
                     return section;
-                }
+                }                
+               
 
             }
             catch (Exception ex)

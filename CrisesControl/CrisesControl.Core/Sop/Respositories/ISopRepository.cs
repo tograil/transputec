@@ -29,7 +29,7 @@ namespace CrisesControl.Core.Sop.Respositories
         Task CreateContentVersion(int PrimaryContentID, int LastContentID, int CurrentUserID, string TimeZoneId = "GMT Standard Time");
         Task<int> AU_Content(int ContentID, string ContentText, string ContentType, int Status, int CurrentUserID, string TimeZoneId = "GMT Standard Time");
         Task<int> AU_ContentSection(int ContentSectionID, int SOPHeaderID, string SectionName, int Status, string SectionType, int SectionOrder, int CurrentUserID, string TimeZoneId = "GMT Standard Time");
-        Task<ContentSectionData> GetSOPSections(int SOPHeaderID, int CompanyID, int ContentSectionID = 0);
+        Task<List<ContentSectionData>> GetSOPSections(int SOPHeaderID, int CompanyID, int ContentSectionID = 0);
         Task<int> AU_Section(int SOPHeaderID, int ContentID, int ContentSectionID, string SectionType, string SectionName, string SectionDescription, int SectionStatus, int SectionOrder,
             List<int> Groups, List<int> Tags, int CurrentUserId);
         Task DeleteSections(int ContentSectionID);

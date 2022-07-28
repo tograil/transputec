@@ -29,11 +29,12 @@ namespace CrisesControl.Api.Application.Query
         //private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
         
-        public SopQuery(ISopRepository sopRepository, ICurrentUser currentUser, ILogger<SopQuery> logger, IMapper _mapper)
+        public SopQuery(ISopRepository sopRepository, ICurrentUser currentUser, ILogger<SopQuery> logger, IMapper mapper)
         {
             this._currentUser = currentUser;
             this._sopRepository = sopRepository;
             this._logger = logger;
+            this._mapper = mapper;
            
         }
 
@@ -177,7 +178,7 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                 var sop = await _sopRepository.GetSOPSections(request.SOPHeaderID, _currentUser.CompanyId);
-                var result = _mapper.Map<ContentSectionData>(sop);
+                var result = _mapper.Map<List<ContentSectionData>>(sop);
                 var response = new GetSopSectionsResponse();
                 if (result != null)
                 {
