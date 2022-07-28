@@ -839,7 +839,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public bool ServiceJobExecution(string emailType, string jobKey, string jobName, string failureEmailList, int companyid, string strSubject = "", string message = "", System.Net.Mail.Attachment fileattached = null)
+        public async Task<bool> ServiceJobExecution(string emailType, string jobKey, string jobName, string failureEmailList, int companyid, string strSubject = "", string message = "", System.Net.Mail.Attachment fileattached = null)
         {
             try
             {
@@ -889,14 +889,14 @@ namespace CrisesControl.Api.Application.Helpers
                     string CCimage = string.Empty;
                     string portal = string.Empty;
 
-                    var sysparms = (from SP in _context.Set<SysParameter>()
-                                    where SP.Name == "CC_TWITTER_PAGE" || SP.Name == "CC_FB_PAGE"
+                    var sysparms = await  _context.Set<SysParameter>()
+                                    .Where(SP=> SP.Name == "CC_TWITTER_PAGE" || SP.Name == "CC_FB_PAGE"
                                     || SP.Name == "CC_LINKEDIN_PAGE" || SP.Name == "DOMAIN"
                                     || SP.Name == "CC_TWITTER_ICON" || SP.Name == "CC_FB_ICON"
                                     || SP.Name == "CC_LINKEDIN_ICON" || SP.Name == "CC_USER_SUPPORT_LINK"
                                     || SP.Name == "SMTPHOST" || SP.Name == "EMAILFROM"
-                                    || SP.Name == "CCLOGO" || SP.Name == "PORTAL"
-                                    select new { SP.Name, SP.Value }).ToList();
+                                    || SP.Name == "CCLOGO" || SP.Name == "PORTAL")
+                                    .Select(SP=> new { SP.Name, SP.Value }).ToListAsync();
 
                     twiterlink = sysparms.Where(w => w.Name == "CC_TWITTER_PAGE").Select(s => s.Value).FirstOrDefault();
                     facebooklink = sysparms.Where(w => w.Name == "CC_FB_PAGE").Select(s => s.Value).FirstOrDefault();
@@ -1548,7 +1548,7 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public void SendMonthlyPartialPaymentAlert(int CompanyID, decimal TotalMonthlyDebitAmount, decimal TotalAmountDebited, decimal VatAmount, string email_items)
+        public async Task SendMonthlyPartialPaymentAlert(int CompanyID, decimal TotalMonthlyDebitAmount, decimal TotalAmountDebited, decimal VatAmount, string email_items)
         {
             try
             {
@@ -1569,10 +1569,10 @@ namespace CrisesControl.Api.Application.Helpers
                     {
 
 
-                        var sysparms = (from SP in _context.Set<SysParameter>()
-                                        where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
-                                        || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO"
-                                        select new { SP.Name, SP.Value }).ToList();
+                        var sysparms = await _context.Set<SysParameter>()
+                                        .Where(SP=> SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
+                                        || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO")
+                                        .Select(SP=> new { SP.Name, SP.Value }).ToListAsync();
 
                         string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
                         string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
