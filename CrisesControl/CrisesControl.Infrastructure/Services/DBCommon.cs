@@ -792,28 +792,6 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public string GetTimeZoneByCompany(int companyId)
-        {
-            try
-            {
-                string tmpZoneVal = "GMT Standard Time";
-                var Companytime = (from C in _context.Set<Company>()
-                                   join T in _context.Set<StdTimeZone>() on C.TimeZone equals T.TimeZoneId
-                                   where C.CompanyId == companyId
-                                   select new
-                                   {
-                                       CompanyTimezone = T.ZoneLabel
-                                   }).FirstOrDefault();
-                if (Companytime != null)
-                {
-                    tmpZoneVal = Companytime.CompanyTimezone;
-                }
-                return tmpZoneVal;
-            }
-            catch (Exception ex) { throw ex; }
-            return "GMT Standard Time";
-        }
-
         public bool connectUNCPath(string UNCPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "")
         {
             try
@@ -980,50 +958,7 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
-        {
-
-            if (Level.ToUpper() == "INFO")
-            {
-                string CreateLog = LookupWithKey("COLLECT_PERFORMANCE_LOG");
-                if (CreateLog == "false")
-                    return;
-            }
-
-            LogicalThreadContext.Properties["ControllerName"] = Controller;
-            LogicalThreadContext.Properties["MethodName"] = Method;
-            LogicalThreadContext.Properties["CompanyId"] = CompanyId;
-            if (Level.ToUpper() == "ERROR")
-            {
-                Logger.Error(Message, Ex);
-            }
-            else if (Level.ToUpper() == "DEBUG")
-            {
-                Logger.Debug(Message, Ex);
-            }
-            else if (Level.ToUpper() == "INFO")
-            {
-                Logger.Info(Message, Ex);
-            }
-
-
-
-            if (Ex != null)
-                Console.WriteLine(Message + Ex.ToString());
-        }
-
-        public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
-        {
-            try
-            {
-                CreateLog("INFO", Left(strErrorMessage, 8000), null, strControllerName, strMethodName, intCompanyId);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-        public string Getconfig(string key, string DefaultVal = "")
+       public string Getconfig(string key, string DefaultVal = "")
         {
             try
             {
