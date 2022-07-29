@@ -32,14 +32,7 @@ namespace CrisesControl.Api.Controllers
         {
           _mediator=mediator;
         }
-        [HttpGet("[action]")]
-        public async Task<IActionResult> Register([FromRoute] RegisterRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-
-            return Ok(result);
-        }
-
+        
         [HttpGet]
         public async Task<IActionResult> Index([FromRoute] IndexRequest request, CancellationToken cancellationToken)
         {
