@@ -122,7 +122,7 @@ namespace CrisesControl.Api.Application.Helpers
                 string deleteVerifyLink = portal + accountDeleteURL + companyId + "/" + guid;
 
                 string hostname = _DBC.LookupWithKey("SMTPHOST");
-                string fromadd = _DBC.LookupWithKey("EMAILFROM").Select(s => s.Value).FirstOrDefault()!;
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
                 string companyLogo = portal + "/uploads/" + companyId + "/companylogos/" + company?.CompanyLogoPath;
 
                 if (string.IsNullOrEmpty(company?.CompanyLogoPath))
@@ -146,12 +146,12 @@ namespace CrisesControl.Api.Application.Helpers
                     messagebody = messagebody.Replace("{CC_WEBSITE}", website);
                     messagebody = messagebody.Replace("{CUSTOMER_ID}", company?.CustomerId);
 
-                    messagebody = messagebody.Replace("{TWITTER_LINK}", sysparms.Where(w => w.Name == "CC_TWITTER_PAGE").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{TWITTER_ICON}", sysparms.Where(w => w.Name == "CC_TWITTER_ICON").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", sysparms.Where(w => w.Name == "CC_FB_PAGE").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{FACEBOOK_ICON}", sysparms.Where(w => w.Name == "CC_FB_ICON").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", sysparms.Where(w => w.Name == "CC_LINKEDIN_PAGE").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", sysparms.Where(w => w.Name == "CC_LINKEDIN_ICON").Select(s => s.Value).FirstOrDefault());
+                    messagebody = messagebody.Replace("{TWITTER_LINK}", _DBC.LookupWithKey("CC_TWITTER_PAGE"));
+                    messagebody = messagebody.Replace("{TWITTER_ICON}", _DBC.LookupWithKey("CC_TWITTER_ICON"));
+                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", _DBC.LookupWithKey("CC_FB_PAGE"));
+                    messagebody = messagebody.Replace("{FACEBOOK_ICON}", _DBC.LookupWithKey("CC_FB_ICON"));
+                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", _DBC.LookupWithKey("CC_LINKEDIN_PAGE"));
+                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", _DBC.LookupWithKey("CC_LINKEDIN_ICON"));
 
                     string[] toEmails = { emailId };
                     bool ismailsend = Email(toEmails, messagebody, fromadd, hostname, Subject);
@@ -934,11 +934,6 @@ namespace CrisesControl.Api.Application.Helpers
                     {
 
 
-                        var sysparms = (from SP in _context.Set<SysParameter>()
-                                        where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
-                                        || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO"
-                                        select new { SP.Name, SP.Value }).ToList();
-
                         string Portal = _DBC.LookupWithKey("PORTAL");
                         string hostname = _DBC.LookupWithKey("SMTPHOST");
                         string fromadd = _DBC.LookupWithKey("EMAILFROM");
@@ -1027,9 +1022,7 @@ namespace CrisesControl.Api.Application.Helpers
                     string templatename = "USER_DELETE_ALERT";
                     string Subject = string.Empty;
                     string message = Convert.ToString(_DBC.ReadHtmlFile(templatename, "DB", company.C.CompanyId, out Subject));
-
-                    
-
+                
                     string Website = _DBC.LookupWithKey("DOMAIN");
                     string Portal = _DBC.LookupWithKey("PORTAL");
 
@@ -1602,12 +1595,6 @@ namespace CrisesControl.Api.Application.Helpers
                     if (company != null)
                     {
 
-
-                        var sysparms = (from SP in _context.Set<SysParameter>()
-                                        where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
-                                        || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO"
-                                        select new { SP.Name, SP.Value }).ToList();
-
                         string Portal = _DBC.LookupWithKey("PORTAL");
                         string hostname = _DBC.LookupWithKey("SMTPHOST");
                         string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
@@ -1664,12 +1651,6 @@ namespace CrisesControl.Api.Application.Helpers
                     string domain = string.Empty;
                     string LoginLink = string.Empty;
                     string logo = string.Empty;
-
-                    var sysparms = await _context.Set<SysParameter>()
-                                    .Where(SP=> SP.Name == "DOMAIN" || SP.Name == "PORTAL" || SP.Name == "CCLOGO")
-                                    .Select(SP=> new { SP.Name, SP.Value }).ToListAsync();
-
-
                     domain = _DBC.LookupWithKey("DOMAIN");
                     LoginLink = _DBC.LookupWithKey("PORTAL");
                     logo = _DBC.LookupWithKey("CCLOGO");
