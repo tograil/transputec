@@ -18,8 +18,8 @@ namespace CrisesControl.Infrastructure.Repositories
     public class SecurityRepository : ISecurityRepository
     {
         private readonly CrisesControlContext _context;
-        //private readonly SendEmail _SDE;
-        // private readonly DBCommon _DBC;
+        private readonly SendEmail _SDE;
+        private readonly DBCommon _DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
         public SecurityRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
@@ -236,8 +236,7 @@ GO
             try
             {
                 bool sendemail = false;
-                DBCommon _DBC = new DBCommon(_context, _httpContextAccessor);
-                SendEmail _SDE = new SendEmail(_context, _DBC);
+               
                 var pCompanyId = new SqlParameter("@CompanyId", CompanyID);
                 var pSecurityGroupID = new SqlParameter("@SecurityGroupID", SecurityGroupID);
 

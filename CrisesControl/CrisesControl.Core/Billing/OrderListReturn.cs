@@ -25,5 +25,7 @@ namespace CrisesControl.Core.Billing
         public DateTime ContractStartDate { get; set; }
         public List<CompanyPackageFeatures> Modules { get; set; }
         public List<InvoiceSchReturn> InvItems { get; set; }
+        public string ContractType { get; set; }
+
     }
 }
