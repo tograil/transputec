@@ -60,7 +60,7 @@ namespace CrisesControl.Api.Application.Query
                 var response = new CheckDepartmentResponse();
                 if (result) { 
                     response.IsDuplicated=result;
-                    response.Message = "Duplicate Deprtment.";
+                    response.Message = "Duplicate Department.";
                 }
                 else
                 {
@@ -135,7 +135,7 @@ namespace CrisesControl.Api.Application.Query
                 if (result)
                 {
                     response.updatedSeg = result;
-                    response.Message = "Duplicate Deprtment.";
+                    response.Message = "Updated.";
                 }
                 else
                 {
