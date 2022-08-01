@@ -1506,11 +1506,6 @@ namespace CrisesControl.Api.Application.Helpers
                     {
 
 
-                        var sysparms = await _context.Set<SysParameter>()
-                                        .Where(SP=> SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
-                                        || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO")
-                                        .Select(SP=> new { SP.Name, SP.Value }).ToListAsync();
-
                         string Portal = _DBC.LookupWithKey("PORTAL");
                         string hostname = _DBC.LookupWithKey("SMTPHOST");
                         string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
