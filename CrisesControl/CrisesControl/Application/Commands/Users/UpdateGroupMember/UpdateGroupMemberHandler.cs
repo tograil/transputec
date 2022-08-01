@@ -1,6 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using CrisesControl.Core.Users.Repositories;
 using MediatR;
+using System.Net;
 
 namespace CrisesControl.Api.Application.Commands.Users.UpdateGroupMember
 {
@@ -23,14 +24,14 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateGroupMember
                 {
                     return new UpdateGroupMemberResponse
                     {
-                        StatusCode = System.Net.HttpStatusCode.OK,
+                        StatusCode = HttpStatusCode.OK,
                         Message = "Update Successfully",
                         result = member
                     };
                 }
                 return new UpdateGroupMemberResponse
                 {
-                    StatusCode = System.Net.HttpStatusCode.IMUsed,
+                    StatusCode = HttpStatusCode.IMUsed,
                     Message = "Not data Found",
                     result = member
                 };

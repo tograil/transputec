@@ -4,18 +4,23 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Incidents.SPResponse;
+using CrisesControl.Core.Locations;
 using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using CrisesControl.Core.Reports;
 using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
 
 namespace CrisesControl.Infrastructure.Repositories;
@@ -26,12 +31,17 @@ public class IncidentRepository : IIncidentRepository
     private readonly ICompanyParametersRepository _companyParamentersRepository;
     private readonly IMessageService _service;
     private readonly ILogger<IncidentRepository> _logger;
-    public IncidentRepository(CrisesControlContext context, ICompanyParametersRepository companyParamentersRepository, IMessageService service, ILogger<IncidentRepository> logger)
+    private readonly IActiveIncidentRepository _activeIncidentRepository;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    public bool IsFundAvailable = true;
+    public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository, ICompanyParametersRepository companyParamentersRepository, IMessageService service, ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
         _companyParamentersRepository = companyParamentersRepository;
         _service = service;
         _logger = logger;
+        _activeIncidentRepository = activeIncidentRepository;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<bool> CheckDuplicate(int companyId, string incidentName, int incidentId)
@@ -187,6 +197,50 @@ public class IncidentRepository : IIncidentRepository
         var pIncidentId = new SqlParameter("@IncidentId", incidentId);
 
         await _context.Database.ExecuteSqlRawAsync("exec Pro_Incident_CreateLink @CompanyId, @UserId, @IncidentId", pCompanyId, pUserId, pIncidentId);
+    }
+    public async Task<List<IncidentTask>> GetNotes(int ObjectID, string NoteType, bool GetAttachments, string AttachmentType, int CompanyId)
+    {
+        try
+        {
+            var pObjectID = new SqlParameter("@ObjectID", ObjectID);
+            var pNoteType = new SqlParameter("@NoteType", NoteType);
+            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+            var result = await _context.Set<IncidentTask>().FromSqlRaw("exec Pro_Get_Notes @ObjectID, @NoteType, @CompanyID", pObjectID, pNoteType, pCompanyId).ToListAsync();
+                result.Select(async c => {
+                if (GetAttachments)
+                {
+                    c.Attachments =await _get_attachments(c.IncidentTaskNotesId, AttachmentType);
+                }
+                return c;
+
+            }).ToList();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<Attachment>> _get_attachments(int ObjectID, string AttachmentType)
+    {
+        try
+        {
+            var pObjectID = new SqlParameter("@ObjectID", ObjectID);
+            var pAttachmentType = new SqlParameter("@AttachmentType", AttachmentType);
+
+            var result =await  _context.Set<Attachment>().FromSqlRaw("Attachments_Select @ObjectID, @AttachmentType", pObjectID, pAttachmentType).ToListAsync();
+            return result;
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<List<Attachment>> GetAttachments(int ObjectID, string AttachmentType)
+    {
+        return await _get_attachments(ObjectID, AttachmentType);
     }
 
     public NewIncident CloneIncident(int incidentId, bool keepKeyContact, bool keepIncidentMessage, bool keepTasks,
@@ -782,6 +836,435 @@ public class IncidentRepository : IIncidentRepository
         {
             throw ex;
         }
+    }
+    public async Task<List<IncidentMessagesRtn>> GetIndidentTimeline(int IncidentActivationID, int CompanyID, int UserID)
+    {
+
+        try
+        {
+
+            var pIncidentActivationID = new SqlParameter("@IncidentActivationID", IncidentActivationID);
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pUserID = new SqlParameter("@UserID", UserID);
+
+            var incimsgs = await _context.Set<IncidentMessagesRtn>().FromSqlRaw("exec Pro_Get_Incident_Timeline @IncidentActivationID, @CompanyID, @UserID",
+              pIncidentActivationID, pCompanyID, pUserID)
+              .ToListAsync();
+              incimsgs.Select(c => {
+                  c.SentBy = new UserFullName { Firstname = c.SentByFirst, Lastname = c.SentByLast };
+                  //c.Notes =  _context.Set<IncidentTaskNote>()
+                   //          .Where(N=>(N.ObjectId == IncidentActivationID && N.NoteType == "TASK")
+                    //         || N.ObjectId == IncidentActivationID && N.NoteType == "INCIDENT" && c.MessageType == "Ping").FirstOrDefault();
+                  //TODO invalid objects
+                  return c;
+              }).ToList();
+           
+                return incimsgs;
+         
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<bool> AddIncidentNote(int ActiveIncidentID, string Note, List<Attachment> Attachments, int UserID, int CompanyID, string TimeZoneId)
+    {
+        try
+        {
+            var inci =await  _context.Set<IncidentActivation>().Where(I=> I.IncidentActivationId == ActiveIncidentID).FirstOrDefaultAsync();
+            if (inci != null)
+            {
+                int NoteId = await IncidentNote(ActiveIncidentID, "INCIDENT", Note, CompanyID, UserID);
+                if (NoteId > 0)
+                {
+                    inci.HasNotes = true;
+                    inci.UpdatedBy = UserID;
+                    inci.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    _context.Update(inci);
+                   await _context.SaveChangesAsync();
+
+                    if (Attachments.Count > 0)
+                    {
+                        foreach (var attach in Attachments)
+                        {
+                          await  InsertAttachment(NoteId, attach.Title, attach.OrigFileName, attach.FileName, attach.MimeType, attach.AttachmentType, attach.FileSize);
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return false;
+        }
+        
+    }
+    public async Task<int> IncidentNote(int ObjectID, string NoteType, string Notes, int CompanyID, int UserID)
+    {
+        try
+        {
+            IncidentTaskNote Note = new IncidentTaskNote()
+            {
+                UserId = UserID,
+                ObjectId = ObjectID,
+                CompanyId = CompanyID,
+                IncidentTaskNotesId = ObjectID,
+                NoteType = NoteType,
+                Notes = Notes,
+                CreatedDate = DateTime.Now,
+            };
+           await _context.AddAsync(Note);
+           await _context.SaveChangesAsync();
+            return Note.IncidentTaskNotesId;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<bool> InsertAttachment(int ObjectID, string Title, string OrigFileName, string FileName, string MimeType, string AttachmentType, decimal? FileSize)
+    {
+        try
+        {
+           
+
+                var pObjectID = new SqlParameter("@ObjectID", ObjectID);
+                var pTitle = new SqlParameter("@Title", Title);
+                var pOrigFileName = new SqlParameter("@OrigFileName", OrigFileName);
+                var pFileName = new SqlParameter("@FileName", FileName);
+                var pMimeType = new SqlParameter("@MimeType", MimeType);
+                var pAttachmentType = new SqlParameter("@AttachmentType", AttachmentType);
+                var pFileSize = new SqlParameter("@FileSize", FileSize);
+
+               await _context.Database.ExecuteSqlRawAsync("Attachment_Insert @ObjectID, @Title, @OrigFileName, @FileName, @MimeType, @AttachmentType, @FileSize",
+                    pObjectID, pTitle, pOrigFileName, pFileName, pMimeType, pAttachmentType, pFileSize);
+                return true;
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return false;
+        }
+    }
+    public async Task<CallToAction> GetCallToAction(int ActiveIncidentID, int UserID, int CompanyID, string TimeZoneId)
+    {
+        try
+        {
+      
+                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pUserID = new SqlParameter("@UserID", UserID);
+                var pTimeZone = new SqlParameter("@TimeZoneId", TimeZoneId);
+
+                var result = await _context.Set<CallToAction>().FromSqlRaw("exec Pro_Get_Call_To_Action_Items @ActiveIncidentID, @CompanyID, @UserID, @TimeZoneId",
+                    pActiveIncidentID, pCompanyID, pUserID, pTimeZone).AsQueryable().ToListAsync();
+
+                return result.FirstOrDefault();
+            
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<bool> UpdateSOS(int SOSAlertID, int UserID, string SOSClosureNotes, bool CloseSOS, bool CloseAllSOS,
+            bool MultiNotes, int[] CaseNoteIDs, bool CloseSOSIncident, int ActiveIncidentID, int CurrentUserId, int CompanyId, string TimeZoneId)
+    {
+        try
+        {
+
+            if (MultiNotes && CaseNoteIDs != null)
+            {
+                foreach (int AlertID in CaseNoteIDs)
+                {
+                    await IncidentNote(AlertID, "SOSALERT", SOSClosureNotes, CompanyId, CurrentUserId);
+                }
+            }
+            else
+            {
+                await IncidentNote(SOSAlertID, "SOSALERT", SOSClosureNotes, CompanyId, CurrentUserId);
+            }
+
+            if (CloseSOS && !CloseAllSOS)
+            {
+                var sos = await  _context.Set<Sosalert>().Where(SA=> SA.SosalertId == SOSAlertID && SA.Completed == false).FirstOrDefaultAsync();
+                if (sos != null)
+                {
+                    sos.Completed = true;
+                    sos.CompletedBy = CurrentUserId;
+                    sos.CompletedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    _context.Update(sos);
+                   await  _context.SaveChangesAsync();
+                }
+            }
+            else if (CloseSOS && CloseAllSOS)
+            {
+                var soslist = await _context.Set<Sosalert>().Where(SA => SA.UserId == UserID && SA.Completed == false).ToListAsync();
+                foreach (var sos in soslist)
+                {
+                    sos.Completed = true;
+                    sos.CompletedBy = CurrentUserId;
+                    sos.CompletedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    _context.Update(sos);
+                }
+               
+                await _context.SaveChangesAsync();
+            }
+
+            if (CloseSOSIncident && ActiveIncidentID > 0)
+            {
+              await  UpdateIncidentStatus(CompanyId, ActiveIncidentID, "CLOSE", TimeZoneId, CurrentUserId, "ADMIN", "SOS Closed", 1, SOSClosureNotes, isSos: true);
+            }
+
+            if (CloseSOS == true && CaseNoteIDs.Length > 0)
+            {
+                foreach (int AlertID in CaseNoteIDs)
+                {
+                    var sos = await  _context.Set<Sosalert>().Where(SA=> SA.SosalertId == AlertID).FirstOrDefaultAsync();
+                    if (sos != null)
+                    {
+                        sos.Completed = true;
+                        sos.CompletedBy = CurrentUserId;
+                        sos.CompletedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                        _context.Update(sos);
+                        await _context.SaveChangesAsync();
+                        if (sos.AlertType == "SOS")
+                        {
+                          await  UpdateIncidentStatus(CompanyId, (int)sos.ActiveIncidentId, "CLOSE", TimeZoneId, CurrentUserId, "ADMIN", "SOS Closed", 1, SOSClosureNotes, isSos: true);
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            
+            return false;
+        }
+    }
+    public async Task<int> CheckUserSOS(int ActiveIncidentID, int UserID)
+    {
+        try
+        {
+            int sosuser = await  _context.Set<Sosalert>()
+                           .Where(SA=> SA.ActiveIncidentId != ActiveIncidentID && SA.UserId == UserID
+                           && SA.Completed == false).CountAsync();
+            return sosuser;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            
+        }
+    }
+    public async Task<UpdateIncidentStatusReturn> UpdateIncidentStatus(int CompanyId, int IncidentActivationId, string Type, string TimeZoneId, int CurrentUserId,
+            string UserRole, string Reason, int NumberOfKeyHolder, string CompletionNotes = "", int[] MessageMethod = null, int CascadePlanID = 0, bool isSos = false)
+    {
+        var Incidt = (from inc in _context.Set<IncidentActivation>()
+                      join L in _context.Set<Location>() on inc.ImpactedLocationId equals L.LocationId
+                      where inc.CompanyId == CompanyId && inc.IncidentActivationId == IncidentActivationId
+                      select new { inc, L.LocationName }).FirstOrDefault();
+
+        DateTimeOffset LocalTime = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+        if (Incidt != null)
+        {
+
+            if (Type.ToUpper() == "DEACTIVATE" && Incidt.inc.Status != 3)
+            {
+                Incidt.inc.Status = 3;
+                Incidt.inc.DeactivatedOn = LocalTime;
+                Incidt.inc.DeactivatedBy = CurrentUserId;
+            }
+            else if (Type.ToUpper() == "CLOSE" && Incidt.inc.Status != 4)
+            {
+                if (Incidt.inc.DeactivatedBy == 0)
+                {
+                    Incidt.inc.DeactivatedOn = LocalTime;
+                    Incidt.inc.DeactivatedBy = CurrentUserId;
+                }
+                Incidt.inc.Status = 4;
+                Incidt.inc.ClosedOn = LocalTime;
+                Incidt.inc.ClosedBy = CurrentUserId;
+
+                //Add Completion Notes
+                if (!string.IsNullOrEmpty(CompletionNotes))
+                {
+                    Incidt.inc.HasNotes = true;
+                    await IncidentNote(Incidt.inc.IncidentActivationId, "INCIDENT", CompletionNotes, CompanyId, CurrentUserId);
+                }
+
+               
+              await  _activeIncidentRepository.CompleteAllTask(Incidt.inc.IncidentActivationId, CurrentUserId, CompanyId, TimeZoneId);
+
+            }
+            else if (Type.ToUpper() == "CANCEL" && Incidt.inc.Status != 5)
+            {
+                Incidt.inc.Status = 5;
+                Incidt.inc.ClosedOn = LocalTime;
+                Incidt.inc.ClosedBy = CurrentUserId;
+            }
+            else
+            {
+                var rtninci = await _context.Set<IncidentActivation>()
+                               .Where(Incidentval=> Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == IncidentActivationId)
+                               .Select(Incidentval=> new UpdateIncidentStatusReturn { IncidentActivationId = Incidentval.IncidentActivationId }).FirstOrDefaultAsync();
+
+                return rtninci;
+            }
+            Incidt.inc.UpdatedBy = CurrentUserId;
+            Incidt.inc.UpdatedOn = LocalTime;
+            _context.Update(Incidt);
+            await _context.SaveChangesAsync();
+
+            IncidentDeActivationReason tblIncidentDeactiReason = new IncidentDeActivationReason()
+            {
+                CompanyId = CompanyId,
+                Reason = !string.IsNullOrEmpty(Reason) ? Reason.Trim() : "",
+                Type = Type,
+                IncidentActivationId = IncidentActivationId,
+                CreatedOn = LocalTime,
+                CreatedBy = CurrentUserId,
+                UpdatedOn = LocalTime,
+                UpdatedBy = CurrentUserId,
+            };
+           await _context.AddAsync(tblIncidentDeactiReason);
+           await _context.SaveChangesAsync();
+            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+            //string sendClosureAlert = "true";
+            //sendClosureAlert = DBC.GetCompanyParameter("SEND_INCIDENT_CLOSURE_PING", CompanyId);
+
+            if (Type.ToUpper() == "CLOSE")
+            {
+
+                // This will send a clouser message as Ping
+                UserFullName closedUser = await _context.Set<User>().Where(U=> U.UserId == Incidt.inc.ClosedBy).Select(s => new UserFullName { Firstname = s.FirstName, Lastname = s.LastName }).SingleOrDefaultAsync();
+                string MsgText = Incidt.inc.Name + " at " + Incidt.LocationName + ", launched on " + Incidt.inc.LaunchedOn.ToString("dd-MMM-yyyy HH:mm") + " is closed by " + DBC.UserName(closedUser) + " with the following reason:" + Environment.NewLine + "\"" + Reason + "\"";
+
+                Messaging MSG = new Messaging(_context, _httpContextAccessor);
+                MSG.TimeZoneId = TimeZoneId;
+                MSG.CascadePlanID = CascadePlanID;
+                MSG.MessageSourceAction = isSos ? SourceAction.SosClosure : SourceAction.IncidentClosure;
+                int tblmessageid =await MSG.CreateMessage(CompanyId, MsgText, "Ping", IncidentActivationId, 500, CurrentUserId, 1, LocalTime, false, null, 99,
+                    0, 0, false, false, MessageMethod);
+
+                var pMessageId = new SqlParameter("@MessageID", tblmessageid);
+                var pIncidentActivationId = new SqlParameter("@IncidentActivationID", IncidentActivationId);
+                var pCustomerTime = new SqlParameter("@CustomerTime", DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+
+                try
+                {
+                    int RowsCount =await _context.Database.ExecuteSqlRawAsync("Pro_Incident_Closure_Message_List @IncidentActivationID,@MessageID,@CustomerTime",
+                       pIncidentActivationId, pMessageId, pCustomerTime);
+
+                    IsFundAvailable = await MSG.CalculateMessageCost(CompanyId, tblmessageid, MsgText);
+
+                    Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Ping", 1, CascadePlanID));
+
+                    //QueueHelper.MessageDevicePublish(tblmessageid, 1);
+                    QueueConsumer.CreateCascadingJobs(CascadePlanID, tblmessageid, 0, CompanyId, TimeZoneId);
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+
+                MSG.DeleteMessageMethod(0, IncidentActivationId);
+                DBC.CancelJobsByGroup("MESSAGE_CASCADE_" + IncidentActivationId);
+            }
+
+            SendEmail SDE = new SendEmail(_context,DBC);
+            var roles = DBC.CCRoles();
+            if (Type.ToUpper() == "DEACTIVATE")
+            {
+                if (!roles.Contains(UserRole.ToUpper()) && NumberOfKeyHolder > 1)
+                {
+                    SDE.NotifyKeyHolders("deactivate", IncidentActivationId, CurrentUserId, CompanyId, Reason);
+                }
+            }
+            else if (Type.ToUpper() == "CANCEL")
+            {
+                if (NumberOfKeyHolder > 1)
+                {
+                    SDE.NotifyKeyHolders("cancel", IncidentActivationId, CurrentUserId, CompanyId, Reason);
+                }
+            }
+
+            var inciList = _context.Set<IncidentActivation>()
+                            .Where(Incidentval=> Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == IncidentActivationId)
+                            .Select(Incidentval=> new UpdateIncidentStatusReturn { IncidentActivationId = Incidentval.IncidentActivationId }).FirstOrDefault();
+
+            return inciList;
+        }
+        else
+        {
+            return null;
+        }
+    }
+    public async Task<List<IncidentSOSRequest>> GetIncidentSOSRequest(int IncidentActivationId)
+    {
+        try
+        {
+            var pIncidentActivationId = new SqlParameter("@IncidentActivationID", IncidentActivationId);
+            var sosuser = await _context.Set<IncidentSOSRequest>().FromSqlRaw("exec Pro_ActiveIncident_GetIncidentSOSRequest @IncidentActivationID", pIncidentActivationId).ToListAsync();
+            return sosuser;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<UpdateIncidentStatusReturn> GetActiveIncidentBasic(int CompanyId, int IncidentActivationId)
+    {
+        try
+        {
+
+            return await (from Incidentval in _context.Set<IncidentActivation>()
+                    join Inctdt in _context.Set<Incident>() on Incidentval.IncidentId equals Inctdt.IncidentId
+                    join L in _context.Set<Location>() on Incidentval.ImpactedLocationId equals L.LocationId
+                    where Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == IncidentActivationId
+                    select new UpdateIncidentStatusReturn
+                    {
+                        Name = Incidentval.Name,
+                        Icon = Incidentval.IncidentIcon,
+                        //Description = Incidentval.IncidentDescription,
+                        IncidentActivationId = Incidentval.IncidentActivationId,
+                        Severity = Incidentval.Severity,
+                        ImpactedLocationId = Incidentval.ImpactedLocationId,
+                        ImpactedLocation = L.LocationName,
+                        IncidentId = Incidentval.IncidentId,
+                        InitiatedOn = Incidentval.InitiatedOn,
+                        InitiatedBy = (int)Incidentval.InitiatedBy,
+                        LaunchedOn = Incidentval.LaunchedOn,
+                        LaunchedBy = (int)(Incidentval.LaunchedBy != null ? Incidentval.LaunchedBy : 0),
+                        DeactivatedOn = Incidentval.DeactivatedOn,
+                        DeactivatedBy = (int)(Incidentval.DeactivatedBy != null ? Incidentval.DeactivatedBy : 0),
+                        ClosedOn = Incidentval.ClosedOn,
+                        ClosedBy = (int)(Incidentval.ClosedBy != null ? Incidentval.ClosedBy : 0),
+                        NumberOfKeyHolders = Inctdt.NumberOfKeyHolders,
+                        StatusId = Incidentval.Status,
+                        //AssetId = Incidentval.AssetId,
+                        HasTask = Incidentval.HasTask,
+                        HasNotes = Incidentval.HasNotes,
+                        TrackUser = (bool)Incidentval.TrackUser,
+                        //SilentMessage = (bool)Incidentval.SilentMessage,
+                        //IsSOS = (bool)Inctdt.IsSOS,
+                        Status = (from Lval in _context.Set<SysParameter>()
+                                  where Lval.Value == Incidentval.Status.ToString().Trim() && Lval.Category == "IncidentStatus"
+                                  select Lval.Name).FirstOrDefault(),
+
+                    }).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+            return new UpdateIncidentStatusReturn();
+        }
+             
     }
 
 }

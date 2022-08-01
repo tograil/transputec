@@ -14,10 +14,21 @@ using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using CrisesControl.Core.Exceptions.InvalidOperation;
 using System.Text.RegularExpressions;
+using Microsoft.Data.SqlClient;
+using CrisesControl.Core.CompanyParameters;
+using Microsoft.EntityFrameworkCore;
+using CrisesControl.Infrastructure.Services;
+using log4net;
+using Microsoft.Extensions.Logging;
+using System.Reflection;
+using CrisesControl.Core.Incidents;
+using System.Threading.Tasks;
+using Quartz;
+using Quartz.Impl.Matchers;
 using CrisesControl.Core.Locations;
 using System.Net;
 using System.Xml.Linq;
-using CrisesControl.Infrastructure.Services;
+using Location = CrisesControl.Core.Locations.Location;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -29,8 +40,11 @@ namespace CrisesControl.Api.Application.Helpers
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly SendEmail _SDE;
+        ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
 
         public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, SendEmail? SDE)
+
+        public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
@@ -82,7 +96,7 @@ namespace CrisesControl.Api.Application.Helpers
 
                         if (provider.ToUpper() != "OFFICE365")
                         {
-                            var desc = (from MSG in  _context.Set<EmailTemplate>()
+                            var desc = (from MSG in _context.Set<EmailTemplate>()
                                         where MSG.Code == "DISCLAIMER_TEXT"
                                         where MSG.CompanyId == 0
                                         select MSG)
@@ -139,6 +153,30 @@ namespace CrisesControl.Api.Application.Helpers
                 return strUserName.Firstname + " " + strUserName.Lastname;
             }
             return "";
+        }
+        public async Task<int> IncidentNote(int ObjectID, string NoteType, string Notes, int CompanyID, int UserID)
+        {
+            try
+            {
+                IncidentTaskNote Note = new IncidentTaskNote()
+                {
+                    UserId = UserID,
+                    ObjectId = ObjectID,
+                    CompanyId = CompanyID,
+                    IncidentTaskNotesId = ObjectID,
+                    NoteType = NoteType,
+                    Notes = Notes,
+                    CreatedDate = DateTime.Now,
+                };
+                await _context.AddAsync(Note);
+                await _context.SaveChangesAsync();
+                return Note.IncidentTaskNotesId;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return 0;
+            }
         }
 
         public string GetCompanyParameter(string key, int companyId, string Default = "", string customerId = "")
@@ -241,39 +279,39 @@ namespace CrisesControl.Api.Application.Helpers
 
         public DateTimeOffset GetDateTimeOffset(DateTime crTime, string timeZoneId = "GMT Standard Time")
         {
-                if (crTime.Year <= 2000)
-                    return crTime;
+            if (crTime.Year <= 2000)
+                return crTime;
 
-                if (crTime.Year > 3000)
-                {
-                    crTime = DateTime.MaxValue.AddHours(-48);
-                }
+            if (crTime.Year > 3000)
+            {
+                crTime = DateTime.MaxValue.AddHours(-48);
+            }
 
-                TimeZoneInfo cet = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-                var offset = cet.GetUtcOffset(crTime);
+            TimeZoneInfo cet = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            var offset = cet.GetUtcOffset(crTime);
 
-                DateTimeOffset newvals = new DateTimeOffset(new DateTime(crTime.Year, crTime.Month, crTime.Day, crTime.Hour, crTime.Minute, crTime.Second, crTime.Millisecond));
+            DateTimeOffset newvals = new DateTimeOffset(new DateTime(crTime.Year, crTime.Month, crTime.Day, crTime.Hour, crTime.Minute, crTime.Second, crTime.Millisecond));
 
-                DateTimeOffset convertedtime = newvals.ToOffset(offset);
+            DateTimeOffset convertedtime = newvals.ToOffset(offset);
 
-                return convertedtime;
+            return convertedtime;
         }
 
         public DateTime GetLocalTime(string timeZoneId, DateTime? paramTime = null)
         {
-                if (string.IsNullOrEmpty(timeZoneId))
-                    timeZoneId = "GMT Standard Time";
+            if (string.IsNullOrEmpty(timeZoneId))
+                timeZoneId = "GMT Standard Time";
 
-                DateTime retDate = DateTime.Now.ToUniversalTime();
+            DateTime retDate = DateTime.Now.ToUniversalTime();
 
-                DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
+            DateTime dateTimeToConvert = new DateTime(retDate.Ticks, DateTimeKind.Unspecified);
 
-                DateTime timeUtc = DateTime.UtcNow;
+            DateTime timeUtc = DateTime.UtcNow;
 
-                TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-                retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
+            TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
 
-                return retDate;
+            return retDate;
         }
 
         public void CreateObjectRelationship(int targetObjectId, int sourceObjectId, string relationName, int companyId, int createdUpdatedBy, string timeZoneId, string relatinFilter = "")
@@ -301,11 +339,11 @@ namespace CrisesControl.Api.Application.Helpers
                         {
                             if (relationName.ToUpper() == "GROUP")
                             {
-                                newSourceObjectId = _context.Set<Core.Groups.Group>().Where(t=>t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t=>t.GroupId).FirstOrDefault();
+                                newSourceObjectId = _context.Set<Core.Groups.Group>().Where(t => t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t => t.GroupId).FirstOrDefault();
                             }
                             else if (relationName.ToUpper() == "LOCATION")
                             {
-                                newSourceObjectId = _context.Set<Core.Models.Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
+                                newSourceObjectId = _context.Set<Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
                             }
                             CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
                         }
@@ -316,7 +354,8 @@ namespace CrisesControl.Api.Application.Helpers
                     UpdateUserDepartment(targetObjectId, sourceObjectId, createdUpdatedBy, companyId, timeZoneId);
                 }
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new RelationNameNotFoundException(companyId, userId);
             }
         }
@@ -441,7 +480,8 @@ namespace CrisesControl.Api.Application.Helpers
 
                 return tmpZoneVal;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 throw new UserNotFoundException(companyId, userId);
             }
             return "GMT Standard Time";
@@ -638,7 +678,6 @@ namespace CrisesControl.Api.Application.Helpers
                 return testResult;
             }
         }
-
         public void RemoveUserObjectRelation(string RelationName, int UserId, int SourceObjectId, int CompanyId, int CurrentUserId, string TimeZoneId)
         {
             try
@@ -668,10 +707,11 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex)
             {
                 throw ex;
-
             }
+          
         }
-
+       
+       
         public void RemoveUserDevice(int UserID, bool TokenReset = false)
         {
             try
@@ -719,6 +759,24 @@ namespace CrisesControl.Api.Application.Helpers
                  where CM.CompanyId == CompanyId && methods.Contains(CO.MethodCode)
                  select CM).ToList().ForEach(x => x.ServiceStatus = status);
                 _context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async void MessageProcessLog(int MessageID, string EventName, string MethodName = "", string QueueName = "", string AdditionalInfo = "")
+        {
+            try
+            {
+                var pMessageID = new SqlParameter("@MessageID", MessageID);
+                var pEventName = new SqlParameter("@EventName", EventName);
+                var pMethodName = new SqlParameter("@MethodName", MethodName);
+                var pQueueName = new SqlParameter("@QueueName", QueueName);
+                var pAdditionalInfo = new SqlParameter("@AdditionalInfo", AdditionalInfo);
+
+                await _context.Set<Result>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
+                     pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -806,6 +864,282 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
 
+        }
+        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
+        {
+
+            if (Level.ToUpper() == "INFO")
+            {
+                string CreateLog = LookupWithKey("COLLECT_PERFORMANCE_LOG");
+                if (CreateLog == "false")
+                    return;
+            }
+
+            LogicalThreadContext.Properties["ControllerName"] = Controller;
+            LogicalThreadContext.Properties["MethodName"] = Method;
+            LogicalThreadContext.Properties["CompanyId"] = CompanyId;
+            if (Level.ToUpper() == "ERROR")
+            {
+                Logger.Error(Message, Ex);
+            }
+            else if (Level.ToUpper() == "DEBUG")
+            {
+                Logger.Debug(Message, Ex);
+            }
+            else if (Level.ToUpper() == "INFO")
+            {
+                Logger.Info(Message, Ex);
+            }
+
+
+
+            if (Ex != null)
+                Console.WriteLine(Message + Ex.ToString());
+        }
+
+        public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
+        {
+            try
+            {
+                CreateLog("INFO", Left(strErrorMessage, 8000), null, strControllerName, strMethodName, intCompanyId);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public string Getconfig(string key, string DefaultVal = "")
+        {
+            try
+            {
+                string value = System.Configuration.ConfigurationManager.ConnectionStrings.ToString();
+                if (value != null)
+                {
+                    return value;
+                }
+                else
+                {
+                    return DefaultVal;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public string FormatMobile(string ISD, string Mobile)
+        {
+            if (!string.IsNullOrEmpty(Mobile))
+            {
+                Mobile = Mobile.TrimStart('0').TrimStart('+');
+                if (Mobile.Length > 4)
+                {
+                    ISD = ISD.TrimStart('+').TrimStart('0');
+                    return "+" + ISD + Mobile;
+                }
+                else
+                {
+                    return "";
+                }
+            }
+            else
+            {
+                return "";
+            }
+        }
+        public bool IsTrue(string BoolVal, bool Default = true)
+        {
+            if (BoolVal == "true")
+            {
+                return true;
+            }
+            else if (BoolVal == "false")
+            {
+                return false;
+            }
+            else
+            {
+                return Default;
+            }
+        }
+        public int ChunkString(string str, int chunkSize)
+        {
+            int result = 1;
+            Math.DivRem(str.Length, chunkSize, out result);
+            int z = (str.Length / chunkSize) + (result > 0 ? 1 : 0);
+            return z;
+        }
+        public dynamic InitComms(string API_CLASS, string APIClass = "", string ClientId = "", string ClientSecret = "")
+        {
+            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+            try
+            {
+
+                int RetryCount = 2;
+                int.TryParse(DBC.LookupWithKey(API_CLASS + "_MESSAGE_RETRY_COUNT"), out RetryCount);
+
+                if (string.IsNullOrEmpty(APIClass))
+                    APIClass = DBC.LookupWithKey(API_CLASS + "_API_CLASS");
+
+                if (string.IsNullOrEmpty(ClientId))
+                    ClientId = DBC.LookupWithKey(API_CLASS + "_CLIENTID");
+
+                if (string.IsNullOrEmpty(ClientSecret))
+                    ClientSecret = DBC.LookupWithKey(API_CLASS + "_CLIENT_SECRET");
+
+                string[] TmpClass = APIClass.Trim().Split('|');
+
+                string binPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "bin");
+
+                Assembly assembly = Assembly.LoadFrom(binPath + "\\" + TmpClass[0]);
+                Type type = assembly.GetType(TmpClass[1]);
+                dynamic CommsAPI = Activator.CreateInstance(type);
+
+                CommsAPI.ClientId = ClientId;
+                CommsAPI.Secret = ClientSecret;
+                CommsAPI.RetryCount = RetryCount;
+
+                return CommsAPI;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return null;
+            }
+        }
+        public async Task<List<NotificationUserList>> GetUniqueUsers(List<NotificationUserList> List1, List<NotificationUserList> List2, bool ParticipantCheck = true)
+        {
+            try
+            {
+                if (List2 != null)
+                {
+                    if (List2.Count > 0)
+                    {
+                        List1.RemoveAll(x => List2.Exists(y => y.UserId == x.UserId && y.IsTaskRecipient == ParticipantCheck));
+                        List1 = List1.Union(List2).ToList();
+                    }
+                }
+                List1 = List1.GroupBy(g => new { g.UserId, g.IsTaskRecipient })
+                    .Select(g => g.First())
+                    .ToList();
+                List1.RemoveAll(x => List1.Exists(y => y.UserId == x.UserId && y.IsTaskRecipient == true && x.IsTaskRecipient == false));
+                return List1;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+        public async Task<List<AckOption>> GetAckOptions(int MessageID)
+        {
+            try
+            {
+                return await _context.Set<ActiveMessageResponse>()
+                        .Where(MR => MR.MessageId == MessageID)
+                        .Select(MR => new AckOption()
+                        {
+                            ResponseId = MR.ResponseId,
+                            ResponseLabel = MR.ResponseLabel
+                        }).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return null;
+            }
+        }
+        public string GetValueByIndex(List<string> ValueList, int IndexVal)
+        {
+            try
+            {
+
+                bool isModed = false;
+                if (IndexVal > ValueList.Count)
+                {
+                    IndexVal %= ValueList.Count;
+                    isModed = true;
+                }
+
+                if (IndexVal == 0 && isModed == true)
+                    IndexVal = ValueList.Count;
+
+                if (IndexVal < 0)
+                    IndexVal = 0;
+
+                if (ValueList.ElementAtOrDefault(IndexVal) != null)
+                {
+                    return ValueList.ElementAtOrDefault(IndexVal);
+                }
+                else
+                {
+                    return GetValueByIndex(ValueList, 0);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return "+441212855004";
+            }
+        }
+        public async Task LocalException(string Error, string Message, string Controller = "", string Method = "", int CompanyId = 0)
+        {
+            ExceptionLog el = new ExceptionLog();
+            el.ControllerName = Controller;
+            el.MethodName = Method;
+            el.CompanyId = CompanyId;
+            el.CreatedBy = 0;
+            el.EntryDate = DateTimeOffset.Now;
+            el.ErrorId = Error;
+            el.ErrorMessage = Message;
+            await _context.AddAsync(el);
+            await _context.SaveChangesAsync();
+        }
+        public bool IsDayLightOn(DateTime thisDate)
+        {
+            try
+            {
+                TimeZoneInfo tst = TimeZoneInfo.FindSystemTimeZoneById("GMT Standard Time");
+                bool isDaylight = tst.IsDaylightSavingTime(thisDate);
+                DateTime f2 = TimeZoneInfo.ConvertTime(thisDate, tst);
+                var isSummer = tst.IsDaylightSavingTime(f2);
+                return isDaylight;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return false;
+        }
+        
+        public void CancelJobsByGroup(string JobGroup)
+        {
+            try
+            {
+                ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+                var groupMatcher = GroupMatcher<JobKey>.GroupContains(JobGroup);
+                var jobKeys = _scheduler.GetJobKeys(groupMatcher).Result;
+                foreach (var jobKey in jobKeys)
+                {
+
+                    _scheduler.DeleteJob(jobKey);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public void DeleteOldFiles(string dirName)
+        {
+            string[] files = Directory.GetFiles(@dirName);
+
+            foreach (string file in files)
+            {
+                FileInfo fi = new FileInfo(file);
+                if (fi.CreationTime < DateTime.Now.AddDays(-1))
+                    fi.Delete();
+            }
         }
     }
 }

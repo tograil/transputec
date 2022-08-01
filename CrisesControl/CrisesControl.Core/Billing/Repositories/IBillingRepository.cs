@@ -7,6 +7,9 @@ namespace CrisesControl.Core.Billing.Repositories {
         Task<BillingPaymentProfile> GetPaymentProfile(int companyID);
         Task<BillingSummaryModel> GetBillingSummary(int outUserCompanyId, int chkUserId);
         Task<GetCompanyInvoicesReturn> GetAllInvoices(int companyId, CancellationToken cancellationToken);
+        Task<dynamic> GetUnbilledSummary(int startYear);
+        Task<dynamic> GetUnbilledSummaryByMonth(int startYear, int monthNumber);
+        Task<dynamic> GetUnbilledSummaryByMessage(int messageId);
         Task<List<InvoiceSchReturn>> GetInvItems(int OrderId, int MonthVal, int YearVal);
         Task<dynamic> GetOrder(int orderId, int companyId, string customerId, int originalOrderId);
         Task<int> CreateOrder(OrderModel IP);

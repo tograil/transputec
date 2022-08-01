@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.Core.Incidents;
+using System;
 
 namespace CrisesControl.Core.Models
 {
@@ -18,5 +19,6 @@ namespace CrisesControl.Core.Models
         public string? ReviewFrequency { get; set; }
         public decimal? Rto { get; set; }
         public decimal? Rpo { get; set; }
+        public IncidentActivation IncidentActivation { get; set; }
     }
 }

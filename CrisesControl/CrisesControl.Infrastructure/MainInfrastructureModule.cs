@@ -30,7 +30,10 @@ using CrisesControl.Core.Administrator.Repositories;
 using CrisesControl.Core.Payments.Repositories;
 using CrisesControl.Core.AddressDetails.Repositories;
 using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Academy.Repositories;
 using CrisesControl.Core.SopLibrary.Repositories;
+using CrisesControl.Core.System.Repositories;
+using CrisesControl.Core.Lookup.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -102,6 +105,9 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<SendEmail>().As<SendEmail>();
             builder.RegisterType<DBCommon>().As<DBCommon>();
             builder.RegisterType<SopLibraryRepository>().As<ISopLibraryRepository>();
+            builder.RegisterType<SystemRepository>().As<ISystemRepository>();
+            builder.RegisterType<AcademyRepository>().As<IAcademyRepository>();
+            builder.RegisterType<LookupRepository>().As<ILookupRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

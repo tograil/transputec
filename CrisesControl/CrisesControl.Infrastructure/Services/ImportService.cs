@@ -385,7 +385,7 @@ namespace CrisesControl.Infrastructure.Services
             LocationId = 0;
             if (!string.IsNullOrEmpty(LocationName))
             {
-                var IsLocationExist = (from L in _context.Set<Core.Models.Location>() where L.LocationName == LocationName && L.CompanyId == CompanyId select L).FirstOrDefault();
+                var IsLocationExist = (from L in _context.Set<Location>() where L.LocationName == LocationName && L.CompanyId == CompanyId select L).FirstOrDefault();
 
                 if (IsLocationExist != null)
                 {
@@ -793,7 +793,7 @@ namespace CrisesControl.Infrastructure.Services
 
                                 LatLng LL = _DBC.GetCoordinates(uploadData.LocationAddress);
 
-                                var locUpdate = (from L in _context.Set<Core.Models.Location>()
+                                var locUpdate = (from L in _context.Set<Location>()
                                                  where L.LocationId == uploadData.LocationId
                                                  select L).FirstOrDefault();
                                 if (locUpdate != null)

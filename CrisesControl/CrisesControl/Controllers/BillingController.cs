@@ -9,6 +9,7 @@ using CrisesControl.Api.Application.Commands.Billing.GetPaymentProfile;
 using CrisesControl.Api.Application.Commands.Billing.GetTransactionDetails;
 using CrisesControl.Api.Application.Commands.Billing.GetUsageGraph;
 using CrisesControl.Api.Application.Commands.Billing.SaveCompanyModules;
+using CrisesControl.Api.Application.Commands.Billing.GetUnbilledSummary;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -116,5 +117,13 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        [HttpPost]
+        [Route("GetUnbilledSummary")]
+        public async Task<IActionResult> GetUnbilledSummary(GetUnbilledSummaryRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
     }
 }

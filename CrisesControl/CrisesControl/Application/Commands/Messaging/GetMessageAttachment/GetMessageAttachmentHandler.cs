@@ -3,6 +3,7 @@ using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
 using MediatR;
 using Serilog;
+using System.Net;
 
 namespace CrisesControl.Api.Application.Commands.Messaging.GetMessageAttachment
 {
@@ -29,14 +30,14 @@ namespace CrisesControl.Api.Application.Commands.Messaging.GetMessageAttachment
                     return new GetMessageAttachmentResponse
                     {
                         Data = response,
-                        ErrorCode = System.Net.HttpStatusCode.OK,
+                        ErrorCode = HttpStatusCode.OK,
                         Message = "Data has been loaded Succesfully"
                     };
                 }
                 return new GetMessageAttachmentResponse
                 {
                     Data = response,
-                    ErrorCode = System.Net.HttpStatusCode.OK,
+                    ErrorCode = HttpStatusCode.OK,
                     Message = "Data Not Found"
                 };
 
