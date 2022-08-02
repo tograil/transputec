@@ -26,7 +26,12 @@ namespace CrisesControl.Api.Controllers
         {
             _mediator = mediator;
         }
-        
+        /// <summary>
+        /// Get all department the list 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
 
         [HttpGet]
         public async Task<IActionResult> Index([FromRoute] GetDepartmentsRequest request, CancellationToken cancellationToken)
@@ -34,6 +39,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        /// <summary>
+        /// Check the Department existence
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("[action]/{DepartmentId}")]
         public async Task<IActionResult> CheckDepartment([FromRoute] CheckDepartmentRequest request, CancellationToken cancellationToken)
@@ -41,6 +52,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        /// <summary>
+        /// Get a Department by CompanyI and DepartmentId
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
 
         [HttpGet]
         [Route("{CompanyId:int}/{DepartmentId:int}")]
@@ -49,6 +66,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        /// <summary>
+        /// Create a Department to the app
+        /// </summary>
+        /// <param name="departmentModel"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
 
         [HttpPost]
         public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest departmentModel, CancellationToken cancellationToken)
@@ -63,6 +86,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(departmentModel, cancellationToken);
             return Ok(result);
         }
+        /// <summary>
+        /// Update the Segregation link in the Department
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpPut]
         [Route("[action]")]
         public async Task<IActionResult> UpdateSegregationLink([FromBody] UpdateSegregationLinkRequest request, CancellationToken cancellationToken)
@@ -70,6 +99,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        /// <summary>
+        ///Get a Segregation links in the Department by CompanyId, TargetId, MembershipType and LinkType
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("[action]/{OutUserCompanyId}/{TargetID}/{MemberShipType}/{LinkType}")]
         public async Task<IActionResult> SegregationLinks([FromRoute] SegregationLinksRequest request, CancellationToken cancellationToken)
@@ -77,6 +112,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        /// <summary>
+        /// Check the  Department Status
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("[action]/{OutUserCompanyId}")]
         public async Task<IActionResult> DepartmentStatus([FromRoute] DepartmentStatusRequest request, CancellationToken cancellationToken)
@@ -84,6 +125,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        /// <summary>
+        /// Delete the Department
+        /// </summary>
+        /// <param name="departmentModel"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpDelete]
         public async Task<IActionResult> DeleteDepartment([FromQuery] DeleteDepartmentRequest departmentModel, CancellationToken cancellationToken)
         {
