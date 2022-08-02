@@ -1366,5 +1366,41 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
+        public async Task<SysParameter> GetSysParameters(int SysParametersId)
+        {
+            try
+            {
+                var SysParameter = await  _context.Set<SysParameter>()
+                                    .Where(SP=> SP.SysParametersId == SysParametersId).FirstOrDefaultAsync();
+
+                if (SysParameter != null)
+                {
+                    return SysParameter;
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<List<SysParameter>> GetAllSysParameters()
+        {
+            try
+            {
+                var pParam = new SqlParameter("@ParamNames", string.Empty);
+                var allSysParameters = await  _context.Set<SysParameter>().FromSqlRaw(" exec Pro_Global_GetSystemParameter @ParamNames", pParam).ToListAsync();
+                if (allSysParameters != null)
+                {
+                    return allSysParameters;
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
     }
 }

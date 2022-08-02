@@ -6,6 +6,7 @@ using CrisesControl.Api.Application.Commands.Administrator.DeleteLibIncidentType
 using CrisesControl.Api.Application.Commands.Administrator.DumpReport;
 using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncidentType;
+using CrisesControl.Api.Application.Commands.Administrator.GetAllSysParameters;
 using CrisesControl.Api.Application.Commands.Administrator.GetAppLanguage;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyPackageFeatures;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyPackageItems;
@@ -15,6 +16,7 @@ using CrisesControl.Api.Application.Commands.Administrator.GetEmailTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.GetLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.GetLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.GetReport;
+using CrisesControl.Api.Application.Commands.Administrator.GetSysParameters;
 using CrisesControl.Api.Application.Commands.Administrator.GetTransactionType;
 using CrisesControl.Api.Application.Commands.Administrator.RestoreTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.SaveEmailTemplate;
@@ -245,6 +247,32 @@ public class AdminController : Controller
     [HttpPut]
     [Route("UpdatePackageItem/{PackageItemId}/{ItemValue}")]
     public async Task<IActionResult> UpdatePackageItem([FromRoute] UpdatePackageItemRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get the System Parameters
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("GetSysParameters")]
+    public async Task<IActionResult> GetSysParameters([FromRoute] GetSysParametersRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get the systems parameters
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("GetAllSysParameters")]
+    public async Task<IActionResult> GetAllSysParameters([FromRoute] GetAllSysParametersRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);

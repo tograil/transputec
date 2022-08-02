@@ -63,6 +63,8 @@ namespace CrisesControl.Core.Administrator.Repositories
         Task<CompanyPackageItem> GetCompanyPackageById(int PackageItemId);
         Task<int> UpdateCompanyPackageItem(CompanyPackageItem packageItem);
         Task<CompanyPackageItems> GetCompanyPackageItems(int CompanyID, int PackageItemId);
+        Task<SysParameter> GetSysParameters(int SysParametersId);
+        Task<List<SysParameter>> GetAllSysParameters();
 
 
     }
