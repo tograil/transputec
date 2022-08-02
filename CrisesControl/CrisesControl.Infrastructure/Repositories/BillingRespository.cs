@@ -30,9 +30,7 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly int companyId;
 
-        public BillingRespository(CrisesControlContext context, IMapper mapper, UsageHelper usage, DBCommon DBC)
-        {
-        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor) {
+        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, UsageHelper usage, DBCommon DBC) {
             _context = context;
             _mapper = mapper;
             _usage = usage;
@@ -757,7 +755,10 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 return result;
             }
-
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
         public async Task<dynamic> GetUnbilledSummary(int startYear)
@@ -775,11 +776,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-            catch (Exception ex)
-            {
-                return null;
-            }
-        }
+
 
         public async Task<List<UsageGraph>> GetUsageGraph(int companyId, string reportType, int lastMonth)
         {
@@ -797,6 +794,8 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 throw ex;
             }
+        }
+
         public async Task<dynamic> GetUnbilledSummaryByMonth(int startYear, int monthNumber)
         {
             try
