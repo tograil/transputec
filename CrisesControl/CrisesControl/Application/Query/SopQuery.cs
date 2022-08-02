@@ -349,7 +349,7 @@ namespace CrisesControl.Api.Application.Query
                 }
                 else
                 {
-                    response.Data = result;
+                    response.Data = null;
                     response.Message = "No record found.";
                 }
 
