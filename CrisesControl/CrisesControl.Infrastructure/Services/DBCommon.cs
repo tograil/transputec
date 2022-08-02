@@ -39,13 +39,16 @@ namespace CrisesControl.Api.Application.Helpers
         private int companyId;
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly SendEmail _SDE;
         ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
 
+        public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, SendEmail? SDE)
 
         public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _SDE = SDE;
             userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         }
@@ -729,6 +732,39 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
+
+        public string GetPackageItem(string itemCode, int companyId)
+        {
+            string retVal = string.Empty;
+            itemCode = itemCode.Trim();
+            var ItemRec = (from PI in _context.Set<CompanyPackageItem>() where PI.ItemCode == itemCode && PI.CompanyId == companyId select PI).FirstOrDefault();
+            if (ItemRec != null)
+            {
+                retVal = ItemRec.ItemValue;
+            }
+            else
+            {
+                var LibItemRec = (from PI in _context.Set<LibPackageItem>() where PI.ItemCode == itemCode select PI).FirstOrDefault();
+                retVal = LibItemRec.ItemValue;
+            }
+            return retVal;
+        }
+
+        public void _set_comms_status(int CompanyId, List<string> methods, bool status)
+        {
+            try
+            {
+                (from CM in _context.Set<CompanyComm>()
+                 join CO in _context.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
+                 where CM.CompanyId == CompanyId && methods.Contains(CO.MethodCode)
+                 select CM).ToList().ForEach(x => x.ServiceStatus = status);
+                _context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public async void MessageProcessLog(int MessageID, string EventName, string MethodName = "", string QueueName = "", string AdditionalInfo = "")
         {
             try
@@ -746,6 +782,88 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 throw ex;
             }
+        }
+
+        public async void GetSetCompanyComms(int CompanyID)
+        {
+            try
+            {
+                var comp_pp = (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == CompanyID select CPP).FirstOrDefault();
+                var comp = (from C in _context.Set<Company>() where C.CompanyId == CompanyID select C).FirstOrDefault();
+                if (comp_pp != null && comp != null)
+                {
+
+                    if (comp.Status == 1)
+                    {
+                        bool sendAlert = false;
+
+                        DateTimeOffset LastUpdate = comp_pp.UpdatedOn;
+
+                        List<string> stopped_comms = new List<string>();
+
+                        if (comp_pp.MinimumEmailRate > 0)
+                        {
+                            stopped_comms.Add("EMAIL");
+                        }
+                        if (comp_pp.MinimumPhoneRate > 0)
+                        {
+                            stopped_comms.Add("PHONE");
+                        }
+                        if (comp_pp.MinimumTextRate > 0)
+                        {
+                            stopped_comms.Add("TEXT");
+                        }
+                        if (comp_pp.MinimumPushRate > 0)
+                        {
+                            stopped_comms.Add("PUSH");
+                        }
+
+                        if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
+                        { //Have positive balance + More than the minimum balance required.
+                            comp.CompanyProfile = "SUBSCRIBED";
+                            _set_comms_status(CompanyID, stopped_comms, true);
+                        }
+                        else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
+                        { //Used the overdraft amount as well, so stop their SMS and Phone
+                            comp.CompanyProfile = "STOP_MESSAGING";
+                            sendAlert = true;
+                            _set_comms_status(CompanyID, stopped_comms, false);
+                        }
+                        else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
+                        { //Using the overdraft facility, can still use the system
+                            comp.CompanyProfile = "ON_CREDIT";
+                            sendAlert = true;
+                            _set_comms_status(CompanyID, stopped_comms, true);
+                        }
+                        else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
+                        { //Less than the minimum balance, just send an alert, can still use the system.
+                            comp.CompanyProfile = "LOW_BALANCE";
+                            sendAlert = true;
+                            _set_comms_status(CompanyID, stopped_comms, true);
+                        }
+                        comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
+                        _context.SaveChanges();
+
+                        if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
+                        {
+                            sendAlert = false;
+                        }
+
+                        string CommsDebug = LookupWithKey("COMMS_DEBUG_MODE");
+
+                        if (sendAlert && CommsDebug == "false")
+                        {
+                           await _SDE.UsageAlert(CompanyID);
+                        }
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
         }
         public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
         {

@@ -13,6 +13,10 @@ namespace CrisesControl.Infrastructure.Repositories
     public class SecurityRepository : ISecurityRepository
     {
         private readonly CrisesControlContext _context;
+        private readonly SendEmail _SDE;
+        private readonly DBCommon _DBC;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public SecurityRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         public SecurityRepository(CrisesControlContext context)
         {
             this._context = context;    
