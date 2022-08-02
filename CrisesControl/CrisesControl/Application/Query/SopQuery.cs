@@ -79,7 +79,7 @@ namespace CrisesControl.Api.Application.Query
                 }
                 else
                 {
-                    response.result = result;
+                    response.result = false;
                     response.Message = "No record found.";
                 }
 
@@ -106,7 +106,7 @@ namespace CrisesControl.Api.Application.Query
                 }
                 else
                 {
-                    response.data = result;
+                    response.data = null;
                     response.Message = "No record found.";
                 }
 
@@ -133,7 +133,7 @@ namespace CrisesControl.Api.Application.Query
                 }
                 else
                 {
-                    response.data = result;
+                    response.data = null;
                     response.Message = "No record found.";
                 }
 
@@ -160,7 +160,7 @@ namespace CrisesControl.Api.Application.Query
                 }
                 else
                 {
-                    response.Data = result;
+                    response.Data = null;
                     response.Message = "No record found.";
                 }
 
@@ -242,7 +242,7 @@ namespace CrisesControl.Api.Application.Query
                 else
                 {
 
-                    response.data = result;
+                    response.data = null;
                 }
 
                 return response;
@@ -321,7 +321,7 @@ namespace CrisesControl.Api.Application.Query
                 }
                 else
                 {
-                    response.SopHeaderId = result;
+                    response.SopHeaderId = 0;
                     response.Message = "No record found.";
                 }
 
