@@ -884,6 +884,18 @@ namespace CrisesControl.Infrastructure.Repositories
             _logger.LogInformation($"User Profile has been updated {user.UserId}");
           
         }
+        public async Task<List<Sectors>> GetSectors()
+        {
+            try
+            {
+                var result = await _context.Set<Sectors>().FromSqlRaw("Pro_Get_IndustrySector").ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
     }
     
 }

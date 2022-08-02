@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Api.Application.Commands.Register.ActivateCompany;
+using CrisesControl.Api.Application.Commands.Register.BusinessSector;
 using CrisesControl.Api.Application.Commands.Register.CheckAppDownloaded;
 using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
@@ -33,5 +34,6 @@ namespace CrisesControl.Api.Application.Query
         Task<SendVerificationResponse> SendVerification(SendVerificationRequest request);
         Task<SendCredentialsResponse> SendCredentials(SendCredentialsRequest request);
         Task<IndexResponse> Index(IndexRequest request);
+        Task<BusinessSectorResponse> BusinessSector(BusinessSectorRequest request);
     }
 }
