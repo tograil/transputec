@@ -10,6 +10,7 @@ namespace CrisesControl.SharedKernel.Enums
     {
         LOCATION,
         DEPARTMENT,
-        GROUP
+        GROUP,
+        INCIDENT
     }
 }
