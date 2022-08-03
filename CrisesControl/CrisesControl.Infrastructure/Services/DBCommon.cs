@@ -39,16 +39,12 @@ namespace CrisesControl.Api.Application.Helpers
         private int companyId;
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly SendEmail _SDE;
         ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
-
-        public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, SendEmail? SDE)
 
         public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            _SDE = SDE;
             userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         }
@@ -853,7 +849,7 @@ namespace CrisesControl.Api.Application.Helpers
 
                         if (sendAlert && CommsDebug == "false")
                         {
-                           await _SDE.UsageAlert(CompanyID);
+                           //await _SDE.UsageAlert(CompanyID);
                         }
 
                     }

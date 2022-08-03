@@ -1,5 +1,7 @@
-﻿using CrisesControl.Core.Security;
+﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Security;
 using CrisesControl.Infrastructure.Context;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -17,7 +19,6 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly DBCommon _DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
         public SecurityRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
-        public SecurityRepository(CrisesControlContext context)
         {
             this._context = context;    
         }
