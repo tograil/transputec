@@ -65,6 +65,18 @@ namespace CrisesControl.Core.Administrator.Repositories
         Task<CompanyPackageItems> GetCompanyPackageItems(int CompanyID, int PackageItemId);
         Task<SysParameter> GetSysParameters(int SysParametersId);
         Task<List<SysParameter>> GetAllSysParameters();
+        Task<int> UpdateSysParameters(int SysParametersId, string Category, string Name, string Value, string Type, string Display, string Description, int Status, int UserId,
+           int CompanyId, string TimeZoneId = "GMT Standard Time");
+        Task<string> CreateActivationKey(int CustomerID, int CurrentUserID, int SalesSource = 0);
+        Task<string> GenerateActivationKey(int keyLength = 16);
+        Task<int> SaveTagCategory(int TagCategoryID, string TagCategoryName, string TagCategorySearchTerms, int CurrentUserId, string TimeZoneId);
+        Task<List<TagCategory>> GetAllTagCategory();
+        Task<int> SaveTag(int TagID, int TagCategoryID, string TagName, string SearchTerms, int CurrentUserId, string TimeZoneId);
+        Task<List<AdminTransaction>> GetMonthlyTransaction(int OutUserCompanyId);
+        Task<bool> SaveContractOffer(PreContractOfferModel IP, int CurrentUserId, int CompanyId, string TimeZoneId);
+        Task<CategoryTag> GetTagCategory(int TagCategoryID);
+        Task<bool> RebuildJobs(string Company, string JobType = "ALL");
+
 
 
     }

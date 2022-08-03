@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.Core.Users;
+using System;
 
 namespace CrisesControl.Core.Models
 {
@@ -13,5 +14,6 @@ namespace CrisesControl.Core.Models
         public bool AllowText { get; set; }
         public bool AllowPhone { get; set; }
         public bool AllowEmail { get; set; }
+        public User User { get; set; }
     }
 }

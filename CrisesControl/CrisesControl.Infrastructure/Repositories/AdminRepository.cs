@@ -2,16 +2,21 @@
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Administrator.Repositories;
+using CrisesControl.Core.Assets.Respositories;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Quartz;
+using Quartz.Impl;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -27,11 +32,21 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly ILogger<AdminRepository> _logger;
         private readonly SendEmail _SDE;
-        public AdminRepository(CrisesControlContext context, ILogger<AdminRepository> logger, SendEmail SDE)
+        private readonly DBCommon DBC;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private static IScheduler _scheduler;
+        private static ISchedulerFactory schedulerFactory;
+        private readonly IJobRepository _jobRepository;
+        private readonly IAssetRepository _assetRepository;
+        public AdminRepository(CrisesControlContext context, ILogger<AdminRepository> logger, SendEmail SDE, IJobRepository jobRepository, IHttpContextAccessor httpContextAccessor, IAssetRepository assetRepository)
         {
             this._context=context;
             this._logger=logger;
             this._SDE = SDE;
+            this._httpContextAccessor = httpContextAccessor;
+            this._jobRepository = jobRepository;
+            this.DBC =new DBCommon(_context, _httpContextAccessor);
+            this._assetRepository = assetRepository;
         }
         public async Task<List<LibIncident>> GetAllLibIncident()
         {
@@ -1402,5 +1417,473 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
+        public async Task<int> UpdateSysParameters(int SysParametersId, string Category, string Name, string Value, string Type, string Display, string Description, int Status, int UserId,
+   int CompanyId, string TimeZoneId = "GMT Standard Time")
+        {
+            try
+            {
+                if (SysParametersId > 0)
+                {
+                    var SysParamsExist =await _context.Set<SysParameter>().Where(SP=> SP.SysParametersId == SysParametersId).FirstOrDefaultAsync();
+                    if (SysParamsExist != null)
+                    {
+                        SysParamsExist.Category = Category;
+                        SysParamsExist.Name = Name;
+                        SysParamsExist.Value = Value;
+                        SysParamsExist.Type = Type;
+                        SysParamsExist.Display = Display;
+                        SysParamsExist.Description = Description;
+                        SysParamsExist.Status = Status;
+                        SysParamsExist.UpdatedBy = UserId;
+                        SysParamsExist.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                        _context.Update(SysParamsExist);
+                        await _context.SaveChangesAsync();
+                        return SysParametersId;
+                    }
+                }
+                else
+                {
+                    SysParameter newSysParameters = new SysParameter()
+                    {
+                        Category = Category,
+                        Name = Name,
+                        Value = Value,
+                        Type = Type,
+                        Display = Display,
+                        Description = Description,
+                        Status = 1,
+                        CreatedBy = UserId,
+                        CreatedOn = DateTime.Now,
+                        UpdatedBy = UserId,
+                        UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId)
+                    };
+                    await _context.AddAsync(newSysParameters);
+                    await _context.SaveChangesAsync();
+                    return newSysParameters.SysParametersId;
+                }
+               // HttpRuntime.UnloadAppDomain();
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<string> CreateActivationKey(int CustomerID, int CurrentUserID, int SalesSource = 0)
+        {
+            string key = await GenerateActivationKey();
+            CompanyActivation CA = new CompanyActivation();
+            CA.ActivationKey = key;
+            CA.CompanyId = CustomerID;
+            CA.CreatedBy = CurrentUserID;
+            CA.CreatedOn = DateTime.Now.GetDateTimeOffset();
+            CA.SalesSource = SalesSource;
+            CA.Status = 0;
+            await _context.AddAsync(CA);
+            await _context.SaveChangesAsync();
+            return key;
+        }
+        public async Task<string> GenerateActivationKey(int keyLength = 16)
+        {
+            string newSerialNumber = "";
+            string SerialNumber = Guid.NewGuid().ToString("N").Substring(0, keyLength).ToUpper();
+            for (int iCount = 0; iCount < keyLength; iCount += 4)
+                newSerialNumber = newSerialNumber + SerialNumber.Substring(iCount, 4) + "-";
+            newSerialNumber = newSerialNumber.Substring(0, newSerialNumber.Length - 1);
+            return newSerialNumber;
+        }
+        public async Task<CategoryTag> GetTagCategory(int TagCategoryID)
+        {
+            try
+            {
+                if (TagCategoryID == 0)
+                {
+                    
+                    var tag_category = await  _context.Set<TagCategory>()
+                                        .Where(TC=> TC.TagCategoryId == TagCategoryID)
+                                        .Select(TC=> new CategoryTag()
+                                        {
+                                           TagCategoryId= TC.TagCategoryId,
+                                           TagCategoryName= TC.TagCategoryName,
+                                           TagCategorySearchTerms= TC.TagCategorySearchTerms,
+                                            Tags = _context.Set<Tag>().Where(T=> T.TagCategoryId == TC.TagCategoryId).ToList()
+                                        }).FirstOrDefaultAsync();
+                    return tag_category;
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<List<TagCategory>> GetAllTagCategory()
+        {
+            var list = await _context.Set<TagCategory>().ToListAsync();
+            return list;
+        }
+        public async Task<int> SaveTagCategory(int TagCategoryID, string TagCategoryName, string TagCategorySearchTerms, int CurrentUserId, string TimeZoneId)
+        {
+            try
+            {
+                if (TagCategoryID == 0)
+                {
+                    TagCategory TC = new TagCategory();
+                    TC.TagCategoryName = TagCategoryName;
+                    TC.TagCategorySearchTerms = TagCategorySearchTerms;
+                    TC.CreatedBy = CurrentUserId;
+                    TC.UpdatedBy = CurrentUserId;
+                    TC.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    TC.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    await _context.AddAsync(TC);
+                    await _context.SaveChangesAsync();
+                    return TC.TagCategoryId;
+                }
+                else
+                {
+                    var tc = await _context.Set<TagCategory>().Where(TC=> TC.TagCategoryId == TagCategoryID).FirstOrDefaultAsync();
+                    if (tc != null)
+                    {
+                        tc.TagCategoryName = TagCategoryName;
+                        tc.TagCategorySearchTerms = TagCategorySearchTerms;
+                        tc.UpdatedBy = CurrentUserId;
+                        tc.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                        _context.Update(tc);
+                        await _context.SaveChangesAsync();
+                        return TagCategoryID;
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<int> SaveTag(int TagID, int TagCategoryID, string TagName, string SearchTerms, int CurrentUserId, string TimeZoneId)
+        {
+            try
+            {
+                if (TagID == 0)
+                {
+                    Tag T = new Tag();
+                    T.TagCategoryId = TagCategoryID;
+                    T.TagName = TagName;
+                    T.SearchTerms = SearchTerms;
+                    T.CreatedBy = CurrentUserId;
+                    T.UpdatedBy = CurrentUserId;
+                    T.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    T.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    await _context.AddAsync(T);
+                    await _context.SaveChangesAsync();
+                    return T.TagId;
+                }
+                else
+                {
+                    var tc = await _context.Set<Tag>().Where(T=> T.TagCategoryId == TagCategoryID && T.TagId == TagID).FirstOrDefaultAsync();
+                    if (tc != null)
+                    {
+                        tc.TagName = TagName;
+                        tc.TagCategoryId = TagCategoryID;
+                        tc.SearchTerms = SearchTerms;
+                        tc.UpdatedBy = CurrentUserId;
+                        tc.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                        _context.Update(tc);
+                        await _context.SaveChangesAsync();
+                        return TagID;
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<List<AdminTransaction>> GetMonthlyTransaction(int OutUserCompanyId)
+        {
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyID", OutUserCompanyId);
+                var transactions = await  _context.Set<AdminTransaction>().FromSqlRaw("exec Pro_Admin_GetMonthlyTransactions @CompanyID", pCompanyID).ToListAsync();
+               
+                return transactions;
+               
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<bool> SaveContractOffer(PreContractOfferModel IP, int CurrentUserId, int CompanyId, string TimeZoneId)
+        {
+            try
+            {
+                //Make a transaction now
+                int Transid = await SaveContractOffer(CompanyId, IP.MonthlyContractValue, IP.YearlyContractValue, IP.KeyHolderLimit, IP.KeyHolderRate,
+                    IP.StaffLimit, IP.StaffRate, CurrentUserId, TimeZoneId);
+
+                if (Transid > 0)
+                {
+
+                    var profile = await  _context.Set<CompanyPaymentProfile>().Where(CO=> CO.CompanyId == CompanyId).FirstOrDefaultAsync();
+                    if (profile != null)
+                    {
+                       await UpdateCompanyPackageItem("USER_LIMIT", IP.StaffLimit.ToString(), 1, CompanyId, CurrentUserId, TimeZoneId);
+                       await UpdateCompanyPackageItem("ADMIN_USER_LIMIT", IP.KeyHolderLimit.ToString(), 1, CompanyId, CurrentUserId, TimeZoneId);
+                       await UpdateCompanyPackageItem("USER_RATE", IP.StaffRate.ToString(), 1, CompanyId, CurrentUserId, TimeZoneId);
+                       await UpdateCompanyPackageItem("ADMIN_USER_RATE", IP.KeyHolderRate.ToString(), 1, CompanyId, CurrentUserId, TimeZoneId);
+                    }
+                    return true;
+                }
+                return false;
+                //else
+                //{
+                //    ResultDTO.ErrorId = 100;
+                //    ResultDTO.Message = "Transaction was not successfull";
+                //}
+                //return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<int> SaveContractOffer(int CompanyID, decimal MonthlyContractValue, decimal YearlyContractValue, int KeyHolderLimit, decimal KeyHolderRate,
+                     int StaffLimit, decimal StaffRate, int CurrentUserId, string TimeZoneId)
+        {
+            try
+            {
+                bool isnew = false;
+                var offer =  await _context.Set<PreContractOffer>().Where(CO=> CO.CompanyId == CompanyID).FirstOrDefaultAsync();
+                if (offer == null)
+                {
+                    isnew = true;
+                    offer = new PreContractOffer();
+                }
+                offer.CompanyId = CompanyID;
+                offer.MonthlyContractValue = MonthlyContractValue;
+                offer.YearlyContractValue = YearlyContractValue;
+                offer.KeyHolderLimit = KeyHolderLimit;
+                offer.KeyHolderRate = KeyHolderRate;
+                offer.StaffLimit = StaffLimit;
+                offer.StaffRate = StaffRate;
+
+                if (isnew)
+                {
+                    offer.CreatedBy = CurrentUserId;
+                    offer.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    await _context.AddAsync(offer);
+                }
+                await _context.SaveChangesAsync();
+                return offer.OfferId;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<bool> RebuildJobs(string Company, string JobType = "ALL")
+        {
+            try
+            {
+                schedulerFactory = new StdSchedulerFactory();
+                _scheduler = schedulerFactory.GetScheduler().Result;
+                if (JobType == "ALL" || JobType == "MESSAGE")
+                    await CreateMessageJobs(Company); //create messaging job
+
+                if (JobType == "ALL" || JobType == "ASSETREVIEW")
+                    CreateAssetReminderJob(Company);//Asset review jobs
+
+                if (JobType == "ALL" || JobType == "OFFDUTY")
+                    CreateOffDutyJobs(Company);  //OffDuty Jobs
+
+                if (JobType == "ALL" || JobType == "SOREVIEW")
+                    CreateSOPReviewJobs(Company); //SOP Review Reminder job
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return false;
+        }
+        private async Task CreateMessageJobs(string Company)
+        {
+            try
+            {
+                string Group = string.Empty;
+
+                var messageJobs = await _context.Set<Job>().Include(a=>a.JobSchedule)
+                                   .Where(J => (J.JobSchedule.IsActive == true && J.IsEnabled == true && J.Locked == false) &&
+                                         (J.ActionType == "Ping" || J.ActionType == "Incident"))
+                                   .ToListAsync();
+
+                if (int.TryParse(Company, out _))
+                {
+                    int companyid = Convert.ToInt32(Company);
+                    messageJobs = messageJobs.Where(w => w.CompanyId == companyid).ToList();
+                }
+
+                if (messageJobs.Count > 0)
+                {
+                    foreach (var item in messageJobs)
+                    {
+                        try
+                        {
+
+                            item.Locked = true;
+                            _context.Update(item);
+                            await _context.SaveChangesAsync();
+
+                            string jobName = item.ActionType + "Job_" + item.JobId;
+                            string newtrigger = item.ActionType + "trigger_" + item.JobId;
+                            Group = item.ActionType + "Jobs";
+
+                            var jobKey = new JobKey(jobName, Group);
+
+                            if (!_scheduler.CheckExists(jobKey).Result)
+                            {
+                                //IScheduleService
+                                //SH.CreateQuartzJob(item.J.JobID, item.J.CompanyId);
+                              await _jobRepository.GetJob(item.CompanyId, item.JobId);
+                            }
+
+                            item.Locked = false;
+                            _context.Update(item);
+                            await _context.SaveChangesAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            throw ex;
+                        }
+                    } 
+
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        private async  Task CreateAssetReminderJob(string Company)
+        {
+            try
+            {
+               var assets =await _context.Set<Assets>().Where(A=> A.AssetOwner > 0 && A.ReviewFrequency != "").ToListAsync();
+
+                if (int.TryParse(Company, out _))
+                {
+                    int companyid = Convert.ToInt32(Company);
+                    assets = assets.Where(w => w.CompanyId == companyid).ToList();
+                }
+
+                foreach (var ast in assets)
+                {
+                    int Counter = 0;
+                    var jobKey = new JobKey("ASSET_REVIEW_" + ast.AssetId, "REVIEW_REMINDER");
+
+                    if (!_scheduler.CheckExists(jobKey).Result)
+                    {
+                        string TimeZoneId = DBC.GetTimeZoneByCompany(ast.CompanyId);
+                        if ((DateTimeOffset)ast.ReviewDate > DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId).Date && !string.IsNullOrEmpty(ast.ReviewFrequency))
+                        {
+                            DateTimeOffset DateCheck = DBC.GetNextReviewDate((DateTimeOffset)ast.ReviewDate, ast.CompanyId, 0, out Counter);
+                            _assetRepository.CreateAssetReviewReminder(ast.AssetId, ast.CompanyId, (DateTimeOffset)ast.ReviewDate, ast.ReviewFrequency, Counter);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        private async Task CreateOffDutyJobs(string Company)
+        {
+            try
+            {
+                var offdutyusers = await _context.Set<OffDuty>().Include(x=>x.User)
+                                   .ToListAsync();
+
+                if (int.TryParse(Company, out _))
+                {
+                    int companyid = Convert.ToInt32(Company);
+                    offdutyusers = offdutyusers.Where(w => w.User.CompanyId == companyid).ToList();
+                }
+
+               foreach (var od in offdutyusers)
+                {
+                    if (DBC.ConvertToLocalTime("GMT Standard Time", od.StartDateTime) <= DBC.GetDateTimeOffset(DateTime.Now) &&
+                            DBC.ConvertToLocalTime("GMT Standard Time", od.EndDateTime) >= DBC.GetDateTimeOffset(DateTime.Now))
+                    {
+                    }
+                    else
+                    {
+                        var startJobKey = new JobKey("OFF_DUTY_START_" + od.UserId, "OFF_DUTY_JOB_START");
+                        if (!_scheduler.CheckExists(startJobKey).Result)
+                        {
+                            //TODO:Off Duty Job
+                            //UH.CreateOffDutyJob(od.UserId, DBC.ConvertToLocalTime("GMT Standard Time", od.StartDateTime), od.User.CompanyId, "START");
+                        }
+                    }
+
+                    var endJobKey = new JobKey("OFF_DUTY_END_" + od.UserId, "OFF_DUTY_JOB_END");
+                    if (!_scheduler.CheckExists(endJobKey).Result)
+                    {
+                        //TODO:Off Duty Job
+                        //UH.CreateOffDutyJob(od.UserId, DBC.ConvertToLocalTime("GMT Standard Time", od.EndDateTime), od.User.CompanyId, "END");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        private async void CreateSOPReviewJobs(string Company)
+        {
+            try
+            {
+                var sops = (from SOP in _context.Set<Sopheader>()
+                            join TH in _context.Set<IncidentSop>() on SOP.SopheaderId equals TH.SopheaderId
+                            select new
+                            {
+                                SOP.SopheaderId,
+                                TH.IncidentId,
+                                SOP.CompanyId,
+                                SOP.ReviewDate,
+                                SOP.ReviewFrequency,
+                                SOP.ReminderCount
+                            }).ToList();
+
+                if (int.TryParse(Company, out _))
+                {
+                    int companyid = Convert.ToInt32(Company);
+                    sops = sops.Where(w => w.CompanyId == companyid).ToList();
+                }
+
+               
+                foreach (var sop in sops)
+                {
+                    var jobKey = new JobKey("SOP_REVIEW_" + sop.SopheaderId, "REVIEW_REMINDER");
+                    if (!_scheduler.CheckExists(jobKey).Result)
+                    {
+                       await DBC.CreateSOPReviewReminder(sop.IncidentId, sop.SopheaderId, sop.CompanyId, sop.ReviewDate, sop.ReviewFrequency, sop.ReminderCount);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
     }
 }

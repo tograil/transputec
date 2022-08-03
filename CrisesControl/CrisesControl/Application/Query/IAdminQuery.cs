@@ -16,6 +16,7 @@ using CrisesControl.Api.Application.Commands.Administrator.GetLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.GetLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.GetReport;
 using CrisesControl.Api.Application.Commands.Administrator.GetTransactionType;
+using CrisesControl.Api.Application.Commands.Administrator.GetUnpaidTransactions;
 using CrisesControl.Api.Application.Commands.Administrator.RestoreTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.SaveEmailTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.SaveLanguageItem;
@@ -57,5 +58,6 @@ namespace CrisesControl.Api.Application.Query
         Task<GetAppLanguageResponse> GetAppLanguage(GetAppLanguageRequest request);
         Task<UpdatePackageItemResponse> UpdatePackageItem(UpdatePackageItemRequest request);
         Task<GetCompanyPackageItemsResponse> GetCompanyPackageItems(GetCompanyPackageItemsRequest request);
+        Task<GetUnpaidTransactionsResponse> GetUnpaidTransactions(GetUnpaidTransactionsRequest request);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.Administrator.AddLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.AddLibIncidentType;
+using CrisesControl.Api.Application.Commands.Administrator.AddSysParameters;
 using CrisesControl.Api.Application.Commands.Administrator.AddTransaction;
 using CrisesControl.Api.Application.Commands.Administrator.DeleteLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.DeleteLibIncidentType;
@@ -18,6 +19,7 @@ using CrisesControl.Api.Application.Commands.Administrator.GetLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.GetReport;
 using CrisesControl.Api.Application.Commands.Administrator.GetSysParameters;
 using CrisesControl.Api.Application.Commands.Administrator.GetTransactionType;
+using CrisesControl.Api.Application.Commands.Administrator.GetUnpaidTransactions;
 using CrisesControl.Api.Application.Commands.Administrator.RestoreTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.SaveEmailTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.SaveLanguageItem;
@@ -27,6 +29,7 @@ using CrisesControl.Api.Application.Commands.Administrator.TestTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.UpdateLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.UpdateLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.UpdatePackageItem;
+using CrisesControl.Api.Application.Commands.Administrator.UpdateSysParameters;
 using CrisesControl.Api.Application.Query;
 using CrisesControl.Api.Maintenance;
 using MediatR;
@@ -273,6 +276,45 @@ public class AdminController : Controller
     [HttpGet]
     [Route("GetAllSysParameters")]
     public async Task<IActionResult> GetAllSysParameters([FromRoute] GetAllSysParametersRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Add systems parameters
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("AddSysParameters")]
+    public async Task<IActionResult> AddSysParameters([FromBody] AddSysParametersRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Update systems parameters
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("UpdateSysParameters")]
+    public async Task<IActionResult> UpdateSysParameters([FromBody] UpdateSysParametersRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Unpaid Transactions
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("GetUnpaidTransactions")]
+    public async Task<IActionResult> GetUnpaidTransactions([FromRoute] GetUnpaidTransactionsRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);

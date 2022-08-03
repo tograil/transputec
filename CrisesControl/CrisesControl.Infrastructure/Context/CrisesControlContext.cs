@@ -198,7 +198,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<FailedAttempts>().HasNoKey();
             modelBuilder.Entity<DeliveryDetails>().HasNoKey();
             modelBuilder.Entity<PingReport>().HasNoKey();
-
+            modelBuilder.Entity<CategoryTag>().HasNoKey();
+            modelBuilder.Entity<AdminTransaction>().HasNoKey();
 
             //modelBuilder.Entity<Location>().HasNoKey();
         }
