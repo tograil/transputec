@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using System.Threading;
@@ -14,6 +18,7 @@ using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
@@ -31,6 +36,7 @@ public class MessageRepository : IMessageRepository
     private int UserID;
     private int CompanyID;
     private readonly string TimeZoneId = "GMT Standard Time";
+    private readonly string ServerUploadFolder = "C:\\Temp\\";
 
     private readonly CrisesControlContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -868,4 +874,52 @@ public class MessageRepository : IMessageRepository
             return new List<MessageGroupObject>();
         }
     }
+
+    public async Task<dynamic> ConverToMp3()
+    {
+
+        try
+        {
+            HttpResponseMessage result = Request.CreateResponse(HttpStatusCode.BadRequest);
+            string filePath = string.Empty;
+            string fileName = string.Empty;
+            var httpRequest = HttpContext.Current.Request;
+            if (httpRequest.Files.Count > 0)
+            {
+                foreach (string file in httpRequest.Files)
+                {
+                    var postedFile = httpRequest.Files[file];
+                    fileName = postedFile.FileName;
+                    filePath = ServerUploadFolder + postedFile.FileName;
+                    postedFile.SaveAs(filePath);
+                }
+            }
+            else
+            {
+                result = Request.CreateResponse(HttpStatusCode.BadRequest);
+            }
+
+            string outfile = AudioConversion.ToMp3(filePath, null);
+            if (outfile != null)
+            {
+
+                var stream = new MemoryStream(File.ReadAllBytes(outfile), 0, File.ReadAllBytes(outfile).Length, true, true);
+
+                HttpResponseMessage httpResponseMessage = Request.CreateResponse(HttpStatusCode.OK);
+                httpResponseMessage.Content = new StreamContent(stream);
+                httpResponseMessage.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment");
+                httpResponseMessage.Content.Headers.ContentDisposition.FileName = fileName;
+                httpResponseMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("audio/mp3");
+
+                return httpResponseMessage;
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+    }
+
 }
