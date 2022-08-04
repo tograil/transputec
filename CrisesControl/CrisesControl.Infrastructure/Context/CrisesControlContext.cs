@@ -201,6 +201,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CategoryTag>().HasNoKey();
             modelBuilder.Entity<AdminTransaction>().HasNoKey();
             modelBuilder.Entity<PackageAddons>().HasNoKey();
+            modelBuilder.Entity<Sectors>().HasNoKey();
 
             //modelBuilder.Entity<Location>().HasNoKey();
         }

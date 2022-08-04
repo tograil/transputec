@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Register.ActivateCompany;
+using CrisesControl.Api.Application.Commands.Register.BusinessSector;
 using CrisesControl.Api.Application.Commands.Register.CheckAppDownloaded;
 using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
@@ -440,6 +441,30 @@ namespace CrisesControl.Api.Application.Query
                 result.Message = "No record Found.";
             }
             return result;
+        }
+
+        public async Task<BusinessSectorResponse> BusinessSector(BusinessSectorRequest request)
+        {
+            try { 
+            var sectors = await _registerRepository.GetSectors();
+            var result = _mapper.Map<List<Sectors>>(sectors);
+            var response = new BusinessSectorResponse();
+            if (result != null)
+            {
+                response.Data = result;
+                response.Message = "Data has been Loaded";
+            }
+            else
+            {
+                response.Data = result;
+                response.Message = "No record Found.";
+            }
+            return response;
+            }
+            catch (Exception ex) 
+            {
+                throw ex;
+            }
         }
     }
 }

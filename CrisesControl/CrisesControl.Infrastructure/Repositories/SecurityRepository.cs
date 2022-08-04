@@ -1,5 +1,7 @@
-﻿using CrisesControl.Core.Security;
+﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Security;
 using CrisesControl.Infrastructure.Context;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -13,7 +15,10 @@ namespace CrisesControl.Infrastructure.Repositories
     public class SecurityRepository : ISecurityRepository
     {
         private readonly CrisesControlContext _context;
-        public SecurityRepository(CrisesControlContext context)
+        private readonly SendEmail _SDE;
+        private readonly DBCommon _DBC;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public SecurityRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
             this._context = context;    
         }

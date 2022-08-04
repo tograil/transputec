@@ -37,5 +37,6 @@ namespace CrisesControl.Core.Register.Repositories
         Task<User> GetUserByUniqueId(string UniqueId);
         Task UpdateTemp(User user);
         Task<List<Registration>> GetAllRegistrations();
+        Task<List<Sectors>> GetSectors();
     }
 }
