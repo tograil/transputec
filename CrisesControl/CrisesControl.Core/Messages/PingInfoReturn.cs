@@ -1,9 +1,13 @@
 ﻿using CrisesControl.Core.Incidents;
-using CrisesControl.Core.Messages;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace CrisesControl.Api.Application.Commands.Messaging.GetPingInfo
+namespace CrisesControl.Core.Messages
 {
-    public class GetPingInfoResponse
+    public class PingInfoReturn
     {
         public string MessageText { get; set; }
         public int Priority { get; set; }

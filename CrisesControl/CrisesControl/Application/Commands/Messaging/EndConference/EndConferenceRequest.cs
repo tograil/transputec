@@ -1,6 +1,9 @@
-﻿namespace CrisesControl.Api.Application.Commands.Messaging.EndConference
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Messaging.EndConference
 {
-    public class EndConferenceRequest
+    public class EndConferenceRequest : IRequest<EndConferenceResponse>
     {
+
     }
 }

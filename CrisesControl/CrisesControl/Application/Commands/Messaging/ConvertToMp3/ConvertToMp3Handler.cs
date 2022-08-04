@@ -17,7 +17,7 @@ namespace CrisesControl.Api.Application.Commands.Messaging.ConvertToMp3
             Guard.Against.Null(request, nameof(ConvertToMp3Request));
 
             var response = new ConvertToMp3Response();
-            _messageRepository.AcknowledgeMessage
+            await _messageRepository.ConverToMp3();
             return response;
         }
     }

@@ -1,11 +1,15 @@
 ﻿using CrisesControl.Api.Application.Commands.Messaging.GetAttachment;
+using CrisesControl.Api.Application.Commands.Messaging.GetConfRecordings;
+using CrisesControl.Api.Application.Commands.Messaging.GetConfUser;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageAttachment;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageGroupList;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
+using CrisesControl.Api.Application.Commands.Messaging.GetNotifications;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
+using CrisesControl.Api.Application.Commands.Messaging.GetPingInfo;
 using CrisesControl.Api.Application.Commands.Messaging.GetReplies;
 using CrisesControl.Api.Application.Commands.Messaging.MessageAcknowledged;
 using MediatR;
@@ -141,6 +145,38 @@ namespace CrisesControl.Api.Controllers {
         {
             var result = await _mediator.Send(request, cancellationToken);
 
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetConfRecordings")]
+        public async Task<IActionResult> GetConfRecordings([FromBody] GetConfRecordingsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetConfUser")]
+        public async Task<IActionResult> GetConfUser([FromBody] GetConfUserRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetNotifications")]
+        public async Task<IActionResult> GetNotifications(GetNotificationsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("GetPingInfo")]
+        public async Task<IActionResult> GetPingInfo(GetPingInfoRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
     }

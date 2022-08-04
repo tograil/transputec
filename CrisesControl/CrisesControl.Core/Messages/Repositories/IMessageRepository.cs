@@ -56,4 +56,8 @@ public interface IMessageRepository
     Task<List<MessageAttachment>> GetAttachment(int MessageAttachmentID = 0);
     Task<List<MessageDetails>> GetReplies(int ParentID, string Source = "WEB");
     Task<List<MessageGroupObject>> GetMessageGroupList(int MessageID);
+    Task<dynamic> ConverToMp3();
+    object GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId);
+    object GetConfUser(int objectId, string objectType);
+    Task<PingInfoReturn> GetPingInfo(int messageId, int userId, int companyId);
 }
