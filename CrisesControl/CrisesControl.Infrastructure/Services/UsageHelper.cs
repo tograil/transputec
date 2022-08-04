@@ -427,7 +427,7 @@ namespace CrisesControl.Infrastructure.Services
 
                                     //} else if(response.ResponseCode.ToUpper() == "ERROR") {
                                     //todo - dump the transaction details  error log with 0 value.
-                                }
+        }
                                 else
                                 {
                                     //todo - remove the above else if and send the email on the last attempt, also capture the logs.
@@ -520,7 +520,7 @@ namespace CrisesControl.Infrastructure.Services
         {
             try
             {
-               TransactionHeader NewTransactionHeader = new TransactionHeader()
+                TransactionHeader NewTransactionHeader = new TransactionHeader()
                 {
                     CompanyId = CompanyId,
                     NetTotal = NetTotal,
@@ -582,7 +582,7 @@ namespace CrisesControl.Infrastructure.Services
 
                     if (item.ThisMonthOnly == true)
                         _context.Remove(item);
-                }
+            }
                await _context.SaveChangesAsync();
             }
             catch (Exception ex)
@@ -678,7 +678,7 @@ namespace CrisesControl.Infrastructure.Services
                         }
                     }
                 }
-            }
+    }
             catch (Exception ex)
             {
                 throw ex;

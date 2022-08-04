@@ -49,28 +49,7 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet]
-        [Route("[action]/{OutLoginUserId}/{OutLoginCompanyId}/{ActiveIncidentTaskID}/{TypeName}/{CompanyKey}/{draw}")]
-        public async Task<IActionResult> GetTaskUserList([FromRoute] GetTaskUserListRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpGet]
-        [Route("[action]/{ActiveIncidentTaskID}/{CompanyId}")]
-        public async Task<IActionResult> GetIncidentTasksAudit([FromRoute] GetIncidentTasksAuditRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpGet]
-        [Route("[action]/{ActiveIncidentTaskID}")]
-        public async Task<IActionResult> GetActiveTaskCheckList([FromRoute] GetActiveTaskCheckListRequest request, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(request, cancellationToken);
-            return Ok(result);
-        }
-        [HttpPost]
+        [HttpPut]
         [Route("ActiveIncidentTasks/{ActiveIncidentID}")]
         public async Task<IActionResult> ActiveIncidentTasks([FromRoute] ActiveIncidentTasksRequest request, CancellationToken cancellationToken)
         {
