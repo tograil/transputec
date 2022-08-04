@@ -200,6 +200,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<PingReport>().HasNoKey();
             modelBuilder.Entity<CategoryTag>().HasNoKey();
             modelBuilder.Entity<AdminTransaction>().HasNoKey();
+            modelBuilder.Entity<PackageAddons>().HasNoKey();
 
             //modelBuilder.Entity<Location>().HasNoKey();
         }

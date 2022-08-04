@@ -76,6 +76,9 @@ namespace CrisesControl.Core.Administrator.Repositories
         Task<bool> SaveContractOffer(PreContractOfferModel IP, int CurrentUserId, int CompanyId, string TimeZoneId);
         Task<CategoryTag> GetTagCategory(int TagCategoryID);
         Task<bool> RebuildJobs(string Company, string JobType = "ALL");
+        Task<List<Tag>> GetAllTag();
+        Task<Tag> GetTag(int TagID);
+        Task<List<PackageAddons>> GetPackageAddons(int OutUserCompanyId, bool ShowAll = false);
 
 
 

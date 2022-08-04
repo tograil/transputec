@@ -1884,6 +1884,46 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
+        public async Task<List<Tag>> GetAllTag()
+        {
+            try
+            {
+                
+                    var list = await  _context.Set<Tag>().ToListAsync();
+                    return list;
+               
+             }
+            catch (Exception ex)
+            {
+                throw ex;
+               
+            }
+        }
+        public async Task<Tag> GetTag(int TagID)
+        {
+            if (TagID > 0)
+            {
+                var tag = await _context.Set<Tag>().Where(T => T.TagId == TagID).FirstOrDefaultAsync();
+                return tag;
+            }
+            return null;
+        }
+        public async Task<List<PackageAddons>> GetPackageAddons(int OutUserCompanyId, bool ShowAll = false)
+        {
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyId", OutUserCompanyId);
+                var packageitemlist = await _context.Set<PackageAddons>().FromSqlRaw("EXEC Pro_Admin_GetPackageAddons @CompanyId", pCompanyID).ToListAsync();
+                if (!ShowAll)
+                    packageitemlist = packageitemlist.Where(s => s.Status == 0).ToList();
 
+
+                return packageitemlist;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
     }
 }
