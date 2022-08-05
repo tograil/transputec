@@ -17,6 +17,7 @@ using System.Data.SqlTypes;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using MessageMethod = CrisesControl.Core.Models.MessageMethod;
@@ -2157,128 +2158,128 @@ namespace CrisesControl.Infrastructure.Services
         //}
 
 
-        //#region Social Integration
-        //public void SocialPosting(int MessageID, List<string> SocialHandle, int CompanyId)
-        //{
-        //    DBCommon DBC = new DBCommon();
-        //    try
-        //    {
+        #region Social Integration
+        public void SocialPosting(int MessageID, List<string> SocialHandle, int CompanyId)
+        {
+            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
+            try
+            {
 
-        //        var social_int = DBC.GetSocialIntegration(CompanyId, "");
+                var social_int = DBC.GetSocialIntegration(CompanyId, "");
 
-        //        var msg = (from M in db.Message where M.MessageId == MessageID select M).FirstOrDefault();
+                var msg = (from M in db.Set<Message>() where M.MessageId == MessageID select M).FirstOrDefault();
 
-        //        if (msg != null)
-        //        {
-        //            foreach (string Handle in SocialHandle)
-        //            {
-        //                var handle = social_int.Where(w => w.AccountType == Handle).FirstOrDefault();
-        //                if (handle != null)
-        //                {
-        //                    if (Handle == "TWITTER")
-        //                    {
-        //                        Task.Factory.StartNew(() => TwitterPost(msg.MessageText, handle.AdnlKeyOne, handle.AdnlKeyTwo, handle.AuthToken, handle.AuthSecret));
-        //                    }
-        //                    else if (Handle == "LINKEDIN")
-        //                    {
-        //                        Task.Factory.StartNew(() => LinkedInPost(msg.MessageText, handle.AdnlKeyOne, handle.AdnlKeyTwo, handle.AuthToken, handle.AuthSecret));
-        //                    }
-        //                    else if (Handle == "FACEBOOK")
-        //                    {
-        //                        Task.Factory.StartNew(() => FacekbookPost(msg.MessageText, handle.AdnlKeyOne, handle.AdnlKeyTwo, handle.AuthToken, handle.AuthSecret));
-        //                    }
-        //                }
-        //            }
-        //        }
+                if (msg != null)
+                {
+                    foreach (string Handle in SocialHandle)
+                    {
+                        var handle = social_int.Where(w => w.AccountType == Handle).FirstOrDefault();
+                        if (handle != null)
+                        {
+                            if (Handle == "TWITTER")
+                            {
+                                Task.Factory.StartNew(() => TwitterPost(msg.MessageText, handle.AdnlKeyOne, handle.AdnlKeyTwo, handle.AuthToken, handle.AuthSecret));
+                            }
+                            else if (Handle == "LINKEDIN")
+                            {
+                                Task.Factory.StartNew(() => LinkedInPost(msg.MessageText, handle.AdnlKeyOne, handle.AdnlKeyTwo, handle.AuthToken, handle.AuthSecret));
+                            }
+                            else if (Handle == "FACEBOOK")
+                            {
+                                Task.Factory.StartNew(() => FacekbookPost(msg.MessageText, handle.AdnlKeyOne, handle.AdnlKeyTwo, handle.AuthToken, handle.AuthSecret));
+                            }
+                        }
+                    }
+                }
 
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        DBC.catchException(ex, "QueueHelper", "SocialPosting");
-        //    }
-        //}
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
 
-        //public void TwitterPost(string MessageText, string ConsumerKey, string ConsumerSecret, string AuthToken, string AuthSecret)
-        //{
-        //    string twitterURL = "https://api.twitter.com/1.1/statuses/update.json";
+        public void TwitterPost(string MessageText, string ConsumerKey, string ConsumerSecret, string AuthToken, string AuthSecret)
+        {
+            string twitterURL = "https://api.twitter.com/1.1/statuses/update.json";
 
-        //    // set the oauth version and signature method
-        //    string oauth_version = "1.0";
-        //    string oauth_signature_method = "HMAC-SHA1";
+            // set the oauth version and signature method
+            string oauth_version = "1.0";
+            string oauth_signature_method = "HMAC-SHA1";
 
-        //    // create unique request details
-        //    string oauth_nonce = Convert.ToBase64String(new ASCIIEncoding().GetBytes(DateTime.Now.Ticks.ToString()));
-        //    System.TimeSpan timeSpan = (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc));
-        //    string oauth_timestamp = Convert.ToInt64(timeSpan.TotalSeconds).ToString();
+            // create unique request details
+            string oauth_nonce = Convert.ToBase64String(new ASCIIEncoding().GetBytes(DateTime.Now.Ticks.ToString()));
+            System.TimeSpan timeSpan = (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc));
+            string oauth_timestamp = Convert.ToInt64(timeSpan.TotalSeconds).ToString();
 
-        //    // create oauth signature
-        //    string baseFormat = "oauth_consumer_key={0}&oauth_nonce={1}&oauth_signature_method={2}" + "&oauth_timestamp={3}&oauth_token={4}&oauth_version={5}&status={6}";
+            // create oauth signature
+            string baseFormat = "oauth_consumer_key={0}&oauth_nonce={1}&oauth_signature_method={2}" + "&oauth_timestamp={3}&oauth_token={4}&oauth_version={5}&status={6}";
 
-        //    string baseString = string.Format(
-        //        baseFormat,
-        //        ConsumerKey,
-        //        oauth_nonce,
-        //        oauth_signature_method,
-        //        oauth_timestamp, AuthToken,
-        //        oauth_version,
-        //        Uri.EscapeDataString(MessageText)
-        //    );
+            string baseString = string.Format(
+                baseFormat,
+                ConsumerKey,
+                oauth_nonce,
+                oauth_signature_method,
+                oauth_timestamp, AuthToken,
+                oauth_version,
+                Uri.EscapeDataString(MessageText)
+            );
 
-        //    string oauth_signature = null;
-        //    using (HMACSHA1 hasher = new HMACSHA1(ASCIIEncoding.ASCII.GetBytes(Uri.EscapeDataString(ConsumerSecret) + "&" + Uri.EscapeDataString(AuthSecret))))
-        //    {
-        //        oauth_signature = Convert.ToBase64String(hasher.ComputeHash(ASCIIEncoding.ASCII.GetBytes("POST&" + Uri.EscapeDataString(twitterURL) + "&" + Uri.EscapeDataString(baseString))));
-        //    }
+            string oauth_signature = null;
+            using (HMACSHA1 hasher = new HMACSHA1(ASCIIEncoding.ASCII.GetBytes(Uri.EscapeDataString(ConsumerSecret) + "&" + Uri.EscapeDataString(AuthSecret))))
+            {
+                oauth_signature = Convert.ToBase64String(hasher.ComputeHash(ASCIIEncoding.ASCII.GetBytes("POST&" + Uri.EscapeDataString(twitterURL) + "&" + Uri.EscapeDataString(baseString))));
+            }
 
-        //    // create the request header
-        //    string authorizationFormat = "OAuth oauth_consumer_key=\"{0}\", oauth_nonce=\"{1}\", " + "oauth_signature=\"{2}\", oauth_signature_method=\"{3}\", " + "oauth_timestamp=\"{4}\", oauth_token=\"{5}\", " + "oauth_version=\"{6}\"";
+            // create the request header
+            string authorizationFormat = "OAuth oauth_consumer_key=\"{0}\", oauth_nonce=\"{1}\", " + "oauth_signature=\"{2}\", oauth_signature_method=\"{3}\", " + "oauth_timestamp=\"{4}\", oauth_token=\"{5}\", " + "oauth_version=\"{6}\"";
 
-        //    string authorizationHeader = string.Format(
-        //        authorizationFormat,
-        //        Uri.EscapeDataString(ConsumerKey),
-        //        Uri.EscapeDataString(oauth_nonce),
-        //        Uri.EscapeDataString(oauth_signature),
-        //        Uri.EscapeDataString(oauth_signature_method),
-        //        Uri.EscapeDataString(oauth_timestamp),
-        //        Uri.EscapeDataString(AuthToken),
-        //        Uri.EscapeDataString(oauth_version)
-        //    );
+            string authorizationHeader = string.Format(
+                authorizationFormat,
+                Uri.EscapeDataString(ConsumerKey),
+                Uri.EscapeDataString(oauth_nonce),
+                Uri.EscapeDataString(oauth_signature),
+                Uri.EscapeDataString(oauth_signature_method),
+                Uri.EscapeDataString(oauth_timestamp),
+                Uri.EscapeDataString(AuthToken),
+                Uri.EscapeDataString(oauth_version)
+            );
 
-        //    HttpWebRequest objHttpWebRequest = (HttpWebRequest)WebRequest.Create(twitterURL);
-        //    objHttpWebRequest.Headers.Add("Authorization", authorizationHeader);
-        //    objHttpWebRequest.Method = "POST";
-        //    objHttpWebRequest.ContentType = "application/x-www-form-urlencoded";
-        //    using (Stream objStream = objHttpWebRequest.GetRequestStream())
-        //    {
-        //        byte[] content = ASCIIEncoding.ASCII.GetBytes("status=" + Uri.EscapeDataString(MessageText));
-        //        objStream.Write(content, 0, content.Length);
-        //    }
+            HttpWebRequest objHttpWebRequest = (HttpWebRequest)WebRequest.Create(twitterURL);
+            objHttpWebRequest.Headers.Add("Authorization", authorizationHeader);
+            objHttpWebRequest.Method = "POST";
+            objHttpWebRequest.ContentType = "application/x-www-form-urlencoded";
+            using (Stream objStream = objHttpWebRequest.GetRequestStream())
+            {
+                byte[] content = ASCIIEncoding.ASCII.GetBytes("status=" + Uri.EscapeDataString(MessageText));
+                objStream.Write(content, 0, content.Length);
+            }
 
-        //    var responseResult = "";
+            var responseResult = "";
 
-        //    try
-        //    {
-        //        //success posting
-        //        WebResponse objWebResponse = objHttpWebRequest.GetResponse();
-        //        StreamReader objStreamReader = new StreamReader(objWebResponse.GetResponseStream());
-        //        responseResult = objStreamReader.ReadToEnd().ToString();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        responseResult = "Twitter Post Error: " + ex.Message.ToString() + ", authHeader: " + authorizationHeader;
-        //    }
-        //}
+            try
+            {
+                //success posting
+                WebResponse objWebResponse = objHttpWebRequest.GetResponse();
+                StreamReader objStreamReader = new StreamReader(objWebResponse.GetResponseStream());
+                responseResult = objStreamReader.ReadToEnd().ToString();
+            }
+            catch (Exception ex)
+            {
+                responseResult = "Twitter Post Error: " + ex.Message.ToString() + ", authHeader: " + authorizationHeader;
+            }
+        }
 
-        //public void LinkedInPost(string MessageText, string ConsumerKey, string ConsumerSecret, string AuthToken, string AuthSecret)
-        //{
+        public void LinkedInPost(string MessageText, string ConsumerKey, string ConsumerSecret, string AuthToken, string AuthSecret)
+        {
 
-        //}
-        //public void FacekbookPost(string MessageText, string ConsumerKey, string ConsumerSecret, string AuthToken, string AuthSecret)
-        //{
+        }
+        public void FacekbookPost(string MessageText, string ConsumerKey, string ConsumerSecret, string AuthToken, string AuthSecret)
+        {
 
-        //}
+        }
 
-        //#endregion Social Integration
+        #endregion Social Integration
 
     }
 }

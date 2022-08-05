@@ -1137,5 +1137,21 @@ namespace CrisesControl.Api.Application.Helpers
                     fi.Delete();
             }
         }
+
+        public List<SocialIntegraion> GetSocialIntegration(int CompanyID, string AccountType)
+        {
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pAccountType = new SqlParameter("@AccountType", AccountType);
+
+                var result = _context.Set<SocialIntegraion>().FromSqlRaw("EXEC Pro_Get_Social_Integration @CompanyID, @AccountType", pCompanyID, pAccountType).ToList();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
     }
 }

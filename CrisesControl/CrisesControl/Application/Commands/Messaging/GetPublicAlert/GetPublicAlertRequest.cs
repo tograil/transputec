@@ -1,6 +1,8 @@
-﻿namespace CrisesControl.Api.Application.Commands.Messaging.GetPublicAlert
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Messaging.GetPublicAlert
 {
-    public class GetPublicAlertRequest
+    public class GetPublicAlertRequest : IRequest<GetPublicAlertResponse>
     {
     }
 }

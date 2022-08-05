@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.Compatibility.Jobs;
 using CrisesControl.Core.Departments;
 using CrisesControl.Core.Import;
 using CrisesControl.Core.Incidents;
@@ -48,6 +49,7 @@ public class MessageRepository : IMessageRepository
     private readonly ICompanyParametersRepository _companyParameters;
     private readonly DBCommon _DBC;
     private readonly CommsHelper _CH;
+    private readonly PingHelper _PH;
 
 
     public MessageRepository(
@@ -56,7 +58,8 @@ public class MessageRepository : IMessageRepository
         ILogger<MessageRepository> logger,
         ICompanyParametersRepository companyParameters,
         DBCommon DBC,
-        CommsHelper CH
+        CommsHelper CH,
+        PingHelper PH
         )
     {
         _context = context;
@@ -65,6 +68,7 @@ public class MessageRepository : IMessageRepository
         _companyParameters = companyParameters;
         _DBC = DBC;
         _CH = CH;
+        _PH = PH;
     }
 
     public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0)
@@ -1194,6 +1198,57 @@ public class MessageRepository : IMessageRepository
             return null;
         }
         catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId)
+    {
+        try
+        {
+            return _PH.GetPublicAlert(companyId, targetUserId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId)
+    {
+        try
+        {
+            return _PH.GetPublicAlertTemplate(templateId, userId, companyId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<int> PingMessages(int companyId, string messageText, List<AckOption> ackOptions, int priority, bool multiResponse, string messageType,
+      int incidentActivationId, int currentUserId, string timeZoneId, PingMessageObjLst[] pingMessageObjLst, int[] usersToNotify, int assetId = 0,
+      bool silentMessage = false, int[]? messageMethod = null, List<MediaAttachment>? mediaAttachments = null, List<string>? socialHandle = null,
+      int cascadePlanID = 0)
+    {
+        try
+        {
+            return await _PH.PingMessages(companyId, messageText, ackOptions, priority, multiResponse, messageType, incidentActivationId, currentUserId, timeZoneId, pingMessageObjLst, usersToNotify, assetId, silentMessage, messageMethod, mediaAttachments, socialHandle, cascadePlanID);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public dynamic ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId)
+    {
+        try
+        {
+            return _PH.ProcessPAFile(userListFile, hasHeader, emailColIndex, phoneColIndex, postcodeColIndex, latColIndex, longColIndex, sessionId);
+        }
+        catch(Exception ex)
         {
             throw ex;
         }
