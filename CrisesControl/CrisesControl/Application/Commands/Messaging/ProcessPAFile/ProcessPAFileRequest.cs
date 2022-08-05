@@ -1,6 +1,8 @@
-﻿namespace CrisesControl.Api.Application.Commands.Messaging.ProcessPAFile
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Messaging.ProcessPAFile
 {
-    public class ProcessPAFileRequest
+    public class ProcessPAFileRequest : IRequest<ProcessPAFileResponse>
     {
     }
 }

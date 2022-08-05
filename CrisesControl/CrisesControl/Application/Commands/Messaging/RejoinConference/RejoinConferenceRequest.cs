@@ -1,6 +1,8 @@
-﻿namespace CrisesControl.Api.Application.Commands.Messaging.RejoinConference
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Messaging.RejoinConference
 {
-    public class RejoinConferenceRequest
+    public class RejoinConferenceRequest : IRequest<RejoinConferenceResponse>
     {
     }
 }

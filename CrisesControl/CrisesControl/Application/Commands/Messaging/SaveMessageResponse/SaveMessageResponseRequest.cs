@@ -1,6 +1,8 @@
-﻿namespace CrisesControl.Api.Application.Commands.Messaging.SaveMessageResponse
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Messaging.SaveMessageResponse
 {
-    public class SaveMessageResponseRequest
+    public class SaveMessageResponseRequest:IRequest<SaveMessageResponseResponse>
     {
     }
 }

@@ -1,6 +1,8 @@
-﻿namespace CrisesControl.Api.Application.Commands.Messaging.UploadAttachment
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Messaging.UploadAttachment
 {
-    public class UploadAttachmentRequest
+    public class UploadAttachmentRequest: IRequest<UploadAttachmentResponse>
     {
     }
 }

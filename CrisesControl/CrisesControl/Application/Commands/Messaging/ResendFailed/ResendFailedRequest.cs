@@ -1,6 +1,8 @@
-﻿namespace CrisesControl.Api.Application.Commands.Messaging.ResendFailed
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Messaging.ResendFailed
 {
-    public class ResendFailedRequest
+    public class ResendFailedRequest: IRequest<ResendFailedResponse>
     {
     }
 }

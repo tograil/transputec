@@ -1,6 +1,8 @@
-﻿namespace CrisesControl.Api.Application.Commands.Messaging.PingMessage
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Messaging.PingMessage
 {
-    public class PingMessageRequest
+    public class PingMessageRequest: IRequest<PingMessageResponse>
     {
     }
 }

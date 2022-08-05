@@ -1,6 +1,8 @@
-﻿namespace CrisesControl.Api.Application.Commands.Messaging.StartConference
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Messaging.StartConference
 {
-    public class StartConferenceRequest
+    public class StartConferenceRequest:IRequest<StartConferenceResponse>
     {
     }
 }
