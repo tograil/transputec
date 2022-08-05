@@ -1,8 +1,12 @@
-﻿using CrisesControl.Api.Application.Commands.Administrator.AddLibIncident;
+﻿using CrisesControl.Api.Application.Commands.Administrator.AddApiUrls;
+using CrisesControl.Api.Application.Commands.Administrator.AddLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.AddLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.AddSysParameters;
 using CrisesControl.Api.Application.Commands.Administrator.AddTransaction;
+using CrisesControl.Api.Application.Commands.Administrator.ApiUrls;
+using CrisesControl.Api.Application.Commands.Administrator.ApiUrlsById;
 using CrisesControl.Api.Application.Commands.Administrator.CreateActivationKey;
+using CrisesControl.Api.Application.Commands.Administrator.DeleteApiUrl;
 using CrisesControl.Api.Application.Commands.Administrator.DeleteLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.DeleteLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.DumpReport;
@@ -35,6 +39,7 @@ using CrisesControl.Api.Application.Commands.Administrator.SaveTagCategory;
 using CrisesControl.Api.Application.Commands.Administrator.SendCustomerNotice;
 using CrisesControl.Api.Application.Commands.Administrator.SubscribeModule;
 using CrisesControl.Api.Application.Commands.Administrator.TestTemplate;
+using CrisesControl.Api.Application.Commands.Administrator.UpdateApiUrls;
 using CrisesControl.Api.Application.Commands.Administrator.UpdateLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.UpdateLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.UpdatePackageItem;
@@ -44,6 +49,7 @@ using CrisesControl.Api.Maintenance;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace CrisesControl.Api.Controllers;
 
@@ -441,6 +447,74 @@ public class AdminController : Controller
     [HttpPost]
     [Route("RebuildJobs/{Company}/{JobType}")]
     public async Task<IActionResult> RebuildJobs([FromBody] RebuildJobsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Add Api URl
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("ApiUrls/Add")]
+    public async Task<IActionResult> ApiUrls([FromBody] AddApiUrlsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Api ulrs
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("ApiUrls")]
+    public async Task<IActionResult> ApiUrls([FromRoute] ApiUrlsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get ApiUrls 
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("ApiUrls/{ApiID}")]
+    public async Task<IActionResult> GetApiUrls([FromRoute] ApiUrlsByIdRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Update API Urls
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("ApiUrls/{id:int}/Update")]
+    public async Task<IActionResult> ApiUrls([FromRoute] int id, [FromBody] UpdateApiUrlsRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Api.ApiId != id) { 
+            ModelState.AddModelError("ApiId", "Conflicting resource ID and model ID.");
+        }
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Delete API Urls
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("ApiUrls/Delete/{ApiID}")]
+    public async Task<IActionResult> ApiUrls([FromBody] DeleteApiUrlRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);

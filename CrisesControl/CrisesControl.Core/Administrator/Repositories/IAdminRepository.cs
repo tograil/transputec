@@ -79,6 +79,11 @@ namespace CrisesControl.Core.Administrator.Repositories
         Task<List<Tag>> GetAllTag();
         Task<Tag> GetTag(int TagID);
         Task<List<PackageAddons>> GetPackageAddons(int OutUserCompanyId, bool ShowAll = false);
+        Task<List<CrisesControl.Core.Administrator.Api>> GetApiUrlsAsync();
+        Task<CrisesControl.Core.Administrator.Api> GetApiUrlByIdAsync(int id);
+        Task<CrisesControl.Core.Administrator.Api> UpdateApiUrlAsync(CrisesControl.Core.Administrator.Api api);
+        Task<CrisesControl.Core.Administrator.Api> DeleteApiUrlAsync(int id);
+        Task<CrisesControl.Core.Administrator.Api> AddApiUrlAsync(string ApiUrl, string ApiHost, bool IsCurrent, int Status, string Version, string AppVersion, string ApiMode, string Platform);
 
 
 

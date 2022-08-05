@@ -1925,5 +1925,109 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
+        /// <summary>
+        /// Get the list of APIs from the central API DB.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<CrisesControl.Core.Administrator.Api>> GetApiUrlsAsync()
+        {
+            try
+            {
+                return await _context.Set<CrisesControl.Core.Administrator.Api>().FromSqlRaw("exec Pro_Admin_GetApiList").ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw ex; ;
+            }
+        }
+        /// <summary>
+        /// Get API entity by ID from central API DB.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns>null: not found.</returns>
+        public async Task<CrisesControl.Core.Administrator.Api> GetApiUrlByIdAsync(int id)
+        {
+            try
+            {
+                var apiId = new SqlParameter("@apiId", id);
+                return ( await _context.Set<CrisesControl.Core.Administrator.Api>().FromSqlRaw("exec Pro_Admin_GetApiById @apiId", apiId).ToListAsync()).FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+               
+                throw ex;
+            }
+        }
+        /// <summary>
+        /// Add new API url entity.
+        /// </summary>
+        /// <param name="api"></param>
+        /// <returns>Created entity.</returns>
+        public async Task<CrisesControl.Core.Administrator.Api> AddApiUrlAsync(string ApiUrl, string ApiHost, bool IsCurrent, int Status, string Version, string AppVersion, string ApiMode, string Platform)
+        {
+            try
+            {
+                List<SqlParameter> parameters = new List<SqlParameter>();
+                parameters.Add(new SqlParameter("@apiHost", ApiHost));
+                parameters.Add(new SqlParameter("@apiUrl", ApiUrl));
+                parameters.Add(new SqlParameter("@isCurrent", IsCurrent));
+                parameters.Add(new SqlParameter("@status", Status));
+                parameters.Add(new SqlParameter("@version", Version));
+                parameters.Add(new SqlParameter("@appVersion", AppVersion));
+                parameters.Add(new SqlParameter("@apiMode", ApiMode));
+                parameters.Add(new SqlParameter("@platform", Platform));
+                return  (await _context.Set<CrisesControl.Core.Administrator.Api>().FromSqlRaw("exe Pro_Admin_AddApi @apiHost,@apiUrl,@isCurrent,@status,@version,@appVersion,@apiMode,@platform", parameters.ToArray()).ToListAsync()).FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// Update API url entity. Host will not be updated.
+        /// </summary>
+        /// <param name="api"></param>
+        /// <returns>updated entity; null: not found.</returns>
+        public async Task<CrisesControl.Core.Administrator.Api> UpdateApiUrlAsync(CrisesControl.Core.Administrator.Api api)
+        {
+            try
+            {
+                List<SqlParameter> parameters = new List<SqlParameter>();
+                parameters.Add(new SqlParameter("@id", api.ApiId));
+                parameters.Add(new SqlParameter("@apiHost", api.ApiHost));
+                parameters.Add(new SqlParameter("@apiUrl", api.ApiUrl));
+                parameters.Add(new SqlParameter("@isCurrent", api.IsCurrent));
+                parameters.Add(new SqlParameter("@status", api.Status));
+                parameters.Add(new SqlParameter("@version", api.Version));
+                parameters.Add(new SqlParameter("@appVersion", api.AppVersion));
+                parameters.Add(new SqlParameter("@apiMode", api.ApiMode));
+                parameters.Add(new SqlParameter("@platform", api.Platform));
+                // host update has been disabled in the Stored Procedure.
+                return  (await _context.Set<CrisesControl.Core.Administrator.Api>().FromSqlRaw("exec Pro_Admin_UpdateApi @id,@apiHost,@apiUrl,@isCurrent,@status,@version,@appVersion,@apiMode,@platform", parameters.ToArray()).ToListAsync()).FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// Delete API Url entity
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns>deleted entity; null: not found.</returns>
+        public async Task<CrisesControl.Core.Administrator.Api> DeleteApiUrlAsync(int id)
+        {
+            try
+            {
+                var apiId = new SqlParameter("@apiId", id);
+                return (await _context.Set<CrisesControl.Core.Administrator.Api>().FromSqlRaw("exec Pro_Admin_DeleteApi @apiId", apiId).ToListAsync()).FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
     }
 }
