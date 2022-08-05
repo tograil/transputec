@@ -84,8 +84,9 @@ namespace CrisesControl.Core.Administrator.Repositories
         Task<CrisesControl.Core.Administrator.Api> UpdateApiUrlAsync(CrisesControl.Core.Administrator.Api api);
         Task<CrisesControl.Core.Administrator.Api> DeleteApiUrlAsync(int id);
         Task<CrisesControl.Core.Administrator.Api> AddApiUrlAsync(string ApiUrl, string ApiHost, bool IsCurrent, int Status, string Version, string AppVersion, string ApiMode, string Platform);
-
-
+        Task<CompaniesStats> GetCompanyGlobalReport();
+        Task<int> UpdateCustomerId(string NewCustomerId, int QCompanyId, string QCustomerId);
+        Task<CompanyDetails> GetCompanyDetails(int CompanyID);
 
     }
 }

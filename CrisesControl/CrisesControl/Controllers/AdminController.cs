@@ -14,6 +14,8 @@ using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.GetAllSysParameters;
 using CrisesControl.Api.Application.Commands.Administrator.GetAppLanguage;
+using CrisesControl.Api.Application.Commands.Administrator.GetCompanyDetails;
+using CrisesControl.Api.Application.Commands.Administrator.GetCompanyGlobalReport;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyModules;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyPackageFeatures;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyPackageItems;
@@ -40,6 +42,7 @@ using CrisesControl.Api.Application.Commands.Administrator.SendCustomerNotice;
 using CrisesControl.Api.Application.Commands.Administrator.SubscribeModule;
 using CrisesControl.Api.Application.Commands.Administrator.TestTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.UpdateApiUrls;
+using CrisesControl.Api.Application.Commands.Administrator.UpdateCustomer;
 using CrisesControl.Api.Application.Commands.Administrator.UpdateLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.UpdateLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.UpdatePackageItem;
@@ -512,9 +515,48 @@ public class AdminController : Controller
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    [HttpPut]
+    [HttpDelete]
     [Route("ApiUrls/{ApiID:int}/Delete")]
-    public async Task<IActionResult> ApiUrls([FromBody] DeleteApiUrlRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> ApiUrls([FromRoute] DeleteApiUrlRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Administrator Get Company Details 
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("GetCompanyDetails/{ApiID:int}/Delete")]
+    public async Task<IActionResult> GetCompanyDetails([FromRoute] GetCompanyDetailsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Administrator Update  Customer by Id 
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("UpdateCustomer/{QCustomerId:int}")]
+    public async Task<IActionResult> UpdateCustomer([FromRoute] UpdateCustomerRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Company Global Report
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("GetCompanyGlobalReport")]
+    public async Task<IActionResult> GetCompanyGlobalReport([FromRoute] GetCompanyGlobalReportRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);

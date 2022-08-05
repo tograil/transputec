@@ -13,11 +13,12 @@ namespace CrisesControl.Api.Application.Commands.Administrator.GetCompanyModules
         private readonly IMapper _mapper;
         private readonly ICurrentUser _currentUser;
 
-        public GetCompanyModulesHandler(IAdminRepository adminRepository, ILogger<GetCompanyModulesHandler> logger, IMapper mapper)
+        public GetCompanyModulesHandler(IAdminRepository adminRepository, ILogger<GetCompanyModulesHandler> logger, IMapper mapper, ICurrentUser currentUser)
         {
             this._adminRepository = adminRepository;
             this._logger = logger;
             this._mapper = mapper;
+            this._currentUser = currentUser;
         }
         public async Task<GetCompanyModulesResponse> Handle(GetCompanyModulesRequest request, CancellationToken cancellationToken)
         {

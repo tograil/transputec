@@ -7,6 +7,7 @@ using CrisesControl.Api.Application.Commands.Administrator.DumpReport;
 using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.GetAppLanguage;
+using CrisesControl.Api.Application.Commands.Administrator.GetCompanyDetails;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyPackageFeatures;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyPackageItems;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyTransaction;
@@ -59,5 +60,6 @@ namespace CrisesControl.Api.Application.Query
         Task<UpdatePackageItemResponse> UpdatePackageItem(UpdatePackageItemRequest request);
         Task<GetCompanyPackageItemsResponse> GetCompanyPackageItems(GetCompanyPackageItemsRequest request);
         Task<GetUnpaidTransactionsResponse> GetUnpaidTransactions(GetUnpaidTransactionsRequest request);
+        Task<GetCompanyDetailsResponse> GetCompanyDetails(GetCompanyDetailsRequest request);
     }
 }

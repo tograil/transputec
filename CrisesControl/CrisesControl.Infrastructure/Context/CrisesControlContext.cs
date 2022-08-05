@@ -203,7 +203,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<PackageAddons>().HasNoKey();
             modelBuilder.Entity<Sectors>().HasNoKey();
             modelBuilder.Entity<CrisesControl.Core.Administrator.Api>().HasNoKey();
-
+            modelBuilder.Entity<IncidentPingStats>().HasNoKey();
+            modelBuilder.Entity<AdminTransactionType>().HasNoKey();
+            modelBuilder.Entity<CompanyDetails>().HasNoKey();
+            modelBuilder.Entity<RegisteredUser>().HasNoKey();
+            modelBuilder.Entity<CompaniesStats>().HasNoKey();
+            modelBuilder.Entity<CompanyMessageTransactionStats>().HasNoKey();
+            //modelBuilder.Entity<CompanyTranscationType>().HasNoKey();
             //modelBuilder.Entity<Location>().HasNoKey();
         }
 

@@ -9,6 +9,7 @@ using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
+using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
@@ -2028,6 +2029,72 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 throw ex;
             }
+        }
+        public async Task<int> UpdateCustomerId(string NewCustomerId , int QCompanyId, string QCustomerId)
+        {
+            try
+            {
+                var pCustomerId = new SqlParameter("@CustomerId", QCustomerId);
+                var pNewCustomerId = new SqlParameter("@NewCustomerId", NewCustomerId);
+                var pCompanyId = new SqlParameter("@CompanyId", QCompanyId);
+
+                return (await _context.Database.ExecuteSqlRawAsync("Pro_Admin_CustomerId @CustomerId, @NewCustomerId, @CompanyId", pCustomerId, pNewCustomerId, pCompanyId));
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<CompanyDetails> GetCompanyDetails(int CompanyID)
+        {
+            try
+            {
+                DataObjects DBJ = new DataObjects(_context);
+                var CompanyDetails =await  DBJ.GetCompanyDetails(CompanyID);
+                CompanyDetails.ContractOffer =await DBJ.GetContractOffer(CompanyID);
+                CompanyDetails.TransactionTypes = await DBJ.GetTransactionTypes(CompanyID);
+                CompanyDetails.ActivationKey = await DBJ.GetActivationKey(CompanyID);
+                CompanyDetails.PaymentProfile = await DBJ.GetPaymentProfile(CompanyID);
+                CompanyDetails.PackageItems = await DBJ.GetCompanyPackageItem(CompanyID);
+                CompanyDetails.CompanyStats = await DBJ.GetIncidentPingStats(CompanyID);
+                CompanyDetails.CompanyRegisteredUser = await DBJ.GetCompanyRegisteredUser(CompanyID);
+                CompanyDetails.MessageTransactionCount = await DBJ.GetMessageTransaction(CompanyID);
+
+                if (CompanyDetails != null)
+                {
+                    //CompanyDetails.BillingUsers = bill_users
+                    return CompanyDetails;
+                }
+                return null;
+                //else
+                //{
+                //    ResultDTO.ErrorId = 110;
+                //    ResultDTO.Message = "No record found.";
+                //}
+                //return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+        public async Task<CompaniesStats> GetCompanyGlobalReport()
+        {
+
+            try
+            {
+                DataObjects DBJ = new DataObjects(_context);
+                var cpmstats = await DBJ.GetCompanyGlobalReport();
+
+                return cpmstats;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
         }
     }
 }
