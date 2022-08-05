@@ -513,7 +513,7 @@ public class AdminController : Controller
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPut]
-    [Route("ApiUrls/Delete/{ApiID}")]
+    [Route("ApiUrls/{ApiID:int}/Delete")]
     public async Task<IActionResult> ApiUrls([FromBody] DeleteApiUrlRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
