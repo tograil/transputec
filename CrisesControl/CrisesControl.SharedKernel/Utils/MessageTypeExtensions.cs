@@ -64,7 +64,7 @@ public static class MessageTypeExtensions
             GroupType.DEPARTMENT => "DEPARTMENT",
             GroupType.GROUP => "GROUP",
             GroupType.LOCATION=>"LOCATION",
-
+            GroupType.INCIDENT => "INCIDENT",
             _ => throw new ArgumentOutOfRangeException(nameof(groupType), groupType, null)
         };
     }
