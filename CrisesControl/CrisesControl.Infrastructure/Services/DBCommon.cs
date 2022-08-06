@@ -29,6 +29,7 @@ using CrisesControl.Core.Locations;
 using System.Net;
 using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
+using CrisesControl.Infrastructure.Services.Jobs;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -1135,6 +1136,136 @@ namespace CrisesControl.Api.Application.Helpers
                 FileInfo fi = new FileInfo(file);
                 if (fi.CreationTime < DateTime.Now.AddDays(-1))
                     fi.Delete();
+            }
+        }
+        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentReviewDate, int CompanyID, int ReminderCount, out int ReminderCounter)
+        {
+            try
+            {
+                ReminderCounter = 0;
+                int reminder1 = 30;
+                int reminder2 = 15;
+                int reminder3 = 7;
+
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", CompanyID), out reminder1);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", CompanyID), out reminder2);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", CompanyID), out reminder3);
+
+                DateTime CheckDate = CurrentReviewDate.AddDays(-reminder1).Date;
+
+                if (CheckDate.Date >= DateTime.Now.Date && ReminderCount == 0)
+                {
+                    ReminderCounter = 1;
+                    return CheckDate;
+                }
+
+                if (CurrentReviewDate.AddDays(-reminder2).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1))
+                {
+                    ReminderCounter = 2;
+                    return CurrentReviewDate.AddDays(-reminder2).Date;
+                }
+
+                if (CurrentReviewDate.AddDays(-reminder3).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1 || ReminderCount == 2))
+                {
+                    ReminderCounter = 3;
+                    return CurrentReviewDate.AddDays(-reminder3).Date;
+                }
+
+                return CurrentReviewDate.AddYears(-1).Date;
+
+            }
+            catch (Exception ex)
+            {
+                ReminderCounter = 0;
+                return CurrentReviewDate.AddYears(-1).Date;
+            }
+        }
+        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentDateTime, string Frequency)
+        {
+            DateTimeOffset NewReviewDate = CurrentDateTime;
+
+            if (string.IsNullOrEmpty(Frequency))
+                Frequency = "MONTH";
+
+            switch (Frequency)
+            {
+                case "WEEK":
+                    NewReviewDate = CurrentDateTime.AddDays(7);
+                    break;
+                case "MONTH":
+                    NewReviewDate = CurrentDateTime.AddMonths(1);
+                    break;
+                case "QUARTER":
+                    NewReviewDate = CurrentDateTime.AddMonths(3);
+                    break;
+                case "YEAR":
+                    NewReviewDate = CurrentDateTime.AddYears(1);
+                    break;
+            }
+            return NewReviewDate;
+        }
+        public async Task CreateSOPReviewReminder(int IncidentID, int SOPHeaderID, int CompanyID, DateTimeOffset NextReviewDate, string ReviewFrequency, int ReminderCount)
+        {
+            try
+            {
+
+                DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
+
+                ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+
+                string jobName = "SOP_REVIEW_" + SOPHeaderID;
+                string taskTrigger = "SOP_REVIEW_" + SOPHeaderID;
+
+                var jobDetail = new Quartz.Impl.JobDetailImpl(jobName, "REVIEW_REMINDER", typeof(SOPReviewJob));
+                jobDetail.JobDataMap["IncidentID"] = IncidentID;
+                jobDetail.JobDataMap["SOPHeaderID"] = SOPHeaderID;
+
+                int Counter = 0;
+                DateTimeOffset DateCheck =GetNextReviewDate(NextReviewDate, CompanyID, ReminderCount, out Counter);
+                jobDetail.JobDataMap["Counter"] = Counter;
+
+                var sop_head =  _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == SOPHeaderID).FirstOrDefault();
+                sop_head.ReminderCount = Counter;
+                _context.Update(sop_head);
+                await _context.SaveChangesAsync();
+
+                //if(DateCheck.Date >= DateTime.Now.Date && Counter <= 3) {
+                if (DateTimeOffset.Compare(DateCheck, GetDateTimeOffset(DateTime.Now)) >= 0 && Counter <= 3)
+                {
+                    //string TimeZoneVal = DBC.GetTimeZoneByCompany(CompanyID);
+                    //DateCheck = DBC.GetServerTime(TimeZoneVal, DateCheck);
+
+                    if (DateCheck < DateTime.Now)
+                        DateCheck = DateTime.Now.AddMinutes(5);
+
+                    //DBC.UpdateLog("0", jobName + ", Starting at: " + DateCheck.ToUniversalTime().ToString(), "CreateTasksReviewReminder", "CreateTasksReviewReminder", 0);
+
+                    ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
+                                                              .WithIdentity(taskTrigger, "REVIEW_REMINDER")
+                                                              .StartAt(DateCheck.ToUniversalTime())
+                                                              .ForJob(jobDetail)
+                                                              .Build();
+                    _scheduler.ScheduleJob(jobDetail, trigger);
+                }
+                else
+                {
+                    DateTimeOffset NewReviewDate = GetNextReviewDate(NextReviewDate, ReviewFrequency);
+
+                    if (sop_head != null)
+                    {
+                        sop_head.ReviewDate = NewReviewDate;
+                        sop_head.ReminderCount = 0;
+                        await _context.SaveChangesAsync();
+                        await CreateSOPReviewReminder(IncidentID, SOPHeaderID, CompanyID, NewReviewDate, ReviewFrequency, 0);
+                    }
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
     }
