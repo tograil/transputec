@@ -63,7 +63,30 @@ namespace CrisesControl.Core.Administrator.Repositories
         Task<CompanyPackageItem> GetCompanyPackageById(int PackageItemId);
         Task<int> UpdateCompanyPackageItem(CompanyPackageItem packageItem);
         Task<CompanyPackageItems> GetCompanyPackageItems(int CompanyID, int PackageItemId);
-
+        Task<SysParameter> GetSysParameters(int SysParametersId);
+        Task<List<SysParameter>> GetAllSysParameters();
+        Task<int> UpdateSysParameters(int SysParametersId, string Category, string Name, string Value, string Type, string Display, string Description, int Status, int UserId,
+           int CompanyId, string TimeZoneId = "GMT Standard Time");
+        Task<string> CreateActivationKey(int CustomerID, int CurrentUserID, int SalesSource = 0);
+        Task<string> GenerateActivationKey(int keyLength = 16);
+        Task<int> SaveTagCategory(int TagCategoryID, string TagCategoryName, string TagCategorySearchTerms, int CurrentUserId, string TimeZoneId);
+        Task<List<TagCategory>> GetAllTagCategory();
+        Task<int> SaveTag(int TagID, int TagCategoryID, string TagName, string SearchTerms, int CurrentUserId, string TimeZoneId);
+        Task<List<AdminTransaction>> GetMonthlyTransaction(int OutUserCompanyId);
+        Task<bool> SaveContractOffer(PreContractOfferModel IP, int CurrentUserId, int CompanyId, string TimeZoneId);
+        Task<CategoryTag> GetTagCategory(int TagCategoryID);
+        Task<bool> RebuildJobs(string Company, string JobType = "ALL");
+        Task<List<Tag>> GetAllTag();
+        Task<Tag> GetTag(int TagID);
+        Task<List<PackageAddons>> GetPackageAddons(int OutUserCompanyId, bool ShowAll = false);
+        Task<List<CrisesControl.Core.Administrator.Api>> GetApiUrlsAsync();
+        Task<CrisesControl.Core.Administrator.Api> GetApiUrlByIdAsync(int id);
+        Task<CrisesControl.Core.Administrator.Api> UpdateApiUrlAsync(CrisesControl.Core.Administrator.Api api);
+        Task<CrisesControl.Core.Administrator.Api> DeleteApiUrlAsync(int id);
+        Task<CrisesControl.Core.Administrator.Api> AddApiUrlAsync(string ApiUrl, string ApiHost, bool IsCurrent, int Status, string Version, string AppVersion, string ApiMode, string Platform);
+        Task<CompaniesStats> GetCompanyGlobalReport();
+        Task<int> UpdateCustomerId(string NewCustomerId, int QCompanyId, string QCustomerId);
+        Task<CompanyDetails> GetCompanyDetails(int CompanyID);
 
     }
 }

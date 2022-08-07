@@ -1,4 +1,6 @@
-﻿using CrisesControl.Api.Application.Commands.Register.ActivateCompany;
+﻿using CrisesControl.Api.Application.Commands.Register;
+using CrisesControl.Api.Application.Commands.Register.ActivateCompany;
+using CrisesControl.Api.Application.Commands.Register.BusinessSector;
 using CrisesControl.Api.Application.Commands.Register.CheckAppDownloaded;
 using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
@@ -30,7 +32,7 @@ namespace CrisesControl.Api.Controllers
         {
           _mediator=mediator;
         }
-
+        
         [HttpGet]
         public async Task<IActionResult> Index([FromRoute] IndexRequest request, CancellationToken cancellationToken)
         {
@@ -137,6 +139,13 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpGet("SendCredentials/{UniqueId}")]
         public async Task<IActionResult> SendVerification([FromRoute] SendCredentialsRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        [HttpGet("BusinessSector")]
+        public async Task<IActionResult> BusinessSector([FromRoute] BusinessSectorRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 

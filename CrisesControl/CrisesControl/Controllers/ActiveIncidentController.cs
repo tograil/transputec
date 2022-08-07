@@ -41,42 +41,42 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet]
+        [HttpPut]
         [Route("ActiveIncidentTasks/{ActiveIncidentID}")]
         public async Task<IActionResult> ActiveIncidentTasks([FromRoute] ActiveIncidentTasksRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet]
+        [HttpPut]
         [Route("AcceptTask/{ActiveIncidentTaskID}")]
         public async Task<IActionResult> AcceptTask([FromRoute] AcceptTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet]
+        [HttpPut]
         [Route("DeclineTask/{ActiveIncidentTaskID}/{TaskActionReason}")]
         public async Task<IActionResult> DeclineTask([FromRoute] DeclineTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet]
+        [HttpPut]
         [Route("CompleteTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote}/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
         public async Task<IActionResult> CompleteTask([FromRoute] CompleteTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet]
+        [HttpPut]
         [Route("DelegateTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote}/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
         public async Task<IActionResult> DelegateTask([FromRoute] DelegateTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpGet]
+        [HttpPut]
         [Route("ReallocateTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote}/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
         public async Task<IActionResult> ReallocateTask([FromRoute] ReallocateTaskRequest request, CancellationToken cancellationToken)
         {
