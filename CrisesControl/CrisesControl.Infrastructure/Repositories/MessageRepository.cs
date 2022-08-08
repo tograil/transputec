@@ -50,6 +50,7 @@ public class MessageRepository : IMessageRepository
     private readonly DBCommon _DBC;
     private readonly CommsHelper _CH;
     private readonly PingHelper _PH;
+    private readonly Messaging _MSG;
 
 
     public MessageRepository(
@@ -59,7 +60,8 @@ public class MessageRepository : IMessageRepository
         ICompanyParametersRepository companyParameters,
         DBCommon DBC,
         CommsHelper CH,
-        PingHelper PH
+        PingHelper PH,
+        Messaging MSG
         )
     {
         _context = context;
@@ -69,6 +71,7 @@ public class MessageRepository : IMessageRepository
         _DBC = DBC;
         _CH = CH;
         _PH = PH;
+        _MSG = MSG;
     }
 
     public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0)
@@ -1227,14 +1230,15 @@ public class MessageRepository : IMessageRepository
         }
     }
 
-    public async Task<int> PingMessages(int companyId, string messageText, List<AckOption> ackOptions, int priority, bool multiResponse, string messageType,
-      int incidentActivationId, int currentUserId, string timeZoneId, PingMessageObjLst[] pingMessageObjLst, int[] usersToNotify, int assetId = 0,
-      bool silentMessage = false, int[]? messageMethod = null, List<MediaAttachment>? mediaAttachments = null, List<string>? socialHandle = null,
-      int cascadePlanID = 0)
+    public async Task<int> PingMessages(PingMessageQuery pingMessage)
     {
         try
         {
-            return await _PH.PingMessages(companyId, messageText, ackOptions, priority, multiResponse, messageType, incidentActivationId, currentUserId, timeZoneId, pingMessageObjLst, usersToNotify, assetId, silentMessage, messageMethod, mediaAttachments, socialHandle, cascadePlanID);
+            return await _PH.PingMessages(pingMessage.CompanyId, pingMessage.MessageText, pingMessage.AckOptions,
+                pingMessage.Priority, pingMessage.MultiResponse, pingMessage.MessageType, pingMessage.IncidentActivationId,
+                pingMessage.CurrentUserId, pingMessage.TimeZoneId, pingMessage.PingMessageObjLst, pingMessage.UsersToNotify,
+                pingMessage.AssetId, pingMessage.SilentMessage, pingMessage.MessageMethod, pingMessage.MediaAttachments,
+                pingMessage.SocialHandle, pingMessage.CascadePlanID);
         }
         catch (Exception ex)
         {
@@ -1248,9 +1252,110 @@ public class MessageRepository : IMessageRepository
         {
             return _PH.ProcessPAFile(userListFile, hasHeader, emailColIndex, phoneColIndex, postcodeColIndex, latColIndex, longColIndex, sessionId);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             throw ex;
+        }
+    }
+
+    public async Task<dynamic> ResendFailure(int messageId, string commsMethod)
+    {
+        try
+        {
+            return await _PH.ResendFailure(messageId, commsMethod);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<dynamic> ReplyToMessage(int parentId, string messageText, string replyTo, string messageType, int activeIncidentId, int[] messageMethod, int cascadePlanId, int currentUserId, int companyId, string timeZoneId)
+    {
+        try
+        {
+            return await _PH.ReplyToMessage(parentId, messageText, replyTo, messageType, activeIncidentId, messageMethod, cascadePlanId, currentUserId, companyId, timeZoneId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<int> SaveMessageResponse(int responseId, string responseLabel, string description, bool isSafetyResponse,
+                     string safetyAckAction, string messageType, int status, int currentUserId, int companyId, string timeZoneId)
+    {
+        return await _MSG.SaveMessageResponse(responseId, responseLabel, description, isSafetyResponse,
+            safetyAckAction, messageType, status, currentUserId, companyId, timeZoneId);
+    }
+
+    public async Task<dynamic> SendPublicAlert(string messageText, int[] messageMethod, bool schedulePA, DateTime scheduleAt, string sessionId, int userId, int companyId, string timeZoneId)
+    {
+        try
+        {
+            return await _PH.SendPublicAlert(messageText, messageMethod, schedulePA, scheduleAt, sessionId, userId, companyId, timeZoneId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<bool> StartConference(List<User> UserList, int ObjectID, int CurrentUserID, int CompanyID, string TimeZoneId)
+    {
+        try
+        {
+            return await _MSG.StartConference(UserList, ObjectID, CurrentUserID, CompanyID, TimeZoneId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public Return UploadAttachment()
+    {
+        string ServerUploadFolder = "C:\\Temp\\";
+        int iUploadedCnt = 0;
+        string FileName = string.Empty;
+        try
+        {
+
+            string AttachmentSavePath = _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
+            string AttachmentUncUser = _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
+            string AttachmentUncPwd = _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
+            string AttachmentUseUnc = _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
+            ServerUploadFolder = _DBC.LookupWithKey("UPLOAD_PATH");
+
+            _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
+
+            List<IFormFile> hfc = new List<IFormFile>();
+
+            for (int iCnt = 0; iCnt <= hfc.Count - 1; iCnt++)
+            {
+                //List<IFormFile> hpf = hfc[iCnt];
+                //if (hpf.ContentLength > 0)
+                //{
+                //    string FileExt = System.IO.Path.GetExtension(hpf.FileName);
+                //    FileName = Guid.NewGuid().ToString().Replace("-", "") + FileExt;
+                //    if (!System.IO.File.Exists(ServerUploadFolder + FileName))
+                //    {
+                //        hpf.SaveAs(ServerUploadFolder + FileName);
+                //        iUploadedCnt = iUploadedCnt + 1;
+                //    }
+                //}
+            }
+            if (iUploadedCnt > 0)
+            {
+                return _DBC.Return(0, "0", true, "File Uploaded successfully", FileName);
+            }
+            else
+            {
+                return _DBC.Return(1, "E001", false, "Could not upload file", null);
+            }
+        }
+        catch (Exception ex)
+        {
+            return _DBC.Return(1, "E001", false, ex.ToString(), null);
         }
     }
 

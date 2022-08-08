@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Compatibility.Jobs;
+using CrisesControl.Core.Import;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Models;
@@ -330,6 +331,200 @@ namespace CrisesControl.Infrastructure.Services
             else
             {
                 return ExcelReaderFactory.CreateReader(stream);
+            }
+        }
+
+        public async Task<dynamic> ResendFailure(int messageId, string commsMethod)
+        {
+            CommonDTO ResultDTO = new CommonDTO();
+            try
+            {
+                var deviceList = QueueHelper.GetFailedDeviceQueue(messageId, commsMethod, 0);
+                if (deviceList.Count > 0)
+                {
+                    bool queued = await QueueHelper.RequeueMessage(messageId, commsMethod, deviceList);
+                    if (queued)
+                    {
+                        ResultDTO.ErrorId = 205;
+                        ResultDTO.ErrorCode = "205";
+                        ResultDTO.Message = "Message queued successfully";
+                    }
+                }
+                else
+                {
+                    ResultDTO.ErrorId = 206;
+                    ResultDTO.ErrorCode = "206";
+                    ResultDTO.Message = "No items found for resending";
+                }
+                return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                return ResultDTO;
+            }
+
+        }
+
+        public async Task<dynamic> SendPublicAlert(string messageText, int[] messageMethod, bool schedulePA, DateTime scheduleAt, string sessionId, int userId, int companyId, string timeZoneId)
+        {
+            try
+            {
+
+                try
+                {
+
+                    DateTimeOffset dtnow = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+
+                    var PACount = (from PAD in _context.Set<PublicAlertMessageListDump>() where PAD.SessionId == sessionId select PAD).Count();
+
+                    if (PACount > 0)
+                    {
+                        _MSG.MessageSourceAction = SourceAction.PublicAlert;
+                        //Create message enry
+                        int tblmessageid = await _MSG.CreateMessage(companyId, messageText, "PublicAlert", 0, 100, userId,
+                                1, _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), false, null, 99, 0, 0, false, false, messageMethod, null, 0);
+
+                        //Create public alert entry for the listing
+                        int PublicAlertID = await CreatePublicAlert(tblmessageid, schedulePA, scheduleAt, userId, timeZoneId);
+
+                        int PhoneAdded = 0;
+                        int TextAdded = 0;
+                        int EmailAdded = 0;
+
+                        if (messageMethod.Contains(3))
+                            PhoneAdded = 1;
+                        if (messageMethod.Contains(2))
+                            TextAdded = 1;
+                        if (messageMethod.Contains(4))
+                            EmailAdded = 1;
+
+
+                        if (!schedulePA)
+                        {
+                            //Create Message List for Ping
+                            _MSG.SavePublicAlertMessageList(sessionId, PublicAlertID, tblmessageid, dtnow, TextAdded, EmailAdded, PhoneAdded);
+
+                            var rabbithosts = QueueHelper.RabbitHosts();
+                            Task.Factory.StartNew(() => QueueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "EMAIL")).ContinueWith(t => {
+                                t.Dispose();
+                            });
+                            Task.Factory.StartNew(() => QueueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "TEXT")).ContinueWith(t => {
+                                t.Dispose();
+                            });
+                            _context.Database.ExecuteSqlRaw("EXEC UPDATE PublicAlert SET Executed=1 WHERE PublicAlertID=" + PublicAlertID);
+                        }
+                        else
+                        {
+                            _context.Database.ExecuteSqlRaw("EXEC UPDATE PublicAlertMessageListDump SET PublicAlertID=" + PublicAlertID + " WHERE SessionId='" + sessionId + "'");
+
+                            //SchedulerHelper SH = new SchedulerHelper();
+                            //DateTimeOffset DOScheduleAt = _DBC.GetDateTimeOffset(ScheduleAt, TimeZoneId);
+                            //bool CanRun = SH.ScheudlePublicAlert(tblmessageid, PublicAlertID, SessionId, DOScheduleAt, TimeZoneId);
+                            //if (!CanRun)
+                            //{
+                            //    CommonDTO DT = new CommonDTO();
+                            //    DT.ErrorCode = "220";
+                            //    DT.Message = "Cannot schedule this public alert";
+                            //    return DT;
+                            //}
+                        }
+
+                        return true;
+                    }
+                    // }
+                }
+                catch (Exception ex)
+                {
+                }
+
+            }
+            catch (Exception ex)
+            {
+            }
+            return null;
+        }
+
+        public async Task<int> CreatePublicAlert(int messageId, bool scheduled, DateTimeOffset scheduleAt, int userId, string timeZoneId)
+        {
+            try
+            {
+                PublicAlert PA = new PublicAlert()
+                {
+                    MessageId = messageId,
+                    Scheduled = scheduled,
+                    ScheduleAt = scheduleAt,
+                    Executed = 0,
+                    CreatedBy = userId,
+                    CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId)
+                };
+                _context.Set<PublicAlert>().Add(PA);
+                await _context.SaveChangesAsync();
+                return PA.PublicAlertId;
+            }
+            catch (Exception ex)
+            {
+                return 0;
+            }
+        }
+
+        public async Task<dynamic> ReplyToMessage(int parentId, string messageText, string replyTo, string messageType, int activeIncidentId, int[] messageMethod,
+            int cascadePlanId, int currentUserId, int companyId, string timeZoneId)
+        {
+            Return Result = new Return();
+            try
+            {
+                var msg = (from M in _context.Set<Message>() where M.MessageId == parentId select M).FirstOrDefault();
+                if (msg != null)
+                {
+
+                    int MessageActionType = 0;
+                    bool MultiResponse = false;
+
+                    _MSG.TimeZoneId = timeZoneId;
+                    _MSG.CascadePlanID = cascadePlanId;
+                    _MSG.MessageSourceAction = SourceAction.PingReply;
+
+                    if (replyTo.ToUpper() == "RENOTIFY")
+                    {
+                        string NotifyNote = _DBC.GetCompanyParameter("RENOTIFY_NOTE", companyId);
+                        messageText = msg.MessageText + Environment.NewLine + "[" + NotifyNote + "]";
+                        MessageActionType = 1;
+                        MultiResponse = msg.MultiResponse;
+                    }
+
+                    int tblmessageid = await _MSG.CreateMessage(companyId, messageText, messageType, activeIncidentId, 100, currentUserId,
+                        1, _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), MultiResponse, null, 99, msg.AssetId, 0, false, msg.SilentMessage, messageMethod, null,
+                        parentId, MessageActionType);
+
+                    msg.HasReply += 1;
+
+                    if (msg.AttachmentCount > 0)
+                    {
+                        var newmsg = (from M in _context.Set<Message>() where M.MessageId == tblmessageid select M).FirstOrDefault();
+                        if (newmsg != null)
+                        {
+                            newmsg.AttachmentCount = msg.AttachmentCount;
+                        }
+                    }
+                    _context.SaveChanges();
+
+                    int queuecount = await QueueConsumer.CreateMessageList(tblmessageid, replyTo);
+                    IsFundAvailable = QueueConsumer.IsFundAvailable;
+
+                    Result = _DBC.Return(0, IsFundAvailable == true ? null : "E219", true, "SUCCESS", tblmessageid, queuecount);
+
+                    return Result;
+                }
+                else
+                {
+                    Result = _DBC.Return(214, "E214", false, "The source message is not found.", null);
+                    return Result;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return null;
             }
         }
     }

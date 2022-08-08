@@ -29,6 +29,7 @@ using CrisesControl.Core.Locations;
 using System.Net;
 using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
+using CrisesControl.Core.Import;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -1152,6 +1153,18 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 return null;
             }
+        }
+
+        public Return Return(int errorId = 100, string errorCode = "E100", bool status = false, string message = "FAILURE", object data = null, int resultId = 0)
+        {
+            Return rtn = new Return();
+            rtn.ErrorId = errorId;
+            rtn.ErrorCode = errorCode;
+            rtn.Status = status;
+            rtn.Message = message;
+            rtn.Data = data;
+            rtn.ResultID = resultId;
+            return rtn;
         }
     }
 }

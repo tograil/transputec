@@ -9,15 +9,17 @@ namespace CrisesControl.Api.Application.Commands.Messaging.UploadAttachment
     {
         private readonly IMapper _mapper;
         private readonly IMessageRepository _messageRepository;
-        public UploadAttachmentHandler(IMapper mapper)
+        public UploadAttachmentHandler(IMapper mapper, IMessageRepository messageRepository)
         {
             _mapper = mapper;
+            _messageRepository = messageRepository;
         }
 
         public async Task<UploadAttachmentResponse> Handle(UploadAttachmentRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(UploadAttachmentRequest));
             var response = new UploadAttachmentResponse();
+            response = _mapper.Map<UploadAttachmentResponse>(_messageRepository.UploadAttachment());
             return response;
         }
     }

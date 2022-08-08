@@ -18,6 +18,7 @@ namespace CrisesControl.Api.Application.Commands.Messaging.ResendFailed
         {
             Guard.Against.Null(request, nameof(ResendFailedRequest));
             var response = new ResendFailedResponse();
+            response = await _messageRepository.ResendFailure(request.messageId, request.commsMethod);
             return response;
         }
     }
