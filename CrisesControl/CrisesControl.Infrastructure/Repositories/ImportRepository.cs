@@ -1132,5 +1132,202 @@ namespace CrisesControl.Infrastructure.Repositories
                 return "EMPTY";
             }
         }
+
+        public bool CreateTempDepartment(List<ImportDumpInput> data, string sessionId, int companyId, int userId, string timeZoneId)
+        {
+
+            try
+            {
+                foreach (ImportDumpInput Dep in data)
+                {
+
+                    string Action = !string.IsNullOrEmpty(Dep.Action) ? Dep.Action : "ADD";
+                    ImportToDump(userId, companyId, sessionId,
+                        "", "", "", "", "", "", "", "", "0", Action, "", "0", Dep.Department, Dep.DepartmentStatus, "", "", "0", "", "", "",
+                        "", "", "", "", "", "", "", "", "", "", "DepartmentImportOnly", userId, TimeZoneId);
+
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public void ImportToDump(int UserId, int CompanyId, string SessionId,
+           string FirstName, string Surname, string Email, string ISD, string Phone, string LLISD, string Landline, string UserRole, string Status, string Action,
+           string Group, string GroupStatus,
+           string Department, string DepartmentStatus,
+           string Location, string LocationAddress, string LocationStatus,
+           string Security, string SecurityDescription,
+           string PingMethods, string IncidentMethods,
+           string LocationAction, string GroupAction, string DepartmentAction,
+           string EmailCheck, string LocationCheck, string GroupCheck, string DepartmentCheck, string SecurityCheck, string ImportAction, string ActionType, int createdUpdatedBy, string TimeZoneId)
+        {
+            try
+            {
+
+                ImportDump IMPDump = new ImportDump();
+
+                IMPDump.UserId = UserId;
+                IMPDump.CompanyId = CompanyId;
+                IMPDump.SessionId = SessionId;
+
+                if (ActionType.ToUpper() == "USERIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.FirstName = FirstName;
+                    IMPDump.Surname = Surname;
+                    IMPDump.Email = (!string.IsNullOrEmpty(Email) ? Email.ToLower() : "");
+                    IMPDump.EncryptedEmail = (!string.IsNullOrEmpty(Email) ? Email.ToLower() : "");
+                    IMPDump.Status = Status;
+                    IMPDump.Isd = ISD;
+                    IMPDump.Phone = Phone;
+                    IMPDump.Llisd = LLISD;
+                    IMPDump.Landline = Landline;
+                    IMPDump.UserRole = (!string.IsNullOrEmpty(UserRole) ? UserRole.ToUpper() : "");
+                    IMPDump.EmailCheck = EmailCheck;
+                    IMPDump.PingMethods = PingMethods;
+                    IMPDump.IncidentMethods = IncidentMethods;
+                    IMPDump.LocationAction = LocationAction;
+                    IMPDump.GroupAction = GroupAction;
+                    IMPDump.ActionCheck = "";
+                }
+
+                if (ActionType.ToUpper() == "GROUPIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.Group = Group;
+                    IMPDump.GroupStatus = GroupStatus;
+                    IMPDump.GroupCheck = GroupCheck;
+                }
+                if (ActionType.ToUpper() == "DEPARTMENTIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.Department = Department;
+                    IMPDump.DepartmentStatus = DepartmentStatus;
+                    IMPDump.DepartmentCheck = DepartmentCheck;
+                }
+                if (ActionType.ToUpper() == "LOCATIONIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.Location = Location;
+                    IMPDump.LocationAddress = LocationAddress;
+                    IMPDump.LocationStatus = LocationStatus;
+                    IMPDump.LocationCheck = LocationCheck;
+
+                }
+                if (ActionType.ToUpper() == "SECURITYIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.Security = Security;
+                    IMPDump.SecurityCheck = SecurityCheck;
+                }
+
+                IMPDump.ImportAction = ImportAction;
+                IMPDump.ActionType = ActionType;
+                IMPDump.Action = Action;
+                if (createdUpdatedBy > 0)
+                    IMPDump.CreatedBy = createdUpdatedBy;
+                IMPDump.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                if (createdUpdatedBy > 0)
+                    IMPDump.UpdatedBy = createdUpdatedBy;
+                IMPDump.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+
+                _context.Set<ImportDump>().Add(IMPDump);
+                _context.SaveChanges();
+            }
+            catch (Exception ex) { throw ex; }
+        }
+
+        public bool CreateTempUsers(List<ImportDumpInput> userData, string SessionId, int CompanyId, string JobType, int UserId = 0, string TimeZoneId = "GMT Standard Time")
+        {
+
+            try
+            {
+
+                CreateImportHeader(SessionId, CompanyId, "DUMPING", UserId, "NOFILE", "NOFILE", false, 0, false, JobType);
+
+                foreach (ImportDumpInput Usr in userData)
+                {
+                    ImportToDump(0, CompanyId, SessionId, Usr.FirstName, Usr.Surname, Usr.Email, Usr.MobileISD, Usr.Mobile, Usr.ISDLandline, Usr.Landline,
+                        Usr.UserRole, Usr.Status, Usr.Action, Usr.Group, Usr.GroupStatus, Usr.Department, Usr.DepartmentStatus, Usr.Location, Usr.LocationAddress, Usr.LocationStatus,
+                    Usr.MenuAccess, Usr.MenuAccess, Usr.PingMethods, Usr.IncidentMethods, Usr.LocationAction, Usr.GroupAction, Usr.DepartmentAction,
+                    "", "", "", "", "", "", "USERIMPORTCOMPLETE", UserId, TimeZoneId);
+                }
+
+                QueueImportTask(SessionId, CompanyId, false, UserId, JobType);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public async Task<CommonDTO> RefreshTmpTable(int companyId, int userId, string sessionId)
+        {
+            CommonDTO ResultDTO = new CommonDTO();
+            try
+            {
+                DateTime DelTime = DateTime.Now.AddHours(-1);
+
+                var Imp = (from I in _context.Set<ImportDump>()
+                            where (I.CompanyId == companyId && I.UserId == userId && I.SessionId == sessionId) ||
+                            I.CreatedOn <= DelTime
+                            select I).ToList();
+                _context.Set<ImportDump>().RemoveRange(Imp);
+                await _context.SaveChangesAsync();
+                ResultDTO.ErrorId = 1;
+                ResultDTO.Message = "Table Refreshed";
+                return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                return ResultDTO;
+            }
+        }
+
+        public bool CreateTempLocation(List<ImportDumpInput> locData, string sessionId, int companyId, int userId = 0, string timeZoneId = "GMT Standard Time")
+        {
+
+            try
+            {
+                foreach (ImportDumpInput Loc in locData)
+                {
+
+                    string Action = !string.IsNullOrEmpty(Loc.Action) ? Loc.Action : "ADD";
+
+                    ImportToDump(userId, companyId, sessionId, "", "", "", "", "", "", "", "", "0",
+                        Action, "", "0", "", "0", Loc.Location, Loc.LocationAddress, Loc.LocationStatus, "", "", "", "", "", "", "", "",
+                        "", "", "", "", "", "LocationImportOnly", userId, timeZoneId);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public bool CreateTempGroup(List<ImportDumpInput> data, string sessionId, int companyId, int userId, string timeZoneId)
+        {
+
+            try
+            {
+                foreach (ImportDumpInput Dep in data)
+                {
+
+                    string Action = !string.IsNullOrEmpty(Dep.Action) ? Dep.Action : "ADD";
+                    ImportToDump(UserId, companyId, sessionId,
+                        "", "", "", "", "", "", "", "", "0", Action, Dep.Group, Dep.Status, "", "0", "", "", "0", "", "", "", "", "", "",
+                        "", "", "", "", "", "", "", "GroupImportOnly", userId, timeZoneId);
+
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
     }
 }

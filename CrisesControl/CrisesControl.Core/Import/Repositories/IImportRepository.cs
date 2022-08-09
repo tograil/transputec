@@ -23,5 +23,10 @@ namespace CrisesControl.Core.Import.Repositories
         public void UploadSingleFile();
         public void UserCompleteImport(UserCompleteImportModel userCompleteImportModel, CancellationToken cancellationToken);
         public void UserCompleteUpload(UserCompleteUploadModel userCompleteUploadModel, CancellationToken cancellationToken);
+        public bool CreateTempDepartment(List<ImportDumpInput> data, string sessionId, int companyId, int userId, string timeZoneId);
+        public bool CreateTempUsers(List<ImportDumpInput> userData, string SessionId, int CompanyId, string JobType, int UserId = 0, string TimeZoneId = "GMT Standard Time");
+        Task<CommonDTO> RefreshTmpTable(int companyId, int userId, string sessionId);
+        public bool CreateTempLocation(List<ImportDumpInput> locData, string sessionId, int companyId, int userId = 0, string timeZoneId = "GMT Standard Time");
+        public bool CreateTempGroup(List<ImportDumpInput> data, string sessionId, int companyId, int userId, string timeZoneId);
     }
 }
