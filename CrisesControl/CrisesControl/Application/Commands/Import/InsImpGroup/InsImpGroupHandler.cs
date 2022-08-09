@@ -17,7 +17,7 @@ namespace CrisesControl.Api.Application.Commands.Import.InsImpGroup
         {
             Guard.Against.Null(request, nameof(InsImpGroupRequest));
             var response = new InsImpGroupResponse();
-            response = _importRepository.CreateTempGroup(request);
+            response.Result = _importRepository.CreateTempGroup(request.Data, request.SessionId, request.CompanyId, request.UserId, request.TimeZoneId);
             return response;
         }
     }

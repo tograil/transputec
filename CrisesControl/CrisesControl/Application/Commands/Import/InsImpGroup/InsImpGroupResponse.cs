@@ -2,5 +2,6 @@
 {
     public class InsImpGroupResponse
     {
+        public bool Result { get; set; }
     }
 }

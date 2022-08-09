@@ -1316,7 +1316,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 {
 
                     string Action = !string.IsNullOrEmpty(Dep.Action) ? Dep.Action : "ADD";
-                    ImportToDump(UserId, companyId, sessionId,
+                    ImportToDump(userId, companyId, sessionId,
                         "", "", "", "", "", "", "", "", "0", Action, Dep.Group, Dep.Status, "", "0", "", "", "0", "", "", "", "", "", "",
                         "", "", "", "", "", "", "", "GroupImportOnly", userId, timeZoneId);
 
@@ -1327,6 +1327,96 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 return false;
             }
+        }
+
+        public object GetCountActionCheck(string sessionId, int outUserCompanyId)
+        {
+            CommonDTO ResultDTO = new CommonDTO();
+            try
+            {
+
+                var ImportActionCheck = (from UIT in _context.Set<ImportDump>()
+                                         where UIT.SessionId == sessionId
+                                         select new { ActionCheck = UIT.ActionCheck, ActionType = UIT.ActionType }).ToList();
+                if (ImportActionCheck.Count > 0)
+                {
+                    int TotalNewImported = 0;
+                    int TotalUpdated = 0;
+                    int TotalSkiped = 0;
+                    int TotalDeleted = 0;
+                    string ImportType = string.Empty;
+                    foreach (var item in ImportActionCheck)
+                    {
+                        if (!string.IsNullOrEmpty(item.ActionCheck))
+                        {
+                            if (item.ActionCheck.ToUpper() == NewCheck.ToUpper())
+                            {
+                                TotalNewImported += 1;
+                            }
+                            else if (item.ActionCheck.ToUpper() == OverrideCheck.ToUpper())
+                            {
+                                TotalUpdated += 1;
+                            }
+                            else if (item.ActionCheck.ToUpper() == SkipCheck.ToUpper() || item.ActionCheck == "ERROR")
+                            {
+                                TotalSkiped += 1;
+                            }
+                            else if (item.ActionCheck.ToUpper() == DeletedCheck.ToUpper())
+                            {
+                                TotalDeleted += 1;
+                            }
+                        }
+                        else
+                        {
+                            TotalSkiped += 1;
+                        }
+                        ImportType = item.ActionType;
+                    }
+
+                    ImportResult ImpDTO = new ImportResult();
+                    ImpDTO.TotalImport = TotalNewImported;
+                    ImpDTO.TotalUpdate = TotalUpdated;
+                    ImpDTO.TotalSkip = TotalSkiped;
+                    ImpDTO.TotalDelete = TotalDeleted;
+
+                    DateTime DelTime = DateTime.Now.AddHours(-1);
+
+                    var DelImprtData = (from UIT in _context.Set<ImportDump>()
+                                        where UIT.SessionId == sessionId
+                                        select UIT).ToList();
+                    try
+                    {
+
+                        string ResultFilePath = _DBC.Getconfig("ImportResultPath");
+                        string FileName = outUserCompanyId + "\\" + sessionId.TrimStart('{').TrimEnd('}') + "\\import_log_report.csv";
+                        bool fileCreated = DataHelper.CreateImportResult(DelImprtData, ResultFilePath + FileName, ImportType);
+                        if (fileCreated)
+                            ImpDTO.ResultFile = FileName;
+
+                        var DelRecs = (from UIT in _context.Set<ImportDump>()
+                                       where UIT.CreatedOn <= DelTime
+                                       select UIT).ToList();
+                        _context.Set<ImportDump>().RemoveRange(DelRecs);
+                        _context.SaveChanges();
+
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                    return ImpDTO;
+                }
+                else
+                {
+                    ResultDTO.ErrorId = 110;
+                    ResultDTO.Message = "Record not found";
+                }
+                return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                return ResultDTO;
+            }
+
         }
 
     }

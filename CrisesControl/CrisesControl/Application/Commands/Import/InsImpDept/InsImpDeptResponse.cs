@@ -2,5 +2,6 @@
 {
     public class InsImpDeptResponse
     {
+        public bool Result { get; set; }
     }
 }
