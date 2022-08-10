@@ -133,12 +133,12 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<GetCompanyInvoicesReturn> GetAllInvoices(int CompanyId, CancellationToken cancellationToken)
+        public async Task<GetCompanyInvoicesReturn> GetAllInvoices(int companyId)
         {
             GetCompanyInvoicesReturn result = new GetCompanyInvoicesReturn();
             try
             {
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var companyInvoices = await _context.Set<CompanyInvoices>().FromSqlRaw("EXEC Pro_Billing_GetAllInvoicesByCompanyRef @CompanyID", pCompanyID).ToListAsync();
 
                 if (companyInvoices.Count > 0)
@@ -182,7 +182,7 @@ namespace CrisesControl.Infrastructure.Repositories
             return new List<InvoiceSchReturn>();
         }
 
-        public async Task<dynamic> GetOrder(int orderId, int companyId, string customerId, int originalOrderId)
+        public async Task<List<OrderListReturn>> GetOrder(int orderId, int companyId, string customerId, int originalOrderId)
         {
             try
             {
@@ -201,8 +201,9 @@ namespace CrisesControl.Infrastructure.Repositories
                         var newresult = result.FirstOrDefault();
                         newresult.Modules = await GetProducts(newresult.OrderID, companyId);
                         newresult.InvItems = await GetInvItems(newresult.OrderID, DateTime.Now.Month, DateTime.Now.Year);
-
-                        return newresult;
+                        var r = new List<OrderListReturn>();
+                        r.Add(newresult);
+                        return r;
                     }
                     return result;
                 }

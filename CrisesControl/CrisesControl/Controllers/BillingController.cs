@@ -13,6 +13,7 @@ using CrisesControl.Api.Application.Commands.Billing.GetUnbilledSummary;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CrisesControl.Api.Application.Query;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -23,10 +24,12 @@ namespace CrisesControl.Api.Controllers
     public class BillingController : Controller
     {
         private readonly IMediator _mediator;
+        private readonly IBillingQuery _billingQuery;
 
-        public BillingController(IMediator mediator)
+        public BillingController(IMediator mediator, IBillingQuery billingQuery)
         {
             _mediator = mediator;
+            _billingQuery = billingQuery;
         }
         /// <summary>
         /// Get payment profile information
@@ -36,10 +39,9 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{CompanyId:int}/PaymentProfile")]
-        public async Task<IActionResult> GetPaymentProfile([FromRoute] GetPaymentProfileRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetPaymentProfile([FromRoute] GetPaymentProfileRequest request)
         {
-            var result = await _mediator.Send(request, cancellationToken);
-
+            var result = await _billingQuery.GetPaymentProfile(request);
             return Ok(result);
         }
         /// <summary>
@@ -50,9 +52,9 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("GetBillingSummary")]
-        public async Task<IActionResult> GetBillingSummary(GetBillingSummaryRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetBillingSummary(GetBillingSummaryRequest request)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _billingQuery.GetBillingSummary(request);
             return Ok(result);
         }
         /// <summary>
@@ -63,9 +65,9 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("GetAllInvoices")]
-        public async Task<IActionResult> GetAllInvoices(GetAllInvoicesRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAllInvoices(GetAllInvoicesRequest request)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _billingQuery.GetAllInvoices(request);
             return Ok(result);
         }
         /// <summary>
@@ -78,7 +80,7 @@ namespace CrisesControl.Api.Controllers
         [Route("GetInvSchedule")]
         public async Task<IActionResult> GetInvSchedule(GetInvScheduleRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _billingQuery.GetInvSchedule(request);
             return Ok(result);
         }
         /// <summary>
@@ -91,7 +93,7 @@ namespace CrisesControl.Api.Controllers
         [Route("GetOrders")]
         public async Task<IActionResult> GetOrders(GetOrdersRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _billingQuery.GetOrders(request);
             return Ok(result);
         }
         /// <summary>

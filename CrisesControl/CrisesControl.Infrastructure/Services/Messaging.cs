@@ -44,16 +44,16 @@ namespace CrisesControl.Infrastructure.Services
         }
  
 
-        public void AddUserToNotify(int MessageId, List<int> UserID, int ActiveIncidentID = 0)
+        public void AddUserToNotify(int messageId, List<int> userId, int activeIncidentId = 0)
         {
             try
             {
-                var ins = from I in UserID
+                var ins = from I in userId
                           select new UsersToNotify
                           {
-                              MessageId = MessageId,
+                              MessageId = messageId,
                               UserId = I,
-                              ActiveIncidentId = ActiveIncidentID
+                              ActiveIncidentId = activeIncidentId
                           };
 
                 db.AddRange(ins);
@@ -66,73 +66,73 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<int> CreateMessage(int CompanyId, string MsgText, string MessageType, int IncidentActivationId, int Priority, int CurrentUserId,
-           int Source, DateTimeOffset LocalTime, bool MultiResponse, List<AckOption> AckOptions, int Status = 0, int AssetId = 0, int ActiveIncidentTaskID = 0,
-           bool TrackUser = false, bool SilentMessage = false, int[] MessageMethod = null, List<MediaAttachment> MediaAttachments = null, int ParentID = 0,
-           int MessageActionType = 0)
+        public async Task<int> CreateMessage(int companyId, string msgText, string messageType, int incidentActivationId, int priority, int currentUserId,
+           int source, DateTimeOffset localTime, bool multiResponse, List<AckOption> ackOptions, int status = 0, int assetId = 0, int activeIncidentTaskId = 0,
+           bool trackUser = false, bool silentMessage = false, int[] messageMethod = null, List<MediaAttachment> mediaAttachments = null, int parentId = 0,
+           int messageActionType = 0)
         {
             try
             {
 
-                if (ParentID > 0 && IncidentActivationId == 0 && MessageType.ToUpper() == "INCIDENT")
+                if (parentId > 0 && incidentActivationId == 0 && messageType.ToUpper() == "INCIDENT")
                 {
-                    var parentmsg =await db.Set<Message>().Where(M=> M.MessageId == ParentID).FirstOrDefaultAsync();
+                    var parentmsg =await db.Set<Message>().Where(M=> M.MessageId == parentId).FirstOrDefaultAsync();
                     if (parentmsg != null)
                     {
-                        IncidentActivationId = parentmsg.IncidentActivationId;
+                        incidentActivationId = parentmsg.IncidentActivationId;
                     }
                 }
 
                 Message tblMessage = new Message()
                 {
-                    CompanyId = CompanyId,
-                    MessageText = !string.IsNullOrEmpty(MsgText) ? MsgText.Trim() : "",
-                    MessageType = MessageType,
-                    IncidentActivationId = IncidentActivationId,
-                    Priority = Priority,
-                    Status = Status,
-                    CreatedBy = CurrentUserId,
+                    CompanyId = companyId,
+                    MessageText = !string.IsNullOrEmpty(msgText) ? msgText.Trim() : "",
+                    MessageType = messageType,
+                    IncidentActivationId = incidentActivationId,
+                    Priority = priority,
+                    Status = status,
+                    CreatedBy = currentUserId,
                     CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                    UpdatedBy = CurrentUserId,
-                    UpdatedOn = LocalTime,
-                    Source = Source,
-                    MultiResponse = MultiResponse,
-                    AssetId = AssetId,
-                    CreatedTimeZone = LocalTime,
-                    ActiveIncidentTaskId = ActiveIncidentTaskID,
-                    TrackUser = TrackUser,
-                    SilentMessage = SilentMessage,
+                    UpdatedBy = currentUserId,
+                    UpdatedOn = localTime,
+                    Source = source,
+                    MultiResponse = multiResponse,
+                    AssetId = assetId,
+                    CreatedTimeZone = localTime,
+                    ActiveIncidentTaskId = activeIncidentTaskId,
+                    TrackUser = trackUser,
+                    SilentMessage = silentMessage,
                     AttachmentCount = 0,
-                    ParentId = ParentID,
-                    MessageActionType = MessageActionType,
+                    ParentId = parentId,
+                    MessageActionType = messageActionType,
                     CascadePlanId = CascadePlanID,
                     MessageSourceAction = MessageSourceAction
                 };
                 await db.AddAsync(tblMessage);
                 db.SaveChanges();
 
-                if (MultiResponse)
-                    await SaveActiveMessageResponse(tblMessage.MessageId, AckOptions, IncidentActivationId);
+                if (multiResponse)
+                    await SaveActiveMessageResponse(tblMessage.MessageId, ackOptions, incidentActivationId);
 
                 //Add TrackMe Users in Notification.
-                if (IncidentActivationId > 0)
-                    AddTrackMeUsers(IncidentActivationId, tblMessage.MessageId, CompanyId);
+                if (incidentActivationId > 0)
+                    AddTrackMeUsers(incidentActivationId, tblMessage.MessageId, companyId);
 
 
-                if (MessageMethod != null && CascadePlanID <= 0)
+                if (messageMethod != null && CascadePlanID <= 0)
                 {
-                    if (MessageMethod.Length > 0)
+                    if (messageMethod.Length > 0)
                     {
-                        await ProcessMessageMethod(tblMessage.MessageId, MessageMethod, IncidentActivationId, TrackUser);
+                        await ProcessMessageMethod(tblMessage.MessageId, messageMethod, incidentActivationId, trackUser);
                     }
                     else
                     {
 
                         var commsmethod = await  db.Set<MessageMethod>()
-                                           .Where(MM=> MM.ActiveIncidentId == IncidentActivationId).Select(MM=>MM.MethodId).Distinct().ToArrayAsync();
+                                           .Where(MM=> MM.ActiveIncidentId == incidentActivationId).Select(MM=>MM.MethodId).Distinct().ToArrayAsync();
                         if (commsmethod != null)
                         {
-                            ProcessMessageMethod(tblMessage.MessageId, commsmethod, IncidentActivationId, TrackUser);
+                            await ProcessMessageMethod(tblMessage.MessageId, commsmethod, incidentActivationId, trackUser);
                         }
                     }
                 }
@@ -147,31 +147,31 @@ namespace CrisesControl.Infrastructure.Services
                         var commsmethod = channels.Split(',').Select(int.Parse).ToArray();
                         if (commsmethod != null)
                         {
-                            ProcessMessageMethod(tblMessage.MessageId, commsmethod, IncidentActivationId, TrackUser);
+                            await ProcessMessageMethod(tblMessage.MessageId, commsmethod, incidentActivationId, trackUser);
                         }
                     }
                 }
                 else
                 {
-                    var incmsgid = await  db.Set<MessageMethod>().Where(w => w.ActiveIncidentId == IncidentActivationId).OrderBy(o => o.MessageId).FirstOrDefaultAsync();
+                    var incmsgid = await  db.Set<MessageMethod>().Where(w => w.ActiveIncidentId == incidentActivationId).OrderBy(o => o.MessageId).FirstOrDefaultAsync();
                     int[] commsmethod = new int[] { };
 
-                    if (Source == 3)
+                    if (source == 3)
                     {
-                        string comms_method = _DBC.GetCompanyParameter("TASK_SYSTEM_COMMS_METHOD", CompanyId);
+                        string comms_method = _DBC.GetCompanyParameter("TASK_SYSTEM_COMMS_METHOD", companyId);
                         commsmethod = comms_method.Split(',').Select(int.Parse).ToList().ToArray();
                     }
                     else
                     {
                         commsmethod = (from MM in db.Set<MessageMethod>()
-                                       where ((MM.ActiveIncidentId == IncidentActivationId && IncidentActivationId > 0 && ParentID == 0 &&
-                                       MM.MessageId == incmsgid.MessageId) || (MM.MessageId == ParentID && ParentID > 0))
+                                       where ((MM.ActiveIncidentId == incidentActivationId && incidentActivationId > 0 && parentId == 0 &&
+                                       MM.MessageId == incmsgid.MessageId) || (MM.MessageId == parentId && parentId > 0))
                                        select MM.MethodId).Distinct().ToArray();
                     }
 
                     if (commsmethod != null)
                     {
-                        ProcessMessageMethod(tblMessage.MessageId, commsmethod, IncidentActivationId, TrackUser);
+                        await ProcessMessageMethod(tblMessage.MessageId, commsmethod, incidentActivationId, trackUser);
                     } // in the else check if the parentid is greater than 0 and commesmethod is null, take the incidentactiviation id
                     //from message table and requery the methdos from the last message.
                 }
@@ -183,12 +183,12 @@ namespace CrisesControl.Infrastructure.Services
                 db.SaveChanges();
 
                 //Process message attachments
-                if (MediaAttachments != null)
-                   await ProcessMessageAttachmentsAsync(tblMessage.MessageId, MediaAttachments, CompanyId, CurrentUserId, TimeZoneId);
+                if (mediaAttachments != null)
+                   await ProcessMessageAttachmentsAsync(tblMessage.MessageId, mediaAttachments, companyId, currentUserId, TimeZoneId);
 
                 //Convert Asset to Message Attachment
-                if (AssetId > 0)
-                    CreateMessageAttachment(tblMessage.MessageId, AssetId, CompanyId, CurrentUserId, TimeZoneId);
+                if (assetId > 0)
+                    await CreateMessageAttachment(tblMessage.MessageId, assetId, companyId, currentUserId, TimeZoneId);
 
                 _DBC.MessageProcessLog(tblMessage.MessageId, "MESSAGE_CREATED");
 
@@ -201,16 +201,16 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public string GetCascadeChannels(List<string> Channels)
+        public string GetCascadeChannels(List<string> channels)
         {
-            var cas_channel = string.Join(",", Channels).Split(',').Distinct().ToList();
+            var cas_channel = string.Join(",", channels).Split(',').Distinct().ToList();
             return string.Join(",", cas_channel);
         }
-        public async Task<bool> CanSendMessage(int CompanyId)
+        public async Task<bool> CanSendMessage(int companyId)
         {
             try
             {
-                var comp = await db.Set<Company>().Where(w => w.CompanyId == CompanyId).FirstOrDefaultAsync();
+                var comp = await db.Set<Company>().Where(w => w.CompanyId == companyId).FirstOrDefaultAsync();
                 if (!comp.OnTrial)
                 {
                     return true;
@@ -219,7 +219,7 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     var msgs = (from MT in db.Set<MessageTransaction>()
                                 join M in db.Set<Message>() on MT.MessageId equals M.MessageId
-                                where M.CompanyId == CompanyId
+                                where M.CompanyId == companyId
                                 select MT).ToList();
                     if (msgs.Count > 5)
                     {
@@ -234,7 +234,7 @@ namespace CrisesControl.Infrastructure.Services
                 throw ex;
             }
         }
-        public async Task ProcessMessageAttachmentsAsync(int MessageID, List<MediaAttachment> MediaAttachments, int CompanyID, int CreatedUserID, string TimeZoneId)
+        public async Task ProcessMessageAttachmentsAsync(int messageId, List<MediaAttachment> mediaAttachments, int companyId, int createdUserId, string timeZoneId)
         {
             try
             {
@@ -248,7 +248,7 @@ namespace CrisesControl.Infrastructure.Services
                 string apiShare = _DBC.Getconfig("AzureAPIShare");
 
                 int Count = 0;
-                if (MediaAttachments != null)
+                if (mediaAttachments != null)
                 {
                     try
                     {
@@ -258,7 +258,7 @@ namespace CrisesControl.Infrastructure.Services
                         }
 
                         FileHandler FH = new FileHandler(db, _httpContextAccessor);
-                        foreach (MediaAttachment ma in MediaAttachments)
+                        foreach (MediaAttachment ma in mediaAttachments)
                         {
 
                             try
@@ -266,7 +266,7 @@ namespace CrisesControl.Infrastructure.Services
                                 if (File.Exists(@ServerUploadFolder + ma.FileName))
                                 {
 
-                                    string DirectoryPath = AttachmentSavePath + CompanyID.ToString() + "\\" + ma.AttachmentType.ToString() + "\\";
+                                    string DirectoryPath = AttachmentSavePath + companyId.ToString() + "\\" + ma.AttachmentType.ToString() + "\\";
                                     if (hostingEnv.ToUpper() == "AZURE")
                                     {
                                         using (FileStream filestream = File.OpenRead(@ServerUploadFolder + ma.FileName))
@@ -287,7 +287,7 @@ namespace CrisesControl.Infrastructure.Services
                                         File.Move(@ServerUploadFolder + ma.FileName, @DirectoryPath + ma.FileName);
                                     }
                                 }
-                                CreateMediaAttachment(MessageID, ma.Title, ma.FileName, ma.OriginalFileName, ma.FileSize, ma.AttachmentType, 0, CreatedUserID, TimeZoneId);
+                                await CreateMediaAttachment(messageId, ma.Title, ma.FileName, ma.OriginalFileName, ma.FileSize, ma.AttachmentType, 0, createdUserId, TimeZoneId);
                                 Count++;
                             }
                             catch (Exception ex)
@@ -298,7 +298,7 @@ namespace CrisesControl.Infrastructure.Services
                         }
                         if (Count > 0)
                         {
-                            var msg = await db.Set<Message>().Where(M=> M.MessageId == MessageID).FirstOrDefaultAsync();
+                            var msg = await db.Set<Message>().Where(M=> M.MessageId == messageId).FirstOrDefaultAsync();
                             if (msg != null)
                             {
                                 msg.AttachmentCount = Count;
@@ -318,7 +318,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task CreateMessageAttachment(int MessageID, int AssetId, int CompanyID, int CreatedUserID, string TimeZoneId)
+        public async Task CreateMessageAttachment(int messageId, int assetId, int companyId, int createdUserId, string timeZoneId)
         {
             try
             {
@@ -336,13 +336,13 @@ namespace CrisesControl.Infrastructure.Services
 
                 try
                 {
-                    var asset =await db.Set<Assets>().Where(A=> A.AssetId == AssetId).FirstOrDefaultAsync();
+                    var asset =await db.Set<Assets>().Where(A=> A.AssetId == assetId).FirstOrDefaultAsync();
                     if (asset != null)
                     {
                         FileHandler FH = new FileHandler(db, _httpContextAccessor);
                         string portal = _DBC.LookupWithKey("PORTAL");
-                        string file_url = "uploads/" + CompanyID + "/assets/" + asset.AssetType.ToLower() + "/" + asset.AssetPath;
-                        string DirectoryPath = AttachmentSavePath + CompanyID.ToString() + "\\2\\";
+                        string file_url = "uploads/" + companyId + "/assets/" + asset.AssetType.ToLower() + "/" + asset.AssetPath;
+                        string DirectoryPath = AttachmentSavePath + companyId.ToString() + "\\2\\";
 
                         ServicePointManager.ServerCertificateValidationCallback = ((sender, certificate, chain, sslPolicyErrors) => true);
 
@@ -358,7 +358,7 @@ namespace CrisesControl.Infrastructure.Services
                             }
                             var result = FH.CopyFileAsync(AzurePortalShare, file_url, AzureAPIShare, @DirectoryPath + asset.AssetPath);
 
-                            CreateMediaAttachment(MessageID, asset.AssetTitle, asset.AssetPath, asset.SourceFileName, (decimal)asset.AssetSize, 2, 0, CreatedUserID, TimeZoneId);
+                            await CreateMediaAttachment(messageId, asset.AssetTitle, asset.AssetPath, asset.SourceFileName, (decimal)asset.AssetSize, 2, 0, createdUserId, timeZoneId);
                             Count++;
                         }
                         else
@@ -385,7 +385,7 @@ namespace CrisesControl.Infrastructure.Services
                                             File.Delete(@DirectoryPath + asset.AssetPath);
                                         }
                                         File.Move(@ServerUploadFolder + asset.AssetPath, @DirectoryPath + asset.AssetPath);
-                                        CreateMediaAttachment(MessageID, asset.AssetTitle, asset.AssetPath, asset.SourceFileName, (decimal)asset.AssetSize, 2, 0, CreatedUserID, TimeZoneId);
+                                        await CreateMediaAttachment(messageId, asset.AssetTitle, asset.AssetPath, asset.SourceFileName, (decimal)asset.AssetSize, 2, 0, createdUserId, TimeZoneId);
                                         Count++;
                                     }
                                     catch (Exception ex)
@@ -399,11 +399,11 @@ namespace CrisesControl.Infrastructure.Services
 
                     if (Count > 0)
                     {
-                        var msg = await  db.Set<Message>().Where(M=> M.MessageId == MessageID ).FirstOrDefaultAsync();
+                        var msg = await  db.Set<Message>().Where(M=> M.MessageId == messageId ).FirstOrDefaultAsync();
                         if (msg != null)
                         {
                             msg.AttachmentCount += Count;
-                            db.SaveChangesAsync();
+                            await db.SaveChangesAsync();
                         }
                     }
                 }
@@ -419,27 +419,27 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<List<MessageDetails>> GetReplies(int ParentID, int CompanyID, int UserID, string Source = "WEB")
+        public async Task<List<MessageDetails>> GetReplies(int parentId, int companyId, int userId, string source = "WEB")
         {
             try
             {
                
 
-                    var pParentID = new SqlParameter("@ParentID", ParentID);
-                    var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                    var pUserID = new SqlParameter("@UserID", UserID);
-                    var pSource = new SqlParameter("@Source", Source);
+                    var pParentID = new SqlParameter("@ParentID", parentId);
+                    var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                    var pUserID = new SqlParameter("@UserID", userId);
+                    var pSource = new SqlParameter("@Source", source);
 
                 var result = await db.Set<MessageDetails>().FromSqlRaw("exec Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
                     pParentID, pCompanyID, pUserID, pSource).ToListAsync();
 
 
-                        result.Select(c => {
+                        result.Select(async c => {
                             c.SentBy = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                            c.AckOptions = (from AK in db.Set<ActiveMessageResponse>()
+                            c.AckOptions = await (from AK in db.Set<ActiveMessageResponse>()
                                             where AK.MessageId == c.MessageId
                                             orderby AK.ResponseCode
-                                            select new AckOption { ResponseId = AK.ResponseId, ResponseLabel = AK.ResponseLabel }).ToList();
+                                            select new AckOption { ResponseId = AK.ResponseId, ResponseLabel = AK.ResponseLabel }).ToListAsync();
                             return c;
                         }).ToList();
 
@@ -453,15 +453,15 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<List<AudioAssetReturn>> GetMessageAudio(int AssetTypeID, int CompanyID, int UserID, string Source = "APP")
+        public async Task<List<AudioAssetReturn>> GetMessageAudio(int assetTypeId, int companyId, int userId, string Source = "APP")
         {
             try
             {
                 
 
-                    var pAssetTypeID = new SqlParameter("@AssetTypeID", AssetTypeID);
-                    var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                    var pUserID = new SqlParameter("@UserID", UserID);
+                    var pAssetTypeID = new SqlParameter("@AssetTypeID", assetTypeId);
+                    var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                    var pUserID = new SqlParameter("@UserID", userId);
                     var pSource = new SqlParameter("@Source", Source);
 
                     var result = await db.Set<AudioAssetReturn>().FromSqlRaw("exec Pro_Get_Message_Audio @AssetTypeID, @CompanyID, @UserID, @Source",
@@ -477,41 +477,41 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task CreateIncidentNotificationList(int MessageId, int IncidentActivationId, int MappingID, int SourceID, int CurrentUserId, int CompanyId, string TimeZoneId)
+        public async Task CreateIncidentNotificationList(int messageId, int incidentActivationId, int mappingId, int sourceId, int currentUserId, int companyId, string timeZoneId)
         {
             IncidentNotificationList tblIncidentNotiLst = new IncidentNotificationList()
             {
-                CompanyId = CompanyId,
-                IncidentActivationId = IncidentActivationId,
-                ObjectMappingId = MappingID,
-                SourceObjectPrimaryId = SourceID,
-                MessageId = MessageId,
+                CompanyId = companyId,
+                IncidentActivationId = incidentActivationId,
+                ObjectMappingId = mappingId,
+                SourceObjectPrimaryId = sourceId,
+                MessageId = messageId,
                 Status = 1,
-                CreatedBy = CurrentUserId,
+                CreatedBy = currentUserId,
                 CreatedOn = DateTime.Now,
-                UpdatedBy = CurrentUserId,
+                UpdatedBy = currentUserId,
                 UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
             };
            await  db.AddAsync(tblIncidentNotiLst);
             await db.SaveChangesAsync();
         }
 
-        public async Task<int> CreateMediaAttachment(int MessageID, string Title, string FilePath, string OriginalFileName, decimal FileSize, int AttachmentType,
-            int MessageListID, int CreatedBy, string TimeZoneId)
+        public async Task<int> CreateMediaAttachment(int messageId, string title, string filePath, string originalFileName, decimal fileSize, int attachmentType,
+            int messageListId, int createdBy, string timeZoneId)
         {
             try
             {
                 MessageAttachment MA = new MessageAttachment
                 {
-                    AttachmentType = AttachmentType,
-                    CreatedBy = CreatedBy,
+                    AttachmentType = attachmentType,
+                    CreatedBy = createdBy,
                     CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                    FilePath = FilePath,
-                    FileSize = FileSize,
-                    MessageId = MessageID,
-                    MessageListId = MessageListID,
-                    OriginalFileName = OriginalFileName,
-                    Title = Title
+                    FilePath = filePath,
+                    FileSize = fileSize,
+                    MessageId = messageId,
+                    MessageListId = messageListId,
+                    OriginalFileName = originalFileName,
+                    Title = title
                 };
                await  db.AddAsync(MA);
                 await db.SaveChangesAsync();
@@ -525,7 +525,7 @@ namespace CrisesControl.Infrastructure.Services
 
         }
 
-        public async Task ProcessMessageMethod(int MessageID, int[] MessageMethod, int IncidentactivationID, bool TrackUser = false)
+        public async Task ProcessMessageMethod(int messageId, int[] messageMethod, int incidentactivationId, bool trackUser = false)
         {
             bool pushadded = false;
             try
@@ -534,14 +534,14 @@ namespace CrisesControl.Infrastructure.Services
 
                 var methodlist = await db.Set<CommsMethod>().ToListAsync();
 
-                if (TrackUser)
+                if (trackUser)
                 {
                     pushmethodid = methodlist.Where(w => w.MethodCode == "PUSH").Select(s => s.CommsMethodId).FirstOrDefault();
                 }
 
-                foreach (int Method in MessageMethod)
+                foreach (int Method in messageMethod)
                 {
-                    CreateMessageMethod(MessageID, Method, IncidentactivationID);
+                    await CreateMessageMethod(messageId, Method, incidentactivationId);
 
                     string chkmethod = methodlist.Where(w => w.CommsMethodId == Method).Select(s => s.MethodCode).FirstOrDefault();
                     if (chkmethod == "TEXT")
@@ -562,9 +562,9 @@ namespace CrisesControl.Infrastructure.Services
                     if (pushmethodid == Method)
                         pushadded = true;
                 }
-                if (TrackUser && !pushadded)
+                if (trackUser && !pushadded)
                 {
-                   await  CreateMessageMethod(MessageID, pushmethodid, IncidentactivationID);
+                   await  CreateMessageMethod(messageId, pushmethodid, incidentactivationId);
                     PushUsed = true;
                 }
 
@@ -575,22 +575,22 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task CreateMessageMethod(int MessageID, int MethodID, int ActiveIncidentID = 0, int IncidentID = 0)
+        public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0)
         {
             try
             {
                 var exist = await  db.Set<MessageMethod>()
                              .Where(MMS=>
-                                    MMS.ActiveIncidentId == ActiveIncidentID &&
-                                    ActiveIncidentID > 0 &&
-                                    MMS.MethodId == MethodID).AnyAsync();
+                                    MMS.ActiveIncidentId == activeIncidentId &&
+                                    activeIncidentId > 0 &&
+                                    MMS.MethodId == methodId).AnyAsync();
 
                 MessageMethod MM = new MessageMethod()
                 {
-                    MessageId = MessageID,
-                    MethodId = MethodID,
-                    ActiveIncidentId = (exist == false ? ActiveIncidentID : 0),
-                    IncidentId = IncidentID
+                    MessageId = messageId,
+                    MethodId = methodId,
+                    ActiveIncidentId = (exist == false ? activeIncidentId : 0),
+                    IncidentId = incidentId
                 };
                 await db.AddAsync(MM);
                 await db.SaveChangesAsync();
@@ -601,18 +601,18 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async void DeleteMessageMethod(int MessageID = 0, int ActiveIncidentID = 0)
+        public async void DeleteMessageMethod(int messageId = 0, int activeIncidentId = 0)
         {
             try
             {
-                if (ActiveIncidentID == 0 && MessageID > 0)
+                if (activeIncidentId == 0 && messageId > 0)
                 {
-                    var mt_list = await db.Set<MessageMethod>().Where(MM=> MM.MessageId == MessageID).ToListAsync();
+                    var mt_list = await db.Set<MessageMethod>().Where(MM=> MM.MessageId == messageId).ToListAsync();
                     db.RemoveRange(mt_list);
                 }
                 else
                 {
-                    var mt_list = await db.Set<MessageMethod>().Where(MM => MM.ActiveIncidentId == ActiveIncidentID).ToListAsync();
+                    var mt_list = await db.Set<MessageMethod>().Where(MM => MM.ActiveIncidentId == activeIncidentId).ToListAsync();
                     db.RemoveRange(mt_list);
                 }
                await  db.SaveChangesAsync();
@@ -624,32 +624,32 @@ namespace CrisesControl.Infrastructure.Services
 
         }
 
-        public async Task SaveActiveMessageResponse(int MessageID, List<AckOption> AckOptions, int IncidentActivationID = 0)
+        public async Task SaveActiveMessageResponse(int messageId, List<AckOption> ackOptions, int incidentActivationId = 0)
         {
             try
             {
 
                 //Deleting temp records
                 var delete_old = await db.Set<ActiveMessageResponse>()
-                                  .Where(AMR=> AMR.MessageId == 0 && AMR.ActiveIncidentId == IncidentActivationID
+                                  .Where(AMR=> AMR.MessageId == 0 && AMR.ActiveIncidentId == incidentActivationId
                                 ).ToListAsync();
                 db.RemoveRange(delete_old);
                 await db.SaveChangesAsync();
 
-                foreach (AckOption ao in AckOptions)
+                foreach (AckOption ao in ackOptions)
                 {
                     var option = await  db.Set<CompanyMessageResponse>().Where(w => w.ResponseId == ao.ResponseId).FirstOrDefaultAsync();
                     if (option != null)
                     {
                         ActiveMessageResponse AC = new ActiveMessageResponse
                         {
-                            MessageId = MessageID,
+                            MessageId = messageId,
                             ResponseId = ao.ResponseId,
                             ResponseCode = ao.ResponseCode,
                             ResponseLabel = option.ResponseLabel,
                             IsSafetyResponse = option.IsSafetyResponse,
                             SafetyAckAction = option.SafetyAckAction,
-                            ActiveIncidentId = IncidentActivationID
+                            ActiveIncidentId = incidentActivationId
                         };
                        await db.AddAsync(AC);
                     }
@@ -663,22 +663,22 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task CreateProcessQueue(int MessageId, string MessageType, string Method, string State, int Priority)
+        public async Task CreateProcessQueue(int messageId, string messageType, string method, string state, int priority)
         {
             try
             {
                 var queue = await db.Set<ProcessQueue>()
-                             .Where(PQ=> PQ.Method == Method && PQ.MessageId == MessageId).FirstOrDefaultAsync();
+                             .Where(PQ=> PQ.Method == method && PQ.MessageId == messageId).FirstOrDefaultAsync();
                 if (queue == null)
                 {
                     ProcessQueue INPQ = new ProcessQueue
                     {
-                        MessageId = MessageId,
+                        MessageId = messageId,
                         CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now),
-                        Priority = Priority,
-                        MessageType = MessageType,
-                        Method = Method,
-                        State = State
+                        Priority = priority,
+                        MessageType = messageType,
+                        Method = method,
+                        State = state
                     };
                    await  db.AddAsync(INPQ);
                    await  db.SaveChangesAsync();
@@ -687,7 +687,7 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     if (queue != null)
                     {
-                        queue.State = State;
+                        queue.State = state;
                         await db.SaveChangesAsync();
                     }
                 }
@@ -699,12 +699,12 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<List<NotificationDetails>> MessageNotifications(int CompanyId, int CurrentUserId)
+        public async Task<List<NotificationDetails>> MessageNotifications(int companyId, int currentUserId)
         {
             List<NotificationDetails> NDL = new List<NotificationDetails>();
 
-            List<IIncidentMessages> IM =await _get_incident_message(CurrentUserId, CompanyId);
-            List<IPingMessage> PM = await _get_ping_message(CurrentUserId, CompanyId);
+            List<IIncidentMessages> IM =await _get_incident_message(currentUserId, companyId);
+            List<IPingMessage> PM = await _get_ping_message(currentUserId, companyId);
 
             NDL.Add(new NotificationDetails { IncidentMessages = IM, PingMessage = PM });
             return NDL;
@@ -734,14 +734,14 @@ namespace CrisesControl.Infrastructure.Services
             return new UserMessageCountModel();
         }
 
-        public async Task<List<IIncidentMessages>> _get_incident_message(int UserID, int CompanyId)
+        public async Task<List<IIncidentMessages>> _get_incident_message(int userId, int companyId)
         {
             try
             {
                 
 
-                    var pTargetUserId = new SqlParameter("@UserID", UserID);
-                    var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+                    var pTargetUserId = new SqlParameter("@UserID", userId);
+                    var pCompanyID = new SqlParameter("@CompanyID", companyId);
 
                 var result = await db.Set<IIncidentMessages>().FromSqlRaw("exec Pro_User_Incident_Notifications @UserID, @CompanyID",
                     pTargetUserId, pCompanyID).ToListAsync();
@@ -763,14 +763,14 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<List<IPingMessage>> _get_ping_message(int UserID, int CompanyId)
+        public async Task<List<IPingMessage>> _get_ping_message(int userId, int companyId)
         {
             try
             {
                 
 
-                    var pTargetUserId = new SqlParameter("@UserID", UserID);
-                    var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+                    var pTargetUserId = new SqlParameter("@UserID", userId);
+                    var pCompanyID = new SqlParameter("@CompanyID", companyId);
 
                 var result = await db.Set<IPingMessage>().FromSqlRaw("exec Pro_User_Ping_Notifications @UserID, @CompanyID",
                     pTargetUserId, pCompanyID).ToListAsync();
@@ -793,25 +793,25 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<bool> StartConference(List<User> UserList, int ObjectID, int CurrentUserID, int CompanyID, string TimeZoneId)
+        public async Task<bool> StartConference(List<User> userList, int objectId, int currentUserId, int companyId, string timeZoneId)
         {
         
             try
             {
-                string ConServiceEnable = _DBC.GetCompanyParameter("CONCIERGE_SERVICE", CompanyID);
+                string ConServiceEnable = _DBC.GetCompanyParameter("CONCIERGE_SERVICE", companyId);
 
                 var phone_method = (from CM in db.Set<CompanyComm>()
                                     join CO in db.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
-                                    where CM.CompanyId == CompanyID && CO.MethodCode == "PHONE" && CM.Status == 1 && CM.ServiceStatus == true
+                                    where CM.CompanyId == companyId && CO.MethodCode == "PHONE" && CM.Status == 1 && CM.ServiceStatus == true
                                     select CO).FirstOrDefault();
 
                 if (ConServiceEnable == "true" && phone_method != null)
                 {
 
-                    if (UserList.Count > 0)
+                    if (userList.Count > 0)
                     {
                         
-                        var result = StartConferenceNew(CompanyID, CurrentUserID, UserList, TimeZoneId, ObjectID, 0);
+                        var result = StartConferenceNew(companyId, currentUserId, userList, timeZoneId, objectId, 0);
                         return true;
 
                     }
@@ -834,7 +834,7 @@ namespace CrisesControl.Infrastructure.Services
                 throw ex;
             }
         }
-        public async Task<string> StartConferenceNew(int CompanyId, int UserId, List<User> UserList, string TimeZoneId, int ActiveIncidentId = 0, int MessageId = 0, string ObjectType = "Incident")
+        public async Task<string> StartConferenceNew(int companyId, int userId, List<User> userList, string timeZoneId, int activeIncidentId = 0, int messageId = 0, string objectType = "Incident")
         {
             
             //Initiatize the variables
@@ -850,8 +850,8 @@ namespace CrisesControl.Infrastructure.Services
             {
 
                 //Get the selected conferance api for the company and set the requrest api params.
-                string CONF_API = _DBC.GetCompanyParameter("CONFERANCE_API", CompanyId);
-                bool RecordConf = Convert.ToBoolean(_DBC.GetCompanyParameter("RECORD_CONFERENCE", CompanyId));
+                string CONF_API = _DBC.GetCompanyParameter("CONFERANCE_API", companyId);
+                bool RecordConf = Convert.ToBoolean(_DBC.GetCompanyParameter("RECORD_CONFERENCE", companyId));
                 bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
                 TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
@@ -866,7 +866,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 //FromNumber = DBC.LookupWithKey(CONF_API + "_FROM_NUMBER");
                 //Get API configraiton from sysparameters
-                string RetryNumberList = _DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", CompanyId, FromNumber);
+                string RetryNumberList = _DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", companyId, FromNumber);
                 List<string> FromNumberList = RetryNumberList.Split(',').ToList();
 
                 FromNumber = FromNumberList.FirstOrDefault();
@@ -875,20 +875,20 @@ namespace CrisesControl.Infrastructure.Services
 
                 //Get the user list to fetch their mobile numbers
                 List<int> nUList = new List<int>();
-                nUList.Add(UserId);
+                nUList.Add(userId);
 
-                foreach (User cUser in UserList)
+                foreach (User cUser in userList)
                 {
                     nUList.Add(cUser.UserId);
                 }
 
                 var tmpUserList = await db.Set<User>()
-                                   .Where(U=> U.CompanyId == CompanyId && nUList.Contains(U.UserId) && U.Status == 1)
+                                   .Where(U=> U.CompanyId == companyId && nUList.Contains(U.UserId) && U.Status == 1)
                                    .Select(U=> new { UserId = U.UserId, ISD = U.Isdcode, PhoneNumber = U.MobileNo, U.Llisdcode, U.Landline }).Distinct().ToListAsync();
 
 
                 //Create conference header
-                int ConfHeaderId =await  CreateConferenceHeader(CompanyId, UserId, TimeZoneId, CommsAPI.ConfRoom, RecordConf, ActiveIncidentId, MessageId, ObjectType);
+                int ConfHeaderId =await  CreateConferenceHeader(companyId, userId, TimeZoneId, CommsAPI.ConfRoom, RecordConf, activeIncidentId, messageId, objectType);
 
                 string CallId = string.Empty;
                 int ModeratorCDId = 0;
@@ -905,7 +905,7 @@ namespace CrisesControl.Infrastructure.Services
                     if (!string.IsNullOrEmpty(uItem.PhoneNumber))
                     {
                         int CallDetaildId =await CreateConferenceDetail("ADD", ConfHeaderId, uItem.UserId, Mobile, Landline, CallId.ToString(), "ADDED", TimeZoneId, 0);
-                        if (uItem.UserId == UserId)
+                        if (uItem.UserId == userId)
                         {
                             ModeratorCDId = CallDetaildId;
                             ModeratorNumber = Mobile;
@@ -933,41 +933,41 @@ namespace CrisesControl.Infrastructure.Services
             return "";
         }
 
-        public string MakeConferenceCall(string FromNumber, string CallBackUrl, string MessageXML, dynamic CommsAPI, out string CallId,
-            string MobileNumber, string LandLineNumber, out string Status, string CalledOn)
+        public string MakeConferenceCall(string fromNumber, string callBackUrl, string messageXML, dynamic commsAPI, out string callId,
+            string mobileNumber, string landLineNumber, out string status, string calledOn)
         {
-            CalledOn = "MOBILE";
+            calledOn = "MOBILE";
             string CallStatus = string.Empty;
             //Initiate the call to the modrator
-            Task<dynamic> calltask = Task.Factory.StartNew(() => CommsAPI.Call(FromNumber, MobileNumber, MessageXML, CallBackUrl));
+            Task<dynamic> calltask = Task.Factory.StartNew(() => commsAPI.Call(fromNumber, mobileNumber, messageXML, callBackUrl));
             CommsStatus callrslt = calltask.Result;
-            CallId = callrslt.CommsId;
+            callId = callrslt.CommsId;
 
             if (!callrslt.Status)
             {
-                Status = "";
-                CallStatus = CallId = _DBC.Left(CallId, 50);
-                if (!string.IsNullOrEmpty(LandLineNumber))
+                status = "";
+                CallStatus = callId = _DBC.Left(callId, 50);
+                if (!string.IsNullOrEmpty(landLineNumber))
                 {
-                    Task<dynamic> recalltask = Task.Factory.StartNew(() => CommsAPI.Call(FromNumber, LandLineNumber, MessageXML, CallBackUrl));
+                    Task<dynamic> recalltask = Task.Factory.StartNew(() => commsAPI.Call(fromNumber, landLineNumber, messageXML, callBackUrl));
                     CommsStatus recallrslt = recalltask.Result;
                     if (recallrslt.Status)
                     {
-                        CalledOn = "LANDLINE";
+                        calledOn = "LANDLINE";
                         CallStatus = recallrslt.CurrentAction;
-                        Status = recallrslt.CurrentAction;
+                        status = recallrslt.CurrentAction;
                     }
                     else
                     {
-                        CallId = recallrslt.CommsId;
-                        Status = "";
-                        CallStatus = CallId = _DBC.Left(CallId, 50);
+                        callId = recallrslt.CommsId;
+                        status = "";
+                        CallStatus = callId = _DBC.Left(callId, 50);
                     }
                 }
             }
             else
             {
-                Status = callrslt.CurrentAction;
+                status = callrslt.CurrentAction;
                 CallStatus = callrslt.CurrentAction;
             }
             return CallStatus;
@@ -1479,23 +1479,23 @@ namespace CrisesControl.Infrastructure.Services
         //    }
         //}
 
-        public async Task<int> CreateConferenceHeader(int CompanyId, int CreatedBy, string TimeZoneId, string ConfRoom, bool Record, int ObjectID = 0, int MessageId = 0, string ObjectType = "Incident")
+        public async Task<int> CreateConferenceHeader(int companyId, int createdBy, string timeZoneId, string confRoom, bool record, int objectId = 0, int messageId = 0, string objectType = "Incident")
         {
             try
             {
                 int CallHeaderId = 0;
                 ConferenceCallLogHeader CallHeader = new ConferenceCallLogHeader()
                 {
-                    ActiveIncidentId = ObjectID,
-                    TargetObjectId = ObjectID,
-                    TargetObjectName = ObjectType,
-                    CompanyId = CompanyId,
-                    CreatedBy = CreatedBy,
+                    ActiveIncidentId = objectId,
+                    TargetObjectId = objectId,
+                    TargetObjectName = objectType,
+                    CompanyId = companyId,
+                    CreatedBy = createdBy,
                     CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                    InitiatedBy = CreatedBy,
-                    MessageId = MessageId,
-                    ConfRoomName = ConfRoom,
-                    Record = Record,
+                    InitiatedBy = createdBy,
+                    MessageId = messageId,
+                    ConfRoomName = confRoom,
+                    Record = record,
                     ConfrenceStart = (DateTime)SqlDateTime.MinValue,
                     ConfrenceEnd = (DateTime)SqlDateTime.MinValue
                 };
@@ -1514,23 +1514,23 @@ namespace CrisesControl.Infrastructure.Services
             return 0;
         }
 
-        public async Task<int> CreateConferenceDetail(string Action, int ConferenceCallId, int UserId, string PhoneNumber, string Landline, string SuccessCallId,
-            string Status, string TimeZoneId, int ConfDetailId, string CalledOn = "")
+        public async Task<int> CreateConferenceDetail(string action, int conferenceCallId, int userId, string phoneNumber, string landline, string successCallId,
+            string status, string timeZoneId, int confDetailId, string calledOn = "")
         {
             int CallDetailId = 0;
-            if (Action.ToUpper() == "ADD")
+            if (action.ToUpper() == "ADD")
             {
                 ConferenceCallLogDetail ConfDetail = new ConferenceCallLogDetail()
                 {
-                    ConferenceCallId = ConferenceCallId,
-                    UserId = UserId,
-                    PhoneNumber = PhoneNumber,
+                    ConferenceCallId = conferenceCallId,
+                    UserId = userId,
+                    PhoneNumber = phoneNumber,
                     CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                    SuccessCallId = SuccessCallId,
-                    Status = Status,
+                    SuccessCallId = successCallId,
+                    Status = status,
                     ConfJoined = (DateTime)SqlDateTime.MinValue,
                     ConfLeft = (DateTime)SqlDateTime.MinValue,
-                    CalledOn = CalledOn
+                    CalledOn = calledOn
                 };
                 await db.AddAsync(ConfDetail);
                 await db.SaveChangesAsync();
@@ -1539,16 +1539,16 @@ namespace CrisesControl.Infrastructure.Services
                     CallDetailId = ConfDetail.ConferenceCallDetailId;
                 }
             }
-            else if ((Action.ToUpper() == "UPDATE"))
+            else if ((action.ToUpper() == "UPDATE"))
             {
-                var ConfDetail = await db.Set<ConferenceCallLogDetail>().Where(CD=> CD.ConferenceCallDetailId == ConfDetailId).FirstOrDefaultAsync();
+                var ConfDetail = await db.Set<ConferenceCallLogDetail>().Where(CD=> CD.ConferenceCallDetailId == confDetailId).FirstOrDefaultAsync();
                 if (ConfDetail != null)
                 {
-                    ConfDetail.SuccessCallId = SuccessCallId;
-                    ConfDetail.Status = Status;
+                    ConfDetail.SuccessCallId = successCallId;
+                    ConfDetail.Status = status;
 
-                    if (!string.IsNullOrEmpty(CalledOn))
-                        ConfDetail.CalledOn = CalledOn;
+                    if (!string.IsNullOrEmpty(calledOn))
+                        ConfDetail.CalledOn = calledOn;
                     db.SaveChanges();
                     CallDetailId = ConfDetail.ConferenceCallDetailId;
                 }
@@ -1663,22 +1663,22 @@ namespace CrisesControl.Infrastructure.Services
         //    }
         //}
 
-        public async Task<int> CreateMessageList(int MessageId, int RecipientID, bool IsTaskRecepient, bool TextUsed, bool PhoneUsed, bool EmailUsed, bool PushUsed,
-            int CurrentUserID, string TimeZoneId)
+        public async Task<int> CreateMessageList(int messageId, int recipientId, bool isTaskRecepient, bool textUsed, bool phoneUsed, bool emailUsed, bool pushUsed,
+            int currentUserId, string timeZoneId)
         {
             try
             {
-                var pMessageId = new SqlParameter("@MessageID", MessageId);
-                var pRecipientID = new SqlParameter("@UserID", RecipientID);
+                var pMessageId = new SqlParameter("@MessageID", messageId);
+                var pRecipientID = new SqlParameter("@UserID", recipientId);
                 var pTransportType = new SqlParameter("@TransportType", "All");
                 var pDateSent = new SqlParameter("@DateSent", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
-                var pIsTaskRecepient = new SqlParameter("@IsTaskRecepient", IsTaskRecepient);
+                var pIsTaskRecepient = new SqlParameter("@IsTaskRecepient", isTaskRecepient);
                 var pTextUsed = new SqlParameter("@TextUsed", TextUsed);
                 var pPhoneUsed = new SqlParameter("@PhoneUsed", PhoneUsed);
                 var pEmailUsed = new SqlParameter("@EmailUsed", EmailUsed);
                 var pPushUsed = new SqlParameter("@PushUsed", PushUsed);
-                var pCreatedBy = new SqlParameter("@CreatedBy", CurrentUserID);
-                var pUpdatedBy = new SqlParameter("@UpdatedBy", CurrentUserID);
+                var pCreatedBy = new SqlParameter("@CreatedBy", currentUserId);
+                var pUpdatedBy = new SqlParameter("@UpdatedBy", currentUserId);
                 var pUpdatedOn = new SqlParameter("@UpdatedOn", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
 
@@ -1715,34 +1715,34 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<int> SaveMessageResponse(int ResponseID, string ResponseLabel, string Description, bool IsSafetyResponse,
-                      string SafetyAckAction, string MessageType, int Status, int CurrentUserId, int CompanyID, string TimeZoneId)
+        public async Task<int> SaveMessageResponse(int responseId, string responseLabel, string description, bool isSafetyResponse,
+                      string safetyAckAction, string messageType, int status, int currentUserId, int companyId, string timeZoneId)
         {
             try
             {
-                if (ResponseID > 0)
+                if (responseId > 0)
                 {
                     var option = (from MR in db.Set<CompanyMessageResponse>()
-                                  where MR.CompanyId == CompanyID && MR.ResponseId == ResponseID
+                                  where MR.CompanyId == companyId && MR.ResponseId == responseId
                                   select MR).FirstOrDefault();
                     if (option != null)
                     {
-                        option.ResponseLabel = ResponseLabel;
-                        option.Description = Description;
-                        option.IsSafetyResponse = IsSafetyResponse;
-                        option.SafetyAckAction = SafetyAckAction;
-                        option.MessageType = MessageType;
-                        option.Status = Status;
-                        option.UpdatedBy = CurrentUserId;
+                        option.ResponseLabel = responseLabel;
+                        option.Description = description;
+                        option.IsSafetyResponse = isSafetyResponse;
+                        option.SafetyAckAction = safetyAckAction;
+                        option.MessageType = messageType;
+                        option.Status = status;
+                        option.UpdatedBy = currentUserId;
                         option.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                         await db.SaveChangesAsync();
-                        return ResponseID;
+                        return responseId;
                     }
                 }
                 else
                 {
-                    int responseid = await CreateMessageResponse(ResponseLabel, IsSafetyResponse, MessageType, SafetyAckAction, Status,
-            CurrentUserId, CompanyID, TimeZoneId);
+                    int responseid = await CreateMessageResponse(responseLabel, isSafetyResponse, messageType, safetyAckAction, status,
+            currentUserId, companyId, timeZoneId);
                     return responseid;
                 }
                 return 0;
@@ -1753,20 +1753,20 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<int> CreateMessageResponse(string ResponseLabel, bool SOSEvent, string MessageType, string SafetyAction, int Status,
-            int CurrentUserId, int CompanyID, string TimeZoneId)
+        public async Task<int> CreateMessageResponse(string responseLabel, bool sosEvent, string messageType, string safetyAction, int status,
+            int currentUserId, int companyId, string timeZoneId)
         {
             try
             {
                 CompanyMessageResponse option = new CompanyMessageResponse();
-                option.ResponseLabel = ResponseLabel;
-                option.Description = ResponseLabel;
-                option.IsSafetyResponse = SOSEvent;
-                option.SafetyAckAction = SafetyAction;
-                option.MessageType = MessageType;
-                option.Status = Status;
-                option.UpdatedBy = CurrentUserId;
-                option.CompanyId = CompanyID;
+                option.ResponseLabel = responseLabel;
+                option.Description = responseLabel;
+                option.IsSafetyResponse = sosEvent;
+                option.SafetyAckAction = safetyAction;
+                option.MessageType = messageType;
+                option.Status = status;
+                option.UpdatedBy = currentUserId;
+                option.CompanyId = companyId;
                 option.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                 db.Set<CompanyMessageResponse>().Add(option);
                 await db.SaveChangesAsync();
@@ -1891,14 +1891,14 @@ namespace CrisesControl.Infrastructure.Services
         //    return CallbackOption;
         //}
 
-        public double GetDistance(double Lat1, double Lon1, double Lat2, double Lon2)
+        public double GetDistance(double lat1, double lon1, double lat2, double lon2)
         {
             var EarthRadius = 6371; // Radius of the earth in km
-            var dLat = ToRadians(Lat2 - Lat1);  // deg2rad below
-            var dLon = ToRadians(Lon2 - Lon1);
+            var dLat = ToRadians(lat2 - lat1);  // deg2rad below
+            var dLon = ToRadians(lon2 - lon1);
             var area =
                 Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                Math.Cos(ToRadians(Lat1)) * Math.Cos(ToRadians(Lat2)) *
+                Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
                 Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
 
             var coveredarea = 2 * Math.Atan2(Math.Sqrt(area), Math.Sqrt(1 - area));
@@ -1911,30 +1911,30 @@ namespace CrisesControl.Infrastructure.Services
             return deg * (Math.PI / 180);
         }
 
-        public bool UserInRange(double LocLat, double LocLan, double UserLat, double UserLan, double Range)
+        public bool UserInRange(double locLat, double locLan, double userLat, double userLan, double range)
         {
-            double distance = GetDistance(LocLat, LocLan, UserLat, UserLan);
-            return (distance < Range ? true : false);
+            double distance = GetDistance(locLat, locLan, userLat, userLan);
+            return (distance < range ? true : false);
         }
 
-        public void AddTrackMeUsers(int IncidentActivationId, int MessageID, int CompanyId)
+        public void AddTrackMeUsers(int incidentActivationId, int messageId, int companyId)
         {
             try
             {
                 //get list of track me users
-                var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+                var pCompanyId = new SqlParameter("@CompanyID", companyId);
 
                 var track_me_list = db.Set<TrackMeUsers>().FromSqlRaw("exec Get_Track_Me_Users @CompanyID", pCompanyId).ToList();
 
                 //get the list of all the location of the incident
                 var loc_list = (from IL in db.Set<IncidentLocation>()
                                 join ILL in db.Set<IncidentLocationLibrary>() on IL.LibLocationId equals ILL.LocationId
-                                where IL.IncidentActivationId == IncidentActivationId
+                                where IL.IncidentActivationId == incidentActivationId
                                 select ILL).ToList();
 
                 double DistanceToAlert = 100;
 
-                double.TryParse(_DBC.GetCompanyParameter("TRACKME_DISTANCE_TO_ALERT", CompanyId), out DistanceToAlert);
+                double.TryParse(_DBC.GetCompanyParameter("TRACKME_DISTANCE_TO_ALERT", companyId), out DistanceToAlert);
 
                 double distancetokm = DistanceToAlert / 1000;
 
@@ -1960,7 +1960,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 if (UsersToNotify.Count > 0)
                 {
-                    AddUserToNotify(MessageID, UsersToNotify);
+                    AddUserToNotify(messageId, UsersToNotify);
                 }
 
             }
@@ -1998,14 +1998,14 @@ namespace CrisesControl.Infrastructure.Services
         //    }
         //}
 
-        public async  Task<bool> CalculateMessageCost(int CompanyID, int MessageID, string MessageText)
+        public async  Task<bool> CalculateMessageCost(int companyId, int messageId, string MessageText)
         {
             try
             {
                 bool ShouldCheckCost = false;
 
                 List<TwilioPriceList> pricelist = await GetTwiliPriceList();
-                List<MessageISDList> isdlist =await  MessageISDList(MessageID);
+                List<MessageISDList> isdlist =await  MessageISDList(messageId);
 
                 decimal TotalPrice = 0;
 
@@ -2019,7 +2019,7 @@ namespace CrisesControl.Infrastructure.Services
                     int SMSSegment = 1;
                     SMSSegment = _DBC.ChunkString(MessageText, 160);
 
-                    var cpp = await db.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == CompanyID).FirstOrDefaultAsync();
+                    var cpp = await db.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == companyId).FirstOrDefaultAsync();
 
                     foreach (var price in pricing)
                     {
@@ -2041,7 +2041,7 @@ namespace CrisesControl.Infrastructure.Services
 
                     if ((cpp.CreditBalance + cpp.CreditLimit) < TotalPrice && ShouldCheckCost == true)
                     {
-                       await HandleMessageMethods(MessageID);
+                       await HandleMessageMethods(messageId);
                         return false;
                     }
                 }
@@ -2071,12 +2071,12 @@ namespace CrisesControl.Infrastructure.Services
             return new List<TwilioPriceList>();
         }
 
-        public async Task<List<MessageISDList>> MessageISDList(int MessageID)
+        public async Task<List<MessageISDList>> MessageISDList(int messageId)
         {
           
             try
             {
-                var pMessageID = new SqlParameter("@MessageID", MessageID);
+                var pMessageID = new SqlParameter("@MessageID", messageId);
 
                 var result = await  db.Set<MessageISDList>().FromSqlRaw("exec Pro_Message_GetISDCodeCount @MessageID", pMessageID).ToListAsync();
                 return result;
@@ -2125,18 +2125,18 @@ namespace CrisesControl.Infrastructure.Services
 
 
         #region Social Integration
-        public void SocialPosting(int MessageID, List<string> SocialHandle, int CompanyId)
+        public void SocialPosting(int messageId, List<string> socialHandle, int companyId)
         {
             try
             {
 
-                var social_int = _DBC.GetSocialIntegration(CompanyId, "");
+                var social_int = _DBC.GetSocialIntegration(companyId, "");
 
-                var msg = (from M in db.Set<Message>() where M.MessageId == MessageID select M).FirstOrDefault();
+                var msg = (from M in db.Set<Message>() where M.MessageId == messageId select M).FirstOrDefault();
 
                 if (msg != null)
                 {
-                    foreach (string Handle in SocialHandle)
+                    foreach (string Handle in socialHandle)
                     {
                         var handle = social_int.Where(w => w.AccountType == Handle).FirstOrDefault();
                         if (handle != null)
@@ -2164,7 +2164,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void TwitterPost(string MessageText, string ConsumerKey, string ConsumerSecret, string AuthToken, string AuthSecret)
+        public void TwitterPost(string messageText, string consumerKey, string consumerSecret, string authToken, string authSecret)
         {
             string twitterURL = "https://api.twitter.com/1.1/statuses/update.json";
 
@@ -2182,16 +2182,16 @@ namespace CrisesControl.Infrastructure.Services
 
             string baseString = string.Format(
                 baseFormat,
-                ConsumerKey,
+                consumerKey,
                 oauth_nonce,
                 oauth_signature_method,
-                oauth_timestamp, AuthToken,
+                oauth_timestamp, authToken,
                 oauth_version,
-                Uri.EscapeDataString(MessageText)
+                Uri.EscapeDataString(messageText)
             );
 
             string oauth_signature = null;
-            using (HMACSHA1 hasher = new HMACSHA1(ASCIIEncoding.ASCII.GetBytes(Uri.EscapeDataString(ConsumerSecret) + "&" + Uri.EscapeDataString(AuthSecret))))
+            using (HMACSHA1 hasher = new HMACSHA1(ASCIIEncoding.ASCII.GetBytes(Uri.EscapeDataString(consumerSecret) + "&" + Uri.EscapeDataString(authSecret))))
             {
                 oauth_signature = Convert.ToBase64String(hasher.ComputeHash(ASCIIEncoding.ASCII.GetBytes("POST&" + Uri.EscapeDataString(twitterURL) + "&" + Uri.EscapeDataString(baseString))));
             }
@@ -2201,12 +2201,12 @@ namespace CrisesControl.Infrastructure.Services
 
             string authorizationHeader = string.Format(
                 authorizationFormat,
-                Uri.EscapeDataString(ConsumerKey),
+                Uri.EscapeDataString(consumerKey),
                 Uri.EscapeDataString(oauth_nonce),
                 Uri.EscapeDataString(oauth_signature),
                 Uri.EscapeDataString(oauth_signature_method),
                 Uri.EscapeDataString(oauth_timestamp),
-                Uri.EscapeDataString(AuthToken),
+                Uri.EscapeDataString(authToken),
                 Uri.EscapeDataString(oauth_version)
             );
 
@@ -2216,7 +2216,7 @@ namespace CrisesControl.Infrastructure.Services
             objHttpWebRequest.ContentType = "application/x-www-form-urlencoded";
             using (Stream objStream = objHttpWebRequest.GetRequestStream())
             {
-                byte[] content = ASCIIEncoding.ASCII.GetBytes("status=" + Uri.EscapeDataString(MessageText));
+                byte[] content = ASCIIEncoding.ASCII.GetBytes("status=" + Uri.EscapeDataString(messageText));
                 objStream.Write(content, 0, content.Length);
             }
 
@@ -2235,11 +2235,11 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void LinkedInPost(string MessageText, string ConsumerKey, string ConsumerSecret, string AuthToken, string AuthSecret)
+        public void LinkedInPost(string messageText, string consumerKey, string consumerSecret, string authToken, string authSecret)
         {
 
         }
-        public void FacekbookPost(string MessageText, string ConsumerKey, string ConsumerSecret, string AuthToken, string AuthSecret)
+        public void FacekbookPost(string messageText, string consumerKey, string consumerSecret, string authToken, string authSecret)
         {
 
         }
