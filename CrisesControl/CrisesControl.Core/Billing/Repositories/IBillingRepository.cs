@@ -14,8 +14,8 @@ namespace CrisesControl.Core.Billing.Repositories {
         Task<List<OrderListReturn>> GetOrder(int orderId, int companyId, string customerId, int originalOrderId);
         Task<int> CreateOrder(OrderModel IP);
         Task<int> CreateInvoiceSchedule(OrderModel orderModel);
-        Task<dynamic> GetInvoicesById(int companyId, int transactionHeaderId, bool showPayments);
-        List<TransactionItemDetails> GetTransactionItem(int companyId, int messageId, string method, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc", string companyKey = "");
+        Task<GetInvoiceByIdResponse> GetInvoicesById(int companyId, int transactionHeaderId, bool showPayments);
+        Task<List<TransactionItemDetails>> GetTransactionItem(int companyId, int messageId, string method, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc", string companyKey = "");
         Task<List<UsageGraph>> GetUsageGraph(int companyId, string reportType, int lastMonth);
     }
 }

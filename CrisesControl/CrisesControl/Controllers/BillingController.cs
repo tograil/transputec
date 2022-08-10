@@ -50,7 +50,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetBillingSummary")]
         public async Task<IActionResult> GetBillingSummary(GetBillingSummaryRequest request)
         {
@@ -63,7 +63,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetAllInvoices")]
         public async Task<IActionResult> GetAllInvoices(GetAllInvoicesRequest request)
         {
@@ -76,7 +76,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetInvSchedule")]
         public async Task<IActionResult> GetInvSchedule(GetInvScheduleRequest request, CancellationToken cancellationToken)
         {
@@ -89,7 +89,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetOrders")]
         public async Task<IActionResult> GetOrders(GetOrdersRequest request, CancellationToken cancellationToken)
         {
@@ -141,50 +141,47 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetInvoicesById")]
-        public async Task<IActionResult> GetInvoicesById(GetInvoicesByIdRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetInvoicesById(GetInvoicesByIdRequest request)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _billingQuery.GetInvoicesById(request);
             return Ok(result);
         }
         /// <summary>
         /// Get the transaction detail for invoice
         /// </summary>
         /// <param name="request"></param>
-        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetTransactionDetails")]
-        public async Task<IActionResult> GetTransactionDetails(GetTransactionDetailsRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetTransactionDetails(GetTransactionDetailsRequest request)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _billingQuery.GetTransactionDetails(request);
             return Ok(result);
         }
         /// <summary>
         /// Get usage graph
         /// </summary>
         /// <param name="request"></param>
-        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetUsageGraph")]
-        public async Task<IActionResult> GetUsageGraph(GetUsageGraphRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetUsageGraph(GetUsageGraphRequest request)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _billingQuery.GetUsageGraph(request);
             return Ok(result);
         }
         /// <summary>
         /// Get the summary of unbilled invoices
         /// </summary>
         /// <param name="request"></param>
-        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetUnbilledSummary")]
-        public async Task<IActionResult> GetUnbilledSummary(GetUnbilledSummaryRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetUnbilledSummary(GetUnbilledSummaryRequest request)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _billingQuery.GetUnbilledSummary(request);
             return Ok(result);
         }
 

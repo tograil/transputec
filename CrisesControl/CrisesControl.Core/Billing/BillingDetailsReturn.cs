@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.Core.Import;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Billing
 {
-    public class BillingDetailsReturn
+    public class BillingDetailsReturn : CommonDTO
     {
         public int CompanyId { get; set; }
         public string CompanyName { get; set; }
