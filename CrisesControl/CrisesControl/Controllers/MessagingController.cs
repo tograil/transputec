@@ -194,7 +194,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetConfRecordings")]
         public async Task<IActionResult> GetConfRecordings([FromBody] GetConfRecordingsRequest request, CancellationToken cancellationToken)
         {
@@ -207,7 +207,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetConfUser")]
         public async Task<IActionResult> GetConfUser([FromBody] GetConfUserRequest request, CancellationToken cancellationToken)
         {
@@ -220,7 +220,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetNotifications")]
         public async Task<IActionResult> GetNotifications(GetNotificationsRequest request, CancellationToken cancellationToken)
         {
@@ -233,7 +233,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetPingInfo")]
         public async Task<IActionResult> GetPingInfo(GetPingInfoRequest request, CancellationToken cancellationToken)
         {
@@ -337,7 +337,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetPublicAlertTemplate")]
         public async Task<IActionResult> GetPublicAlertTemplate(GetPublicAlertTemplateRequest request, CancellationToken cancellationToken)
         {
@@ -350,7 +350,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("GetPublicAlert")]
         public async Task<IActionResult> GetPublicAlert(GetPublicAlertRequest request, CancellationToken cancellationToken)
         {
