@@ -863,20 +863,20 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public void CreateImportHeader(string SessionID, int CompanyID, string Status, int UserID, string DataFile = "NOFILE", string MappingFile = "NOFILE",
-            bool SendInvite = false, int ImportTriggerID = 0, bool AutoForceVerify = false, string jobType = "FULL")
+        public void CreateImportHeader(string sessionId, int companyId, string status, int userId, string dataFile = "NOFILE", string mappingFile = "NOFILE",
+            bool sendInvite = false, int importTriggerId = 0, bool autoForceVerify = false, string jobType = "FULL")
         {
             try
             {
-                var pSessionId = new SqlParameter("@SessionID", SessionID);
-                var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
-                var pMappingFile = new SqlParameter("@MappingFileName", MappingFile);
-                var pDataFile = new SqlParameter("@FileName", DataFile);
-                var pStatus = new SqlParameter("@Status", Status);
-                var pSendInvite = new SqlParameter("@SendInvite", SendInvite);
-                var pImportTriggerID = new SqlParameter("@ImportTriggerID", ImportTriggerID);
-                var pCurrentUserId = new SqlParameter("@LoggedInUserID", UserID);
-                var pAutoForceVerify = new SqlParameter("@AutoForceVerify", AutoForceVerify);
+                var pSessionId = new SqlParameter("@SessionID", sessionId);
+                var pCompanyId = new SqlParameter("@CompanyID", companyId);
+                var pMappingFile = new SqlParameter("@MappingFileName", mappingFile);
+                var pDataFile = new SqlParameter("@FileName", dataFile);
+                var pStatus = new SqlParameter("@Status", status);
+                var pSendInvite = new SqlParameter("@SendInvite", sendInvite);
+                var pImportTriggerID = new SqlParameter("@ImportTriggerID", importTriggerId);
+                var pCurrentUserId = new SqlParameter("@LoggedInUserID", userId);
+                var pAutoForceVerify = new SqlParameter("@AutoForceVerify", autoForceVerify);
                 var pJobType = new SqlParameter("@JobType", jobType);
 
                 var UserOnlyrec = _context.Set<JsonResult>().FromSqlRaw("EXEC Pro_ImportUser_CreateHeader @SessionID, @CompanyID, @MappingFileName, @FileName, @Status, " +
