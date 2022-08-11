@@ -864,7 +864,7 @@ namespace CrisesControl.Infrastructure.Repositories
         }
 
         public void CreateImportHeader(string SessionID, int CompanyID, string Status, int UserID, string DataFile = "NOFILE", string MappingFile = "NOFILE",
-            bool SendInvite = false, int ImportTriggerID = 0, bool AutoForceVerify = false, string JobType = "FULL")
+            bool SendInvite = false, int ImportTriggerID = 0, bool AutoForceVerify = false, string jobType = "FULL")
         {
             try
             {
@@ -877,7 +877,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 var pImportTriggerID = new SqlParameter("@ImportTriggerID", ImportTriggerID);
                 var pCurrentUserId = new SqlParameter("@LoggedInUserID", UserID);
                 var pAutoForceVerify = new SqlParameter("@AutoForceVerify", AutoForceVerify);
-                var pJobType = new SqlParameter("@JobType", JobType);
+                var pJobType = new SqlParameter("@JobType", jobType);
 
                 var UserOnlyrec = _context.Set<JsonResult>().FromSqlRaw("EXEC Pro_ImportUser_CreateHeader @SessionID, @CompanyID, @MappingFileName, @FileName, @Status, " +
                     "@SendInvite, @AutoForceVerify, @JobType, @ImportTriggerID, @LoggedInUserID",
@@ -893,7 +893,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                CreateImportHeader(queueImport.SessionId, companyId, "DUMPING", userId, queueImport.DataFileName, queueImport.MappingFileName, queueImport.SendInvite, JobType: queueImport.JobType);
+                CreateImportHeader(queueImport.SessionId, companyId, "DUMPING", userId, queueImport.DataFileName, queueImport.MappingFileName, queueImport.SendInvite, jobType: queueImport.JobType);
 
                 string path = _DBC.LookupWithKey("UPLOAD_PATH");
 
@@ -924,7 +924,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     NI.BulkInsert();
 
-                    var queuStatus = QueueImportTask(queueImport.SessionId, companyId, queueImport.SendInvite, userId, JobType: queueImport.JobType);
+                    var queuStatus = QueueImportTask(queueImport.SessionId, companyId, queueImport.SendInvite, userId, jobType: queueImport.JobType);
 
                     return queuStatus;
                 }
@@ -936,24 +936,24 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        private string QueueImportTask(string SessionId, int CompanyId, bool SendInvite, int CurrentUserId, string JobType = "FULL")
+        private string QueueImportTask(string sessionId, int companyId, bool sendInvite, int currentUserId, string jobType = "FULL")
         {
             string queue_status = "DUMPED";
             DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now).AddHours(-1);
             var running_import = (from IM in _context.Set<ImportDumpHeader>()
-                                    where IM.CompanyId == CompanyId && IM.JobType == "FULL"
+                                    where IM.CompanyId == companyId && IM.JobType == "FULL"
                                     && (IM.Status == "IMPORTING" || IM.Status == "TOBEIMPORTED" || IM.Status == "VALIDATING" ||
                                     IM.Status == "VALIDATED" || IM.Status == "DUMPED" || IM.Status == "DUMPING") && IM.CreatedOn > dtNow
-                                    && IM.SessionId != SessionId && IM.FileName != "NOFILE"
+                                    && IM.SessionId != sessionId && IM.FileName != "NOFILE"
                                     select IM).Any();
             if (running_import)
             {
-                CreateImportHeader(SessionId, CompanyId, "WAITING", CurrentUserId, "NA", "NA", SendInvite, JobType: JobType);
+                CreateImportHeader(sessionId, companyId, "WAITING", currentUserId, "NA", "NA", sendInvite, jobType: jobType);
                 queue_status = "WAITING";
             }
             else
             {
-                CreateImportHeader(SessionId, CompanyId, "DUMPED", CurrentUserId, "NA", "NA", SendInvite, JobType: JobType);
+                CreateImportHeader(sessionId, companyId, "DUMPED", currentUserId, "NA", "NA", sendInvite, jobType: jobType);
                 queue_status = "DUMPED";
             }
             return queue_status;
@@ -974,12 +974,12 @@ namespace CrisesControl.Infrastructure.Repositories
             throw new NotImplementedException();
         }
 
-        public async Task<bool> createDepartmentData(string SessionId, int CompanyId, int UserId)
+        public async Task<bool> createDepartmentData(string sessionId, int companyId, int userId)
         {
 
             try
             {
-                var impDepData = await _context.Set<ImportDump>().Where(t => t.SessionId == SessionId).ToListAsync();
+                var impDepData = await _context.Set<ImportDump>().Where(t => t.SessionId == sessionId).ToListAsync();
                 if (impDepData.Count > 0)
                 {
 
@@ -1012,7 +1012,7 @@ namespace CrisesControl.Infrastructure.Repositories
                             MultiGroup = "Multiple departments found, seprate them per line." + Environment.NewLine;
                         }
 
-                        Rec = ImportCheckDepartmentExist(CompanyId, item.Department, SessionId, out DepartmentId);
+                        Rec = ImportCheckDepartmentExist(companyId, item.Department, sessionId, out DepartmentId);
 
                         string UpdateActionMessage = string.Empty;
 
@@ -1155,74 +1155,74 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public void ImportToDump(int UserId, int CompanyId, string SessionId,
-           string FirstName, string Surname, string Email, string ISD, string Phone, string LLISD, string Landline, string UserRole, string Status, string Action,
-           string Group, string GroupStatus,
-           string Department, string DepartmentStatus,
-           string Location, string LocationAddress, string LocationStatus,
-           string Security, string SecurityDescription,
-           string PingMethods, string IncidentMethods,
-           string LocationAction, string GroupAction, string DepartmentAction,
-           string EmailCheck, string LocationCheck, string GroupCheck, string DepartmentCheck, string SecurityCheck, string ImportAction, string ActionType, int createdUpdatedBy, string TimeZoneId)
+        public void ImportToDump(int userId, int companyId, string sessionId,
+           string firstName, string surname, string email, string ISD, string phone, string LLISD, string landline, string userRole, string status, string action,
+           string group, string groupStatus,
+           string department, string departmentStatus,
+           string location, string locationAddress, string locationStatus,
+           string security, string securityDescription,
+           string pingMethods, string incidentMethods,
+           string locationAction, string groupAction, string departmentAction,
+           string emailCheck, string locationCheck, string groupCheck, string departmentCheck, string securityCheck, string importAction, string actionType, int createdUpdatedBy, string timeZoneId)
         {
             try
             {
 
                 ImportDump IMPDump = new ImportDump();
 
-                IMPDump.UserId = UserId;
-                IMPDump.CompanyId = CompanyId;
-                IMPDump.SessionId = SessionId;
+                IMPDump.UserId = userId;
+                IMPDump.CompanyId = companyId;
+                IMPDump.SessionId = sessionId;
 
-                if (ActionType.ToUpper() == "USERIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                if (actionType.ToUpper() == "USERIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
                 {
-                    IMPDump.FirstName = FirstName;
-                    IMPDump.Surname = Surname;
-                    IMPDump.Email = (!string.IsNullOrEmpty(Email) ? Email.ToLower() : "");
-                    IMPDump.EncryptedEmail = (!string.IsNullOrEmpty(Email) ? Email.ToLower() : "");
-                    IMPDump.Status = Status;
+                    IMPDump.FirstName = firstName;
+                    IMPDump.Surname = surname;
+                    IMPDump.Email = (!string.IsNullOrEmpty(email) ? email.ToLower() : "");
+                    IMPDump.EncryptedEmail = (!string.IsNullOrEmpty(email) ? email.ToLower() : "");
+                    IMPDump.Status = status;
                     IMPDump.Isd = ISD;
-                    IMPDump.Phone = Phone;
+                    IMPDump.Phone = phone;
                     IMPDump.Llisd = LLISD;
-                    IMPDump.Landline = Landline;
-                    IMPDump.UserRole = (!string.IsNullOrEmpty(UserRole) ? UserRole.ToUpper() : "");
-                    IMPDump.EmailCheck = EmailCheck;
-                    IMPDump.PingMethods = PingMethods;
-                    IMPDump.IncidentMethods = IncidentMethods;
-                    IMPDump.LocationAction = LocationAction;
-                    IMPDump.GroupAction = GroupAction;
+                    IMPDump.Landline = landline;
+                    IMPDump.UserRole = (!string.IsNullOrEmpty(userRole) ? userRole.ToUpper() : "");
+                    IMPDump.EmailCheck = emailCheck;
+                    IMPDump.PingMethods = pingMethods;
+                    IMPDump.IncidentMethods = incidentMethods;
+                    IMPDump.LocationAction = locationAction;
+                    IMPDump.GroupAction = groupAction;
                     IMPDump.ActionCheck = "";
                 }
 
-                if (ActionType.ToUpper() == "GROUPIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                if (actionType.ToUpper() == "GROUPIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
                 {
-                    IMPDump.Group = Group;
-                    IMPDump.GroupStatus = GroupStatus;
-                    IMPDump.GroupCheck = GroupCheck;
+                    IMPDump.Group = group;
+                    IMPDump.GroupStatus = groupStatus;
+                    IMPDump.GroupCheck = groupCheck;
                 }
-                if (ActionType.ToUpper() == "DEPARTMENTIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                if (actionType.ToUpper() == "DEPARTMENTIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
                 {
-                    IMPDump.Department = Department;
-                    IMPDump.DepartmentStatus = DepartmentStatus;
-                    IMPDump.DepartmentCheck = DepartmentCheck;
+                    IMPDump.Department = department;
+                    IMPDump.DepartmentStatus = departmentStatus;
+                    IMPDump.DepartmentCheck = departmentCheck;
                 }
-                if (ActionType.ToUpper() == "LOCATIONIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                if (actionType.ToUpper() == "LOCATIONIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
                 {
-                    IMPDump.Location = Location;
-                    IMPDump.LocationAddress = LocationAddress;
-                    IMPDump.LocationStatus = LocationStatus;
-                    IMPDump.LocationCheck = LocationCheck;
+                    IMPDump.Location = location;
+                    IMPDump.LocationAddress = locationAddress;
+                    IMPDump.LocationStatus = locationStatus;
+                    IMPDump.LocationCheck = locationCheck;
 
                 }
-                if (ActionType.ToUpper() == "SECURITYIMPORTONLY" || ActionType.ToUpper() == "USERIMPORTCOMPLETE")
+                if (actionType.ToUpper() == "SECURITYIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
                 {
-                    IMPDump.Security = Security;
-                    IMPDump.SecurityCheck = SecurityCheck;
+                    IMPDump.Security = security;
+                    IMPDump.SecurityCheck = securityCheck;
                 }
 
-                IMPDump.ImportAction = ImportAction;
-                IMPDump.ActionType = ActionType;
-                IMPDump.Action = Action;
+                IMPDump.ImportAction = importAction;
+                IMPDump.ActionType = actionType;
+                IMPDump.Action = action;
                 if (createdUpdatedBy > 0)
                     IMPDump.CreatedBy = createdUpdatedBy;
                 IMPDump.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
@@ -1236,23 +1236,23 @@ namespace CrisesControl.Infrastructure.Repositories
             catch (Exception ex) { throw ex; }
         }
 
-        public bool CreateTempUsers(List<ImportDumpInput> userData, string SessionId, int CompanyId, string JobType, int UserId = 0, string TimeZoneId = "GMT Standard Time")
+        public bool CreateTempUsers(List<ImportDumpInput> userData, string sessionId, int companyId, string jobType, int userId = 0, string timeZoneId = "GMT Standard Time")
         {
 
             try
             {
 
-                CreateImportHeader(SessionId, CompanyId, "DUMPING", UserId, "NOFILE", "NOFILE", false, 0, false, JobType);
+                CreateImportHeader(sessionId, companyId, "DUMPING", userId, "NOFILE", "NOFILE", false, 0, false, jobType);
 
                 foreach (ImportDumpInput Usr in userData)
                 {
-                    ImportToDump(0, CompanyId, SessionId, Usr.FirstName, Usr.Surname, Usr.Email, Usr.MobileISD, Usr.Mobile, Usr.ISDLandline, Usr.Landline,
+                    ImportToDump(0, companyId, sessionId, Usr.FirstName, Usr.Surname, Usr.Email, Usr.MobileISD, Usr.Mobile, Usr.ISDLandline, Usr.Landline,
                         Usr.UserRole, Usr.Status, Usr.Action, Usr.Group, Usr.GroupStatus, Usr.Department, Usr.DepartmentStatus, Usr.Location, Usr.LocationAddress, Usr.LocationStatus,
                     Usr.MenuAccess, Usr.MenuAccess, Usr.PingMethods, Usr.IncidentMethods, Usr.LocationAction, Usr.GroupAction, Usr.DepartmentAction,
-                    "", "", "", "", "", "", "USERIMPORTCOMPLETE", UserId, TimeZoneId);
+                    "", "", "", "", "", "", "USERIMPORTCOMPLETE", userId, TimeZoneId);
                 }
 
-                QueueImportTask(SessionId, CompanyId, false, UserId, JobType);
+                QueueImportTask(sessionId, companyId, false, userId, jobType);
 
                 return true;
             }
