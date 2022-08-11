@@ -133,12 +133,12 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<GetCompanyInvoicesReturn> GetAllInvoices(int CompanyId, CancellationToken cancellationToken)
+        public async Task<GetCompanyInvoicesReturn> GetAllInvoices(int companyId)
         {
             GetCompanyInvoicesReturn result = new GetCompanyInvoicesReturn();
             try
             {
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var companyInvoices = await _context.Set<CompanyInvoices>().FromSqlRaw("EXEC Pro_Billing_GetAllInvoicesByCompanyRef @CompanyID", pCompanyID).ToListAsync();
 
                 if (companyInvoices.Count > 0)
@@ -182,7 +182,7 @@ namespace CrisesControl.Infrastructure.Repositories
             return new List<InvoiceSchReturn>();
         }
 
-        public async Task<dynamic> GetOrder(int orderId, int companyId, string customerId, int originalOrderId)
+        public async Task<List<OrderListReturn>> GetOrder(int orderId, int companyId, string customerId, int originalOrderId)
         {
             try
             {
@@ -201,8 +201,9 @@ namespace CrisesControl.Infrastructure.Repositories
                         var newresult = result.FirstOrDefault();
                         newresult.Modules = await GetProducts(newresult.OrderID, companyId);
                         newresult.InvItems = await GetInvItems(newresult.OrderID, DateTime.Now.Month, DateTime.Now.Year);
-
-                        return newresult;
+                        var r = new List<OrderListReturn>();
+                        r.Add(newresult);
+                        return r;
                     }
                     return result;
                 }
@@ -681,14 +682,14 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<dynamic> GetInvoicesById(int companyId, int transactionHeaderId, bool showPayments)
+        public async Task<GetInvoiceByIdResponse> GetInvoicesById(int companyId, int transactionHeaderId, bool showPayments)
         {
-            CommonDTO ResultDTO = new CommonDTO();
+            GetInvoiceByIdResponse? billingDetails = new GetInvoiceByIdResponse();
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var pTransactionHeaderID = new SqlParameter("@TranHeaderID", transactionHeaderId);
-                var billingDetails = await _context.Set<GetInvoiceByIdResponse>().FromSqlRaw(
+                billingDetails = await _context.Set<GetInvoiceByIdResponse>().FromSqlRaw(
                     "EXEC Pro_Billing_GetInvoicesByRef @CompanyID,@TranHeaderID",
                     pCompanyID,
                     pTransactionHeaderID).FirstOrDefaultAsync();
@@ -704,14 +705,13 @@ namespace CrisesControl.Infrastructure.Repositories
                         pTransactionHeaderID2,
                         pShowPayments).ToListAsync();
 
-                    return billingDetails;
                 }
                 else
                 {
-                    ResultDTO.ErrorId = 110;
-                    ResultDTO.Message = "No record found.";
+                    billingDetails.ErrorId = 110;
+                    billingDetails.Message = "No record found.";
                 }
-                return ResultDTO;
+                return billingDetails;
             }
             catch (Exception ex)
             {
@@ -719,7 +719,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public List<TransactionItemDetails> GetTransactionItem(int companyId, int messageId, string method, int recordStart = 0, int recordLength = 100, string searchString = "",
+        public async Task<List<TransactionItemDetails>> GetTransactionItem(int companyId, int messageId, string method, int recordStart = 0, int recordLength = 100, string searchString = "",
             string orderBy = "Name", string orderDir = "asc", string companyKey = "")
         {
             try
@@ -740,17 +740,17 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 if (orderDir == "desc")
                 {
-                    result = _context.Set<TransactionItemDetails>().FromSqlRaw(
+                    result = await _context.Set<TransactionItemDetails>().FromSqlRaw(
                     "EXEC Pro_Billing_Transaction_Details @CompanyID, @MessageID, @Method, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
-                    pCompanyID, pMessageID, pMethod, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey).ToList()
-                    .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+                    pCompanyID, pMessageID, pMethod, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey)
+                    .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToListAsync();
                 }
                 else
                 {
-                    result = _context.Set<TransactionItemDetails>().FromSqlRaw(
+                    result = await _context.Set<TransactionItemDetails>().FromSqlRaw(
                     "EXEC Pro_Billing_Transaction_Details @CompanyID, @MessageID, @Method, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
-                    pCompanyID, pMessageID, pMethod, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey).ToList()
-                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+                    pCompanyID, pMessageID, pMethod, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey)
+                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToListAsync();
                 }
 
                 return result;

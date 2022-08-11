@@ -1,19 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.Compatibility.Jobs;
+using CrisesControl.Core.Departments;
+using CrisesControl.Core.Import;
 using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Locations;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
@@ -31,19 +41,37 @@ public class MessageRepository : IMessageRepository
     private int UserID;
     private int CompanyID;
     private readonly string TimeZoneId = "GMT Standard Time";
+    private readonly string ServerUploadFolder = "C:\\Temp\\";
 
     private readonly CrisesControlContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<MessageRepository> _logger;
     private readonly ICompanyParametersRepository _companyParameters;
+    private readonly DBCommon _DBC;
+    private readonly CommsHelper _CH;
+    private readonly PingHelper _PH;
+    private readonly Messaging _MSG;
 
 
-    public MessageRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<MessageRepository> logger, ICompanyParametersRepository companyParameters)
+    public MessageRepository(
+        CrisesControlContext context,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<MessageRepository> logger,
+        ICompanyParametersRepository companyParameters,
+        DBCommon DBC,
+        CommsHelper CH,
+        PingHelper PH,
+        Messaging MSG
+        )
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
-        _companyParameters = companyParameters; 
+        _companyParameters = companyParameters;
+        _DBC = DBC;
+        _CH = CH;
+        _PH = PH;
+        _MSG = MSG;
     }
 
     public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0)
@@ -408,9 +436,9 @@ public class MessageRepository : IMessageRepository
     {
         try
         {
-           if (string.IsNullOrEmpty(Longitude))
+            if (string.IsNullOrEmpty(Longitude))
             {
-                
+
             }
             DateTimeOffset dtNow = DateTime.Now.GetDateTimeOffset(TimeZoneId);
             var pUserID = new SqlParameter("@UserID", UserID);
@@ -419,23 +447,24 @@ public class MessageRepository : IMessageRepository
             var pLatitude = new SqlParameter("@Latitude", Latitude ?? string.Empty);
             var pLongitude = new SqlParameter("@Longitude", Longitude ?? string.Empty);
             var pMode = new SqlParameter("@Mode", AckMethod ?? string.Empty);
-            var pTimestamp = new SqlParameter("@Timestamp", dtNow );
+            var pTimestamp = new SqlParameter("@Timestamp", dtNow);
             var pResponseID = new SqlParameter("@ResponseID", ResponseID);
 
-          
-            var  MessageData = _context.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID,@MessageID,@MessageListID, @Latitude, @Longitude,@Mode,@Timestamp,@ResponseID",
-                                             pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode,pTimestamp, pResponseID).AsEnumerable<AcknowledgeReturn>();
-            if (MessageData != null) { 
-                  var message= MessageData.FirstOrDefault();
-                 return message;
+
+            var MessageData = _context.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID,@MessageID,@MessageListID, @Latitude, @Longitude,@Mode,@Timestamp,@ResponseID",
+                                             pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode, pTimestamp, pResponseID).AsEnumerable<AcknowledgeReturn>();
+            if (MessageData != null)
+            {
+                var message = MessageData.FirstOrDefault();
+                return message;
             }
-          
+
         }
         catch (Exception ex)
         {
             _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
-            
+
 
         }
         return new AcknowledgeReturn { };
@@ -454,7 +483,7 @@ public class MessageRepository : IMessageRepository
                 if (ResponseID > 0)
                 {
                     int CallbackOption = await GetCallbackOption(AckMethod);
-                     CheckSOSAlert(MsgListId, "ACKNOWLEGE", CallbackOption);
+                    CheckSOSAlert(MsgListId, "ACKNOWLEGE", CallbackOption);
                 }
 
                 if (AckMethod != "APP")
@@ -462,26 +491,26 @@ public class MessageRepository : IMessageRepository
                     AddUserTrackingDevices(CurrentUserId);
                 }
 
-                var list=await _context.Set<MessageList>().Where(MsgList => MsgList.MessageListId == MsgListId).Select(n =>
-              new MessageAckDetails()
-              {
-                  MessageListId = n.MessageListId,
-                  ErrorId = 0,
-                  ErrorCode = "E117",
-                  Message = message
-              }).FirstOrDefaultAsync();
+                var list = await _context.Set<MessageList>().Where(MsgList => MsgList.MessageListId == MsgListId).Select(n =>
+                new MessageAckDetails()
+                {
+                    MessageListId = n.MessageListId,
+                    ErrorId = 0,
+                    ErrorCode = "E117",
+                    Message = message
+                }).FirstOrDefaultAsync();
                 return list;
             }
             else
             {
-                var msg= (await _context.Set<MessageList>().Where(MsgList => MsgList.MessageListId == MsgListId).Select(x =>
-                new MessageAckDetails
-                {
-                    MessageListId = x.MessageListId,
-                    ErrorId = 100,
-                    ErrorCode = "150",
-                    Message = "Message aleady acknowledged"
-                }).FirstOrDefaultAsync());
+                var msg = (await _context.Set<MessageList>().Where(MsgList => MsgList.MessageListId == MsgListId).Select(x =>
+                 new MessageAckDetails
+                 {
+                     MessageListId = x.MessageListId,
+                     ErrorId = 100,
+                     ErrorCode = "150",
+                     Message = "Message aleady acknowledged"
+                 }).FirstOrDefaultAsync());
                 return msg;
             }
         }
@@ -501,7 +530,7 @@ public class MessageRepository : IMessageRepository
         {
             CallbackOption = 1;
         }
-        else if (AckMethod ==  MessageType.Text.ToString())
+        else if (AckMethod == MessageType.Text.ToString())
         {
             CallbackOption = 1;
         }
@@ -519,7 +548,7 @@ public class MessageRepository : IMessageRepository
     }
     public async void AddTrackingDevice(int CompanyID, int UserDeviceID, string DeviceAddress, string DeviceType, int MessageListID = 0)
     {
-        const string messageText= "Track Device";
+        const string messageText = "Track Device";
         try
         {
             MessageDevice MessageDev = new MessageDevice();
@@ -543,7 +572,7 @@ public class MessageRepository : IMessageRepository
             MessageDev.DateDelivered = SqlDateTime.MinValue.Value;
             MessageDev.DeviceAddress = DeviceAddress;
             MessageDev.DeviceType = DeviceType;
-           await _context.AddAsync(MessageDev);
+            await _context.AddAsync(MessageDev);
             _context.SaveChanges();
         }
         catch (Exception ex)
@@ -556,8 +585,8 @@ public class MessageRepository : IMessageRepository
     {
         try
         {
-              const string key = "SOS_ENABLED";
-              var sos = await _context.Set<MessageList>().Include(M => M.Message).Include(AMR => AMR.ActiveMessageResponse).Where(ML => ML.MessageListId == MessageListID).FirstOrDefaultAsync();
+            const string key = "SOS_ENABLED";
+            var sos = await _context.Set<MessageList>().Include(M => M.Message).Include(AMR => AMR.ActiveMessageResponse).Where(ML => ML.MessageListId == MessageListID).FirstOrDefaultAsync();
 
             if (sos != null)
             {
@@ -566,15 +595,15 @@ public class MessageRepository : IMessageRepository
 
                 if (sos.ActiveMessageResponse.IsSafetyResponse && IsSOSEnabled)
                 {
-                   
-                    var check=   await _context.Set<Sosalert>().Where(SA => SA.UserId == sos.RecepientUserId && (SA.ActiveIncidentId == sos.Message.IncidentActivationId &&
-          SA.ActiveIncidentId != 0 && sos.Message.IncidentActivationId != 0)).FirstOrDefaultAsync();
+
+                    var check = await _context.Set<Sosalert>().Where(SA => SA.UserId == sos.RecepientUserId && (SA.ActiveIncidentId == sos.Message.IncidentActivationId &&
+         SA.ActiveIncidentId != 0 && sos.Message.IncidentActivationId != 0)).FirstOrDefaultAsync();
                     if (check != null)
                     {
                         check.ActiveIncidentId = sos.Message.IncidentActivationId;
                         check.AlertType = SOSType ?? string.Empty;
                         check.Latitude = sos.UserLocationLat.Left(15) ?? string.Empty.Left(0);
-                        check.Longitude = (sos.UserLocationLong.Left(15) ?? string.Empty.Left(0)) ;
+                        check.Longitude = (sos.UserLocationLong.Left(15) ?? string.Empty.Left(0));
                         check.MessageId = sos.Message.MessageId;
                         check.MessageListId = sos.MessageListId;
                         check.ResponseId = sos.ResponseId;
@@ -586,7 +615,7 @@ public class MessageRepository : IMessageRepository
                     else
                     {
                         CreateSOSAlert(sos.RecepientUserId, SOSType, sos.Message.MessageId, sos.MessageListId, sos.ResponseId, (int)sos.Message.IncidentActivationId,
-                            sos.ActiveMessageResponse.ResponseLabel ??  string.Empty, sos.UpdatedOn, DateTime.Now, sos.UserLocationLat ??  string.Empty, sos.UserLocationLong ?? String.Empty, CallbackOption);
+                            sos.ActiveMessageResponse.ResponseLabel ?? string.Empty, sos.UpdatedOn, DateTime.Now, sos.UserLocationLat ?? string.Empty, sos.UserLocationLong ?? String.Empty, CallbackOption);
                     }
                 }
             }
@@ -599,7 +628,7 @@ public class MessageRepository : IMessageRepository
     public async void CreateSOSAlert(int UserID, string SOSType, int MessageId, int MessageListId, int ResponseID, int IncidentActivationId,
             string ResponseLabel, DateTimeOffset UpdatedOn, DateTimeOffset ResponseTimeGMT, string Lat, string Lng, int CallbackOption)
     {
-       
+
         try
         {
             Sosalert SA = new Sosalert();
@@ -618,8 +647,8 @@ public class MessageRepository : IMessageRepository
             SA.CompletedBy = 0;
             SA.Completed = false;
             SA.CompletedOn = SharedKernel.Utils.DateTimeExtensions.DbDate();
-           await _context.AddAsync(SA);
-           await _context.SaveChangesAsync();
+            await _context.AddAsync(SA);
+            await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -629,7 +658,7 @@ public class MessageRepository : IMessageRepository
     }
 
 
-   
+
     public async Task<List<NotificationDetails>> MessageNotifications(int CompanyId, int CurrentUserId)
     {
         List<NotificationDetails> NDL = new List<NotificationDetails>();
@@ -666,7 +695,7 @@ public class MessageRepository : IMessageRepository
         }
     }
 
-        public async Task<List<IIncidentMessages>> _get_incident_message(int CompanyId, int CurrentUserId)
+    public async Task<List<IIncidentMessages>> _get_incident_message(int CompanyId, int CurrentUserId)
     {
         var pTargetUserId = new SqlParameter("@UserID", CurrentUserId);
         var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
@@ -674,21 +703,22 @@ public class MessageRepository : IMessageRepository
         var result = await _context.Set<IIncidentMessages>().FromSqlRaw(" exec Pro_User_Incident_Notifications @UserID, @CompanyID",
             pTargetUserId, pCompanyID).ToListAsync();
 
-        result.Select(async c => {
-                c.AckOptions = new List<AckOption>(await _context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
-                       new AckOption()
-                       {
-                           ResponseId = n.ResponseId,
-                           ResponseLabel = n.ResponseLabel,
-                       }).ToListAsync());
-                return c;
-                 }).ToList();
-        return  result;
+        result.Select(async c =>
+        {
+            c.AckOptions = new List<AckOption>(await _context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
+                   new AckOption()
+                   {
+                       ResponseId = n.ResponseId,
+                       ResponseLabel = n.ResponseLabel,
+                   }).ToListAsync());
+            return c;
+        }).ToList();
+        return result;
 
-        
-        
-                                          
-        
+
+
+
+
     }
 
     public async Task<List<IPingMessage>> _get_ping_message(int CompanyId, int CurrentUserId)
@@ -699,16 +729,17 @@ public class MessageRepository : IMessageRepository
 
         var result = await _context.Set<IPingMessage>().FromSqlRaw("exec Pro_User_Ping_Notifications @UserID, @CompanyID",
             pTargetUserId, pCompanyID).ToListAsync();
-            
-            result.Select(async c => {
-                c.AckOptions = new List<AckOption>(await _context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
-                      new AckOption()
-                      {
-                          ResponseId = n.ResponseId,
-                          ResponseLabel = n.ResponseLabel,
-                      }).ToListAsync());
-                return c;
-            }).ToList();
+
+        result.Select(async c =>
+        {
+            c.AckOptions = new List<AckOption>(await _context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
+                  new AckOption()
+                  {
+                      ResponseId = n.ResponseId,
+                      ResponseLabel = n.ResponseLabel,
+                  }).ToListAsync());
+            return c;
+        }).ToList();
         return result;
 
     }
@@ -722,20 +753,21 @@ public class MessageRepository : IMessageRepository
 
         //int MsgListid = Base64Decode(CloudMsgId);
         var MsgListid = await _context.Set<MessageDevice>().FirstOrDefaultAsync(ml => ml.CloudMessageId == CloudMsgId);
-        try {
+        try
+        {
             if (MessageId > 0)
             {
-                var msglistid= await _context.Set<MessageList>().FirstOrDefaultAsync(ml => ml.MessageListId == MsgListid.MessageListId);
+                var msglistid = await _context.Set<MessageList>().FirstOrDefaultAsync(ml => ml.MessageListId == MsgListid.MessageListId);
                 if (msglistid != null)
                 {
-                    var newmsglistid= await _context.Set<MessageList>().FirstOrDefaultAsync(ML => ML.MessageId == MessageId && ML.RecepientUserId == msglistid.RecepientUserId && ML.MessageAckStatus == 0);
+                    var newmsglistid = await _context.Set<MessageList>().FirstOrDefaultAsync(ML => ML.MessageId == MessageId && ML.RecepientUserId == msglistid.RecepientUserId && ML.MessageAckStatus == 0);
 
                     if (newmsglistid != null)
                     {
                         MsgListid.MessageListId = newmsglistid.MessageListId;
                     }
 
-                    var CheckType = await _context.Set<MessageList>().Include(ML => ML.Message).FirstOrDefaultAsync(ML => ML.MessageListId == MsgListid.MessageListId && ML.MessageId== ML.Message.MessageId);
+                    var CheckType = await _context.Set<MessageList>().Include(ML => ML.Message).FirstOrDefaultAsync(ML => ML.MessageListId == MsgListid.MessageListId && ML.MessageId == ML.Message.MessageId);
 
                     //Read sql parameters
 
@@ -749,7 +781,7 @@ public class MessageRepository : IMessageRepository
                     {
                         if (CheckType.Message.MessageType == Enum.GetName(typeof(MessageCheckType), MessageCheckType.Incident))
                         {
-                            var IncidentMessageDetails = await  _context.Set<IncidentMessageDetails>().FromSqlRaw("exec Pro_Get_Incident_Message_List @ActiveIncidentID,@UserID, @CompanyID", ActiveIncidentID, RecepientUserId, CompanyId).FirstOrDefaultAsync();
+                            var IncidentMessageDetails = await _context.Set<IncidentMessageDetails>().FromSqlRaw("exec Pro_Get_Incident_Message_List @ActiveIncidentID,@UserID, @CompanyID", ActiveIncidentID, RecepientUserId, CompanyId).FirstOrDefaultAsync();
                             return IncidentMessageDetails;
                         }
                         else if (CheckType.Message.MessageType == Enum.GetName(typeof(MessageCheckType), MessageCheckType.Ping))
@@ -757,14 +789,14 @@ public class MessageRepository : IMessageRepository
                             var PingMessageDetails = await _context.Set<IncidentMessageDetails>().FromSqlRaw("exec Pro_Get_Ping_Message_List @UserID,@CompanyID, @MessageID, @IncidentActivationID", RecepientUserId, CompanyId, messageId, ActiveIncidentID).FirstOrDefaultAsync();
                             return PingMessageDetails;
                         }
-                        
+
 
                     }
 
                 }
             }
-            
-        
+
+
         }
         catch (Exception ex)
         {
@@ -774,7 +806,7 @@ public class MessageRepository : IMessageRepository
         return new IncidentMessageDetails { };
     }
 
-    public async Task<List<MessageAttachment>> GetMessageAttachment( int MessageListID,int MessageID)
+    public async Task<List<MessageAttachment>> GetMessageAttachment(int MessageListID, int MessageID)
     {
         try
         {
@@ -796,7 +828,7 @@ public class MessageRepository : IMessageRepository
 
     public async Task<List<MessageAttachment>> GetAttachment(int MessageAttachmentID)
     {
-      
+
         try
         {
             var attachemntId = new SqlParameter("@MessageAttachmentID", MessageAttachmentID);
@@ -811,9 +843,9 @@ public class MessageRepository : IMessageRepository
         return new List<MessageAttachment>();
 
     }
-    public async Task<List<MessageDetails>> GetReplies(int ParentID,  string Source = "WEB")
+    public async Task<List<MessageDetails>> GetReplies(int ParentID, string Source = "WEB")
     {
-        
+
         try
         {
             CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
@@ -823,21 +855,23 @@ public class MessageRepository : IMessageRepository
             var pUserID = new SqlParameter("@UserID", UserID);
             var pSource = new SqlParameter("@Source", Source);
 
-            var result =  _context.Set<MessageDetails>().FromSqlRaw("Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
+            var result = _context.Set<MessageDetails>().FromSqlRaw("Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
                 pParentID, pCompanyID, pUserID, pSource).AsEnumerable();
 
-            var replies=result.Select(c => {
+            var replies = result.Select(c =>
+            {
                 c.SentBy = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                c.AckOptions = (from AK in _context.Set<ActiveMessageResponse>().AsEnumerable() where AK.MessageId == c.MessageId
+                c.AckOptions = (from AK in _context.Set<ActiveMessageResponse>().AsEnumerable()
+                                where AK.MessageId == c.MessageId
 
-                                    orderby AK.ResponseCode
-                                    select new AckOption { ResponseId = AK.ResponseId, ResponseLabel = AK.ResponseLabel }).ToList();
+                                orderby AK.ResponseCode
+                                select new AckOption { ResponseId = AK.ResponseId, ResponseLabel = AK.ResponseLabel }).ToList();
                 return c;
-             }).ToList();
+            }).ToList();
 
-        return replies;
-    
-            
+            return replies;
+
+
         }
         catch (Exception ex)
         {
@@ -853,14 +887,14 @@ public class MessageRepository : IMessageRepository
             CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
             UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
             var pMessageID = new SqlParameter("@MessageID", MessageID);
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                var pUserID = new SqlParameter("@UserID", UserID);
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pUserID = new SqlParameter("@UserID", UserID);
 
-                var result = await _context.Set<MessageGroupObject>().FromSqlRaw("Exec Pro_Get_Message_User_Groups @MessageID, @CompanyID, @UserID",
-                    pMessageID, pCompanyID, pUserID).ToListAsync();
+            var result = await _context.Set<MessageGroupObject>().FromSqlRaw("Exec Pro_Get_Message_User_Groups @MessageID, @CompanyID, @UserID",
+                pMessageID, pCompanyID, pUserID).ToListAsync();
 
-                return result;
-            
+            return result;
+
         }
         catch (Exception ex)
         {
@@ -868,4 +902,461 @@ public class MessageRepository : IMessageRepository
             return new List<MessageGroupObject>();
         }
     }
+
+    public async Task<dynamic> ConverToMp3()
+    {
+        return false;
+
+        //try
+        //{
+        //    HttpResponseMessage result = Request.CreateResponse(HttpStatusCode.BadRequest);
+        //    string filePath = string.Empty;
+        //    string fileName = string.Empty;
+        //    var httpRequest = HttpContext.Current.Request;
+        //    if (httpRequest.Files.Count > 0)
+        //    {
+        //        foreach (string file in httpRequest.Files)
+        //        {
+        //            var postedFile = httpRequest.Files[file];
+        //            fileName = postedFile.FileName;
+        //            filePath = ServerUploadFolder + postedFile.FileName;
+        //            postedFile.SaveAs(filePath);
+        //        }
+        //    }
+        //    else
+        //    {
+        //        result = Request.CreateResponse(HttpStatusCode.BadRequest);
+        //    }
+
+        //    string outfile = AudioConversion.ToMp3(filePath, null);
+        //    if (outfile != null)
+        //    {
+
+        //        var stream = new MemoryStream(File.ReadAllBytes(outfile), 0, File.ReadAllBytes(outfile).Length, true, true);
+
+        //        HttpResponseMessage httpResponseMessage = Request.CreateResponse(HttpStatusCode.OK);
+        //        httpResponseMessage.Content = new StreamContent(stream);
+        //        httpResponseMessage.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment");
+        //        httpResponseMessage.Content.Headers.ContentDisposition.FileName = fileName;
+        //        httpResponseMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("audio/mp3");
+
+        //        return httpResponseMessage;
+        //    }
+
+        //    return result;
+        //}
+        //catch (Exception ex)
+        //{
+        //    return null;
+        //}
+    }
+
+    public object GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId)
+    {
+        CommonDTO ResultDTO = new CommonDTO();
+
+        try
+        {
+            objectType = objectType.ToUpper();
+            if (confCallId <= 0)
+            {
+                var recordings = (from CH in _context.Set<ConferenceCallLogHeader>()
+                                  join U in _context.Set<User>() on CH.InitiatedBy equals U.UserId
+                                  where CH.CompanyId == CompanyID && CH.TargetObjectId == objectId && CH.TargetObjectName == objectType
+                                  select new
+                                  {
+                                      CH,
+                                      U.FirstName,
+                                      U.LastName,
+                                      ConferenceStart = CH.ConfrenceStart != null ? CH.ConfrenceStart : CH.CreatedOn,
+                                      ConferenceEnd = CH.ConfrenceEnd != null ? CH.ConfrenceEnd : CH.CreatedOn
+                                  }).ToList();
+
+                return recordings;
+            }
+            else if (confCallId > 0 && single == true)
+            {
+                var recording = (from CH in _context.Set<ConferenceCallLogHeader>()
+                                 where CH.ConferenceCallId == confCallId
+                                 select CH).FirstOrDefault();
+                if (recording != null)
+                {
+                    if (recording.RecordingSid != null)
+                    {
+
+                        _DBC.connectUNCPath();
+
+                        string RecordingPath = _DBC.LookupWithKey("RECORDINGS_PATH");
+                        string SavePath = @RecordingPath + "\\" + recording.CompanyId + "\\";
+
+                        if (!File.Exists(@SavePath + recording.RecordingSid + ".mp3"))
+                        {
+                            DownloadRecording(recording.RecordingSid, recording.CompanyId, recording.RecordingUrl);
+                        }
+                    }
+                }
+                return recording;
+            }
+            else if (confCallId > 0 && single == false)
+            {
+                var recordings = (from CD in _context.Set<ConferenceCallLogDetail>()
+                                  join CH in _context.Set<ConferenceCallLogHeader>() on CD.ConferenceCallId equals CH.ConferenceCallId
+                                  join UD in _context.Set<User>() on CD.UserId equals UD.UserId
+                                  where CD.ConferenceCallId == confCallId
+                                  orderby CD.UserId
+                                  select new
+                                  {
+                                      CD,
+                                      CD.UserId,
+                                      UD.FirstName,
+                                      UD.LastName,
+                                      UD.Isdcode,
+                                      UD.MobileNo,
+                                      CH.ConfrenceEnd,
+                                      CH.ConfrenceStart
+                                  }).ToList().OrderBy(o => o.CD.UserId);
+
+                return recordings;
+            }
+            return ResultDTO;
+        }
+        catch (Exception ex)
+        {
+            return ResultDTO;
+        }
+    }
+
+    public void DownloadRecording(string recordingSid, int companyId, string recordingUrl)
+    {
+        try
+        {
+            int RetryCount = 2;
+            string RecordingPath = _DBC.LookupWithKey("RECORDINGS_PATH");
+            int.TryParse(_DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT"), out RetryCount);
+            string SavePath = @RecordingPath + "\\" + companyId + "\\";
+
+            _DBC.connectUNCPath();
+
+            if (!Directory.Exists(SavePath))
+                Directory.CreateDirectory(SavePath);
+
+            try
+            {
+                WebClient Client = new WebClient();
+                bool confdownloaded = false;
+                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string RoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+
+                for (int i = 0; i < RetryCount; i++)
+                {
+                    try
+                    {
+                        if (SendInDirect)
+                        {
+                            recordingUrl = RoutingApi + "Communication/DownloadRecording?FileName=" + recordingSid;
+                        }
+                        else
+                        {
+                            recordingUrl += ".mp3";
+                        }
+                        Client.DownloadFile(recordingUrl, @SavePath + recordingSid + ".mp3");
+                        confdownloaded = true;
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        confdownloaded = true;
+                    }
+                }
+                if (confdownloaded)
+                {
+                    if (File.Exists(@SavePath + recordingSid + ".mp3"))
+                    {
+                        _CH.DeleteRecording(recordingSid);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+        catch (WebException ex)
+        {
+        }
+    }
+
+    public object GetConfUser(int objectId, string objectType)
+    {
+        CommonDTO ResultDTO = new CommonDTO();
+        try
+        {
+            if (objectType.ToUpper() == "INCIDENT")
+            {
+                var rcpnt_list = (from ML in _context.Set<MessageList>()
+                                  join M in _context.Set<Message>() on ML.MessageId equals M.MessageId
+                                  join U in _context.Set<User>() on ML.RecepientUserId equals U.UserId
+                                  where M.IncidentActivationId == objectId && U.Status == 1 && M.MessageType == "Incident"
+                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToList();
+
+                return rcpnt_list;
+            }
+            else if (objectType.ToUpper() == "PING")
+            {
+                var rcpnt_list = (from ML in _context.Set<MessageList>()
+                                  join M in _context.Set<Message>() on ML.MessageId equals M.MessageId
+                                  join U in _context.Set<User>() on ML.RecepientUserId equals U.UserId
+                                  where M.MessageId == objectId && U.Status == 1 && M.MessageType == "Ping"
+                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToList();
+                return rcpnt_list;
+            }
+            return ResultDTO;
+        }
+        catch (Exception ex)
+        {
+            return ResultDTO;
+        }
+
+    }
+
+    public async Task<PingInfoReturn> GetPingInfo(int messageId, int userId, int companyId)
+    {
+        try
+        {
+            var pingifo = await (from M in _context.Set<Message>()
+                                 where M.MessageId == messageId
+                                 select new PingInfoReturn
+                                 {
+                                     MessageText = M.MessageText,
+                                     AssetId = M.AssetId,
+                                     CascadePlanID = M.CascadePlanId,
+                                     MultiResponse = M.MultiResponse,
+                                     Priority = M.Priority,
+                                     SilentMessage = M.SilentMessage,
+                                     TrackUser = M.TrackUser,
+                                     AttachmentCount = (int)M.AttachmentCount,
+                                 }).FirstOrDefaultAsync();
+            if (pingifo != null)
+            {
+                pingifo.PingNotificationList = await (from INL in _context.Set<AdhocMessageNotificationList>()
+                                                      join ORL in _context.Set<ObjectRelation>() on new { INL.ObjectMappingId, INL.SourceObjectPrimaryId }
+                                                      equals new { ORL.ObjectMappingId, ORL.SourceObjectPrimaryId }
+                                                      join L in _context.Set<Location>() on INL.SourceObjectPrimaryId equals L.LocationId
+                                                      where INL.CompanyId == CompanyID && ORL.ObjectMappingId == 9 &&
+                                                      INL.MessageId == messageId
+                                                      select new IIncNotificationLst
+                                                      {
+                                                          ObjectMappingId = INL.ObjectMappingId,
+                                                          SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
+                                                          ObjectLabel = L.LocationName,
+                                                          ObjectType = "LOCATION"
+                                                      }).Union((from INL in _context.Set<AdhocMessageNotificationList>()
+                                                                join ORL in _context.Set<ObjectRelation>() on new { INL.ObjectMappingId, INL.SourceObjectPrimaryId }
+                                                                equals new { ORL.ObjectMappingId, ORL.SourceObjectPrimaryId }
+                                                                join D in _context.Set<Group>() on INL.SourceObjectPrimaryId equals D.GroupId
+                                                                where INL.CompanyId == CompanyID && ORL.ObjectMappingId == 10 &&
+                                                                INL.MessageId == messageId
+                                                                select new IIncNotificationLst
+                                                                {
+                                                                    ObjectMappingId = INL.ObjectMappingId,
+                                                                    SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
+                                                                    ObjectLabel = D.GroupName,
+                                                                    ObjectType = "GROUP"
+                                                                })
+                               ).ToListAsync();
+                pingifo.AckOptions = await (from MM in _context.Set<ActiveMessageResponse>()
+                                            where MM.MessageId == messageId
+                                            select new AckOption
+                                            {
+                                                ResponseId = MM.ResponseId,
+                                                ResponseLabel = MM.ResponseLabel,
+                                                ResponseCode = MM.ResponseCode
+                                            }).ToListAsync();
+                pingifo.MessageMethod = await (from MM in _context.Set<MessageMethod>()
+                                               join MT in _context.Set<CommsMethod>() on MM.MethodId equals MT.CommsMethodId
+                                               where MM.MessageId == messageId
+                                               select new CommsMethods { MethodId = MM.MethodId, MethodName = MT.MethodName }).ToListAsync();
+                pingifo.UsersToNotify = await (from UN in _context.Set<UsersToNotify>()
+                                               join U in _context.Set<User>() on UN.UserId equals U.UserId
+                                               where UN.MessageId == messageId
+                                               select new IIncKeyConResponse
+                                               {
+                                                   FirstName = U.FirstName,
+                                                   LastName = U.LastName,
+                                                   UserId = U.UserId
+                                               }).ToListAsync();
+                pingifo.DepartmentToNotify = await (from INL in _context.Set<AdhocMessageNotificationList>()
+                                                    join D in _context.Set<Department>() on INL.SourceObjectPrimaryId equals D.DepartmentId
+                                                    where INL.CompanyId == CompanyID && INL.ObjectMappingId == 100 &&
+                                                    INL.MessageId == messageId
+                                                    select new IIncNotificationLst
+                                                    {
+                                                        ObjectMappingId = 100,
+                                                        SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
+                                                        ObjectLabel = D.DepartmentName,
+                                                        ObjectType = "DEPARTMENT"
+                                                    }).ToListAsync();
+
+                return pingifo;
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId)
+    {
+        try
+        {
+            return _PH.GetPublicAlert(companyId, targetUserId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId)
+    {
+        try
+        {
+            return _PH.GetPublicAlertTemplate(templateId, userId, companyId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<int> PingMessages(PingMessageQuery pingMessage)
+    {
+        try
+        {
+            return await _PH.PingMessages(pingMessage.CompanyId, pingMessage.MessageText, pingMessage.AckOptions,
+                pingMessage.Priority, pingMessage.MultiResponse, pingMessage.MessageType, pingMessage.IncidentActivationId,
+                pingMessage.CurrentUserId, pingMessage.TimeZoneId, pingMessage.PingMessageObjLst, pingMessage.UsersToNotify,
+                pingMessage.AssetId, pingMessage.SilentMessage, pingMessage.MessageMethod, pingMessage.MediaAttachments,
+                pingMessage.SocialHandle, pingMessage.CascadePlanID);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public dynamic ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId)
+    {
+        try
+        {
+            return _PH.ProcessPAFile(userListFile, hasHeader, emailColIndex, phoneColIndex, postcodeColIndex, latColIndex, longColIndex, sessionId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<dynamic> ResendFailure(int messageId, string commsMethod)
+    {
+        try
+        {
+            return await _PH.ResendFailure(messageId, commsMethod);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<dynamic> ReplyToMessage(int parentId, string messageText, string replyTo, string messageType, int activeIncidentId, int[] messageMethod, int cascadePlanId, int currentUserId, int companyId, string timeZoneId)
+    {
+        try
+        {
+            return await _PH.ReplyToMessage(parentId, messageText, replyTo, messageType, activeIncidentId, messageMethod, cascadePlanId, currentUserId, companyId, timeZoneId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<int> SaveMessageResponse(int responseId, string responseLabel, string description, bool isSafetyResponse,
+                     string safetyAckAction, string messageType, int status, int currentUserId, int companyId, string timeZoneId)
+    {
+        return await _MSG.SaveMessageResponse(responseId, responseLabel, description, isSafetyResponse,
+            safetyAckAction, messageType, status, currentUserId, companyId, timeZoneId);
+    }
+
+    public async Task<dynamic> SendPublicAlert(string messageText, int[] messageMethod, bool schedulePA, DateTime scheduleAt, string sessionId, int userId, int companyId, string timeZoneId)
+    {
+        try
+        {
+            return await _PH.SendPublicAlert(messageText, messageMethod, schedulePA, scheduleAt, sessionId, userId, companyId, timeZoneId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<bool> StartConference(List<User> UserList, int ObjectID, int CurrentUserID, int CompanyID, string TimeZoneId)
+    {
+        try
+        {
+            return await _MSG.StartConference(UserList, ObjectID, CurrentUserID, CompanyID, TimeZoneId);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public Return UploadAttachment()
+    {
+        string ServerUploadFolder = "C:\\Temp\\";
+        int iUploadedCnt = 0;
+        string FileName = string.Empty;
+        try
+        {
+
+            string AttachmentSavePath = _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
+            string AttachmentUncUser = _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
+            string AttachmentUncPwd = _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
+            string AttachmentUseUnc = _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
+            ServerUploadFolder = _DBC.LookupWithKey("UPLOAD_PATH");
+
+            _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
+
+            List<IFormFile> hfc = new List<IFormFile>();
+
+            for (int iCnt = 0; iCnt <= hfc.Count - 1; iCnt++)
+            {
+                //List<IFormFile> hpf = hfc[iCnt];
+                //if (hpf.ContentLength > 0)
+                //{
+                //    string FileExt = System.IO.Path.GetExtension(hpf.FileName);
+                //    FileName = Guid.NewGuid().ToString().Replace("-", "") + FileExt;
+                //    if (!System.IO.File.Exists(ServerUploadFolder + FileName))
+                //    {
+                //        hpf.SaveAs(ServerUploadFolder + FileName);
+                //        iUploadedCnt = iUploadedCnt + 1;
+                //    }
+                //}
+            }
+            if (iUploadedCnt > 0)
+            {
+                return _DBC.Return(0, "0", true, "File Uploaded successfully", FileName);
+            }
+            else
+            {
+                return _DBC.Return(1, "E001", false, "Could not upload file", null);
+            }
+        }
+        catch (Exception ex)
+        {
+            return _DBC.Return(1, "E001", false, ex.ToString(), null);
+        }
+    }
+
 }
