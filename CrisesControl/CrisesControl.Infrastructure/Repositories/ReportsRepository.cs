@@ -28,6 +28,7 @@ using Microsoft.Extensions.Configuration;
 using System.Text;
 using IncidentMessagesRtn = CrisesControl.Core.Reports.IncidentMessagesRtn;
 using FailedTaskList = CrisesControl.Core.Reports.FailedTaskList;
+using CrisesControl.Core.Import;
 
 namespace CrisesControl.Infrastructure.Repositories
 {
@@ -1842,6 +1843,30 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
+        public CompanyCountReturn GetCompanyCommunicationReport(int companyId)
+        {
+            var recCompanyCountReturn = new CompanyCountReturn();
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                recCompanyCountReturn = _context.Set<CompanyCountReturn>().FromSqlRaw("EXEC Pro_Report_GetCompanyCommunicationReport @CompanyID", pCompanyID).FirstOrDefault();
+                if (recCompanyCountReturn != null)
+                {
+                    var companyID2 = new SqlParameter("@CompanyID", companyId);
+                    recCompanyCountReturn.CompanyUserCountReturn = _context.Set<CompanyUserCountReturn>().FromSqlRaw("EXEC Pro_Report_GetCompanyUserCommunicationReport @CompanyID", companyID2).ToList();
+                }
+                else
+                {
+                    recCompanyCountReturn.ErrorId = 110;
+                    recCompanyCountReturn.Message = "No record found.";
+                }
+                return recCompanyCountReturn;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
 
+        }
     }
 }
