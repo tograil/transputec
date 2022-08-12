@@ -29,6 +29,7 @@ using System.Text;
 using IncidentMessagesRtn = CrisesControl.Core.Reports.IncidentMessagesRtn;
 using FailedTaskList = CrisesControl.Core.Reports.FailedTaskList;
 using CrisesControl.Core.Import;
+using CrisesControl.Api.Application.Helpers;
 
 namespace CrisesControl.Infrastructure.Repositories
 {
@@ -38,6 +39,7 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly ILogger<ReportsRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
+        private readonly DBCommon _DBC;
        // private readonly IQueueService _queueService;
 
         private int UserID;
@@ -50,12 +52,13 @@ namespace CrisesControl.Infrastructure.Repositories
         public ReportsRepository(CrisesControlContext context,
                                 IHttpContextAccessor httpContextAccessor,
                                 ILogger<ReportsRepository> logger,
-                                IMapper mapper)
+                                IMapper mapper, DBCommon DBC)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
             _mapper = mapper;
+            _DBC = DBC;
             //_queueService = queueService;
         }
         public async Task<List<SOSItem>> GetSOSItems()
@@ -1843,13 +1846,13 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public CompanyCountReturn GetCompanyCommunicationReport(int companyId)
+        public async Task<CompanyCountReturn> GetCompanyCommunicationReport(int companyId)
         {
             var recCompanyCountReturn = new CompanyCountReturn();
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
-                recCompanyCountReturn = _context.Set<CompanyCountReturn>().FromSqlRaw("EXEC Pro_Report_GetCompanyCommunicationReport @CompanyID", pCompanyID).FirstOrDefault();
+                recCompanyCountReturn =await _context.Set<CompanyCountReturn>().FromSqlRaw("EXEC Pro_Report_GetCompanyCommunicationReport @CompanyID", pCompanyID).FirstOrDefaultAsync();
                 if (recCompanyCountReturn != null)
                 {
                     var companyID2 = new SqlParameter("@CompanyID", companyId);
@@ -1867,6 +1870,130 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
 
+        }
+
+        public async Task<List<TrackingExport>> GetUserTracking(string source, int userId, int activeIncidentId)
+        {
+            try
+            {
+                var pSource = new SqlParameter("@Source", source);
+                var pUserID = new SqlParameter("@UserID", userId);
+                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", activeIncidentId);
+
+                var tckusr = await _context.Set<TrackingExport>().FromSqlRaw("EXEC Pro_Get_User_Tracking @Source, @UserID,  @ActiveIncidentID",
+                    pSource, pUserID, pActiveIncidentID).ToListAsync();
+                var res = tckusr.Select(c =>
+               {
+                   c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                   return c;
+               }).ToList();
+
+                return res;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<TaskOverview> CMD_TaskOverView(int activeIncidentId)
+        {
+            try
+            {
+                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", activeIncidentId);
+                var result = await _context.Set<TaskOverview>().FromSqlRaw("EXEC Pro_ICC_Task_Overview @ActiveIncidentID", pActiveIncidentID).FirstOrDefaultAsync();
+                return result!;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<DataTablePaging> GetUserInvitationReport(UserInvitationModel userInvitation)
+        {
+            try
+            {
+                var tablePaging = new DataTablePaging();
+
+                DateTime stDate = DateTime.Now;
+                DateTime enDate = DateTime.Now;
+                TimeSpan timespan = TimeSpan.FromMinutes(30);
+                _DBC.GetStartEndDate(userInvitation.IsThisWeek, userInvitation.IsThisMonth, userInvitation.IsLastMonth, ref stDate, ref enDate, userInvitation.StartDate, userInvitation.EndDate);
+
+                var RecordStart = userInvitation.Start == 0 ? 0 : userInvitation.Start;
+                var RecordLength = userInvitation.Length == 0 ? int.MaxValue : userInvitation.Length;
+                var SearchString = (userInvitation.Search != null) ? userInvitation.Search.Value : "";
+                string OrderBy = userInvitation.Order != null ? userInvitation.Order.FirstOrDefault().Column : "DateSent";
+                string OrderDir = userInvitation.Order != null ? userInvitation.Order.FirstOrDefault().Dir : "desc";
+
+                var returnData = await GetUserInvitationData(userInvitation.CompanyId, userInvitation.CurrentUserId, stDate, enDate, RecordStart, RecordLength, SearchString, OrderBy, OrderDir, userInvitation.CompanyKey);
+
+                int totalRecord = 0;
+
+                if (returnData != null)
+                    totalRecord = returnData.Count;
+
+                List<UserInvitationResult> ttodata = await GetUserInvitationData(userInvitation.CompanyId, userInvitation.CurrentUserId, stDate, enDate, 0, int.MaxValue, "", "UserId", OrderDir, userInvitation.CompanyKey);
+
+                if (ttodata != null)
+                    totalRecord = ttodata.Count;
+
+
+                DataTablePaging rtn = new DataTablePaging();
+                rtn.Draw = userInvitation.Draw;
+                rtn.RecordsTotal = totalRecord;
+                rtn.RecordsFiltered = returnData.Count;
+                rtn.Data = returnData;
+
+                if (rtn == null)
+                {
+                    tablePaging.ErrorId = 110;
+                    tablePaging.Message = "No record found.";
+                }
+                return tablePaging;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public async Task<List<UserInvitationResult>> GetUserInvitationData(int companyId, int userId, DateTime startDate, DateTime endDate, int recordStart, int recordLength, string searchString, string orderBy, string orderDir, string companyKey)
+        {
+            try
+            {
+                    var pStartDate = new SqlParameter("@StartDate", startDate);
+                    var pEndDate = new SqlParameter("@EndDate", endDate);
+                    var pCompanyId = new SqlParameter("@CompanyId", companyId);
+                    var pUserId = new SqlParameter("@UserId", userId);
+                    var pRecordStart = new SqlParameter("@RecordStart", recordStart);
+                    var pRecordLength = new SqlParameter("@RecordLength", recordLength);
+                    var pSearchString = new SqlParameter("@SearchString", searchString);
+                    var pOrderBy = new SqlParameter("@OrderBy", orderBy);
+                    var pOrderDir = new SqlParameter("@OrderDir", orderDir);
+                    var pUniqueKey = new SqlParameter("@UniqueKey", companyKey);
+
+                    var result = new List<UserInvitationResult>();
+                    var propertyInfo = typeof(UserInvitationResult).GetProperty(orderBy);
+
+                    if (orderDir == "desc")
+                    {
+                        result = await _context.Set<UserInvitationResult>().FromSqlRaw("EXEC Pro_Get_User_Invitation @CompanyID, @UserId,@StartDate,@EndDate, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                            pCompanyId, pUserId, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey).OrderByDescending(o => propertyInfo.GetValue(o, null)).ToListAsync();
+                    }
+                    else
+                    {
+                        result = await _context.Set<UserInvitationResult>().FromSqlRaw("EXEC Pro_Get_User_Invitation @CompanyID, @UserId,@StartDate,@EndDate, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                            pCompanyId, pUserId, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey).OrderBy(o => propertyInfo.GetValue(o, null)).ToListAsync();
+                    }
+
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
     }
 }

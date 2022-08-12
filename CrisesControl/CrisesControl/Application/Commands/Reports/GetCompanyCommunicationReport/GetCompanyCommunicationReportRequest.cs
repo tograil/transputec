@@ -2,5 +2,6 @@
 {
     public class GetCompanyCommunicationReportRequest
     {
+        public int CompanyId { get; set; }
     }
 }
