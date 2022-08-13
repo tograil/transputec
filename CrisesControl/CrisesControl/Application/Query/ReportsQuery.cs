@@ -45,6 +45,10 @@ using System.Data;
 using CrisesControl.Api.Application.Commands.Reports.AppInvitation;
 using CrisesControl.Api.Application.Commands.Reports.GetPingReportAnalysis;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageAnslysisResponse;
+using CrisesControl.Api.Application.Commands.Reports.GetCompanyCommunicationReport;
+using CrisesControl.Api.Application.Commands.Reports.GetUserTracking;
+using CrisesControl.Api.Application.Commands.Reports.CMD_TaskOverView;
+using CrisesControl.Api.Application.Commands.Reports.GetUserInvitationReport;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -951,6 +955,61 @@ namespace CrisesControl.Api.Application.Query
                 return response;
             }
             catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetCompanyCommunicationReportResponse> GetCompanyCommunicationReport(GetCompanyCommunicationReportRequest request)
+        {
+            try
+            {
+                var companyCommunication = await _reportRepository.GetCompanyCommunicationReport(request.CompanyId);
+                GetCompanyCommunicationReportResponse response = _mapper.Map<GetCompanyCommunicationReportResponse>(companyCommunication);
+                return response;
+            } catch(Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<List<GetUserTrackingResponse>> GetUserTracking(GetUserTrackingRequest request)
+        {
+            try
+            {
+                var result = await _reportRepository.GetUserTracking(request.Source, request.UserId, request.ActiveIncidentId);
+                List<GetUserTrackingResponse> response = _mapper.Map<List<GetUserTrackingResponse>>(result);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<CMD_TaskOverViewResponse> CMD_TaskOverView(CMD_TaskOverViewRequest request)
+        {
+            try
+            {
+                var result = await _reportRepository.CMD_TaskOverView(request.IncidentActivationId);
+                CMD_TaskOverViewResponse response = _mapper.Map<CMD_TaskOverViewResponse>(result);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetUserInvitationReportResponse> GetUserInvitationReport(GetUserInvitationReportRequest request)
+        {
+            try
+            {
+                UserInvitationModel mappedRequst = _mapper.Map<UserInvitationModel>(request);
+                var result = await _reportRepository.GetUserInvitationReport(mappedRequst);
+                GetUserInvitationReportResponse response = _mapper.Map<GetUserInvitationReportResponse>(result);
+                return response;
+            } catch (Exception ex)
             {
                 throw ex;
             }
