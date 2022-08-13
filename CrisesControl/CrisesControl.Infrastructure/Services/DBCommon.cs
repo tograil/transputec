@@ -1023,5 +1023,119 @@ namespace CrisesControl.Api.Application.Helpers
                     fi.Delete();
             }
         }
+        public async Task SaveParameter(int ParameterID, string ParameterName, string ParameterValue, int CurrentUserID, int CompanyID, string TimeZoneId)
+        {
+            try
+            {
+                if (ParameterID > 0)
+                {
+                    var CompanyParameter = await _context.Set<CompanyParameter>()
+                                            .Where(CP=> CP.CompanyId == CompanyID && CP.CompanyParametersId == ParameterID
+                                            ).FirstOrDefaultAsync();
+
+                    if (CompanyParameter != null)
+                    {
+                        //if(!string.IsNullOrEmpty(ParameterName)) {
+                        //    CompanyParameter.Name = ParameterName;
+                        //}
+                        if (ParameterValue != null)
+                        {
+                            if (CompanyParameter.Name == "MAX_PING_KPI" || CompanyParameter.Name == "MAX_INCIDENT_KPI")
+                            {
+                                CompanyParameter.Value = Convert.ToString(Convert.ToInt32(ParameterValue) * 60);
+                            }
+                            else
+                            {
+                                CompanyParameter.Value = ParameterValue;
+                            }
+                        }
+                        CompanyParameter.UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                        CompanyParameter.UpdatedBy = CurrentUserID;
+                        _context.Update(CompanyParameter);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else if (!string.IsNullOrEmpty(ParameterName))
+                {
+                    var CompanyParameter = await _context.Set<CompanyParameter>()
+                                            .Where(CP=> CP.CompanyId == CompanyID && CP.Name == ParameterName).FirstOrDefaultAsync();
+
+                    if (CompanyParameter != null)
+                    {
+                        if (ParameterValue != null)
+                        {
+                            if (CompanyParameter.Name == "MAX_PING_KPI" || CompanyParameter.Name == "MAX_INCIDENT_KPI")
+                            {
+                                CompanyParameter.Value = Convert.ToString(Convert.ToInt32(ParameterValue) * 60);
+                            }
+                            else
+                            {
+                                CompanyParameter.Value = ParameterValue;
+                            }
+                        }
+                        CompanyParameter.UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                        CompanyParameter.UpdatedBy = CurrentUserID;
+                        _context.Update(CompanyParameter);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        int CompanyParametersId = await AddCompanyParameter(ParameterName, ParameterValue, CompanyID, CurrentUserID, TimeZoneId);
+                    }
+                }
+
+                if (ParameterName.ToUpper() == "RECHARGE_BALANCE_TRIGGER")
+                {
+                    var profile = await _context.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == CompanyID).FirstOrDefaultAsync();
+                    if (profile != null)
+                    {
+                        profile.MinimumBalance = Convert.ToDecimal(ParameterValue);
+                        _context.Update(profile);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<int> AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
+        {
+            try
+            {
+                var comp_param = await _context.Set<CompanyParameter>().Where(CP=> CP.CompanyId == CompanyId && CP.Name == Name).AnyAsync();
+                if (!comp_param)
+                {
+                    CompanyParameter NewCompanyParameters = new CompanyParameter()
+                    {
+                        CompanyId = CompanyId,
+                        Name = Name,
+                        Value = Value,
+                        Status = 1,
+                        CreatedBy = CurrentUserId,
+                        UpdatedBy = CurrentUserId,
+                        CreatedOn = DateTime.Now,
+                        UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                    };
+                    await _context.AddAsync(NewCompanyParameters);
+                    await _context.SaveChangesAsync();
+                    return NewCompanyParameters.CompanyParametersId;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return 0;
+        }
+        public bool OnTrialStatus(string CompanyProfile, bool CurrentTrial)
+        {
+            if (CompanyProfile == "SUBSCRIBED")
+            {
+                return false;
+            }
+            return CompanyProfile == "ON_TRIAL" ? true : CurrentTrial;
+        }
     }
 }

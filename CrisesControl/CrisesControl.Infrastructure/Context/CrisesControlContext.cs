@@ -28,7 +28,7 @@ using CrisesControl.Core.Administrator;
 using CrisesControl.Core.System;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Academy;
-
+using CrisesControl.Core.Payments;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -198,6 +198,11 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<FailedAttempts>().HasNoKey();
             modelBuilder.Entity<DeliveryDetails>().HasNoKey();
             modelBuilder.Entity<PingReport>().HasNoKey();
+            modelBuilder.Entity<UpdateCompanyPaymentProfileModel>().HasNoKey();
+            modelBuilder.Entity<PackageItems>().HasNoKey();
+            modelBuilder.Entity<TransactionRates>().HasNoKey();
+            modelBuilder.Entity<CompanyPackage>().HasNoKey();
+            
 
 
             //modelBuilder.Entity<Location>().HasNoKey();
