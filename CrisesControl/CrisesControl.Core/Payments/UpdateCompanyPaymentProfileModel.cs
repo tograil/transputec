@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -48,6 +49,7 @@ namespace CrisesControl.Core.Payments
         public string CompanyProfile { get; set; }
         public string TransactionCode { get; set; }
         public string WTransactionID { get; set; }
+        [NotMapped]
         public int[] Modules { get; set; }
         public bool OnTrial { get; set; }
     }

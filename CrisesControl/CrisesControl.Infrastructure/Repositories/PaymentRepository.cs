@@ -7,6 +7,7 @@ using CrisesControl.Core.Models;
 using CrisesControl.Core.Payments;
 using CrisesControl.Core.Payments.Repositories;
 using CrisesControl.Infrastructure.Context;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -189,7 +190,8 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                var packageitemlist =await _context.Set<PackageItems>().FromSqlRaw("Pro_Payments_GetPackageAddons @OutUserCompanyId", OutUserCompanyId).ToListAsync();
+                var pCompanyID = new SqlParameter("@CompanyId", OutUserCompanyId);
+                var packageitemlist =await _context.Set<PackageItems>().FromSqlRaw("exec [Pro_Admin_GetPackageAddons] @CompanyId", pCompanyID).ToListAsync();
                 if (!ShowAll)
                     packageitemlist = packageitemlist.Where(s => s.Status == 0).ToList();
 
@@ -450,6 +452,23 @@ namespace CrisesControl.Infrastructure.Repositories
             catch (Exception ex)
             {
                 throw ex;
+            }
+        }
+        public async Task<bool> AddRemoveModule(int CompanyID, int ModuleID, string ActionVal)
+        {
+            try
+            {
+
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pModuleID = new SqlParameter("@ModuleID", ModuleID);
+                var pActionVal = new SqlParameter("@Action", ActionVal);
+
+                await  _context.Database.ExecuteSqlRawAsync("Pro_Admin_Add_Remove_Module @CompanyID, @ModuleID, @Action", pCompanyID, pModuleID, pActionVal);
+                return true;
+            }
+            catch (Exception ex)
+            {
+               return false;
             }
         }
     }

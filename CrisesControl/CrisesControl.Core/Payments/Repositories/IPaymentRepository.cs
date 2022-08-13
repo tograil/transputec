@@ -26,5 +26,6 @@ namespace CrisesControl.Core.Payments.Repositories
            string TimeZoneId, DateTimeOffset ContractAnniversary, string AgreementNo, decimal MaxTransactionLimit, DateTimeOffset ContractStartDate,
            string CardType, string CardHolderName, string BillingEmail, string BillingAddress1, string BillingAddress2, string City, string Town, string Postcode,
            string Country);
+        Task<bool> AddRemoveModule(int CompanyID, int ModuleID, string ActionVal);
     }
 }
