@@ -18,7 +18,7 @@ namespace CrisesControl.Infrastructure.Services
     public class QueueConsumer
     {
 
-        public List<string> RabbitHost;
+        public List<string> RabbitHost = new List<string>();
         public int MaxQueueConsumer = 3;
         public int MaxConsumerItem = 1;
         public string RabbitQueueExchange = "cc_processing_exchange";
@@ -28,9 +28,9 @@ namespace CrisesControl.Infrastructure.Services
 
         public static bool IsFundAvailable = true;
         public ushort RabbitMQHeartBeat = 60;
+        private static readonly Messaging _MSG;
         private static readonly CrisesControlContext _db;
         private static readonly IHttpContextAccessor _httpContextAccessor;
-       
 
 
         
@@ -172,8 +172,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         DBC.MessageProcessLog(msg.MessageId, "MESSAGE_LIST_CREATED", "", "", "Total count: " + QueueSize);
 
-                        Messaging MSG = new Messaging(_db, _httpContextAccessor);
-                        IsFundAvailable =await MSG.CalculateMessageCost(msg.CompanyId, MessageID, msg.MessageText);
+                        IsFundAvailable =await _MSG.CalculateMessageCost(msg.CompanyId, MessageID, msg.MessageText);
                     }
                 
             }

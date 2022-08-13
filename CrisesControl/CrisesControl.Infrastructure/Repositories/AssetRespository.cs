@@ -1,7 +1,10 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Assets.Respositories;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Quartz;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,11 +20,12 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly IMapper _mapper;
-
-        public AssetRespository(CrisesControlContext context, IMapper mapper)
+        private readonly DBCommon DBC;
+        public AssetRespository(CrisesControlContext context, IMapper mapper, DBCommon _DBC)
         {
             _context = context;
             _mapper = mapper;
+            DBC = _DBC;
         }
 
         public async Task<int> CreateAsset(Assets asset, CancellationToken cancellationToken)
@@ -89,6 +93,60 @@ namespace CrisesControl.Infrastructure.Repositories
         public bool CheckForExistance(int assetId)
         {
             return _context.Set<Assets>().Where(t => t.AssetId.Equals(assetId)).Any();
+        }
+
+        public void CreateAssetReviewReminder(int AssetId, int CompanyID, DateTimeOffset NextReviewDate, string ReviewFrequency, int ReminderCount)
+        {
+            try
+            {
+
+                DBC.DeleteScheduledJob("ASSET_REVIEW_" + AssetId, "REVIEW_REMINDER");
+
+                ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+
+                string jobName = "ASSET_REVIEW_" + AssetId;
+                string taskTrigger = "ASSET_REVIEW_" + AssetId;
+
+                var jobDetail = new Quartz.Impl.JobDetailImpl(jobName, "REVIEW_REMINDER", typeof(AssetReviewJob));
+                jobDetail.JobDataMap["AssetId"] = AssetId;
+
+                int Counter = 0;
+                DateTimeOffset DateCheck = DBC.GetNextReviewDate(NextReviewDate, CompanyID, ReminderCount, out Counter);
+                jobDetail.JobDataMap["Counter"] = Counter;
+
+                string TimeZoneVal = DBC.GetTimeZoneByCompany(CompanyID);
+
+                if (DateTimeOffset.Compare(DateCheck, DBC.GetDateTimeOffset(DateTime.Now, TimeZoneVal)) >= 0)
+                {
+
+                    if (DateCheck < DateTime.Now)
+                        DateCheck = DateTime.Now.AddMinutes(5);
+
+                    ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
+                                                              .WithIdentity(taskTrigger, "REVIEW_REMINDER")
+                                                              .StartAt(DateCheck)
+                                                              .ForJob(jobDetail)
+                                                              .Build();
+                    _scheduler.ScheduleJob(jobDetail, trigger);
+                }
+                else
+                {
+                    DateTimeOffset NewReviewDate = DBC.GetNextReviewDate(NextReviewDate, ReviewFrequency);
+                    var asset = _context.Set<Assets>().Where(A=> A.AssetId == AssetId).FirstOrDefault();
+                    if (asset != null)
+                    {
+                        asset.ReviewDate = NewReviewDate;
+                        _context.SaveChangesAsync();
+                        CreateAssetReviewReminder(AssetId, CompanyID, NewReviewDate, ReviewFrequency, ReminderCount);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }
