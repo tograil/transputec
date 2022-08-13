@@ -14,9 +14,6 @@ using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc.Abstractions;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentReportDetails;
 using CrisesControl.Api.Application.Commands.Reports.GetIncidentReport;
@@ -49,25 +46,29 @@ using CrisesControl.Api.Application.Commands.Reports.GetCompanyCommunicationRepo
 using CrisesControl.Api.Application.Commands.Reports.GetUserTracking;
 using CrisesControl.Api.Application.Commands.Reports.CMD_TaskOverView;
 using CrisesControl.Api.Application.Commands.Reports.GetUserInvitationReport;
+using CrisesControl.Core.Administrator.Repositories;
+using CrisesControl.Api.Application.Commands.Reports.ExportUserInvitationDump;
 
 namespace CrisesControl.Api.Application.Query
 {
     public class ReportsQuery : IReportsQuery
     {
         private readonly IReportsRepository _reportRepository;
+        private readonly IAdminRepository _adminRepository;
         private readonly IMapper _mapper;
         private readonly string _timeZoneId = "GMT Standard Time";
         private readonly ILogger<ReportsQuery> _logger;
         private readonly IPaging _paging;
         private readonly ICurrentUser _currentUser;
      
-        public ReportsQuery(IReportsRepository reportRepository, IMapper mapper,
+        public ReportsQuery(IReportsRepository reportRepository, IAdminRepository adminRepository, IMapper mapper,
             ILogger<ReportsQuery> logger, ICurrentUser currentUser, IPaging paging) {
             _mapper = mapper;
             _reportRepository = reportRepository;
             _currentUser = currentUser;
             _logger= logger;
             _paging= paging;
+            _adminRepository = adminRepository;
            
         }
 
@@ -1014,5 +1015,27 @@ namespace CrisesControl.Api.Application.Query
                 throw ex;
             }
         }
+
+        public ExportUserInvitationDumpResponse ExportUserInvitationDump(ExportUserInvitationDumpRequest request)
+        {
+            try
+            {
+                var response = new ExportUserInvitationDumpResponse();
+                string rFilePath, rFileName;
+                UserInvitationModel mappedRequst = _mapper.Map<UserInvitationModel>(request);
+                DataTable dataTable = _reportRepository.GetUserInvitationReportData(mappedRequst, out rFilePath, out rFileName);
+
+
+                var data = _adminRepository.ToCSVHighPerformance(dataTable, true, ",");
+                using (StreamWriter SW = new StreamWriter(rFilePath, false))
+                {
+                    SW.Write(data);
+                }
+                response.FileName = rFileName;
+                return response;
+            }
+            catch(Exception ex) { throw ex; }
+        }
+
     }
 }

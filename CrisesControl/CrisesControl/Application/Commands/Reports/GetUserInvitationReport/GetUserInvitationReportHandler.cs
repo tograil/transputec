@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using Ardalis.GuardClauses;
+using AutoMapper;
 using CrisesControl.Api.Application.Query;
 using MediatR;
 
@@ -16,7 +17,10 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetUserInvitationReport
 
         public Task<GetUserInvitationReportResponse> Handle(GetUserInvitationReportRequest request, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            Guard.Against.Null(request, nameof(GetUserInvitationReportRequest));
+
+            var response = _reportsQuery.GetUserInvitationReport(request);
+            return response;
         }
     }
 }

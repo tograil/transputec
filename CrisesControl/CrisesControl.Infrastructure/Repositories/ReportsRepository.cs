@@ -1995,5 +1995,83 @@ namespace CrisesControl.Infrastructure.Repositories
                 return null;
             }
         }
+
+        public DataTable GetUserInvitationReportData(UserInvitationModel inputModel, out string rFilePath, out string rFileName)
+        {
+            DataTable dt = new DataTable();
+            rFilePath = string.Empty;
+            rFileName = string.Empty;
+            try
+            {
+
+                string ResultFilePath = _DBC.Getconfig("ImportResultPath");
+                string ExportPath = ResultFilePath + inputModel.CompanyId.ToString() + "\\DataExport\\";
+
+                _DBC.connectUNCPath();
+
+                var ReportSP = "Pro_Get_User_Invitation";
+                string FileName = "User_Invitation_Report" + DateTime.Now.ToString("ddmmyyyyhhss") + ".csv";
+
+                string FilePath = ExportPath + FileName;
+                rFilePath = FilePath;
+                rFileName = FileName;
+
+                if (!Directory.Exists(ExportPath))
+                {
+                    Directory.CreateDirectory(ExportPath);
+                    _DBC.DeleteOldFiles(ExportPath);
+                }
+
+                if (File.Exists(FilePath))
+                {
+                    File.Delete(FilePath);
+                }
+
+                DateTime stDate = DateTime.Now;
+                DateTime enDate = DateTime.Now;
+                TimeSpan timespan = TimeSpan.FromMinutes(30);
+                _DBC.GetStartEndDate(inputModel.IsThisWeek, inputModel.IsThisMonth, inputModel.IsLastMonth, ref stDate, ref enDate, inputModel.StartDate, inputModel.EndDate);
+
+                var RecordStart = inputModel.Start == 0 ? 0 : inputModel.Start;
+                var RecordLength = inputModel.Length == 0 ? int.MaxValue : inputModel.Length;
+                var SearchString = (inputModel.Search != null) ? inputModel.Search.Value : "";
+                string OrderBy = inputModel.Order != null ? inputModel.Order.FirstOrDefault().Column : "DateSent";
+                string OrderDir = inputModel.Order != null ? inputModel.Order.FirstOrDefault().Dir : "desc";
+
+                string constr = _context.Database.GetConnectionString()!;
+                using (SqlConnection con = new SqlConnection(constr))
+                {
+                    ReportSP += " ";
+                    ReportSP += "@CompanyID, @UserId, @StartDate,@EndDate, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey";
+
+                    using (SqlCommand cmd = new SqlCommand(ReportSP))
+                    {
+                        cmd.Parameters.AddWithValue("@CompanyID", inputModel.CompanyId);
+                        cmd.Parameters.AddWithValue("@UserId", inputModel.CurrentUserId);
+                        cmd.Parameters.AddWithValue("@StartDate", stDate);
+                        cmd.Parameters.AddWithValue("@EndDate", enDate);
+                        cmd.Parameters.AddWithValue("@RecordStart", 0);
+                        cmd.Parameters.AddWithValue("@RecordLength", int.MaxValue);
+                        cmd.Parameters.AddWithValue("@SearchString", SearchString);
+                        cmd.Parameters.AddWithValue("@OrderBy", OrderBy);
+                        cmd.Parameters.AddWithValue("@OrderDir", OrderDir);
+                        cmd.Parameters.AddWithValue("@UniqueKey", inputModel.CompanyId);
+
+                        using (SqlDataAdapter sda = new SqlDataAdapter())
+                        {
+                            cmd.Connection = con;
+                            con.Open();
+                            sda.SelectCommand = cmd;
+                            sda.Fill(dt);
+                        }
+                    }
+                }
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                return dt;
+            }
+        }
     }
 }

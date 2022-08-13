@@ -2,6 +2,7 @@
 using CrisesControl.Api.Application.Commands.Reports.CMD_TaskOverView;
 using CrisesControl.Api.Application.Commands.Reports.DownloadDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.ExportAcknowledgement;
+using CrisesControl.Api.Application.Commands.Reports.ExportUserInvitationDump;
 using CrisesControl.Api.Application.Commands.Reports.GetCompanyCommunicationReport;
 using CrisesControl.Api.Application.Commands.Reports.GetFailedAttempts;
 using CrisesControl.Api.Application.Commands.Reports.GetFailedTasks;
@@ -85,5 +86,6 @@ namespace CrisesControl.Api.Application.Query
         Task<List<GetUserTrackingResponse>> GetUserTracking(GetUserTrackingRequest request);
         Task<CMD_TaskOverViewResponse> CMD_TaskOverView(CMD_TaskOverViewRequest request);
         Task<GetUserInvitationReportResponse> GetUserInvitationReport(GetUserInvitationReportRequest request);
+        ExportUserInvitationDumpResponse ExportUserInvitationDump(ExportUserInvitationDumpRequest request);
     }
 }
