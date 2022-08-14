@@ -22,6 +22,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using CrisesControl.Core.Reports;
 using IncidentActivation = CrisesControl.Core.Incidents.IncidentActivation;
+using CrisesControl.Core.Departments;
+using CrisesControl.Core.Exceptions.NotFound;
+using System.Data.SqlTypes;
+using CrisesControl.Core.Incidents.Services;
+using CrisesControl.Core.Messages;
+using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
+using CrisesControl.Core.Compatibility;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -33,8 +40,12 @@ public class IncidentRepository : IIncidentRepository
     private readonly ILogger<IncidentRepository> _logger;
     private readonly IActiveIncidentRepository _activeIncidentRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    public bool IsSOS = false;
+    public string Latitude = "0";
+    public string Longtude = "0";
     public bool IsFundAvailable = true;
-    public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository, ICompanyParametersRepository companyParamentersRepository, IMessageService service, ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor)
+    private readonly IActiveIncidentTaskService _activeIncidentTaskService;
+    public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository, ICompanyParametersRepository companyParamentersRepository, IMessageService service, ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor, IActiveIncidentTaskService activeIncidentTaskService)
     {
         _context = context;
         _companyParamentersRepository = companyParamentersRepository;
@@ -42,6 +53,7 @@ public class IncidentRepository : IIncidentRepository
         _logger = logger;
         _activeIncidentRepository = activeIncidentRepository;
         _httpContextAccessor = httpContextAccessor;
+        _activeIncidentTaskService = activeIncidentTaskService;
     }
 
     public async Task<bool> CheckDuplicate(int companyId, string incidentName, int incidentId)
@@ -1222,42 +1234,11 @@ public class IncidentRepository : IIncidentRepository
     {
         try
         {
+            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+            var incidentStatus= await _context.Set<UpdateIncidentStatusReturn>().FromSqlRaw("exec Pro_Get_Active_Incident_Basic @CompanyID, @IncidentActivationID", CompanyId, IncidentActivationId).FirstOrDefaultAsync();
+            incidentStatus.Status = DBC.LookupWithKey("IncidentStatus");
 
-            return await (from Incidentval in _context.Set<IncidentActivation>()
-                    join Inctdt in _context.Set<Incident>() on Incidentval.IncidentId equals Inctdt.IncidentId
-                    join L in _context.Set<Location>() on Incidentval.ImpactedLocationId equals L.LocationId
-                    where Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == IncidentActivationId
-                    select new UpdateIncidentStatusReturn
-                    {
-                        Name = Incidentval.Name,
-                        Icon = Incidentval.IncidentIcon,
-                        //Description = Incidentval.IncidentDescription,
-                        IncidentActivationId = Incidentval.IncidentActivationId,
-                        Severity = Incidentval.Severity,
-                        ImpactedLocationId = Incidentval.ImpactedLocationId,
-                        ImpactedLocation = L.LocationName,
-                        IncidentId = Incidentval.IncidentId,
-                        InitiatedOn = Incidentval.InitiatedOn,
-                        InitiatedBy = (int)Incidentval.InitiatedBy,
-                        LaunchedOn = Incidentval.LaunchedOn,
-                        LaunchedBy = (int)(Incidentval.LaunchedBy != null ? Incidentval.LaunchedBy : 0),
-                        DeactivatedOn = Incidentval.DeactivatedOn,
-                        DeactivatedBy = (int)(Incidentval.DeactivatedBy != null ? Incidentval.DeactivatedBy : 0),
-                        ClosedOn = Incidentval.ClosedOn,
-                        ClosedBy = (int)(Incidentval.ClosedBy != null ? Incidentval.ClosedBy : 0),
-                        NumberOfKeyHolders = Inctdt.NumberOfKeyHolders,
-                        StatusId = Incidentval.Status,
-                        //AssetId = Incidentval.AssetId,
-                        HasTask = Incidentval.HasTask,
-                        HasNotes = Incidentval.HasNotes,
-                        TrackUser = (bool)Incidentval.TrackUser,
-                        //SilentMessage = (bool)Incidentval.SilentMessage,
-                        //IsSOS = (bool)Inctdt.IsSOS,
-                        Status = (from Lval in _context.Set<SysParameter>()
-                                  where Lval.Value == Incidentval.Status.ToString().Trim() && Lval.Category == "IncidentStatus"
-                                  select Lval.Name).FirstOrDefault(),
-
-                    }).FirstOrDefaultAsync();
+            return incidentStatus;
         }
         catch (Exception ex)
         {
@@ -1266,5 +1247,1698 @@ public class IncidentRepository : IIncidentRepository
         }
              
     }
+    public async Task<int> UpdateIncidentType(string Name, int IncidentTypeId, int UserId, int CompanyId)
+    {
+        try
+        {
+            if (IncidentTypeId > 0)
+            {
+                var IncidentTypeExist = await _context.Set<IncidentType>().Where(LIT=> LIT.IncidentTypeId == IncidentTypeId).FirstOrDefaultAsync();
+                if (IncidentTypeExist != null)
+                {
+                    IncidentTypeExist.Name = Name;
+                    _context.Update(IncidentTypeExist);
+                    await _context.SaveChangesAsync();
+                    return IncidentTypeId;
+                }
+            }
+            else
+            {
+                var IncidentTypeExist = await _context.Set<IncidentType>().Where(LIT=> LIT.Name == Name && LIT.CompanyId == CompanyId).FirstOrDefaultAsync();
+                if (IncidentTypeExist != null)
+                {
+                    IncidentTypeExist.Status = 1;
+                    IncidentTypeExist.CompanyId = CompanyId;
+                    _context.Update(IncidentTypeExist);
+                    await _context.SaveChangesAsync();
+                    return IncidentTypeExist.IncidentTypeId;
+                }
+                else
+                {
+                    IncidentType newIncidentType = new IncidentType()
+                    {
+                        Name = Name,
+                        CompanyId = CompanyId,
+                        Status = 1
+                    };
+                    await _context.AddAsync(newIncidentType);
+                    await _context.SaveChangesAsync();
+                    return newIncidentType.IncidentTypeId;
+                }
+            }
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<ActionLsts>> AddIncidentActions(int CompanyId, int IncidentId, string Title, string ActionDescription,
+           IncidentNotificationObjLst[] IncidentParticipants, int[] UsersToNotify, int Status, int CurrentUserId, string TimeZoneId)
+    {
+        if (ActionDescription != "")
+        {
+            IncidentAction tblIncidentAction = new IncidentAction()
+            {
+                IncidentId = IncidentId,
+                Title = Title,
+                ActionDescription = ActionDescription,
+                CompanyId = CompanyId,
+                Status = Status,
+                CreatedBy = CurrentUserId,
+                CreatedOn = DateTime.Now,
+                UpdatedBy = CurrentUserId,
+                UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId)
+            };
+            await _context.AddAsync(tblIncidentAction);
+            await _context.SaveChangesAsync();
 
+            await IncidentParticipantGroup(IncidentId, tblIncidentAction.IncidentActionId, IncidentParticipants);
+            await IncidentParticipantUser(IncidentId, tblIncidentAction.IncidentActionId, UsersToNotify);
+        }
+
+        var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+        var pIncidentID = new SqlParameter("@IncidentID", IncidentId);
+        return await _context.Set<ActionLsts>().FromSqlRaw(
+                "Exec Pro_Incident_GetIncidentByRef_ActionList @CompanyID,@IncidentID", pCompanyID, pIncidentID).ToListAsync();
+
+    }
+    public async Task IncidentParticipantGroup(int IncidentId, int ActionID, IncidentNotificationObjLst[] IncidentParticipants)
+    {
+        try
+        {
+
+            var ExsGroupList = await  _context.Set<IncidentParticipant>()
+                                .Where(IP=> IP.IncidentId == IncidentId && IP.ParticipantType == "GROUP"
+                               ).ToListAsync();
+
+            if (ActionID > 0)
+            {
+                ExsGroupList = ExsGroupList.Where(s => s.IncidentActionId == ActionID).ToList();
+            }
+            else
+            {
+                ExsGroupList = ExsGroupList.Where(s => s.IncidentActionId == 0).ToList();
+            }
+
+            List<int[]> ObjList = new List<int[]>();
+
+            if (IncidentParticipants.Length > 0)
+            {
+                foreach (IncidentNotificationObjLst group in IncidentParticipants)
+                {
+                    int groupid = group.SourceObjectPrimaryId;
+                    int objmapid = group.ObjectMappingId;
+
+                    var ISExist = ExsGroupList.FirstOrDefault(s => ((s.IncidentId == IncidentId && ActionID == 0) || (s.IncidentActionId == ActionID && ActionID > 0)) &&
+                    s.ObjectMappingId == objmapid && s.ParticipantGroupId == groupid);
+
+                    if (ISExist == null)
+                    {
+                       await CreateIncidentParticipant(IncidentId, groupid, objmapid, ActionID, 0, "GROUP");
+                    }
+                    else
+                    {
+                        int[] Arr = new int[4];
+                        Arr[0] = ISExist.IncidentId;
+                        Arr[1] = ISExist.ObjectMappingId;
+                        Arr[2] = (int)ISExist.ParticipantGroupId;
+                        Arr[3] = (int)ISExist.IncidentActionId;
+                        ObjList.Add(Arr);
+                    }
+                }
+            }
+
+            foreach (var item in ExsGroupList)
+            {
+                bool ISDEL = true;
+                if (ActionID > 0)
+                {
+                    ISDEL = ObjList.Any(s => s[0] == item.IncidentId && s[1] == item.ObjectMappingId &&
+                        s[2] == item.ParticipantGroupId && item.ParticipantType == "GROUP" && s[3] == item.IncidentActionId);
+                }
+                else
+                {
+                    ISDEL = ObjList.Any(s => s[0] == item.IncidentId && s[1] == item.ObjectMappingId &&
+                        s[2] == item.ParticipantGroupId && item.ParticipantType == "GROUP");
+                }
+                if (!ISDEL)
+                {
+                    _context.Remove(item);
+                }
+            }
+            await _context.SaveChangesAsync();
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task IncidentParticipantUser(int IncidentId, int ActionID, int[] UsersToNotify)
+    {
+        try
+        {
+
+            var ExsUserList = await  _context.Set<IncidentParticipant>()
+                               .Where(IP=> IP.IncidentId == IncidentId && IP.ParticipantType == "USER").ToListAsync();
+
+            if (ActionID > 0)
+            {
+                ExsUserList = ExsUserList.Where(s => s.IncidentActionId == ActionID).ToList();
+            }
+            else
+            {
+                ExsUserList = ExsUserList.Where(s => s.IncidentActionId == 0).ToList();
+            }
+
+
+            List<int[]> ObjList = new List<int[]>();
+
+            if (UsersToNotify.Length > 0)
+            {
+                foreach (int userid in UsersToNotify)
+                {
+                    var ISExist = ExsUserList.FirstOrDefault(s => ((s.IncidentId == IncidentId && ActionID == 0) || (s.IncidentActionId == ActionID && ActionID > 0))
+                    && s.ParticipantUserId == userid);
+
+                    if (ISExist == null)
+                    {
+                        await CreateIncidentParticipant(IncidentId, 0, 0, ActionID, userid, "USER");
+                    }
+                    else
+                    {
+                        int[] Arr = new int[3];
+                        Arr[0] = ISExist.IncidentId;
+                        Arr[1] = (int)ISExist.ParticipantUserId;
+                        Arr[2] = (int)ISExist.IncidentActionId;
+                        ObjList.Add(Arr);
+                    }
+                }
+            }
+
+            foreach (var item in ExsUserList)
+            {
+                bool ISDEL = true;
+                if (ActionID > 0)
+                {
+                    ISDEL = ObjList.Any(s => s[0] == item.IncidentId && s[1] == item.ParticipantUserId && item.ParticipantType == "USER" && s[2] == item.IncidentActionId);
+                }
+                else
+                {
+                    ISDEL = ObjList.Any(s => s[0] == item.IncidentId && s[1] == item.ParticipantUserId && item.ParticipantType == "USER");
+                }
+                if (!ISDEL)
+                {
+                    _context.Remove(item);
+                }
+            }
+            await _context.SaveChangesAsync();
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task CreateIncidentParticipant(int IncidentID, int GroupID, int ObjectMapID, int IncidentActionID, int UserID, string ParticipantType)
+    {
+        try
+        {
+            IncidentParticipant IP = new IncidentParticipant();
+            IP.IncidentId = IncidentID;
+            IP.ParticipantGroupId = GroupID;
+            IP.ObjectMappingId = ObjectMapID;
+            IP.IncidentActionId = IncidentActionID;
+            IP.ParticipantUserId = UserID;
+            IP.ParticipantType = ParticipantType;
+            await _context.AddAsync(IP);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<TourIncident> GetIncidentByName(string IncidentName, int CompanyId, int UserId, string TimeZoneId)
+    {
+        try
+        {
+            var pIncidentName = new SqlParameter("@IncidentName", Uri.UnescapeDataString(IncidentName));
+            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+            var pUserId = new SqlParameter("@UserID", UserId);
+            var pCustomerTime = new SqlParameter("@CustomerTime", DateTime.Now.GetDateTimeOffset( TimeZoneId));
+
+            var result = await _context.Set<TourIncident>().FromSqlRaw("exec Pro_Get_Incident_ByName @IncidentName, @CompanyID, @UserID, @CustomerTime",
+                pIncidentName, pCompanyId, pUserId, pCustomerTime).FirstOrDefaultAsync();
+            if (result != null)
+            {
+                return result;
+            }
+            else
+            {
+                return new TourIncident();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<IncidentAssets>> AddIncidentAssets(int CompanyId, int IncidentId, string LinkedAssetId, int CurrentUserId, string TimeZoneId)
+    {
+        string[] SubFilter = LinkedAssetId.Split(',');
+        if (SubFilter.Length > 0)
+        {
+            int delObjMapId = Convert.ToInt16(SubFilter[0]);
+
+            var QueryRec = await _context.Set<ObjectRelation>()
+                            .Where(Userdelval=> Userdelval.TargetObjectPrimaryId == IncidentId && Userdelval.ObjectMappingId == delObjMapId
+                            ).ToListAsync();
+
+            List<int> OBRIDList = new List<int>();
+            for (int loop = 0; loop < SubFilter.Length; loop++)
+            {
+                if (loop == 0)
+                {
+                    //Do nothing
+                }
+                else
+                {
+                    int objmapid = Convert.ToInt32(SubFilter[0]);
+                    int SOPId = Convert.ToInt32(SubFilter[loop]);
+                    var ISExist = QueryRec.FirstOrDefault(s => s.TargetObjectPrimaryId == IncidentId && s.ObjectMappingId == objmapid && s.SourceObjectPrimaryId == SOPId);
+
+                    if (ISExist == null)
+                    {
+                        ObjectRelation tblObjRel = new ObjectRelation()
+                        {
+                            TargetObjectPrimaryId = IncidentId,
+                            ObjectMappingId = Convert.ToInt32(SubFilter[0]),
+                            SourceObjectPrimaryId = Convert.ToInt32(SubFilter[loop]),
+                            CreatedBy = CurrentUserId,
+                            UpdatedBy = CurrentUserId,
+                            CreatedOn = System.DateTime.Now,
+                            UpdatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId)
+                        };
+                        await _context.AddAsync(tblObjRel);
+                    }
+                    else
+                    {
+                        OBRIDList.Add(ISExist.ObjectRelationId);
+                    }
+                }
+            }
+            foreach (var Ditem in QueryRec)
+            {
+                bool ISDEL = OBRIDList.Any(s => s == Ditem.ObjectRelationId);
+                if (!ISDEL)
+                {
+                    _context.Remove(Ditem);
+                }
+            }
+            await _context.SaveChangesAsync();
+        }
+        var pCompanyID = new SqlParameter("@CompanyId" , CompanyId);
+        var pIncidentID = new SqlParameter("@IncidentId", IncidentId);
+        return await _context.Set<IncidentAssets>().FromSqlRaw("exec Pro_Get_Incident_Assets @CompanyId, @IncidentId", pCompanyID, pIncidentID).ToListAsync();
+    }
+
+    public async Task<int> UpdateCompanyIncidents(int CompanyId, int IncidentId, string IncidentIcon, string Name, string Description,
+      int PlanAssetID, int IncidentTypeId, int Severity, int Status, int NumberOfKeyHolders, int CurrentUserId, string TimeZoneId,
+      UpdIncidentKeyHldLst[] UpdIncidentKeyHldLst, int AudioAssetId, bool TrackUser, bool SilentMessage, List<AckOption> AckOptions,
+      int[] MessageMethod, int CascadePlanID, int[] Groups, int[] Keyholders)
+    {
+        DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+        var Incidt = await _context.Set<Incident>()
+                      .Where(inc=> inc.CompanyId == CompanyId && inc.IncidentId == IncidentId).FirstOrDefaultAsync();
+
+        if (Incidt != null)
+        {
+            string allow_nominated_kh = DBC.GetCompanyParameter("ALLOW_KEYHOLDER_NOMINATION", CompanyId);
+            Incidt.IncidentIcon = IncidentIcon;
+            Incidt.Name = Name;
+            Incidt.Description = Description;
+            Incidt.PlanAssetId = PlanAssetID;
+            Incidt.IncidentTypeId = IncidentTypeId;
+            Incidt.Severity = Severity;
+            Incidt.Status = Status;
+            Incidt.AudioAssetId = AudioAssetId;
+            Incidt.TrackUser = TrackUser;
+            Incidt.SilentMessage = SilentMessage;
+            Incidt.NumberOfKeyHolders = NumberOfKeyHolders;
+            Incidt.CascadePlanId = CascadePlanID;
+            Incidt.UpdatedBy = CurrentUserId;
+            Incidt.UpdatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
+            Incidt.HasNominatedKeyholders = (Keyholders.Length > 0 && NumberOfKeyHolders > 1 && allow_nominated_kh == "true");
+            await _context.SaveChangesAsync();
+        }
+
+        await ProcessKeyContacts(CompanyId, IncidentId, CurrentUserId, TimeZoneId, UpdIncidentKeyHldLst);
+
+        await ProcessKeyholders(CompanyId, IncidentId, CurrentUserId, Keyholders);
+
+        if (AckOptions != null)
+        {
+            await SaveIncidentMessageResponse(AckOptions, IncidentId);
+        }
+
+        if (Groups != null)
+        {
+            await AddIncidentGroup(IncidentId, Groups, CompanyId);
+        }
+
+        if (MessageMethod != null)
+        {
+            if (MessageMethod.Length > 0)
+            {
+                var items = await _context.Set<MessageMethod>().Where(MM=> MM.IncidentId == IncidentId).ToListAsync();
+                _context.RemoveRange(items);
+               await _context.SaveChangesAsync();
+
+                if (CascadePlanID <= 0)
+                {
+                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                    foreach (int Method in MessageMethod)
+                    {
+                       await MSG.CreateMessageMethod(0, Method, 0, IncidentId);
+                    }
+                }
+            }
+        }
+
+        await DeleteEmptyTaskHeader(IncidentId);
+
+        return Incidt.IncidentId;
+    }
+
+    private async Task ProcessKeyContacts(int CompanyId, int IncidentId, int CurrentUserId, string TimeZoneId, UpdIncidentKeyHldLst[] UpdIncidentKeyHldLst)
+    {
+        var incKeyHlds =  await _context.Set<IncidentKeyContact>()
+                          .Where(incKey=> incKey.CompanyId == CompanyId && incKey.IncidentId == IncidentId && (incKey.IncidentActionId == null ||
+                          incKey.IncidentActionId == 0)
+                          ).ToListAsync();
+
+        List<int> KEYLIST = new List<int>();
+
+        foreach (var IKeyHld in UpdIncidentKeyHldLst)
+        {
+            if (IKeyHld.UserID != null)
+            {
+                var ISExist = incKeyHlds.FirstOrDefault(s => s.CompanyId == CompanyId && s.IncidentId == IncidentId && s.UserId == IKeyHld.UserID.Value);
+                if (ISExist == null)
+                {
+                    IncidentKeyContact tblIncKeyContact = new IncidentKeyContact()
+                    {
+                        CompanyId = CompanyId,
+                        IncidentId = IncidentId,
+                        UserId = IKeyHld.UserID.Value,
+                        CreatedBy = CurrentUserId,
+                        CreatedOn = DateTime.Now,
+                        UpdatedBy = CurrentUserId,
+                        UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId)
+                    };
+                    await _context.AddAsync(tblIncKeyContact);
+                }
+                else
+                {
+                    KEYLIST.Add(ISExist.IncidentKeyContactId);
+                }
+            }
+        }
+        foreach (var Ditem in incKeyHlds)
+        {
+            bool ISDEL = KEYLIST.Any(s => s == Ditem.IncidentKeyContactId);
+            if (!ISDEL)
+            {
+                _context.Remove(Ditem);
+            }
+        }
+        await _context.SaveChangesAsync();
+    }
+    public async Task DeleteEmptyTaskHeader(int IncidentID)
+    {
+        try
+        {
+
+            var header = await _context.Set<TaskHeader>().Where(TH=> TH.IncidentId == IncidentID).FirstOrDefaultAsync();
+
+            int TaskList = await _context.Set<TaskIncident>()
+                            .Where(TL=> TL.IncidentId == IncidentID && TL.TaskHeaderId == header.TaskHeaderId).CountAsync();
+
+            if (header != null && TaskList == 0)
+            {
+                var incident = await _context.Set<Incident>().Where(I=> I.IncidentId == header.IncidentId).FirstOrDefaultAsync();
+                if (incident != null)
+                {
+                    incident.HasTask = false;
+                }
+
+                _context.Remove(header);
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception)
+        {
+
+        }
+    }
+    public async Task<List<ActionLsts>> UpdateCompanyIncidentActions(int CompanyId, int IncidentId, int IncidentActionId, string Title, string ActionDescription,
+           IncidentNotificationObjLst[] IncidentParticipants, int[] UsersToNotify, int Status, int CurrentUserId, string TimeZoneId)
+    {
+        var IncidtAct = await _context.Set<IncidentAction>()
+                         .Where(inc=> inc.CompanyId == CompanyId && inc.IncidentActionId == IncidentActionId && inc.IncidentId == IncidentId).FirstOrDefaultAsync();
+
+        if (IncidtAct != null)
+        {
+            IncidtAct.IncidentActionId = IncidentActionId;
+            IncidtAct.IncidentId = IncidentId;
+            IncidtAct.Title = Title;
+            IncidtAct.ActionDescription = ActionDescription;
+            IncidtAct.Status = Status;
+            IncidtAct.UpdatedBy = CurrentUserId;
+            IncidtAct.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+            await _context.SaveChangesAsync();
+
+            await IncidentParticipantGroup(IncidentId, IncidentActionId, IncidentParticipants);
+            await IncidentParticipantUser(IncidentId, IncidentActionId, UsersToNotify);
+        }
+
+        var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+        var pIncidentID = new SqlParameter("@IncidentID", IncidentId);
+        return await _context.Set<ActionLsts>().FromSqlRaw(
+                "exec Pro_Incident_GetIncidentByRef_ActionList @CompanyID,@IncidentID", pCompanyID, pIncidentID).ToListAsync();
+
+    }
+
+    public async Task<bool> DeleteCompanyIncidents(int CompanyId, int IncidentId, int CurrentUserId, string TimeZoneId)
+    {
+        var Incidt =  await _context.Set<Incident>()
+                      .Where(inc=> inc.CompanyId == CompanyId && inc.IncidentId == IncidentId).FirstOrDefaultAsync();
+
+        if (Incidt != null)
+        {
+            Incidt.Status = 3;
+            Incidt.UpdatedBy = CurrentUserId;
+            Incidt.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+            _context.Update(Incidt);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        return false;
+    }
+
+    public async Task<bool> DeleteCompanyIncidentActions(int CompanyId, int IncidentId, int IncidentActionId, int CurrentUserId, string TimeZoneId)
+    {
+        var IncidtAct = await _context.Set<IncidentAction>()
+                         .Where(inc=> inc.CompanyId == CompanyId && inc.IncidentActionId == IncidentActionId && inc.IncidentId == IncidentId).FirstOrDefaultAsync();
+
+        if (IncidtAct != null)
+        {
+            IncidtAct.Status = 3;
+            IncidtAct.UpdatedBy = CurrentUserId;
+            IncidtAct.UpdatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
+            _context.Update(IncidtAct);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteIncidentAssets(int CompanyId, int IncidentId, int AssetObjMapId, int IncidentAssetId)
+    {
+        bool IsDeleted = false;
+        var QueryRec = (from OJR in _context.Set<ObjectRelation>()
+                        let ObjMap = from OM in _context.Set<ObjectMapping>()
+                                     join OS in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals OS.ObjectId
+                                     join OT in _context.Set<Core.Models.Object>() on OM.TargetObjectId equals OT.ObjectId
+                                     where OS.ObjectName == "AssetDetails" && OT.ObjectName == "IncidentDetails"
+                                     select OM.ObjectMappingId
+                        join AST in _context.Set<Assets>() on OJR.SourceObjectPrimaryId equals AST.AssetId
+                        where ObjMap.Contains(OJR.ObjectMappingId) && AST.CompanyId == CompanyId
+                        && OJR.TargetObjectPrimaryId == IncidentId
+                        && OJR.ObjectMappingId == AssetObjMapId && OJR.SourceObjectPrimaryId == IncidentAssetId
+                        select OJR).FirstOrDefault();
+
+        if (QueryRec != null)
+        { //Do not delete all Action
+
+            _context.Remove(QueryRec);
+            await _context.SaveChangesAsync();
+            IsDeleted = true;
+        }
+        return IsDeleted;
+    }
+    public async Task<UpdateIncidentStatus> ActiveIncidentDetailsById(int CompanyId, int IncidentActivationId, int CurrentUserID, bool isapp = false)
+    {
+        try
+        {
+            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+            string webpath = DBC.LookupWithKey("PORTAL");
+            //string nophoto = webpath + "/uploads/userphoto/no-photo.jpg";
+            string company_path = CompanyId.ToString();
+
+            bool ShowTrackUser = false;
+            bool ShowSilentMessage = false;
+            bool ShowMessageMethod = false;
+
+            bool.TryParse(DBC.GetCompanyParameter("SHOW_TRACK_USER_FIELD", CompanyId), out ShowTrackUser);
+            bool.TryParse(DBC.GetCompanyParameter("SHOW_SILENT_MESSAGE_FIELD", CompanyId), out ShowSilentMessage);
+            bool.TryParse(DBC.GetCompanyParameter("SHOW_MESSAGE_METHOD_FIELD", CompanyId), out ShowMessageMethod);
+
+            //bool iskc = (from AKC in db.ActiveIncidentKeyContact where AKC.UserId == CurrentUserID && AKC.IncidentActivationId == IncidentActivationId select AKC).Any();
+            var pCompanyID = new SqlParameter("CompanyID", CompanyId);
+            var pCurrentUserID = new SqlParameter("CurrentUserId", CurrentUserID);
+            var pIncidentActivationID = new SqlParameter("IncidentActivationID", IncidentActivationId);
+            var activeincident = await _context.Set<UpdateIncidentStatus>().FromSqlRaw("exec Pro_Active_Incident_Details_By_Id @CompanyID, @IncidentActivationID, @CurrentUserID", pCompanyID, pIncidentActivationID, pCurrentUserID).FirstOrDefaultAsync();
+            activeincident.AckOptions = await _context.Set<ActiveMessageResponse>()
+                                                    .Where(MM => MM.ActiveIncidentId == activeincident.IncidentActivationId)
+                                                    .Select(MM => new AckOption
+                                                    {
+                                                        ResponseId = MM.ResponseId,
+                                                        ResponseLabel = MM.ResponseLabel,
+                                                        ResponseCode = MM.ResponseCode
+                                                    }).ToListAsync();
+            activeincident.MessageMethod =await _context.Set<Core.Messages.MessageMethod>().Include(x => x.CommsMethod)
+                                         .Where(MM => MM.ActiveIncidentId == activeincident.IncidentActivationId)
+                                         .Select(MM => new CommsMethods { MethodId = MM.MethodId, MethodName = MM.CommsMethod.MethodName }).ToListAsync();
+            activeincident.Status = DBC.LookupWithKey("IncidentStatus");
+            var pIncidentActivationID2 = new SqlParameter("IncidentActivationID", activeincident.IncidentActivationId);
+            activeincident.IncNotificationLst = await _context.Set<IIncNotificationLst>().FromSqlRaw("exec Pro_Get_IIncNotificationLst @CompanyID,@IncidentActivationID", pCompanyID, pIncidentActivationID2).ToListAsync();
+                       activeincident.ActionLst = await _context.Set<IncidentAction>()
+                                                   .Where(IncidentAct => IncidentAct.IncidentId == activeincident.IncidentId)
+                                                   .Select(IncidentAct => new ActionLsts
+                                                   {
+                                                       IncidentActionId = IncidentAct.IncidentActionId,
+                                                       IncidentId = IncidentAct.IncidentId,
+                                                       Title = IncidentAct.Title,
+                                                       ActionDescription = IncidentAct.ActionDescription,
+                                                       MultiResponse = 0,
+                                                       Status = IncidentAct.Status,
+                                                       CompanyId = IncidentAct.CompanyId,
+                                                       HasParticipants = true
+                                                   }).ToListAsync();
+            activeincident.AffectedLocations = (from IL in _context.Set<IncidentLocation>()
+                                                join ILL in _context.Set<IncidentLocationLibrary>() on IL.LibLocationId equals ILL.LocationId
+                                                where IL.IncidentActivationId == activeincident.IncidentActivationId
+                                                select new AffectedLocation
+                                                {
+                                                    LocationName = ILL.LocationName,
+                                                    Lat = ILL.Lat,
+                                                    Lng = ILL.Lng,
+                                                    Address = ILL.Address,
+                                                    LocationType = ILL.LocationType,
+                                                    ImpactedLocationID = (int)IL.ImpactedLocationId,
+                                                    LocationID = ILL.LocationId
+                                                }).ToList();
+                                
+
+            activeincident.SegregationWarning = await DBC.SegregationWarning(CompanyId, CurrentUserID, activeincident.IncidentId);
+
+            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+            var pIncidentActivationId = new SqlParameter("@IncidentActivationId", IncidentActivationId);
+            var pIsApp = new SqlParameter("@IsApp", isapp);
+            activeincident.IncKeyCon = await _context.Set<IIncKeyConResponse>().FromSqlRaw("exec Pro_ActiveIncident_GetIncidentKeyContacts @CompanyID, @IncidentActivationId, @IsApp", pCompanyId, pIncidentActivationId, pIsApp).ToListAsync();
+
+            var pIncidentActivationId2 = new SqlParameter("@IncidentActivationId", IncidentActivationId);
+            activeincident.UsersToNotify = await _context.Set<IIncKeyConResponse>().FromSqlRaw("exec Pro_ActiveIncident_GetUsersToNotify @IncidentActivationId", pIncidentActivationId2).ToListAsync();
+
+            var pCompanyID3 = new SqlParameter("@CompanyID", CompanyId);
+            var pIncidentID3 = new SqlParameter("@IncidentID", activeincident.IncidentId);
+            var pIncidentActionID3 = new SqlParameter("@IncidentActionID", -1);
+            activeincident.Participants =await _context.Set<IncidentParticipants>().FromSqlRaw("exec Pro_Incident_GetIncidentByRef_Participant @CompanyID, @IncidentID, @IncidentActionID",
+                pCompanyID3, pIncidentID3, pIncidentActionID3).ToListAsync();
+
+            if (string.IsNullOrEmpty(activeincident.SocialHandle))
+            {
+                activeincident.SocialHandles = new List<SocialHandles>();
+            }
+            else
+            {
+                var socialprovider =await DBC.GetSocialServiceProviders();
+                List<string> selectedpro = activeincident.SocialHandle.Split(',').ToList();
+                activeincident.SocialHandles = socialprovider.Where(w => selectedpro.Contains(w.ProviderCode)).ToList();
+            }
+
+            return activeincident;
+
+        }
+       
+        catch (Exception ex)
+        {
+            
+            return new UpdateIncidentStatus();
+        }
+
+
+    }
+    public async Task<List<IncidentLibraryDetails>> IncidentLibrary(int CompanyId)
+    {
+        try
+        {
+            //Use: EXEC [dbo].[Pro_Incident_GetIncidentLibraries] @CompanyID
+            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+            var incidents =await _context.Set<IncidentLibraryDetails>().FromSqlRaw(
+                "exec Pro_Incident_GetIncidentLibraries @CompanyID",
+                pCompanyId).ToListAsync();
+
+            return incidents;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<int> CopyIncident(int CompanyId, int LibIncidentId, int OutUserCompanyId, int OutLoginUserId, int CurrentUserId, string TimeZoneId)
+    {
+        DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+        var IncidentDtl = await _context.Set<LibIncident>()
+                           .Where(LI=> LI.LibIncidentId == LibIncidentId)
+                           .FirstOrDefaultAsync();
+
+        int RetIncidentId = 0;
+
+        var IncidentType =  await _context.Set<LibIncidentType>().Where(LIT=> LIT.LibIncidentTypeId == IncidentDtl.LibIncidentTypeId).FirstOrDefaultAsync();
+        int TypeId = 0;
+        if (IncidentDtl != null)
+        {
+            var TypeCheck = await _context.Set<IncidentType>().Where(IT=> IT.CompanyId == OutUserCompanyId && IT.Name == IncidentType.Name).FirstOrDefaultAsync();
+            if (TypeCheck != null)
+            {
+                TypeId = TypeCheck.IncidentTypeId;
+            }
+            else
+            {
+                IncidentType newIncidentType = new IncidentType()
+                {
+                    CompanyId = OutUserCompanyId,
+                    Name = IncidentType.Name,
+                    Status = 1
+                };
+                await _context.AddAsync(newIncidentType);
+                await _context.SaveChangesAsync();
+                TypeId = newIncidentType.IncidentTypeId;
+            }
+
+            Incident newIncident = new Incident()
+            {
+                CompanyId = CompanyId,
+                Name = IncidentDtl.Name,
+                Description = IncidentDtl.Description,
+                IncidentTypeId = TypeId,
+                IncidentIcon = IncidentDtl.LibIncodentIcon,
+                Status = 0,
+                Severity = IncidentDtl.Severity,
+                IsSos = IncidentDtl.IsSos,
+                HasTask = false,
+                AudioAssetId = 0,
+                SilentMessage = false,
+                TrackUser = false,
+                CreatedBy = CurrentUserId,
+                UpdatedBy = CurrentUserId,
+                CreatedOn = System.DateTime.Now,
+                UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+            };
+            await _context.AddAsync(newIncident);
+            await _context.SaveChangesAsync();
+            RetIncidentId = newIncident.IncidentId;
+        }
+        return RetIncidentId;
+    }
+    public async Task<List<ActionLsts>> IncidentMessage(int CompanyId, int IncidentId)
+    {
+        try
+        {
+            //Use: EXEC [dbo].[Pro_Incident_GetIncidentByRef_ActionList] @CompanyID,@IncidentID
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+            var pIncidentID = new SqlParameter("@IncidentID", IncidentId);
+            return await _context.Set<ActionLsts>().FromSqlRaw(
+                "exec Pro_Incident_GetIncidentByRef_ActionList @CompanyID,@IncidentID",
+                pCompanyID,
+                pIncidentID).ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<ActionLsts> GetIncidentAction(int CompanyId, int IncidentId, int IncidentActionId)
+    {
+       
+        try
+        {
+            //Use: EXEC [dbo].[Pro_Incident_GetIncidentAction] @CompanyID, @IncidentId, @IncidentActionId
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+            var pIncidentID = new SqlParameter("@IncidentId", IncidentId);
+            var pIncidentActionId = new SqlParameter("@IncidentActionId", IncidentActionId);
+            var result =await _context.Set<ActionLsts>().FromSqlRaw(
+                "exec Pro_Incident_GetIncidentAction @CompanyID, @IncidentId, @IncidentActionId",
+                pCompanyID,
+                pIncidentID,
+                pIncidentActionId).FirstOrDefaultAsync();
+
+            if (result != null)
+            {
+                var pCompanyID2 = new SqlParameter("@CompanyID", CompanyId);
+                var pIncidentID2 = new SqlParameter("@IncidentID", IncidentId);
+                var pIncidentActionId2 = new SqlParameter("@IncidentActionID", IncidentActionId);
+
+                result.Participants = await _context.Set<IncidentParticipants>().FromSqlRaw("exec Pro_Incident_GetIncidentByRef_Participant @CompanyID, @IncidentID, @IncidentActionID",
+                    pCompanyID2, pIncidentID2, pIncidentActionId2).ToListAsync();
+            }
+
+            return result;
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<IncidentAssets>> IncidentAsset(int CompanyId, int IncidentId, string Source = "WEB")
+    {
+        DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+        var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+        var pIncidentID = new SqlParameter("@IncidentID", IncidentId);
+        var pSource = new SqlParameter("@Source", Source);
+        var assetlist = await _context.Set<IncidentAssets>().FromSqlRaw("exec Pro_IncidentAsset @CompanyID,@IncidentID, @Source", pCompanyID, pIncidentID, pSource).ToListAsync();
+
+        return assetlist;
+
+    }
+    public async Task<IncidentDetails> GetCompanySOS(int CompanyID)
+    {
+        
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var sosIncident =await _context.Set<GetIncidentByIDResponse>().FromSqlRaw("exec Pro_Incident_GetCompanySOS @CompanyID", pCompanyID).FirstOrDefaultAsync();
+
+            if (sosIncident != null)
+            {
+                try
+                {
+                    var pCompanyID2 = new SqlParameter("@CompanyID", CompanyID);
+                    sosIncident.ActionLst = (IEnumerable<ActionLsts>)_context.Set<ActionLsts>().FromSqlRaw("exec Pro_Incident_GetCompanySOS_ActionList @CompanyID", pCompanyID2).AsAsyncEnumerable();
+                }
+                catch (Exception ex)
+                {
+                    throw new CompanyNotFoundException(CompanyID,0);
+                }
+
+                try
+                {
+                    var pCompanyID3 = new SqlParameter("@CompanyID", CompanyID);
+                    sosIncident.MessageMethods = await _context.Set<CommsMethods>().FromSqlRaw("exec Pro_Incident_GetCompanySOS_MessageMethods @CompanyID", pCompanyID3).ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    throw new CompanyNotFoundException(CompanyID, 0);
+                }
+
+                try
+                {
+                    var pCompanyID4 = new SqlParameter("@CompanyID", CompanyID);
+                    sosIncident.AckOptions = await _context.Set<AckOption>().FromSqlRaw("exec Pro_Incident_GetCompanySOS_AckOptions @CompanyID", pCompanyID4).ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    throw new CompanyNotFoundException(CompanyID, 0);
+                }
+
+                try
+                {
+                    var pCompanyID5 = new SqlParameter("@CompanyID", CompanyID);
+                    sosIncident.IncidentAssets = await _context.Set<IncidentAssetResponse>().FromSqlRaw("exec Pro_Incident_GetCompanySOS_IncidentAssets @CompanyID", pCompanyID5).ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    throw new CompanyNotFoundException(CompanyID, 0);
+                }
+
+                try
+                {
+                    var pCompanyID6 = new SqlParameter("@CompanyID", CompanyID);
+                    sosIncident.ImpactedLocation = await _context.Set<ImpactedLocation?>().FromSqlRaw("Pro_Incident_GetCompanySOS_ImpactedLocation @CompanyID", pCompanyID6).ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    throw new CompanyNotFoundException(CompanyID, 0);
+                }
+
+                try
+                {
+                    var pCompanyID7 = new SqlParameter("@CompanyID", CompanyID);
+                    sosIncident.NotificationGroups =await  _context.Set<IIncNotificationLst>().FromSqlRaw("exec Pro_Incident_GetCompanySOS_NotificationGroups @CompanyID", pCompanyID7).ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    throw new CompanyNotFoundException(CompanyID, 0);
+                }
+
+                try
+                {
+                    var pCompanyID8 = new SqlParameter("@CompanyID", CompanyID);
+                    sosIncident.IncKeyCon = await _context.Set<IncKeyCons>().FromSqlRaw("exec Pro_Incident_GetCompanySOS_IncKeyCon @CompanyID", pCompanyID8).ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    throw new CompanyNotFoundException(CompanyID, 0);
+                }
+
+                return sosIncident;
+            }
+          
+            return null;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task UpdateSOSLocation(int IncidentId, int[] ImpactedLocation)
+    {
+        
+        try
+        {
+            var imploc = await _context.Set<SosimpactedLocation>().Where(L=> L.IncidentId == IncidentId).ToListAsync();
+            _context.RemoveRange(imploc);
+            await _context.SaveChangesAsync();
+
+            if (ImpactedLocation != null)
+            {
+                foreach (int LocId in ImpactedLocation)
+                {
+                   await AddSOSImpactedLoc(IncidentId, LocId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task UpdateSOSNotificationGroup(int IncidentId, IncidentNotificationObjLst[] NotificationGroup, int CompanyID)
+    {
+        try
+        {
+            var impng =  await _context.Set<SosnotificationGroup>().Where(L=> L.IncidentId == IncidentId).ToListAsync();
+            _context.RemoveRange(impng);
+            await _context.SaveChangesAsync();
+
+            if (NotificationGroup != null)
+            {
+                foreach (IncidentNotificationObjLst Obj in NotificationGroup)
+                {
+                   await AddSOSNotificationGroup(IncidentId, Obj.ObjectMappingId, Obj.SourceObjectPrimaryId, CompanyID);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task AddSOSImpactedLoc(int IncidentID, int LocationID)
+    {
+        try
+        {
+            SosimpactedLocation SIL = new SosimpactedLocation();
+            SIL.IncidentId = IncidentID;
+            SIL.ImpactedLocationId = LocationID;
+            await _context.AddAsync(SIL);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task AddSOSNotificationGroup(int IncidentID, int ObjectMapID, int SourceID, int CompanyID)
+    {
+        try
+        {
+            SosnotificationGroup SNG = new SosnotificationGroup();
+            SNG.IncidentId = IncidentID;
+            SNG.ObjectMappingId = ObjectMapID;
+            SNG.SourceObjectPrimaryId = SourceID;
+            SNG.CompanyId = CompanyID;
+            await _context.AddAsync(SNG);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<UpdateIncidentStatusReturn> TestWithMe(int IncidentId, int[] ImpactedLocations, int CurrentUserId, int CompanyId, string TimeZoneId)
+    {
+        try
+        {
+            var verifyInci = await _context.Set<Incident>().Where(I=> I.IncidentId == IncidentId && I.CompanyId == CompanyId).FirstOrDefaultAsync();
+
+            if (verifyInci != null)
+            {
+                IncidentActivation tblIncidenActivation = new IncidentActivation()
+                {
+                    Name = verifyInci.Name.Trim(),
+                    IncidentIcon = verifyInci.IncidentIcon,
+                    CompanyId = CompanyId,
+                    IncidentId = IncidentId,
+                    IncidentDescription = verifyInci.Description.Trim(),
+                    Severity = verifyInci.Severity,
+                    ImpactedLocationId = ImpactedLocations.FirstOrDefault(),
+                    InitiatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId),
+                    InitiatedBy = CurrentUserId,
+                    LaunchedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId),
+                    LaunchedBy = CurrentUserId,
+                    Status = 2,
+                    TrackUser = verifyInci.TrackUser,
+                    SilentMessage = verifyInci.SilentMessage,
+                    CreatedBy = CurrentUserId,
+                    CreatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId),
+                    DeactivatedOn = (DateTime)SqlDateTime.Null,
+                    ClosedOn = (DateTime)SqlDateTime.Null,
+                    UpdatedBy = CurrentUserId,
+                    UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId),
+                    AssetId = 0,
+                    HasTask = verifyInci.HasTask,
+                    LaunchMode = 3,
+                    CascadePlanId = verifyInci.CascadePlanId
+                };
+                await _context.AddAsync(tblIncidenActivation);
+                await _context.SaveChangesAsync();
+
+                //Process impacted location
+                await ProcessImpactedLocation(ImpactedLocations, tblIncidenActivation.IncidentActivationId, CompanyId, "COMBINED");
+
+                IncidentKeyHldLst[] KCList = new IncidentKeyHldLst[1];
+                KCList[0] = new IncidentKeyHldLst { UserId = CurrentUserId };
+
+                await CreateActiveKeyContact(tblIncidenActivation.IncidentActivationId, IncidentId, KCList, CurrentUserId, CompanyId, TimeZoneId);
+
+                int mPriority = SharedKernel.Utils.Common.GetPriority(verifyInci.Severity);
+
+                Messaging MSG = new Messaging(_context,_httpContextAccessor)
+                {
+                    TimeZoneId = TimeZoneId
+                };
+
+                bool MultiResponse = false;
+                var pIncidentID = new SqlParameter("@IncidentID", IncidentId);
+                //Use: EXEC [dbo].[Pro_ActiveIncident_GetMessageResponse] @IncidentID
+                var ackoption =await _context.Set<AckOption>().FromSqlRaw("EXEC Pro_ActiveIncident_GetMessageResponse @IncidentID", pIncidentID).ToListAsync();
+                if (ackoption.Count > 0)
+                {
+                    MultiResponse = true;
+                }
+
+                int[] MessageMethod = null;
+                var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+                MessageMethod = (from MM in _context.Set<Core.Messages.MessageMethod>()
+                                 join CC in _context.Set<CompanyComm>() on MM.MethodId equals CC.MethodId
+                                 join CM in _context.Set<CommsMethod>() on MM.MethodId equals CM.CommsMethodId
+                                 where MM.IncidentId == IncidentId && CC.ServiceStatus == true && CC.Status == 1
+                                 && CC.CompanyId == CompanyId
+                                 select CC.MethodId).ToArray();
+                    //await _context.Set<IncidentMethod>().FromSqlRaw("exec Pro_Incident_GetMessageMethods @CompanyID,@IncidentID", pCompanyId, pIncidentID).ToArrayAsync();
+
+                //Create Message Records in the Message Table
+                MSG.CascadePlanID = verifyInci.CascadePlanId;
+                MSG.MessageSourceAction = SourceAction.IncidentTest;
+                int tblmessageid =await MSG.CreateMessage(CompanyId, tblIncidenActivation.IncidentDescription, "Incident",
+                    tblIncidenActivation.IncidentActivationId, mPriority, CurrentUserId, 1, DateTime.Now.GetDateTimeOffset(TimeZoneId),
+                    MultiResponse, ackoption, 99, verifyInci.AudioAssetId, 0, (bool)verifyInci.TrackUser, (bool)verifyInci.SilentMessage,
+                    MessageMethod);
+
+                MSG.AddUserToNotify(tblmessageid, new int[] { CurrentUserId }.ToList(), tblIncidenActivation.IncidentActivationId);
+
+                if (verifyInci.HasTask)
+                {
+
+                   await _activeIncidentTaskService.StartTaskAllocation(tblIncidenActivation.IncidentId, tblIncidenActivation.IncidentActivationId, CurrentUserId, CompanyId);
+                }
+
+                //Copy assets to active incident assets
+                var pIncidentID2 = new SqlParameter("@IncidentID", IncidentId);
+                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", tblIncidenActivation.IncidentActivationId);
+                int astrslt =await _context.Database.ExecuteSqlRawAsync("Pro_Create_Active_Assets @IncidentID,@ActiveIncidentID", pIncidentID2, pActiveIncidentID);
+
+                var pMessageId = new SqlParameter("@MessageID", tblmessageid);
+                var pIncidentActivationId = new SqlParameter("@IncidentActivationID", tblIncidenActivation.IncidentActivationId);
+                var pCustomerTime = new SqlParameter("@CustomerTime", DateTime.Now.GetDateTimeOffset(TimeZoneId));
+
+                try
+                {
+                    int RowsCount = await _context.Database.ExecuteSqlRawAsync("Pro_Create_Launch_Incident_Message_List @IncidentActivationID,@MessageID,@CustomerTime",
+                       pIncidentActivationId, pMessageId, pCustomerTime);
+
+                    IsFundAvailable =await MSG.CalculateMessageCost(CompanyId, tblmessageid, tblIncidenActivation.IncidentDescription);
+
+                    await Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, verifyInci.CascadePlanId));
+
+                    //QueueHelper.MessageDevicePublish(tblmessageid, 1);
+                    QueueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
+
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+
+                //write the update status MessageList
+
+                var inciList = await _context.Set<IncidentActivation>()
+                                .Where(Incidentval=> Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == tblIncidenActivation.IncidentActivationId
+                                ).ToListAsync();
+
+                return  (from Incidentval in inciList
+                        select new UpdateIncidentStatusReturn
+                        {
+                            IncidentActivationId = Incidentval.IncidentActivationId,
+                        }).FirstOrDefault();
+            }
+            else
+            {
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+           
+            throw ex;
+        }
+    }
+
+    public async Task ProcessImpactedLocation(int[] LocationID, int IncidentActivationID, int CompanyID, string Action)
+    {
+        try
+        {
+            var locs = await _context.Set<Location>().Where(L=> LocationID.Contains(L.LocationId)).ToListAsync();
+            List<AffectedLocation> AF = new List<AffectedLocation>();
+            foreach (var Loc in locs)
+            {
+                if (IsSOS)
+                {
+                    Loc.Lat = Latitude;
+                    Loc.Long = Longtude;
+                }
+                AF.Add(new AffectedLocation
+                {
+                    Address = Loc.PostCode,
+                    Lat = Loc.Lat,
+                    Lng = Loc.Long,
+                    LocationID = 0,
+                    LocationName = Loc.LocationName,
+                    LocationType = "IMPACTED",
+                    ImpactedLocationID = Loc.LocationId
+                });
+            }
+          await  ProcessAffectedLocation(AF, IncidentActivationID, CompanyID, "IMPACTED", Action);
+        }
+        catch (Exception)
+        {
+
+        }
+    }
+
+    private async Task ProcessAffectedLocation(List<AffectedLocation> AffectedLocations, int IncidentActivationId,
+        int CompanyID, string Type = "AFFECTED", string Action = "INITIATE")
+    {
+
+        if (Action == "LAUNCH")
+        {
+            var ext_loc =await _context.Set<IncidentLocation>().Include(il=>il.IncidentLocationLibrary)
+                          .Where(IL=> IL.IncidentActivationId == IncidentActivationId && IL.IncidentLocationLibrary.LocationType == Type &&
+                           !AffectedLocations.Select(s => s.LocationID).Contains(IL.LocationId)).ToListAsync();
+            _context.RemoveRange(ext_loc);
+            await _context.SaveChangesAsync();
+        }
+
+        if (AffectedLocations != null)
+        {
+            foreach (AffectedLocation loc in AffectedLocations)
+            {
+                CreateIncidentLocation(loc, IncidentActivationId, CompanyID);
+            }
+        }
+    }
+
+    public async Task CreateIncidentLocation(AffectedLocation loc, int ActiveIncidentID, int CompanyID)
+    {
+        try
+        {
+           
+                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pLocationID = new SqlParameter("@LocationID", loc.LocationID);
+                var pImpactedLocationID = new SqlParameter("@ImpactedLocationID", loc.ImpactedLocationID);
+                var pLocationName = new SqlParameter("@LocationName", loc.LocationName);
+                var pLat = new SqlParameter("@Lat", loc.Lat);
+                var pLng = new SqlParameter("@Lng", loc.Lng);
+                var pAddress = new SqlParameter("@Address", loc.Address);
+                var pLocationType = new SqlParameter("@LocationType", loc.LocationType);
+
+               await  _context.Database.ExecuteSqlRawAsync("Pro_Create_Incident_Location @ActiveIncidentID, @CompanyID, @LocationID, @ImpactedLocationID, @LocationName, @Lat, @Lng, @Address, @LocationType",
+                    pActiveIncidentID, pCompanyID, pLocationID, pImpactedLocationID, pLocationName, pLat, pLng, pAddress, pLocationType);
+           
+        }
+        catch (Exception ex)
+        {
+            
+            throw ex;
+        }
+
+        
+    }
+
+    private async Task CreateIncidentNotificationList(int IncidentActivationId, int tblmessageid, IncidentNotificationObjLst[] LaunchIncidentNotificationObjLst, int? UserProfile, int CurrentUserId, int CompanyId, string TimeZoneId)
+    {
+        try
+        {
+            var OldNotifyList = await _context.Set<IncidentNotificationList>().Where(ONL=> ONL.CompanyId == CompanyId && ONL.IncidentActivationId == IncidentActivationId).ToListAsync();
+
+            Messaging MSG = new Messaging(_context,_httpContextAccessor);
+
+            List<int> LINOList = new List<int>();
+            List<IncidentNotificationObjLst> LstIncNotiLst = new List<IncidentNotificationObjLst>(LaunchIncidentNotificationObjLst);
+            foreach (var INotiLst in LstIncNotiLst)
+            {
+                if (INotiLst.ObjectMappingId > 0)
+                {
+                    var ISExist = OldNotifyList.FirstOrDefault(s => s.CompanyId == CompanyId
+                        && s.IncidentActivationId == IncidentActivationId && s.ObjectMappingId == INotiLst.ObjectMappingId
+                        && s.SourceObjectPrimaryId == INotiLst.SourceObjectPrimaryId && s.Status == 1);
+                    if (ISExist == null)
+                    {
+                       await MSG.CreateIncidentNotificationList(tblmessageid, IncidentActivationId, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CurrentUserId, CompanyId, TimeZoneId);
+                    }
+                    else
+                    {
+                        LINOList.Add(ISExist.IncidentNotificationListId);
+                    }
+                }
+            }
+            foreach (var Ditem in OldNotifyList)
+            {
+                bool ISDEL = LINOList.Any(s => s == Ditem.IncidentNotificationListId);
+                if (!ISDEL)
+                {
+                    _context.Remove(Ditem);
+                }
+            }
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    private async Task CreateActiveKeyContact(int IncidentActivationId, int IncidentId, IncidentKeyHldLst[] LaunchIncidentKeyHldLst, int CurrentUserId, int CompanyId, string TimeZoneId)
+    {
+        try
+        {
+            var RActIncConDel = await _context.Set<ActiveIncidentKeyContact>()
+                                 .Where(ActIncCon=> ActIncCon.IncidentActivationId == IncidentActivationId).ToListAsync();
+
+            List<int> AIKList = new List<int>();
+            List<IncidentKeyHldLst> LstKeyHld = new List<IncidentKeyHldLst>(LaunchIncidentKeyHldLst);
+            foreach (var IKeyHld in LstKeyHld)
+            {
+                if (IKeyHld.UserId != null)
+                {
+                    var IsExist = RActIncConDel.FirstOrDefault(s => s.IncidentActivationId == IncidentActivationId && s.IncidentId == IncidentId && s.UserId == IKeyHld.UserId.Value);
+                    if (IsExist == null)
+                    {
+                        ActiveIncidentKeyContact tblIncKeyContact = new ActiveIncidentKeyContact()
+                        {
+                            IncidentActivationId = IncidentActivationId,
+                            IncidentId = IncidentId,
+                            UserId = IKeyHld.UserId.Value,
+                            CreatedBy = CurrentUserId,
+                            CreatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId),
+                            UpdatedBy = CurrentUserId,
+                            UpdatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId)
+                        };
+                        await _context.AddAsync(tblIncKeyContact);
+                    }
+                    else
+                    {
+                        AIKList.Add(IsExist.ActiveIncidentKeyContactId);
+                    }
+                }
+            }
+            foreach (var Ditem in RActIncConDel)
+            {
+                bool ISDEL = AIKList.Any(s => s == Ditem.ActiveIncidentKeyContactId);
+                if (!ISDEL)
+                {
+                    _context.Remove(Ditem);
+                }
+            }
+           await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<CmdMessage>> GetCMDMessage(int ActiveIncidentID, int UserID)
+    {
+        try
+        {
+                var pActiveIncidentID = new SqlParameter("@IncidentActivationID", ActiveIncidentID);
+                var pUserID = new SqlParameter("@UserID", UserID);
+                var result =await _context.Set<CmdMessage>().FromSqlRaw("exec Pro_Incident_CommandCentre_Messages @IncidentActivationID, @UserID",
+                    pActiveIncidentID, pUserID).AsQueryable().ToListAsync();
+
+                return result;          
+        }
+        catch (Exception ex)
+        {
+           throw ex;
+        }
+    }
+    public async Task<List<MapLocationReturn>> GetIncidentMapLocations(int ActiveIncidentID, string Filter)
+    {
+        try
+        {
+            var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+            var pFilter = new SqlParameter("@Filter", Filter);
+
+            var tckusr = await _context.Set<MapLocationReturn>().FromSqlRaw("exec Pro_ActiveIncident_GetIncidentTracking @ActiveIncidentID, @Filter",
+                pActiveIncidentID, pFilter).ToListAsync();
+
+            return tckusr;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<bool> SaveIncidentParticipants(int IncidentId, int ActionID, IncidentNotificationObjLst[] IncidentParticipants, int[] UsersToNotify)
+    {
+        try
+        {
+           await IncidentParticipantGroup(IncidentId, ActionID, IncidentParticipants);
+           await IncidentParticipantUser(IncidentId, ActionID, UsersToNotify);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+    }
+    public async Task<bool> SaveIncidentJob(int CompanyId, int IncidentId, int IncidentActivationId, string Description, int Severity, int[] ImpactedLocationId,
+      string TimeZoneId, int CurrentUserId, IncidentKeyHldLst[] IncidentKeyHldLst, IncidentNotificationObjLst[] InitiateIncidentNotificationObjLst,
+      bool MultiResponse, List<AckOption> AckOptions, int AssetId = 0, bool TrackUser = false, bool SilentMessage = false, int[] MessageMethod = null,
+      List<AffectedLocation> AffectedLocations = null, int[] UsersToNotify = null, List<string> SocialHandle = null)
+    {
+        DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
+        var inci = await _context.Set<IncidentActivation>().Where(I=> I.IncidentActivationId == IncidentActivationId && I.CompanyId == CompanyId).FirstOrDefaultAsync();
+
+        if (inci != null)
+        {
+            inci.IncidentDescription = Description.Trim();
+            inci.Severity = Severity;
+            inci.ImpactedLocationId = ImpactedLocationId[0];
+            inci.TrackUser = TrackUser;
+            inci.SilentMessage = SilentMessage;
+            inci.UpdatedBy = CurrentUserId;
+            inci.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+            inci.AssetId = AssetId;
+            inci.SocialHandle = string.Join(",", SocialHandle);
+            _context.Update(inci);
+            await _context.SaveChangesAsync();
+
+            CleanUPJob(IncidentActivationId);
+
+            if (MessageMethod != null)
+            {
+                if (MessageMethod.Length > 0)
+                {
+                    bool pushadded = false;
+                    int pushmethodid = 1;
+                    if (TrackUser)
+                    {
+                        pushmethodid = await _context.Set<CommsMethod>().Where(w => w.MethodCode == "PUSH").Select(s => s.CommsMethodId).FirstOrDefaultAsync();
+                    }
+
+                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                    foreach (int Method in MessageMethod)
+                    {
+                       await  MSG.CreateMessageMethod(0, Method, inci.IncidentActivationId);
+                        if (pushmethodid == Method)
+                            pushadded = true;
+                    }
+                    if (TrackUser && !pushadded)
+                    {
+                       await MSG.CreateMessageMethod(0, pushmethodid, inci.IncidentActivationId);
+                    }
+                }
+            }
+
+            if (UsersToNotify != null)
+            {
+                Messaging MSG = new Messaging(_context, _httpContextAccessor);
+                MSG.AddUserToNotify(0, UsersToNotify.ToList(), inci.IncidentActivationId);
+            }
+
+            if (MultiResponse)
+            {
+                Messaging MSG = new Messaging(_context, _httpContextAccessor);
+                await MSG.SaveActiveMessageResponse(0, AckOptions, inci.IncidentActivationId);
+            }
+
+            //Process impacted location
+           await  ProcessImpactedLocation(ImpactedLocationId, inci.IncidentActivationId, CompanyId, "INITIATE");
+
+            //Manage affected locations
+           await  ProcessAffectedLocation(AffectedLocations, inci.IncidentActivationId, CompanyId, "AFFECTED", "INITIATE");
+
+            List<IncidentKeyHldLst> LstKeyHld = new List<IncidentKeyHldLst>(IncidentKeyHldLst);
+            foreach (var IKeyHld in LstKeyHld)
+            {
+                if (IKeyHld.UserId != null)
+                {
+                    ActiveIncidentKeyContact tblIncKeyContact = new ActiveIncidentKeyContact()
+                    {
+                        IncidentActivationId = inci.IncidentActivationId,
+                        IncidentId = IncidentId,
+                        UserId = IKeyHld.UserId.Value,
+                        CreatedBy = CurrentUserId,
+                        CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        UpdatedBy = CurrentUserId,
+                        UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                    };
+                    await _context.AddAsync(tblIncKeyContact);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            List<IncidentNotificationObjLst> LstIncNotiLst = new List<IncidentNotificationObjLst>(InitiateIncidentNotificationObjLst);
+            foreach (var INotiLst in LstIncNotiLst)
+            {
+                if (INotiLst.ObjectMappingId > 0)
+                {
+                    IncidentNotificationList tblIncidentNotiLst = new IncidentNotificationList()
+                    {
+                        CompanyId = CompanyId,
+                        IncidentActivationId = inci.IncidentActivationId,
+                        ObjectMappingId = INotiLst.ObjectMappingId,
+                        SourceObjectPrimaryId = INotiLst.SourceObjectPrimaryId,
+                        MessageId = 0,
+                        Status = 1,
+                        CreatedBy = CurrentUserId,
+                        CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        UpdatedBy = CurrentUserId,
+                        UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                    };
+                    await _context.AddAsync(tblIncidentNotiLst);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            var inciList =  await _context.Set<IncidentActivation>()
+                            .Where(Incidentval=> Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == inci.IncidentActivationId
+                           ).ToListAsync();
+            try
+            {
+                return true;
+            }
+            catch (Exception ex)
+            {
+              
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public async Task CleanUPJob(int ActiveIncidentID)
+    {
+        try
+        {
+          
+                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+                await _context.Database.ExecuteSqlRawAsync("Pro_Job_Data_Cleanup @ActiveIncidentID", pActiveIncidentID);
+           
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<IncidentSegLinks>> SegregationLinks(int TargetID,string MemberShipType, string LinkType,int OutUserCompanyId)
+    {
+        try
+        {
+
+            var pGroupID = new SqlParameter("@IncidnetID", TargetID);
+            var pLinkType = new SqlParameter("@LinkType", LinkType);
+            var pMemberShipType = new SqlParameter("@MemberShipType", MemberShipType);
+            var pCompanyID = new SqlParameter("@CompanyID", OutUserCompanyId);
+
+            var result = await _context.Set<IncidentSegLinks>().FromSqlRaw("exec Pro_Get_Incident_Seg_Links @IncidnetID, @LinkType, @MemberShipType, @CompanyID",
+                pGroupID, pLinkType, pMemberShipType, pCompanyID).ToListAsync();
+            return result;
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<bool> UpdateSegregationLink(int SourceID, int TargetID,  string LinkType, int CurrentUserId, int CompanyId)
+    {
+        try
+        {
+            if (LinkType == "DEPARTMENT")
+            {
+                var item =  await _context.Set<SegIncidentDepartmentLink>().Where(I=> I.IncidentId == SourceID && I.DepartmentId == TargetID).FirstOrDefaultAsync();
+                if (item == null)
+                {
+                   await  CreateSegregtionLink(SourceID, TargetID, LinkType, CompanyId);
+                }
+                else if ( item != null)
+                {
+                    _context.Remove(item);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else if (LinkType == "GROUP")
+            {
+                var item = await _context.Set<SegGroupIncidentLink>().Where(I=> I.IncidentId == SourceID && I.GroupId == TargetID).FirstOrDefaultAsync();
+                if ( item == null)
+                {
+                   await  CreateSegregtionLink(SourceID, TargetID, LinkType, CompanyId);
+                }
+                else if (item != null)
+                {
+                    _context.Remove(item);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else if (LinkType == "LOCATION")
+            {
+                var item = await _context.Set<SegIncidentLocationLink>().Where(I=> I.IncidentId == SourceID && I.LocationId == TargetID).FirstOrDefaultAsync();
+                if ( item == null)
+                {
+                    await CreateSegregtionLink(SourceID, TargetID, LinkType, CompanyId);
+                }
+                else if ( item != null)
+                {
+                    _context.Remove(item);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+    }
+
+    private async Task CreateSegregtionLink(int sourceID, int targetID, string LinkType, int companyId)
+    {
+        try
+        {
+            if (LinkType == "DEPARTMENT")
+            {
+                var targtetitem = await _context.Set<Department>().Where(w => w.DepartmentId == targetID && w.CompanyId == companyId).FirstOrDefaultAsync();
+                if (targtetitem != null)
+                {
+                    SegIncidentDepartmentLink SGL = new SegIncidentDepartmentLink()
+                    {
+                        CompanyId = companyId,
+                        DepartmentId = targetID,
+                        IncidentId = sourceID
+                    };
+                    await _context.AddAsync(SGL);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else if (LinkType == "GROUP")
+            {
+                var targtetitem = await _context.Set<Group>().Where(w => w.GroupId == targetID && w.CompanyId == companyId).FirstOrDefaultAsync();
+                if (targtetitem != null)
+                {
+                    SegGroupIncidentLink SGL = new SegGroupIncidentLink()
+                    {
+                        CompanyId = companyId,
+                        IncidentId = sourceID,
+                        GroupId = targetID
+                    };
+                    await _context.AddAsync(SGL);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else if (LinkType == "LOCATION")
+            {
+                var targtetitem = await _context.Set<Location>().Where(w => w.LocationId == targetID && w.CompanyId == companyId).FirstOrDefaultAsync();
+                if (targtetitem != null)
+                {
+                    SegIncidentLocationLink SGL = new SegIncidentLocationLink()
+                    {
+                        CompanyId = companyId,
+                        LocationId = targetID,
+                        IncidentId = sourceID
+                    };
+                    await _context.AddAsync(SGL);
+                    await _context.SaveChangesAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<MessageGroupObject>> GetIncidentRecipientEntity(int ActiveIncidentID, string EntityType, int TargetUserId, int CompanyId)
+    {
+        try
+        {
+          
+                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+                var pEntityType = new SqlParameter("@EntityType", EntityType);
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
+                var pUserID = new SqlParameter("@UserID", TargetUserId);
+
+                var result =await _context.Set<MessageGroupObject>().FromSqlRaw("exec Pro_Get_Incident_Recipient_Entity @ActiveIncidentID, @EntityType, @CompanyID, @UserID",
+                    pActiveIncidentID, pEntityType, pCompanyID, pUserID).ToListAsync();
+
+                return result;
+           
+        }
+        catch (Exception ex)
+        {
+          return new List<MessageGroupObject>();
+        }
+    }
+
+
+    public async Task<DataTablePaging> GetIncidentEntityRecipient(int start, int length, Search search,int draw,string orderBy,string dir ,int activeIncidentID, string entityType, int entityID, int companyId, int currentUserId, string companyKey)
+    {
+        try
+        {
+
+            var RecordStart = start == 0 ? 0 : start;
+            var RecordLength = length == 0 ? int.MaxValue : length;
+            var SearchString = (search != null) ? search.Value : "";
+            string OrderBy = orderBy != null ? orderBy : "UserId";
+            string OrderDir = dir != string.Empty ? dir : "desc";
+            OrderBy = string.IsNullOrEmpty(OrderBy) ? "UserId" : OrderBy;
+
+            var returnData =await GetIncidentEntityRecipientData(activeIncidentID,entityType, entityID,companyId, currentUserId,
+                RecordStart, RecordLength, SearchString, OrderBy, OrderDir, companyKey);
+
+            int totalRecord = 0;
+
+            if (returnData != null)
+                totalRecord = returnData.Count();
+
+            List<EntityRcpntResponse> ttodata = await GetIncidentEntityRecipientData(activeIncidentID, entityType, entityID, companyId,
+                currentUserId, 0, int.MaxValue, "", "UserId", OrderDir, companyKey);
+
+            if (ttodata != null)
+                totalRecord = ttodata.Count;
+
+
+            DataTablePaging rtn = new DataTablePaging();
+            rtn.Draw = draw;
+            rtn.RecordsTotal = totalRecord;
+            rtn.RecordsFiltered = returnData.Count;
+            rtn.Data = returnData;
+
+            if (rtn != null)
+            {
+                return rtn;
+            }
+            
+            return null;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<EntityRcpntResponse>> GetIncidentEntityRecipientData(int ActiveIncidentID, string EntityType, int EntityID, int CompanyId, int UserId,
+           int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir, string CompanyKey)
+    {
+        try
+        {
+
+           
+                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+                var pEntityType = new SqlParameter("@EntityType", EntityType);
+                var pEntityID = new SqlParameter("@EntityID", EntityID);
+                var pCompanyId = new SqlParameter("@CompanyId", CompanyId);
+                var pUserId = new SqlParameter("@UserId", UserId);
+                var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+                var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+                var pSearchString = new SqlParameter("@SearchString", SearchString);
+                var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+                var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
+
+                var result = new List<EntityRcpntResponse>();
+                var propertyInfo = typeof(EntityRcpntResponse).GetProperty(OrderBy);
+
+                if (OrderDir == "desc")
+                {
+                    result =await _context.Set<EntityRcpntResponse>().FromSqlRaw("exec Pro_Get_Incident_Group_Recipient @ActiveIncidentID, @EntityType,@EntityID, @CompanyID, @UserId, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                        pActiveIncidentID, pEntityType, pEntityID, pCompanyId, pUserId, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                        .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToListAsync();
+                }
+                else
+                {
+                    result =await _context.Set<EntityRcpntResponse>().FromSqlRaw("exec Pro_Get_Incident_Group_Recipient @ActiveIncidentID, @EntityType,@EntityID, @CompanyID, @UserId, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                        pActiveIncidentID, pEntityType, pEntityID, pCompanyId, pUserId, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                        .OrderBy(o => propertyInfo.GetValue(o, null)).ToListAsync();
+                }
+
+                return result;
+           
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
 }

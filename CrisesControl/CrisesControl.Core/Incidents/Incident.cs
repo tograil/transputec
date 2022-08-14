@@ -27,5 +27,6 @@ namespace CrisesControl.Core.Incidents
         public bool IsSos { get; set; }
         public int PlanAssetId { get; set; }
         public int CascadePlanId { get; set; }
+        public bool HasNominatedKeyholders { get; set; }
     }
 }
