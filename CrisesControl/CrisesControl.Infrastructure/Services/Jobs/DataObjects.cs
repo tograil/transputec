@@ -74,7 +74,7 @@ namespace CrisesControl.Infrastructure.Services.Jobs
             try
             {
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
-                var data = await db.Set<CompanyActivation>().FromSqlRaw("EXEC Pro_Admin_GetCompanyDetails_ActivationKey @CompanyID", pCompanyId).FirstOrDefaultAsync();
+                var data = await  db.Set<CompanyActivation>().FromSqlRaw("EXEC Pro_Admin_GetCompanyDetails_ActivationKey @CompanyID", pCompanyId).FirstOrDefaultAsync();
                 return data;
             }
             catch (Exception ex)
@@ -88,7 +88,7 @@ namespace CrisesControl.Infrastructure.Services.Jobs
             try
             {
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
-                var data = await db.Set<CompanyPaymentProfile>().FromSqlRaw("exec Pro_Admin_GetCompanyDetails_PaymentProfile @CompanyID", pCompanyId).FirstOrDefaultAsync();
+                var data = await  db.Set<CompanyPaymentProfile>().FromSqlRaw("exec Pro_Admin_GetCompanyDetails_PaymentProfile @CompanyID", pCompanyId).FirstOrDefaultAsync();
                 return data;
             }
             catch (Exception ex)
@@ -130,7 +130,7 @@ namespace CrisesControl.Infrastructure.Services.Jobs
             try
             {
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
-                var data = await db.Set<RegisteredUser>().FromSqlRaw("exec Pro_Admin_GetCompanyDetails_CompanyRegisteredUser @CompanyID", pCompanyId).FirstOrDefaultAsync();
+                var data = await  db.Set<RegisteredUser>().FromSqlRaw("exec Pro_Admin_GetCompanyDetails_CompanyRegisteredUser @CompanyID", pCompanyId).FirstOrDefaultAsync();
                 return data;
             }
             catch (Exception ex)
@@ -144,7 +144,7 @@ namespace CrisesControl.Infrastructure.Services.Jobs
             try
             {
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
-                var data = await db.Set<CompanyMessageTransactionStats>().FromSqlRaw("Pro_Admin_GetCompanyDetails_MessageTransactions @CompanyID", pCompanyId).FirstOrDefaultAsync();
+                var data = await  db.Set<CompanyMessageTransactionStats>().FromSqlRaw("Pro_Admin_GetCompanyDetails_MessageTransactions @CompanyID", pCompanyId).FirstOrDefaultAsync();
                 return data;
             }
             catch (Exception ex)
@@ -157,7 +157,7 @@ namespace CrisesControl.Infrastructure.Services.Jobs
         {
             try
             {
-                var data = await db.Set<CompaniesStats>().FromSqlRaw("exec Pro_Admin_GetCompanyGlobalReport").FirstOrDefaultAsync();
+                var data = await  db.Set<CompaniesStats>().FromSqlRaw("exec Pro_Admin_GetCompanyGlobalReport").FirstOrDefaultAsync();
                 return data;
             }
             catch (Exception ex)

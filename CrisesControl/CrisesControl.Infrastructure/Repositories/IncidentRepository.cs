@@ -40,12 +40,18 @@ public class IncidentRepository : IIncidentRepository
     private readonly ILogger<IncidentRepository> _logger;
     private readonly IActiveIncidentRepository _activeIncidentRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly Messaging _MSG;
+    private readonly DBCommon _DBC;
+    private readonly SendEmail _SDE;
     public bool IsSOS = false;
     public string Latitude = "0";
     public string Longtude = "0";
     public bool IsFundAvailable = true;
     private readonly IActiveIncidentTaskService _activeIncidentTaskService;
-    public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository, ICompanyParametersRepository companyParamentersRepository, IMessageService service, ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor, IActiveIncidentTaskService activeIncidentTaskService)
+    public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository,
+        ICompanyParametersRepository companyParamentersRepository, IMessageService service,
+        ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor,
+        Messaging MSG, DBCommon DBC, SendEmail SDE, IActiveIncidentTaskService activeIncidentTaskService)
     {
         _context = context;
         _companyParamentersRepository = companyParamentersRepository;
@@ -53,13 +59,16 @@ public class IncidentRepository : IIncidentRepository
         _logger = logger;
         _activeIncidentRepository = activeIncidentRepository;
         _httpContextAccessor = httpContextAccessor;
+        _MSG = MSG;
+        _DBC = DBC;
+        _SDE = SDE;
         _activeIncidentTaskService = activeIncidentTaskService;
     }
 
     public async Task<bool> CheckDuplicate(int companyId, string incidentName, int incidentId)
     {
         if (incidentId == 0)
-            return !await _context.Set<Incident>().AnyAsync(x => x.CompanyId == companyId 
+            return !await _context.Set<Incident>().AnyAsync(x => x.CompanyId == companyId
                                                                     && x.Name == incidentName && x.Status != 3);
 
         return await _context.Set<Incident>().AnyAsync(x => x.CompanyId == companyId
@@ -218,10 +227,11 @@ public class IncidentRepository : IIncidentRepository
             var pNoteType = new SqlParameter("@NoteType", NoteType);
             var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
             var result = await _context.Set<IncidentTask>().FromSqlRaw("exec Pro_Get_Notes @ObjectID, @NoteType, @CompanyID", pObjectID, pNoteType, pCompanyId).ToListAsync();
-                result.Select(async c => {
+            result.Select(async c =>
+            {
                 if (GetAttachments)
                 {
-                    c.Attachments =await _get_attachments(c.IncidentTaskNotesId, AttachmentType);
+                    c.Attachments = await _get_attachments(c.IncidentTaskNotesId, AttachmentType);
                 }
                 return c;
 
@@ -240,7 +250,7 @@ public class IncidentRepository : IIncidentRepository
             var pObjectID = new SqlParameter("@ObjectID", ObjectID);
             var pAttachmentType = new SqlParameter("@AttachmentType", AttachmentType);
 
-            var result =await  _context.Set<Attachment>().FromSqlRaw("Attachments_Select @ObjectID, @AttachmentType", pObjectID, pAttachmentType).ToListAsync();
+            var result = await _context.Set<Attachment>().FromSqlRaw("Attachments_Select @ObjectID, @AttachmentType", pObjectID, pAttachmentType).ToListAsync();
             return result;
 
         }
@@ -263,7 +273,7 @@ public class IncidentRepository : IIncidentRepository
         var pKeepKeyContact = new SqlParameter("@KeepKeyContact", keepKeyContact);
         var pKeepIncidentMessage = new SqlParameter("@KeepIncidentMessage", keepIncidentMessage);
         var pKeepTasks = new SqlParameter("@KeepTasks", keepTasks);
-        var pKeepIncidentAsset = new SqlParameter("@KeepIncidentAsset",keepIncidentAsset);
+        var pKeepIncidentAsset = new SqlParameter("@KeepIncidentAsset", keepIncidentAsset);
         var pKeepTaskAssets = new SqlParameter("@KeepTaskAssets", keepTaskAssets);
         var pKeepTaskCheckList = new SqlParameter("@KeepTaskCheckList", keepTaskCheckList);
         var pKeepIncidentParticipants = new SqlParameter("@KeepIncidentParticipants", keepIncidentParticipants);
@@ -447,17 +457,17 @@ public class IncidentRepository : IIncidentRepository
                         LocationType = ILL.LocationType
                     }).ToList();
         var incloc = (from L in _context.Set<CrisesControl.Core.Locations.Location>().AsEnumerable()
-                        join IA in _context.Set<IncidentActivation>().AsEnumerable() on L.LocationId equals IA.ImpactedLocationId
-                        where IA.IncidentActivationId == IncidentActivationId
-                        select new AffectedLocation
-                        {
-                            Address = L.PostCode,
-                            Lat = L.Lat,
-                            Lng = L.Long,
-                            LocationID = L.LocationId,
-                            LocationName = L.LocationName,
-                            LocationType = "IMPACTED"
-                        }).ToList();
+                      join IA in _context.Set<IncidentActivation>().AsEnumerable() on L.LocationId equals IA.ImpactedLocationId
+                      where IA.IncidentActivationId == IncidentActivationId
+                      select new AffectedLocation
+                      {
+                          Address = L.PostCode,
+                          Lat = L.Lat,
+                          Lng = L.Long,
+                          LocationID = L.LocationId,
+                          LocationName = L.LocationName,
+                          LocationType = "IMPACTED"
+                      }).ToList();
 
         return locs.Union(incloc).Distinct().ToList();
     }
@@ -472,9 +482,9 @@ public class IncidentRepository : IIncidentRepository
 
         //Use: [dbo].[Pro_ActiveIncident_GetMessageMethods] @ItemID
         result = (from MM in _context.Set<CrisesControl.Core.Messages.MessageMethod>().AsEnumerable()
-                        join MT in _context.Set<CommsMethod>().AsEnumerable() on MM.MethodId equals MT.CommsMethodId
-                        where MM.ActiveIncidentId == ItemID
-                        select new CommsMethods { MethodId = MM.MethodId, MethodName = MT.MethodName }).ToList();
+                  join MT in _context.Set<CommsMethod>().AsEnumerable() on MM.MethodId equals MT.CommsMethodId
+                  where MM.ActiveIncidentId == ItemID
+                  select new CommsMethods { MethodId = MM.MethodId, MethodName = MT.MethodName }).ToList();
         return result;
     }
 
@@ -559,20 +569,20 @@ public class IncidentRepository : IIncidentRepository
     {
         try
         {
-            var check_incident = await _context.Set<Incident>().Where(I=> I.CompanyId == CompanyID).FirstOrDefaultAsync();
+            var check_incident = await _context.Set<Incident>().Where(I => I.CompanyId == CompanyID).FirstOrDefaultAsync();
             if (check_incident == null)
             {
-               IEnumerable<DataIncidentType> source_incident_type = await CopyIncidentTypes(UserID, CompanyID);
+                IEnumerable<DataIncidentType> source_incident_type = await CopyIncidentTypes(UserID, CompanyID);
 
                 int sample_incident_id = 986;
                 bool checkid = int.TryParse(await LookupWithKey("SAMPLE_INCIDENT_ID"), out sample_incident_id);
 
-                var sample_incident = await _context.Set<LibIncident>().Where(LI=> LI.LibIncidentId == sample_incident_id).FirstOrDefaultAsync();
+                var sample_incident = await _context.Set<LibIncident>().Where(LI => LI.LibIncidentId == sample_incident_id).FirstOrDefaultAsync();
 
-                var reco = source_incident_type.Where(myrow=>myrow.IncidentTypeId == sample_incident.LibIncidentId).FirstOrDefault();
+                var reco = source_incident_type.Where(myrow => myrow.IncidentTypeId == sample_incident.LibIncidentId).FirstOrDefault();
                 int toIncidentTypeId = reco.IncidentTypeId;
 
-               
+
 
                 //Create new sample incident
                 int incidentId = await AddCompanyIncidents(CompanyID, sample_incident.LibIncodentIcon, sample_incident.Name, sample_incident.Description, 0,
@@ -580,7 +590,7 @@ public class IncidentRepository : IIncidentRepository
 
 
                 //Attach the key contacts
-                var KeyHolderList = await _context.Set<User>().Where(U=> U.CompanyId == CompanyID && U.Status != 3).Select(U => new AddIncidentKeyHldLst( U.UserId )).Take(2).ToArrayAsync();
+                var KeyHolderList = await _context.Set<User>().Where(U => U.CompanyId == CompanyID && U.Status != 3).Select(U => new AddIncidentKeyHldLst(U.UserId)).Take(2).ToArrayAsync();
                 await AttachKeyContactsToIncident(incidentId, UserID, CompanyID, KeyHolderList, TimeZoneID);
                 return incidentId;
             }
@@ -625,8 +635,8 @@ public class IncidentRepository : IIncidentRepository
             UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneId, System.DateTime.Now),
             HasTask = (Keyholders.Length > 0 && NumberOfKeyHolders > 1 && allow_nominated_kh == "true")
         };
-       await _context.AddAsync(tblIncident);
-       await _context.SaveChangesAsync();
+        await _context.AddAsync(tblIncident);
+        await _context.SaveChangesAsync();
 
 
         if (tblIncident.IncidentId > 0)
@@ -654,31 +664,31 @@ public class IncidentRepository : IIncidentRepository
                 }
             }
 
-           await ProcessKeyholders(CompanyId, tblIncident.IncidentId, CurrentUserId, Keyholders);
+            await ProcessKeyholders(CompanyId, tblIncident.IncidentId, CurrentUserId, Keyholders);
 
             if (AckOptions != null)
             {
-               await SaveIncidentMessageResponse(AckOptions, tblIncident.IncidentId);
+                await SaveIncidentMessageResponse(AckOptions, tblIncident.IncidentId);
             }
 
             if (Groups != null)
             {
-               await AddIncidentGroup(tblIncident.IncidentId, Groups, CompanyId);
+                await AddIncidentGroup(tblIncident.IncidentId, Groups, CompanyId);
             }
 
             if (MessageMethod != null && CascadePlanID <= 0)
             {
                 if (MessageMethod.Length > 0)
                 {
-                    
+
                     foreach (int Method in MessageMethod)
                     {
-                       await _service.CreateMessageMethod(0, Method, 0, tblIncident.IncidentId);
+                        await _service.CreateMessageMethod(0, Method, 0, tblIncident.IncidentId);
                     }
                 }
             }
             //Create incident segregation links
-           await CreateIncidentSegLinks(tblIncident.IncidentId, CurrentUserId, CompanyId);
+            await CreateIncidentSegLinks(tblIncident.IncidentId, CurrentUserId, CompanyId);
 
             return tblIncident.IncidentId;
         }
@@ -720,7 +730,7 @@ public class IncidentRepository : IIncidentRepository
     public async Task ProcessKeyholders(int CompanyId, int IncidentId, int CurrentUserId, int[] Keyholders)
     {
         var incKeyHlds = await _context.Set<IncidentKeyholder>()
-                        .Where(incKey=>incKey.CompanyID == CompanyId && incKey.IncidentID == IncidentId 
+                        .Where(incKey => incKey.CompanyID == CompanyId && incKey.IncidentID == IncidentId
                         && (incKey.ActiveIncidentID == null ||
                           incKey.ActiveIncidentID == 0)
                           ).ToListAsync();
@@ -740,7 +750,7 @@ public class IncidentRepository : IIncidentRepository
                         IncidentID = IncidentId,
                         UserID = keyhld
                     };
-                  await  _context.AddAsync(tblIncKeyholder);
+                    await _context.AddAsync(tblIncKeyholder);
                 }
                 else
                 {
@@ -756,7 +766,7 @@ public class IncidentRepository : IIncidentRepository
                 _context.Remove(Ditem);
             }
         }
-      await  _context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
     private async Task<string> LookupWithKey(string Key, string Default = "")
     {
@@ -789,16 +799,16 @@ public class IncidentRepository : IIncidentRepository
         {
             IEnumerable<DataIncidentType> source_incident_type = await CopyIncidentTypes(UserID, CompanyID);
 
-            var sos_incident = await _context.Set<LibIncident>().Where(I=> I.IsSos == true).FirstOrDefaultAsync();
+            var sos_incident = await _context.Set<LibIncident>().Where(I => I.IsSos == true).FirstOrDefaultAsync();
 
-            var reco =  source_incident_type.AsEnumerable().Where(myrow=> myrow.IncidentTypeId == sos_incident.LibIncidentTypeId
+            var reco = source_incident_type.AsEnumerable().Where(myrow => myrow.IncidentTypeId == sos_incident.LibIncidentTypeId
                        ).FirstOrDefault();
 
             int toIncidentTypeId = reco.IncidentTypeId;
 
-           
 
-            int[] Methods =  _context.Set<CompanyComm>().Where(CM=> CM.CompanyId == CompanyID).Select (CM=>CM.MethodId).ToList().ToArray();
+
+            int[] Methods = _context.Set<CompanyComm>().Where(CM => CM.CompanyId == CompanyID).Select(CM => CM.MethodId).ToList().ToArray();
 
             //Create new sample incident
             int incidentId = await AddCompanyIncidents(CompanyID, sos_incident.LibIncodentIcon, sos_incident.Name,
@@ -819,8 +829,8 @@ public class IncidentRepository : IIncidentRepository
                     UpdatedBy = UserID,
                     UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneID, DateTime.Now)
                 };
-               await _context.AddAsync(tblIncKeyContact);
-               await _context.SaveChangesAsync();
+                await _context.AddAsync(tblIncKeyContact);
+                await _context.SaveChangesAsync();
             }
 
             return incidentId;
@@ -837,11 +847,11 @@ public class IncidentRepository : IIncidentRepository
         try
         {
             var incident = await _context.Set<Incident>()
-                            .Where(I=> I.IsSos == true && I.CompanyId == CompanyID
+                            .Where(I => I.IsSos == true && I.CompanyId == CompanyID
                             ).AnyAsync();
             if (!incident)
             {
-               await CreateSOSIncident(UserID, CompanyID, TimeZoneID);
+                await CreateSOSIncident(UserID, CompanyID, TimeZoneID);
             }
         }
         catch (Exception ex)
@@ -862,17 +872,18 @@ public class IncidentRepository : IIncidentRepository
             var incimsgs = await _context.Set<IncidentMessagesRtn>().FromSqlRaw("exec Pro_Get_Incident_Timeline @IncidentActivationID, @CompanyID, @UserID",
               pIncidentActivationID, pCompanyID, pUserID)
               .ToListAsync();
-              incimsgs.Select(c => {
-                  c.SentBy = new UserFullName { Firstname = c.SentByFirst, Lastname = c.SentByLast };
-                  //c.Notes =  _context.Set<IncidentTaskNote>()
-                   //          .Where(N=>(N.ObjectId == IncidentActivationID && N.NoteType == "TASK")
-                    //         || N.ObjectId == IncidentActivationID && N.NoteType == "INCIDENT" && c.MessageType == "Ping").FirstOrDefault();
-                  //TODO invalid objects
-                  return c;
-              }).ToList();
-           
-                return incimsgs;
-         
+            incimsgs.Select(c =>
+            {
+                c.SentBy = new UserFullName { Firstname = c.SentByFirst, Lastname = c.SentByLast };
+                //c.Notes =  _context.Set<IncidentTaskNote>()
+                //          .Where(N=>(N.ObjectId == IncidentActivationID && N.NoteType == "TASK")
+                //         || N.ObjectId == IncidentActivationID && N.NoteType == "INCIDENT" && c.MessageType == "Ping").FirstOrDefault();
+                //TODO invalid objects
+                return c;
+            }).ToList();
+
+            return incimsgs;
+
         }
         catch (Exception ex)
         {
@@ -883,7 +894,7 @@ public class IncidentRepository : IIncidentRepository
     {
         try
         {
-            var inci =await  _context.Set<IncidentActivation>().Where(I=> I.IncidentActivationId == ActiveIncidentID).FirstOrDefaultAsync();
+            var inci = await _context.Set<IncidentActivation>().Where(I => I.IncidentActivationId == ActiveIncidentID).FirstOrDefaultAsync();
             if (inci != null)
             {
                 int NoteId = await IncidentNote(ActiveIncidentID, "INCIDENT", Note, CompanyID, UserID);
@@ -893,13 +904,13 @@ public class IncidentRepository : IIncidentRepository
                     inci.UpdatedBy = UserID;
                     inci.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     _context.Update(inci);
-                   await _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync();
 
                     if (Attachments.Count > 0)
                     {
                         foreach (var attach in Attachments)
                         {
-                          await  InsertAttachment(NoteId, attach.Title, attach.OrigFileName, attach.FileName, attach.MimeType, attach.AttachmentType, attach.FileSize);
+                            await InsertAttachment(NoteId, attach.Title, attach.OrigFileName, attach.FileName, attach.MimeType, attach.AttachmentType, attach.FileSize);
                         }
                     }
                 }
@@ -911,7 +922,7 @@ public class IncidentRepository : IIncidentRepository
             throw ex;
             return false;
         }
-        
+
     }
     public async Task<int> IncidentNote(int ObjectID, string NoteType, string Notes, int CompanyID, int UserID)
     {
@@ -927,8 +938,8 @@ public class IncidentRepository : IIncidentRepository
                 Notes = Notes,
                 CreatedDate = DateTime.Now,
             };
-           await _context.AddAsync(Note);
-           await _context.SaveChangesAsync();
+            await _context.AddAsync(Note);
+            await _context.SaveChangesAsync();
             return Note.IncidentTaskNotesId;
         }
         catch (Exception ex)
@@ -941,20 +952,20 @@ public class IncidentRepository : IIncidentRepository
     {
         try
         {
-           
 
-                var pObjectID = new SqlParameter("@ObjectID", ObjectID);
-                var pTitle = new SqlParameter("@Title", Title);
-                var pOrigFileName = new SqlParameter("@OrigFileName", OrigFileName);
-                var pFileName = new SqlParameter("@FileName", FileName);
-                var pMimeType = new SqlParameter("@MimeType", MimeType);
-                var pAttachmentType = new SqlParameter("@AttachmentType", AttachmentType);
-                var pFileSize = new SqlParameter("@FileSize", FileSize);
 
-               await _context.Database.ExecuteSqlRawAsync("Attachment_Insert @ObjectID, @Title, @OrigFileName, @FileName, @MimeType, @AttachmentType, @FileSize",
-                    pObjectID, pTitle, pOrigFileName, pFileName, pMimeType, pAttachmentType, pFileSize);
-                return true;
-            
+            var pObjectID = new SqlParameter("@ObjectID", ObjectID);
+            var pTitle = new SqlParameter("@Title", Title);
+            var pOrigFileName = new SqlParameter("@OrigFileName", OrigFileName);
+            var pFileName = new SqlParameter("@FileName", FileName);
+            var pMimeType = new SqlParameter("@MimeType", MimeType);
+            var pAttachmentType = new SqlParameter("@AttachmentType", AttachmentType);
+            var pFileSize = new SqlParameter("@FileSize", FileSize);
+
+            await _context.Database.ExecuteSqlRawAsync("Attachment_Insert @ObjectID, @Title, @OrigFileName, @FileName, @MimeType, @AttachmentType, @FileSize",
+                 pObjectID, pTitle, pOrigFileName, pFileName, pMimeType, pAttachmentType, pFileSize);
+            return true;
+
         }
         catch (Exception ex)
         {
@@ -966,17 +977,17 @@ public class IncidentRepository : IIncidentRepository
     {
         try
         {
-      
-                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                var pUserID = new SqlParameter("@UserID", UserID);
-                var pTimeZone = new SqlParameter("@TimeZoneId", TimeZoneId);
 
-                var result = await _context.Set<CallToAction>().FromSqlRaw("exec Pro_Get_Call_To_Action_Items @ActiveIncidentID, @CompanyID, @UserID, @TimeZoneId",
-                    pActiveIncidentID, pCompanyID, pUserID, pTimeZone).AsQueryable().ToListAsync();
+            var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pUserID = new SqlParameter("@UserID", UserID);
+            var pTimeZone = new SqlParameter("@TimeZoneId", TimeZoneId);
 
-                return result.FirstOrDefault();
-            
+            var result = await _context.Set<CallToAction>().FromSqlRaw("exec Pro_Get_Call_To_Action_Items @ActiveIncidentID, @CompanyID, @UserID, @TimeZoneId",
+                pActiveIncidentID, pCompanyID, pUserID, pTimeZone).AsQueryable().ToListAsync();
+
+            return result.FirstOrDefault();
+
         }
         catch (Exception ex)
         {
@@ -1003,14 +1014,14 @@ public class IncidentRepository : IIncidentRepository
 
             if (CloseSOS && !CloseAllSOS)
             {
-                var sos = await  _context.Set<Sosalert>().Where(SA=> SA.SosalertId == SOSAlertID && SA.Completed == false).FirstOrDefaultAsync();
+                var sos = await _context.Set<Sosalert>().Where(SA => SA.SosalertId == SOSAlertID && SA.Completed == false).FirstOrDefaultAsync();
                 if (sos != null)
                 {
                     sos.Completed = true;
                     sos.CompletedBy = CurrentUserId;
                     sos.CompletedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     _context.Update(sos);
-                   await  _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync();
                 }
             }
             else if (CloseSOS && CloseAllSOS)
@@ -1023,20 +1034,20 @@ public class IncidentRepository : IIncidentRepository
                     sos.CompletedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     _context.Update(sos);
                 }
-               
+
                 await _context.SaveChangesAsync();
             }
 
             if (CloseSOSIncident && ActiveIncidentID > 0)
             {
-              await  UpdateIncidentStatus(CompanyId, ActiveIncidentID, "CLOSE", TimeZoneId, CurrentUserId, "ADMIN", "SOS Closed", 1, SOSClosureNotes, isSos: true);
+                await UpdateIncidentStatus(CompanyId, ActiveIncidentID, "CLOSE", TimeZoneId, CurrentUserId, "ADMIN", "SOS Closed", 1, SOSClosureNotes, isSos: true);
             }
 
             if (CloseSOS == true && CaseNoteIDs.Length > 0)
             {
                 foreach (int AlertID in CaseNoteIDs)
                 {
-                    var sos = await  _context.Set<Sosalert>().Where(SA=> SA.SosalertId == AlertID).FirstOrDefaultAsync();
+                    var sos = await _context.Set<Sosalert>().Where(SA => SA.SosalertId == AlertID).FirstOrDefaultAsync();
                     if (sos != null)
                     {
                         sos.Completed = true;
@@ -1046,7 +1057,7 @@ public class IncidentRepository : IIncidentRepository
                         await _context.SaveChangesAsync();
                         if (sos.AlertType == "SOS")
                         {
-                          await  UpdateIncidentStatus(CompanyId, (int)sos.ActiveIncidentId, "CLOSE", TimeZoneId, CurrentUserId, "ADMIN", "SOS Closed", 1, SOSClosureNotes, isSos: true);
+                            await UpdateIncidentStatus(CompanyId, (int)sos.ActiveIncidentId, "CLOSE", TimeZoneId, CurrentUserId, "ADMIN", "SOS Closed", 1, SOSClosureNotes, isSos: true);
                         }
                     }
                 }
@@ -1055,7 +1066,7 @@ public class IncidentRepository : IIncidentRepository
         }
         catch (Exception ex)
         {
-            
+
             return false;
         }
     }
@@ -1063,15 +1074,15 @@ public class IncidentRepository : IIncidentRepository
     {
         try
         {
-            int sosuser = await  _context.Set<Sosalert>()
-                           .Where(SA=> SA.ActiveIncidentId != ActiveIncidentID && SA.UserId == UserID
+            int sosuser = await _context.Set<Sosalert>()
+                           .Where(SA => SA.ActiveIncidentId != ActiveIncidentID && SA.UserId == UserID
                            && SA.Completed == false).CountAsync();
             return sosuser;
         }
         catch (Exception ex)
         {
             throw ex;
-            
+
         }
     }
     public async Task<UpdateIncidentStatusReturn> UpdateIncidentStatus(int CompanyId, int IncidentActivationId, string Type, string TimeZoneId, int CurrentUserId,
@@ -1110,8 +1121,8 @@ public class IncidentRepository : IIncidentRepository
                     await IncidentNote(Incidt.inc.IncidentActivationId, "INCIDENT", CompletionNotes, CompanyId, CurrentUserId);
                 }
 
-               
-              await  _activeIncidentRepository.CompleteAllTask(Incidt.inc.IncidentActivationId, CurrentUserId, CompanyId, TimeZoneId);
+
+                await _activeIncidentRepository.CompleteAllTask(Incidt.inc.IncidentActivationId, CurrentUserId, CompanyId, TimeZoneId);
 
             }
             else if (Type.ToUpper() == "CANCEL" && Incidt.inc.Status != 5)
@@ -1123,8 +1134,8 @@ public class IncidentRepository : IIncidentRepository
             else
             {
                 var rtninci = await _context.Set<IncidentActivation>()
-                               .Where(Incidentval=> Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == IncidentActivationId)
-                               .Select(Incidentval=> new UpdateIncidentStatusReturn { IncidentActivationId = Incidentval.IncidentActivationId }).FirstOrDefaultAsync();
+                               .Where(Incidentval => Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == IncidentActivationId)
+                               .Select(Incidentval => new UpdateIncidentStatusReturn { IncidentActivationId = Incidentval.IncidentActivationId }).FirstOrDefaultAsync();
 
                 return rtninci;
             }
@@ -1144,9 +1155,8 @@ public class IncidentRepository : IIncidentRepository
                 UpdatedOn = LocalTime,
                 UpdatedBy = CurrentUserId,
             };
-           await _context.AddAsync(tblIncidentDeactiReason);
-           await _context.SaveChangesAsync();
-            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+            await _context.AddAsync(tblIncidentDeactiReason);
+            await _context.SaveChangesAsync();
             //string sendClosureAlert = "true";
             //sendClosureAlert = DBC.GetCompanyParameter("SEND_INCIDENT_CLOSURE_PING", CompanyId);
 
@@ -1154,26 +1164,25 @@ public class IncidentRepository : IIncidentRepository
             {
 
                 // This will send a clouser message as Ping
-                UserFullName closedUser = await _context.Set<User>().Where(U=> U.UserId == Incidt.inc.ClosedBy).Select(s => new UserFullName { Firstname = s.FirstName, Lastname = s.LastName }).SingleOrDefaultAsync();
-                string MsgText = Incidt.inc.Name + " at " + Incidt.LocationName + ", launched on " + Incidt.inc.LaunchedOn.ToString("dd-MMM-yyyy HH:mm") + " is closed by " + DBC.UserName(closedUser) + " with the following reason:" + Environment.NewLine + "\"" + Reason + "\"";
+                UserFullName closedUser = await _context.Set<User>().Where(U => U.UserId == Incidt.inc.ClosedBy).Select(s => new UserFullName { Firstname = s.FirstName, Lastname = s.LastName }).SingleOrDefaultAsync();
+                string MsgText = Incidt.inc.Name + " at " + Incidt.LocationName + ", launched on " + Incidt.inc.LaunchedOn.ToString("dd-MMM-yyyy HH:mm") + " is closed by " + _DBC.UserName(closedUser) + " with the following reason:" + Environment.NewLine + "\"" + Reason + "\"";
 
-                Messaging MSG = new Messaging(_context, _httpContextAccessor);
-                MSG.TimeZoneId = TimeZoneId;
-                MSG.CascadePlanID = CascadePlanID;
-                MSG.MessageSourceAction = isSos ? SourceAction.SosClosure : SourceAction.IncidentClosure;
-                int tblmessageid =await MSG.CreateMessage(CompanyId, MsgText, "Ping", IncidentActivationId, 500, CurrentUserId, 1, LocalTime, false, null, 99,
+                _MSG.TimeZoneId = TimeZoneId;
+                _MSG.CascadePlanID = CascadePlanID;
+                _MSG.MessageSourceAction = isSos ? SourceAction.SosClosure : SourceAction.IncidentClosure;
+                int tblmessageid = await _MSG.CreateMessage(CompanyId, MsgText, "Ping", IncidentActivationId, 500, CurrentUserId, 1, LocalTime, false, null, 99,
                     0, 0, false, false, MessageMethod);
 
                 var pMessageId = new SqlParameter("@MessageID", tblmessageid);
                 var pIncidentActivationId = new SqlParameter("@IncidentActivationID", IncidentActivationId);
-                var pCustomerTime = new SqlParameter("@CustomerTime", DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+                var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
                 try
                 {
-                    int RowsCount =await _context.Database.ExecuteSqlRawAsync("Pro_Incident_Closure_Message_List @IncidentActivationID,@MessageID,@CustomerTime",
+                    int RowsCount = await _context.Database.ExecuteSqlRawAsync("Pro_Incident_Closure_Message_List @IncidentActivationID,@MessageID,@CustomerTime",
                        pIncidentActivationId, pMessageId, pCustomerTime);
 
-                    IsFundAvailable = await MSG.CalculateMessageCost(CompanyId, tblmessageid, MsgText);
+                    IsFundAvailable = await _MSG.CalculateMessageCost(CompanyId, tblmessageid, MsgText);
 
                     Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Ping", 1, CascadePlanID));
 
@@ -1185,30 +1194,29 @@ public class IncidentRepository : IIncidentRepository
                     throw ex;
                 }
 
-                MSG.DeleteMessageMethod(0, IncidentActivationId);
-                DBC.CancelJobsByGroup("MESSAGE_CASCADE_" + IncidentActivationId);
+                _MSG.DeleteMessageMethod(0, IncidentActivationId);
+                _DBC.CancelJobsByGroup("MESSAGE_CASCADE_" + IncidentActivationId);
             }
 
-            SendEmail SDE = new SendEmail(_context,DBC);
-            var roles = DBC.CCRoles();
+            var roles = _DBC.CCRoles();
             if (Type.ToUpper() == "DEACTIVATE")
             {
                 if (!roles.Contains(UserRole.ToUpper()) && NumberOfKeyHolder > 1)
                 {
-                    SDE.NotifyKeyHolders("deactivate", IncidentActivationId, CurrentUserId, CompanyId, Reason);
+                    _SDE.NotifyKeyHolders("deactivate", IncidentActivationId, CurrentUserId, CompanyId, Reason);
                 }
             }
             else if (Type.ToUpper() == "CANCEL")
             {
                 if (NumberOfKeyHolder > 1)
                 {
-                    SDE.NotifyKeyHolders("cancel", IncidentActivationId, CurrentUserId, CompanyId, Reason);
+                    _SDE.NotifyKeyHolders("cancel", IncidentActivationId, CurrentUserId, CompanyId, Reason);
                 }
             }
 
             var inciList = _context.Set<IncidentActivation>()
-                            .Where(Incidentval=> Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == IncidentActivationId)
-                            .Select(Incidentval=> new UpdateIncidentStatusReturn { IncidentActivationId = Incidentval.IncidentActivationId }).FirstOrDefault();
+                            .Where(Incidentval => Incidentval.CompanyId == CompanyId && Incidentval.IncidentActivationId == IncidentActivationId)
+                            .Select(Incidentval => new UpdateIncidentStatusReturn { IncidentActivationId = Incidentval.IncidentActivationId }).FirstOrDefault();
 
             return inciList;
         }

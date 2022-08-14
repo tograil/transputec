@@ -8,6 +8,7 @@ using CrisesControl.Api.Application.Commands.Administrator.DumpReport;
 using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.GetAllLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.GetAppLanguage;
+using CrisesControl.Api.Application.Commands.Administrator.GetCompanyDetails;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyPackageFeatures;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyPackageItems;
 using CrisesControl.Api.Application.Commands.Administrator.GetCompanyTransaction;
@@ -17,6 +18,7 @@ using CrisesControl.Api.Application.Commands.Administrator.GetLibIncident;
 using CrisesControl.Api.Application.Commands.Administrator.GetLibIncidentType;
 using CrisesControl.Api.Application.Commands.Administrator.GetReport;
 using CrisesControl.Api.Application.Commands.Administrator.GetTransactionType;
+using CrisesControl.Api.Application.Commands.Administrator.GetUnpaidTransactions;
 using CrisesControl.Api.Application.Commands.Administrator.RestoreTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.SaveEmailTemplate;
 using CrisesControl.Api.Application.Commands.Administrator.SaveLanguageItem;
@@ -845,6 +847,62 @@ namespace CrisesControl.Api.Application.Query
                 else
                 {
                     response.Data = result;
+                    response.Message = "No record found.";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetUnpaidTransactionsResponse> GetUnpaidTransactions(GetUnpaidTransactionsRequest request)
+        {
+            try
+            {
+
+                var unpaidTransactions = await _adminRepository.GetUnpaidTransactions(0, request.StartDate, request.EndDate);
+                var result = _mapper.Map<List<UnpaidTransaction>>(unpaidTransactions);
+                var response = new GetUnpaidTransactionsResponse();
+                if (result != null)
+                {
+                    response.Data = unpaidTransactions;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Data = null;
+                    response.Message = "No record found.";
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetCompanyDetailsResponse> GetCompanyDetails(GetCompanyDetailsRequest request)
+        {
+            try
+            {
+
+                var companyDetails = await _adminRepository.GetCompanyDetails(request.CompanyID);
+                var result = _mapper.Map<CompanyDetails>(companyDetails);
+                var response = new GetCompanyDetailsResponse();
+                if (result != null)
+                {
+                    response.Data = companyDetails;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Data = null;
                     response.Message = "No record found.";
                 }
 

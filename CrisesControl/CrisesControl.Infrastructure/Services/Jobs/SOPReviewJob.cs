@@ -15,7 +15,7 @@ namespace CrisesControl.Infrastructure.Services.Jobs
     public class SOPReviewJob : IJob
     {
         private readonly CrisesControlContext db;
-        private readonly DBCommon DBC;
+        private readonly DBCommon DBC ;
         private readonly IHttpContextAccessor _httpContextAccessor;
         public SOPReviewJob(IHttpContextAccessor httpContextAccessor)
         {
@@ -43,7 +43,7 @@ namespace CrisesControl.Infrastructure.Services.Jobs
 
                         incident.SH.ReminderCount = Counter;
                         db.SaveChanges();
-
+                       
                         await DBC.CreateSOPReviewReminder(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, incident.SH.ReviewDate, incident.SH.ReviewFrequency, Counter);
 
                     }
@@ -58,6 +58,6 @@ namespace CrisesControl.Infrastructure.Services.Jobs
             {
                 throw ex;
             }
-        }
+         }
     }
 }

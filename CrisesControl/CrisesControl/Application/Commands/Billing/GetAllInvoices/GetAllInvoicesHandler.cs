@@ -19,7 +19,7 @@ namespace CrisesControl.Api.Application.Commands.Billing.GetAllInvoices
         {
             Guard.Against.Null(request, nameof(GetAllInvoicesRequest));
 
-            var allInvoices = await _billingRepository.GetAllInvoices(request.CompanyId, cancellationToken);
+            var allInvoices = await _billingRepository.GetAllInvoices(request.CompanyId);
             var result = _mapper.Map<GetAllInvoicesResponse>(allInvoices);
             return result;
         }

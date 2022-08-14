@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using AutoMapper;
 using AutoMapper.Contrib.Autofac.DependencyInjection;
 using CrisesControl.Api.Application.Behaviours;
 using CrisesControl.Api.Application.Helpers;
@@ -51,5 +52,6 @@ public class ApiModule : Module
         builder.RegisterType<SystemQuery>().As<ISystemQuery>();
         builder.RegisterType<AcademyQuery>().As<IAcademyQuery>();
         builder.RegisterType<LookupQuery>().As<ILookupQuery>();
+        builder.RegisterType<Mapper>().As<IMapper>();
     }
 }

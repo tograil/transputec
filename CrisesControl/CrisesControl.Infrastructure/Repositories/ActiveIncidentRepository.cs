@@ -37,12 +37,14 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     private string MessageSourceAction = string.Empty;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private IConfiguration _configuration;
+    private readonly Messaging _MSG;
 
-    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration)
+    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration, Messaging MSG)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _configuration = configuration;
+        _MSG = MSG;
     }
 
     public async Task ProcessKeyHolders(int companyId, int incidentId, int activeIncidentId, int currentUserId,
@@ -578,11 +580,10 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                     IncludeNotificationList = true;
             }
 
-            Messaging MSG = new Messaging(_context, _httpContextAccessor);
-            MSG.TimeZoneId = TimeZoneId;
-            MSG.CascadePlanID = CascadePlanID;
-            MSG.MessageSourceAction = sourceAction;
-            int tblmessageid = await MSG.CreateMessage(CompanyID, Message, "Incident", ActiveIncidentID, 999, CurrentUserID,
+            _MSG.TimeZoneId = TimeZoneId;
+            _MSG.CascadePlanID = CascadePlanID;
+            _MSG.MessageSourceAction = sourceAction;
+            int tblmessageid = await _MSG.CreateMessage(CompanyID, Message, "Incident", ActiveIncidentID, 999, CurrentUserID,
                 Source, DateTime.Now.GetDateTimeOffset(TimeZoneId), false, null, 99, 0, ActiveIncidentTaskID, false, false, MessageMethod);
 
 
@@ -593,7 +594,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
                     foreach (NotificationUserList lUsr in UserToNotify)
                     {
-                        await MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, MSG.TextUsed, MSG.PhoneUsed, MSG.EmailUsed, MSG.PushUsed, CurrentUserID, TimeZoneId);
+                        await _MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, _MSG.TextUsed, _MSG.PhoneUsed, _MSG.EmailUsed, _MSG.PushUsed, CurrentUserID, TimeZoneId);
                     }
                     await QueueConsumer.CreateMessageList(tblmessageid);
                     IsFundAvailable = QueueConsumer.IsFundAvailable;
@@ -614,7 +615,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 var RowsCount = await _context.Set<Result>().FromSqlRaw("exec Pro_Task_Update_Message_List @IncidentActivationID,@ActiveIncidentTaskID,@MessageID,@IncludeKeyContact,@IncludeActionList,@IncludeEscalationList,@IncludeNotificationList,@CustomerTime,@CurrentUserID",
                        pIncidentActivationId, pActiveIncidentTaskID, pMessageId, pIncludeKeyContact, pIncludeActionList, pIncludeEscalationList, pIncludeNotificationList, pCustomerTime, pCurrentUserID).FirstOrDefaultAsync();
 
-                IsFundAvailable = await MSG.CalculateMessageCost(CompanyID, tblmessageid, Message);
+                IsFundAvailable = await _MSG.CalculateMessageCost(CompanyID, tblmessageid, Message);
 
                 Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, CascadePlanID));
                 //QueueHelper.MessageDevicePublish(tblmessageid, 1);
@@ -670,19 +671,18 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
             TaskPtcpntList = await DBC.GetUniqueUsers(TaskPtcpntList, UserToNotify);
 
-            Messaging MSG = new Messaging(_context, _httpContextAccessor);
-            MSG.TimeZoneId = TimeZoneId;
-            MSG.CascadePlanID = CascadePlanID;
-            MSG.MessageSourceAction = MessageSourceAction;
+            _MSG.TimeZoneId = TimeZoneId;
+            _MSG.CascadePlanID = CascadePlanID;
+            _MSG.MessageSourceAction = MessageSourceAction;
 
-            int tblmessageid = await MSG.CreateMessage(CompanyID, Message, "Incident", ActiveIncidentID, 999, CurrentUserID, Source,
+            int tblmessageid = await _MSG.CreateMessage(CompanyID, Message, "Incident", ActiveIncidentID, 999, CurrentUserID, Source,
                        DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId), false, null, 99, 0, ActiveIncidentTaskID, false, false, MessageMetod);
 
             if (tblmessageid > 0)
             {
                 foreach (NotificationUserList lUsr in TaskPtcpntList)
                 {
-                    await MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, MSG.TextUsed, MSG.PhoneUsed, MSG.EmailUsed, MSG.PushUsed, CurrentUserID, TimeZoneId);
+                    await _MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, _MSG.TextUsed, _MSG.PhoneUsed, _MSG.EmailUsed, _MSG.PushUsed, CurrentUserID, TimeZoneId);
                 }
                 await QueueConsumer.CreateMessageList(tblmessageid);
                 IsFundAvailable = QueueConsumer.IsFundAvailable;
