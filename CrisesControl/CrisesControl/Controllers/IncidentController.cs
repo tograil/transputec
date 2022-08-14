@@ -1,19 +1,45 @@
 ﻿
+using CrisesControl.Api.Application.Commands.Groups.SegregationLinks;
 using CrisesControl.Api.Application.Commands.Incidents.AddCompanyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.AddIncidentAction;
+using CrisesControl.Api.Application.Commands.Incidents.AddIncidentAsset;
+using CrisesControl.Api.Application.Commands.Incidents.AddIncidentType;
 using CrisesControl.Api.Application.Commands.Incidents.AddNotes;
 using CrisesControl.Api.Application.Commands.Incidents.CheckUserSOS;
 using CrisesControl.Api.Application.Commands.Incidents.CloneIncident;
 using CrisesControl.Api.Application.Commands.Incidents.CopyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.DeleteCompanyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.DeleteCompanyIncidentAction;
+using CrisesControl.Api.Application.Commands.Incidents.DeleteIncidentAsset;
 using CrisesControl.Api.Application.Commands.Incidents.GetActiveIncidentBasic;
+using CrisesControl.Api.Application.Commands.Incidents.GetActiveIncidentDetailsById;
 using CrisesControl.Api.Application.Commands.Incidents.GetAttachments;
 using CrisesControl.Api.Application.Commands.Incidents.GetCallToAction;
+using CrisesControl.Api.Application.Commands.Incidents.GetCMDMessage;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentAction;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentAsset;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentByName;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentEntityRecipient;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentLibrary;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentMapLocations;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentMessage;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentRecipientEntity;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentSOSRequest;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTaskNotes;
 using CrisesControl.Api.Application.Commands.Incidents.GetIndidentTimeline;
+using CrisesControl.Api.Application.Commands.Incidents.GetSOSIncident;
+using CrisesControl.Api.Application.Commands.Incidents.IncidentStatusUpdate;
 using CrisesControl.Api.Application.Commands.Incidents.InitiateAndLaunchIncident;
 using CrisesControl.Api.Application.Commands.Incidents.InitiateCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.LaunchCompanyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.SaveIncidentJob;
+using CrisesControl.Api.Application.Commands.Incidents.SaveIncidentParticipants;
+using CrisesControl.Api.Application.Commands.Incidents.TestWithMe;
+using CrisesControl.Api.Application.Commands.Incidents.UpdateCompanyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.UpdateCompanyIncidentAction;
+using CrisesControl.Api.Application.Commands.Incidents.UpdateSegregationLink;
 using CrisesControl.Api.Application.Commands.Incidents.UpdateSOS;
+using CrisesControl.Api.Application.Commands.Incidents.UpdateSOSIncident;
 using CrisesControl.Api.Application.Query;
 using CrisesControl.Core.Compatibility;
 using MediatR;
@@ -255,6 +281,344 @@ public class IncidentController : Controller
     [HttpGet]
     [Route("[action]/{IncidentActivationId}")]
     public async Task<IActionResult> GetIndidentTimeline([FromRoute] GetIndidentTimelineRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Incident Type.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> AddIncidentType([FromBody] AddIncidentTypeRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Add Incident Action
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> AddIncidentAction([FromBody] AddIncidentActionRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Add Incident Asset.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> AddIncidentAsset([FromBody] AddIncidentAssetRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Update Company Incident.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("[action]")]
+    public async Task<IActionResult> UpdateCompanyIncident([FromBody] UpdateCompanyIncidentRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Update Company Incident Action.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("[action]")]
+    public async Task<IActionResult> UpdateCompanyIncidentAction([FromBody] UpdateCompanyIncidentActionRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Delete Company Incident
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpDelete]
+    [Route("[action]/{IncidentId}")]
+    public async Task<IActionResult> DeleteCompanyIncident([FromRoute] DeleteCompanyIncidentRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Delete Company Incident Action
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]/{IncidentActionId}/{IncidentId}")]
+    public async Task<IActionResult> DeleteCompanyIncidentAction([FromRoute] DeleteCompanyIncidentActionRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Delete Incident Asset.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]/{IncidentAssetId}/{AssetObjMapId}/{IncidentId}")]
+    public async Task<IActionResult> DeleteIncidentAsset([FromRoute] DeleteIncidentAssetRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Active Incident Details By Id.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]/{IncidentActivationId}")]
+    public async Task<IActionResult> GetActiveIncidentDetailsById([FromRoute] GetActiveIncidentDetailsByIdRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Incident Status Update.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("[action]")]
+    public async Task<IActionResult> IncidentStatusUpdate([FromBody] IncidentStatusUpdateRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Incident Library.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]")]
+    public async Task<IActionResult> GetIncidentLibrary([FromRoute] GetIncidentLibraryRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Incident Message.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]/{IncidentId}")]
+    public async Task<IActionResult> GetIncidentMessage([FromRoute] GetIncidentMessageRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Incident Action.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]/{IncidentActionId}/{IncidentId}")]
+    public async Task<IActionResult> GetIncidentAction([FromRoute] GetIncidentActionRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Incident Asset.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]/{IncidentId}")]
+    public async Task<IActionResult> GetIncidentAsset([FromRoute] GetIncidentAssetRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get SOS Incident.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]")]
+    public async Task<IActionResult> GetSOSIncident([FromRoute] GetSOSIncidentRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Update SOS Incident.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("[action]")]
+    public async Task<IActionResult> UpdateSOSIncident([FromBody] UpdateSOSIncidentRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Test With Me.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("[action]/{IncidentId}")]
+    public async Task<IActionResult> TestWithMe([FromRoute] TestWithMeRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get CMD Message.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]/{IncidentActivationId}")]
+    public async Task<IActionResult> GetCMDMessage([FromRoute] GetCMDMessageRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Incident Map Locations.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name= "cancellationToken" ></param >
+    /// <returns ></returns >
+    [HttpGet]
+    [Route("[action]/{IncidentId}")]
+    public async Task<IActionResult> GetIncidentMapLocations([FromRoute] GetIncidentMapLocationsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Save Incident Participants.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> SaveIncidentParticipants([FromBody] SaveIncidentParticipantsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Incident By Name.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name= "cancellationToken" ></param >
+    /// <returns ></returns >
+    [HttpGet]
+    [Route("[action]/{IncidentName}")]
+    public async Task<IActionResult> GetIncidentByName([FromRoute] GetIncidentByNameRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Save Incident Job.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> SaveIncidentJob([FromBody] SaveIncidentJobRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Segregation Links.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name= "cancellationToken" ></param >
+    /// <returns ></returns >
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> SegregationLinks([FromBody] SegregationLinksRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Update Segregation Link.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPut]
+    [Route("[action]/{SourceID}/{TargetID}/{LinkType}")]
+    public async Task<IActionResult> UpdateSegregationLink([FromRoute] UpdateSegregationLinkRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Incident Recipient Entity Handler.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]")]
+    public async Task<IActionResult> GetIncidentRecipientEntity([FromRoute] GetIncidentRecipientEntityRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Incident Entity Recipient.
+    /// </summary>
+    /// <param name = "request" ></param >
+    /// <param name= "cancellationToken" ></param >
+    /// <returns ></returns >
+    [HttpGet]
+    [Route("[action]")]
+    public async Task<IActionResult> GetIncidentEntityRecipient([FromRoute] GetIncidentEntityRecipientRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);

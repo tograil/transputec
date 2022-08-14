@@ -29,6 +29,7 @@ using CrisesControl.Core.Locations;
 using System.Net;
 using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
+using CrisesControl.Infrastructure.Services.Jobs;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -40,7 +41,6 @@ namespace CrisesControl.Api.Application.Helpers
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
         ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
-
 
         public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
@@ -729,6 +729,39 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
+
+        public string GetPackageItem(string itemCode, int companyId)
+        {
+            string retVal = string.Empty;
+            itemCode = itemCode.Trim();
+            var ItemRec = (from PI in _context.Set<CompanyPackageItem>() where PI.ItemCode == itemCode && PI.CompanyId == companyId select PI).FirstOrDefault();
+            if (ItemRec != null)
+            {
+                retVal = ItemRec.ItemValue;
+            }
+            else
+            {
+                var LibItemRec = (from PI in _context.Set<LibPackageItem>() where PI.ItemCode == itemCode select PI).FirstOrDefault();
+                retVal = LibItemRec.ItemValue;
+            }
+            return retVal;
+        }
+
+        public void _set_comms_status(int CompanyId, List<string> methods, bool status)
+        {
+            try
+            {
+                (from CM in _context.Set<CompanyComm>()
+                 join CO in _context.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
+                 where CM.CompanyId == CompanyId && methods.Contains(CO.MethodCode)
+                 select CM).ToList().ForEach(x => x.ServiceStatus = status);
+                _context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public async void MessageProcessLog(int MessageID, string EventName, string MethodName = "", string QueueName = "", string AdditionalInfo = "")
         {
             try
@@ -746,6 +779,88 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 throw ex;
             }
+        }
+
+        public async void GetSetCompanyComms(int CompanyID)
+        {
+            try
+            {
+                var comp_pp = (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == CompanyID select CPP).FirstOrDefault();
+                var comp = (from C in _context.Set<Company>() where C.CompanyId == CompanyID select C).FirstOrDefault();
+                if (comp_pp != null && comp != null)
+                {
+
+                    if (comp.Status == 1)
+                    {
+                        bool sendAlert = false;
+
+                        DateTimeOffset LastUpdate = comp_pp.UpdatedOn;
+
+                        List<string> stopped_comms = new List<string>();
+
+                        if (comp_pp.MinimumEmailRate > 0)
+                        {
+                            stopped_comms.Add("EMAIL");
+                        }
+                        if (comp_pp.MinimumPhoneRate > 0)
+                        {
+                            stopped_comms.Add("PHONE");
+                        }
+                        if (comp_pp.MinimumTextRate > 0)
+                        {
+                            stopped_comms.Add("TEXT");
+                        }
+                        if (comp_pp.MinimumPushRate > 0)
+                        {
+                            stopped_comms.Add("PUSH");
+                        }
+
+                        if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
+                        { //Have positive balance + More than the minimum balance required.
+                            comp.CompanyProfile = "SUBSCRIBED";
+                            _set_comms_status(CompanyID, stopped_comms, true);
+                        }
+                        else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
+                        { //Used the overdraft amount as well, so stop their SMS and Phone
+                            comp.CompanyProfile = "STOP_MESSAGING";
+                            sendAlert = true;
+                            _set_comms_status(CompanyID, stopped_comms, false);
+                        }
+                        else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
+                        { //Using the overdraft facility, can still use the system
+                            comp.CompanyProfile = "ON_CREDIT";
+                            sendAlert = true;
+                            _set_comms_status(CompanyID, stopped_comms, true);
+                        }
+                        else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
+                        { //Less than the minimum balance, just send an alert, can still use the system.
+                            comp.CompanyProfile = "LOW_BALANCE";
+                            sendAlert = true;
+                            _set_comms_status(CompanyID, stopped_comms, true);
+                        }
+                        comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
+                        _context.SaveChanges();
+
+                        if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
+                        {
+                            sendAlert = false;
+                        }
+
+                        string CommsDebug = LookupWithKey("COMMS_DEBUG_MODE");
+
+                        if (sendAlert && CommsDebug == "false")
+                        {
+                           //await _SDE.UsageAlert(CompanyID);
+                        }
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
         }
         public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
         {
@@ -1022,6 +1137,162 @@ namespace CrisesControl.Api.Application.Helpers
                 if (fi.CreationTime < DateTime.Now.AddDays(-1))
                     fi.Delete();
             }
+        }
+        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentReviewDate, int CompanyID, int ReminderCount, out int ReminderCounter)
+        {
+            try
+            {
+                ReminderCounter = 0;
+                int reminder1 = 30;
+                int reminder2 = 15;
+                int reminder3 = 7;
+
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", CompanyID), out reminder1);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", CompanyID), out reminder2);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", CompanyID), out reminder3);
+
+                DateTime CheckDate = CurrentReviewDate.AddDays(-reminder1).Date;
+
+                if (CheckDate.Date >= DateTime.Now.Date && ReminderCount == 0)
+                {
+                    ReminderCounter = 1;
+                    return CheckDate;
+                }
+
+                if (CurrentReviewDate.AddDays(-reminder2).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1))
+                {
+                    ReminderCounter = 2;
+                    return CurrentReviewDate.AddDays(-reminder2).Date;
+                }
+
+                if (CurrentReviewDate.AddDays(-reminder3).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1 || ReminderCount == 2))
+                {
+                    ReminderCounter = 3;
+                    return CurrentReviewDate.AddDays(-reminder3).Date;
+                }
+
+                return CurrentReviewDate.AddYears(-1).Date;
+
+            }
+            catch (Exception ex)
+            {
+                ReminderCounter = 0;
+                return CurrentReviewDate.AddYears(-1).Date;
+            }
+        }
+        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentDateTime, string Frequency)
+        {
+            DateTimeOffset NewReviewDate = CurrentDateTime;
+
+            if (string.IsNullOrEmpty(Frequency))
+                Frequency = "MONTH";
+
+            switch (Frequency)
+            {
+                case "WEEK":
+                    NewReviewDate = CurrentDateTime.AddDays(7);
+                    break;
+                case "MONTH":
+                    NewReviewDate = CurrentDateTime.AddMonths(1);
+                    break;
+                case "QUARTER":
+                    NewReviewDate = CurrentDateTime.AddMonths(3);
+                    break;
+                case "YEAR":
+                    NewReviewDate = CurrentDateTime.AddYears(1);
+                    break;
+            }
+            return NewReviewDate;
+        }
+        public async Task CreateSOPReviewReminder(int IncidentID, int SOPHeaderID, int CompanyID, DateTimeOffset NextReviewDate, string ReviewFrequency, int ReminderCount)
+        {
+            try
+            {
+
+                DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
+
+                ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+
+                string jobName = "SOP_REVIEW_" + SOPHeaderID;
+                string taskTrigger = "SOP_REVIEW_" + SOPHeaderID;
+
+                var jobDetail = new Quartz.Impl.JobDetailImpl(jobName, "REVIEW_REMINDER", typeof(SOPReviewJob));
+                jobDetail.JobDataMap["IncidentID"] = IncidentID;
+                jobDetail.JobDataMap["SOPHeaderID"] = SOPHeaderID;
+
+                int Counter = 0;
+                DateTimeOffset DateCheck =GetNextReviewDate(NextReviewDate, CompanyID, ReminderCount, out Counter);
+                jobDetail.JobDataMap["Counter"] = Counter;
+
+                var sop_head =  _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == SOPHeaderID).FirstOrDefault();
+                sop_head.ReminderCount = Counter;
+                _context.Update(sop_head);
+                await _context.SaveChangesAsync();
+
+                //if(DateCheck.Date >= DateTime.Now.Date && Counter <= 3) {
+                if (DateTimeOffset.Compare(DateCheck, GetDateTimeOffset(DateTime.Now)) >= 0 && Counter <= 3)
+                {
+                    //string TimeZoneVal = DBC.GetTimeZoneByCompany(CompanyID);
+                    //DateCheck = DBC.GetServerTime(TimeZoneVal, DateCheck);
+
+                    if (DateCheck < DateTime.Now)
+                        DateCheck = DateTime.Now.AddMinutes(5);
+
+                    //DBC.UpdateLog("0", jobName + ", Starting at: " + DateCheck.ToUniversalTime().ToString(), "CreateTasksReviewReminder", "CreateTasksReviewReminder", 0);
+
+                    ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
+                                                              .WithIdentity(taskTrigger, "REVIEW_REMINDER")
+                                                              .StartAt(DateCheck.ToUniversalTime())
+                                                              .ForJob(jobDetail)
+                                                              .Build();
+                    _scheduler.ScheduleJob(jobDetail, trigger);
+                }
+                else
+                {
+                    DateTimeOffset NewReviewDate = GetNextReviewDate(NextReviewDate, ReviewFrequency);
+
+                    if (sop_head != null)
+                    {
+                        sop_head.ReviewDate = NewReviewDate;
+                        sop_head.ReminderCount = 0;
+                        await _context.SaveChangesAsync();
+                        await CreateSOPReviewReminder(IncidentID, SOPHeaderID, CompanyID, NewReviewDate, ReviewFrequency, 0);
+                    }
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<List<SocialHandles>> GetSocialServiceProviders()
+        {
+            try
+            {
+                List<SocialHandles> SH = new List<SocialHandles>();
+                var syspr = await _context.Set<SysParameter>().Where(SP=> SP.Category == "SOCIAL_HANDLE" && SP.Status == 1).ToListAsync();
+                foreach (var spvar in syspr)
+                {
+                    SH.Add(new SocialHandles { ProviderCode = spvar.Name, ProviderName = spvar.Value });
+                }
+                return SH;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<int> SegregationWarning(int CompanyId, int UserID, int IncidentId)
+        {
+            var pIncidentId = new SqlParameter("@IncidentID", IncidentId);
+            var pUserID = new SqlParameter("@UserID", UserID);
+            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+
+            int SegWarning =await _context.Database.ExecuteSqlRawAsync("SELECT [dbo].[Incident_Segregation](@IncidentID,@UserID,@CompanyID)", pIncidentId, pUserID, pCompanyId);
+            return SegWarning;
         }
     }
 }
