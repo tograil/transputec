@@ -83,7 +83,15 @@ public class IncidentController : Controller
 
         return Ok(result);
     }
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> CopyIncident([FromBody] CopyIncidentRequest request,
+    CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
 
+        return Ok(result);
+    }
     [HttpPost]
     [Route("[action]")]
     public async Task<IActionResult> SetupCompleted([FromBody] CopyIncidentRequest request,
@@ -218,6 +226,14 @@ public class IncidentController : Controller
     public IActionResult GetCompanyIncidentById([FromRoute] int companyId, [FromRoute] int incidentId, [FromRoute] string userStatus) //TODO: Change UserStatus to enum
     {
         var result = _incidentQuery.GetCompanyIncidentById(companyId, incidentId, userStatus);
+        return Ok(result);
+    }
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> AddNotes([FromRoute] AddNotesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 

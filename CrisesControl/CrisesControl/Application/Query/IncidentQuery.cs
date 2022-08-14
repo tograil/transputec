@@ -164,8 +164,8 @@ public class IncidentQuery : IIncidentQuery
 
     public async Task<AddNotesResponse> AddNotes(AddNotesRequest request)
     {
-        List<Attachment> Attachments = new List<Attachment>();
-        var groups = await _incidentRepository.AddIncidentNote(request.ActiveIncidentID, request.Note, Attachments, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
+        //List<Attachment> Attachments = new List<Attachment>();
+        var groups = await _incidentRepository.AddIncidentNote(request.ActiveIncidentID, request.Note, request.Attachments, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
         var result = _mapper.Map<bool>(groups);
         var response = new AddNotesResponse();
         if (result)
