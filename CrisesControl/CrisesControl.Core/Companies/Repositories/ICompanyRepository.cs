@@ -22,7 +22,7 @@ public interface ICompanyRepository
     Task<int> UpdateCompany(Company company);
     Task<bool> DuplicateCompany(string CompanyName, string Countrycode);
     Task<bool> DeleteCompanyApi(int CompanyId, string CustomerId);
-    Task<dynamic> DeleteCompanyComplete(int CompanyId, int UserId, string GUID, string DeleteType);
+    Task<string> DeleteCompanyComplete(int CompanyId, int UserId, string GUID, string DeleteType);
     Task<AddressLink> GetCompanyAddress(int CompanyID);
     //Task<dynamic> GetSite(int SiteID, int CompanyID);
     Task<int> SaveSite(Site site);
@@ -45,4 +45,9 @@ public interface ICompanyRepository
     Task<int> DeactivateCompany(Company company);
     Task<int> ReactivateCompany(Company company);
     Task<string> LookupWithKey(string Key, string Default = "");
+    Task<CompanyScimProfile> SaveScimProfileAsync(CompanyScim IP, int CurrentUserId, int CompanyId, string TimezoneId);
+    Task<CompanyScimProfile> GetScimProfile(int outUserCompanyId);
+    Task<List<GroupUsers>> GetGroupUsers(int GroupId, int ObjectMappingId);
+    Task<CompanyObject> GetCompanyObject(int CompanyID, string ObjectName);
+    Task<string> DeleteCompany(int TargetCompanyID, int CompanyID, int CurrentUserID, string TimeZoneId);
 }

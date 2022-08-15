@@ -198,7 +198,9 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<FailedAttempts>().HasNoKey();
             modelBuilder.Entity<DeliveryDetails>().HasNoKey();
             modelBuilder.Entity<PingReport>().HasNoKey();
-
+            modelBuilder.Entity<CompanyObject>().HasNoKey();
+            modelBuilder.Entity<GroupUsers>().HasNoKey();
+            modelBuilder.Entity<CompanyScimProfile>().HasNoKey();
 
             //modelBuilder.Entity<Location>().HasNoKey();
         }
