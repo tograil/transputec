@@ -1448,6 +1448,87 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return returndt;
         }
+        public async Task SendAssetReviewAlert(int AssetID, int CompanyID)
+        {
+            try
+            {
+
+                string path = "ASSET_REVIEW_REMINDER";
+
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile(path, "DB", CompanyID, out Subject));
+
+              
+                string Portal = _DBC.LookupWithKey("PORTAL");
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
+
+                var CompanyInfo = await  _context.Set<Company>().Where(C=> C.CompanyId == CompanyID).FirstOrDefaultAsync();
+                string Website = _DBC.LookupWithKey("DOMAIN");
+               
+                string CompanyLogo = Portal + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
+                if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
+                {
+                    CompanyLogo = _DBC.LookupWithKey("CCLOGO");
+                }
+                string assetname = string.Empty;
+
+                DateTimeOffset review_date = DateTimeOffset.Now;
+
+                string emailmessage = string.Empty;
+
+                var asset =  (from A in _context.Set<Assets>().AsEnumerable()
+                             where A.CompanyId == CompanyID && A.AssetId == AssetID
+                             select new
+                             {
+                                 A,
+                                 AssetOwner = (from U in _context.Set<User>()
+                                               where U.UserId == A.AssetOwner && U.Status == 1
+                                               select new
+                                               {
+                                                   UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                                                   U.PrimaryEmail
+                                               }).FirstOrDefault()
+                             }).FirstOrDefault();
+
+                if (asset != null)
+                {
+                    assetname = asset.A.AssetTitle;
+                    review_date = (DateTimeOffset)asset.A.ReviewDate;
+                    emailmessage = "This is the reminder for you to review the following media asset.";
+                    if (asset.A.ReminderCount == 3)
+                    {
+                        emailmessage = "<span style='color:#ff0000'>This is the final reminder for you to review the following media asset.</span>";
+                    }
+
+                    if ((message != null) && (hostname != null) && (fromadd != null))
+                    {
+                        string messagebody = message;
+
+                        messagebody = messagebody.Replace("{COMPANY_NAME}", CompanyInfo.CompanyName);
+                        messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
+                        messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                        messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
+                        messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                        messagebody = messagebody.Replace("{ASSET_TITLE}", assetname);
+                        messagebody = messagebody.Replace("{ASSET_REVIEW_DATE}", review_date.ToString("dd-MMM-yy"));
+                        messagebody = messagebody.Replace("{REVIEW_MESSAGE}", emailmessage);
+
+                        string sendbody = messagebody;
+                        sendbody = sendbody.Replace("{RECIPIENT_NAME}", _DBC.UserName(asset.AssetOwner.UserName));
+                        sendbody = sendbody.Replace("{RECIPIENT_EMAIL}", asset.AssetOwner.PrimaryEmail);
+                        string[] toEmails = { asset.AssetOwner.PrimaryEmail };
+                        bool ismailsend = Email(toEmails, sendbody, fromadd, hostname, Subject);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex; ;
+            }
+        }
         public void RegistrationCancelled(string CompanyName, int PlanId, DateTimeOffset RegDate, UserFullName pUserName, string pUserEmail, PhoneNumber pUserMobile)
         {
             string hostname = _DBC.LookupWithKey("SMTPHOST");

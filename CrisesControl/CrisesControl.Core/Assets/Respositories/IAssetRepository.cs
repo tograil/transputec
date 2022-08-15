@@ -20,5 +20,6 @@ namespace CrisesControl.Core.Assets.Respositories
         public Task<int> UpdateAsset(Assets asset, CancellationToken cancellationToken);
 
         public bool CheckDuplicate(Assets asset);
+        void CreateAssetReviewReminder(int AssetId, int CompanyID, DateTimeOffset NextReviewDate, string ReviewFrequency, int ReminderCount);
     }
 }

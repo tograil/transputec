@@ -198,6 +198,18 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<FailedAttempts>().HasNoKey();
             modelBuilder.Entity<DeliveryDetails>().HasNoKey();
             modelBuilder.Entity<PingReport>().HasNoKey();
+            modelBuilder.Entity<CategoryTag>().HasNoKey();
+            modelBuilder.Entity<AdminTransaction>().HasNoKey();
+            modelBuilder.Entity<PackageAddons>().HasNoKey();
+            modelBuilder.Entity<Sectors>().HasNoKey();
+            modelBuilder.Entity<CrisesControl.Core.Administrator.Api>().HasNoKey();
+            modelBuilder.Entity<IncidentPingStats>().HasNoKey();
+            modelBuilder.Entity<AdminTransactionType>().HasNoKey();
+            modelBuilder.Entity<CompanyDetails>().HasNoKey();
+            modelBuilder.Entity<RegisteredUser>().HasNoKey();
+            modelBuilder.Entity<CompaniesStats>().HasNoKey();
+            modelBuilder.Entity<CompanyMessageTransactionStats>().HasNoKey();
+            //modelBuilder.Entity<CompanyTranscationType>().HasNoKey();
             modelBuilder.Entity<CompanyObject>().HasNoKey();
             modelBuilder.Entity<GroupUsers>().HasNoKey();
             modelBuilder.Entity<CompanyScimProfile>().HasNoKey();

@@ -22,6 +22,7 @@ namespace CrisesControl.Infrastructure.Services
         public static string RabbitVirtualHost = "/";
         public static CrisesControlContext db;
         private static IHttpContextAccessor _httpContextAccessor;
+        private static Messaging _MSG;
         public static void MessageDeviceQueue(int MessageID, string MessageType, int Priority, int CascadePlanID = 0)
         {
             DBCommon DBC = new DBCommon(db,_httpContextAccessor);
@@ -134,11 +135,10 @@ namespace CrisesControl.Infrastructure.Services
             List<MessageQueueItem> devicelist = null, int Priority = 1)
         {
             DBCommon DBC = new DBCommon(db, _httpContextAccessor);
-            Messaging MSG = new Messaging(db,_httpContextAccessor);
 
             try
             {
-                await  MSG.CreateProcessQueue(MessageID, "", Method, "CONFIRM", 99);
+                await  _MSG.CreateProcessQueue(MessageID, "", Method, "CONFIRM", 99);
 
                 string RabbitMQUser = DBC.LookupWithKey("RABBITMQ_USER");
                 string RabbitMQPassword = DBC.LookupWithKey("RABBITMQ_PASSWORD");
@@ -538,7 +538,7 @@ namespace CrisesControl.Infrastructure.Services
             catch (Exception ex)
             {
                 
-                await MSG.CreateProcessQueue(MessageID, "", Method, "REQUEUE", 999);
+                await _MSG.CreateProcessQueue(MessageID, "", Method, "REQUEUE", 999);
                // MessageHelpers.Common CMN = new MessageHelpers.Common();
                // CMN.NotifyRabbitServiceFailure(ex, "Critical!!: " + Method + MessageID + " Queue was not published, please check the system immediatly", false);
                 return false;
@@ -587,6 +587,227 @@ namespace CrisesControl.Infrastructure.Services
             return new List<MessageQueueItem>();
         }
 
+        public static List<MessageQueueItem> GetFailedDeviceQueue(int messageId, string method, int messageDeviceId = 0)
+        {
+            try
+            {
+                var pMessageId = new SqlParameter("@MessageID", messageId);
+                var pMethod = new SqlParameter("@Method", method);
+                var pMessageDeviceId = new SqlParameter("@MessageDeviceID", messageDeviceId);
+                db.Database.SetCommandTimeout(300);
+                var List = db.Set<MessageQueueItem>().FromSqlRaw("EXEC Pro_Get_Failed_Device_Queue @MessageID,@Method,@MessageDeviceID",
+                    pMessageId, pMethod, pMessageDeviceId).ToList();
+                return List;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return new List<MessageQueueItem>();
+        }
 
+        public static List<string> RabbitHosts()
+        {
+            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
+            string rabbitHost = DBC.LookupWithKey("RABBITMQ_HOST");
+            List<string> hostlist = rabbitHost.Split(',').ToList();
+            return hostlist;
+        }
+
+        public async static Task<bool> RequeueMessage(int messageId, string method, List<MessageQueueItem> devicelist)
+        {
+            var rabbithosts = RabbitHosts();
+            return await PublishMessageQueue(messageId, rabbithosts, method, devicelist);
+        }
+
+        public static List<MessageQueueItem> GetPublicAlertDeviceQueue(int messageId, string method)
+        {
+            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+            try
+            {
+                var pMessageId = new SqlParameter("@MessageID", messageId);
+                var pMethod = new SqlParameter("@Method", method);
+
+                db.Database.SetCommandTimeout(300);
+                var List = db.Set<MessageQueueItem>().FromSqlRaw("EXEC Get_Public_Alert_Queue @MessageID, @Method", pMessageId, pMethod).ToList().Select(c => {
+                    c.SenderName = c.SenderFirstName + " " + c.SenderLastName;
+                    return c;
+                }).ToList();
+                return List;
+            }
+            catch (Exception ex)
+            {
+            }
+            return new List<MessageQueueItem>();
+
+        }
+
+        public async static Task<bool> PublishPublicAlertQueue(int messageId, List<string> rabbitHost, string method)
+        {
+            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
+            Messaging MSG = new Messaging(db,_httpContextAccessor,DBC);
+
+            try
+            {
+
+                string RabbitMQUser = DBC.LookupWithKey("RABBITMQ_USER");
+                string RabbitMQPassword = DBC.LookupWithKey("RABBITMQ_PASSWORD");
+
+                // DBC.CreateLog("INFO", "Step 3" + RabbitMQUser + RabbitMQPassword);
+
+                var factory = new ConnectionFactory()
+                {
+                    AutomaticRecoveryEnabled = true,
+                    TopologyRecoveryEnabled = true,
+                    NetworkRecoveryInterval = new TimeSpan(0, 0, 15),
+                    RequestedHeartbeat = TimeSpan.FromMinutes(15),
+                    UserName = RabbitMQUser,
+                    Password = RabbitMQPassword
+                };
+                // DBC.CreateLog("INFO", "Step 4" + string.Join(",", RabbitHost.ToArray()));
+
+                using (var connection = factory.CreateConnection(rabbitHost))
+                using (var model = connection.CreateModel())
+                {
+                    string exchange_name = "cc_processing_exchange";
+                    model.ExchangeDeclare(exchange: exchange_name, type: "direct", durable: true, autoDelete: false);
+
+                    IBasicProperties properties = model.CreateBasicProperties();
+                    properties.Persistent = true;
+                    properties.DeliveryMode = 2;
+
+                    List<MessageQueueItem> device_list = new List<MessageQueueItem>();
+
+                    device_list = GetPublicAlertDeviceQueue(messageId, method);
+
+                    // DBC.CreateLog("INFO", "Step 6: " + device_list.Count);
+
+                    if (device_list.Count > 0)
+                    {
+                        bool OneTimeParams = false, INCLUDE_SENDER_IN_SMS = true, CommsDebug = true, SendInDirect = false;
+
+                        string SMSClientId = "", SMSClientSecret = "", FromNumber = "", SMSAPIClass = "", OneClickAck = "", EmailProvider = "",
+                             TextMessageXML = "", TwilioRoutingApi = "";
+
+                        List<AckOption> newAckOption = new List<AckOption>();
+
+                        int MAXMSGATTEMPT = 2;
+
+                        var emailitem = new EmailMessage();
+                        var textitem = new TextMessage();
+
+                        bool.TryParse(DBC.LookupWithKey("COMMS_DEBUG_MODE"), out CommsDebug);
+                        SendInDirect = DBC.IsTrue(DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+
+                        MAXMSGATTEMPT = Convert.ToInt32(DBC.LookupWithKey("MAXMSGATTEMPT"));
+
+                        TwilioRoutingApi = DBC.LookupWithKey("TWILIO_ROUTING_API");
+
+                        emailitem = ParamsHelper.GetEmailParams();
+                        textitem = ParamsHelper.GetTextParams();
+
+
+                        List<string> RoutingKeys = new List<string>();
+                        string routingKey = "";
+
+                        int QueueCount = 0;
+
+                        foreach (var item in device_list)
+                        {
+                            item.CommsDebug = CommsDebug;
+
+                            if (string.IsNullOrEmpty(item.MobileNo) && (method.ToUpper() == "PHONE" || method.ToUpper() == "TEXT"))
+                            {
+                                continue;
+                            }
+
+                            if (!OneTimeParams)
+                            {
+                                // DBC.CreateLog("INFO", "Step 9");
+
+                                if (item.Method.ToUpper() == "EMAIL")
+                                {
+                                    OneClickAck = DBC.GetCompanyParameter("ONE_CLICK_EMAIL_ACKNOWLEDGE", item.CompanyId);
+                                    EmailProvider = DBC.GetCompanyParameter("EMAIL_PROVIDER", item.CompanyId);
+                                    emailitem.OneClickAcknowledge = OneClickAck;
+                                    emailitem.EmailProvider = EmailProvider;
+
+                                }
+                                else if (item.Method.ToUpper() == "TEXT")
+                                {
+
+                                    if (method.ToUpper() == "TEXT")
+                                    {
+                                        string SMS_API = DBC.GetCompanyParameter("SMS_API", item.CompanyId);
+                                        string MESSAGING_COPILOT_SID = DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", item.CompanyId);
+                                        SMSClientId = DBC.LookupWithKey(SMS_API + "_CLIENTID");
+                                        SMSClientSecret = DBC.LookupWithKey(SMS_API + "_CLIENT_SECRET");
+                                        SMSAPIClass = DBC.LookupWithKey(SMS_API + "_API_CLASS");
+                                        TextMessageXML = DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
+                                        FromNumber = DBC.LookupWithKey(SMS_API + "_FROM_NUMBER");
+                                        textitem.SMSAPI = SMS_API;
+                                        textitem.CoPilotID = MESSAGING_COPILOT_SID;
+                                    }
+
+                                    textitem.ClientId = SMSClientId; textitem.ClientSecret = SMSClientSecret; textitem.FromNumber = FromNumber;
+                                    textitem.APIClass = SMSAPIClass; textitem.CallBackUrl = TextMessageXML; textitem.SendInDirect = SendInDirect; textitem.TwilioRoutingApi = TwilioRoutingApi;
+
+                                }
+
+                                if (method.ToUpper() == "TEXT" || method.ToUpper() == "WHATSAPP")
+                                {
+                                    INCLUDE_SENDER_IN_SMS = Convert.ToBoolean(DBC.GetCompanyParameter("INC_SENDER_IN_SMS", item.CompanyId));
+                                    textitem.SendOriginalText = true; textitem.AllowPingAckByText = true;
+                                    textitem.AllowIncidentAckbByText = true; textitem.IncludeSenderInText = INCLUDE_SENDER_IN_SMS;
+                                    textitem.GenericText = "";
+
+                                    //DBC.CreateLog("INFO", "Step 11");
+                                }
+                                newAckOption = await DBC.GetAckOptions(messageId);
+                                OneTimeParams = true;
+                            }
+
+                            item.MessageText = item.MessageText;
+
+                            string message = "";
+                            if (method.ToUpper() == "EMAIL")
+                            {
+                                message = ParamsHelper.MergeEmailParams(emailitem, item);
+                            }
+                            else if (method.ToUpper() == "TEXT")
+                            {
+                                message = ParamsHelper.MergeTextParams(textitem, item);
+                            }
+
+                            var body = Encoding.UTF8.GetBytes(message);
+
+                            routingKey = method.ToLower() + "_" + messageId;
+
+                            routingKey = "pa_" + routingKey + "_" + QueueCount;
+
+                            if (!RoutingKeys.Contains(routingKey))
+                            {
+                                model.QueueDeclare(queue: routingKey, durable: true, exclusive: false, autoDelete: false);
+                                model.QueueBind(queue: routingKey, exchange: exchange_name, routingKey: routingKey);
+
+                                RoutingKeys.Add(routingKey);
+                                DBC.MessageProcessLog(messageId, "MESSAGE_QUEUE_PUBLISHING", "PUBLIC", routingKey, "Count: " + device_list.Count);
+                            }
+
+                            model.BasicPublish(exchange: exchange_name, routingKey: routingKey, basicProperties: properties, body: body);
+                        }
+                        //DBC.MessageProcessLog(MessageID, "MESSAGE_QUEUE_PUBLISHED", "PUBLIC", "", "Total published: " + PublishCount);
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await MSG.CreateProcessQueue(messageId, "", "PUBLIC", "REQUEUE", 999);
+                //MessageHelpers.Common CMN = new MessageHelpers.Common();
+                //CMN.NotifyRabbitServiceFailure(ex, "Critical!!: " + "PUBLIC" + MessageID + " Queue was not published, please check the system immediatly", false);
+                return false;
+            }
+        }
     }
 }
