@@ -1629,7 +1629,7 @@ public class IncidentRepository : IIncidentRepository
 
                 if (CascadePlanID <= 0)
                 {
-                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                    Messaging MSG = new Messaging(_context,_httpContextAccessor ,_DBC);
                     foreach (int Method in MessageMethod)
                     {
                        await MSG.CreateMessageMethod(0, Method, 0, IncidentId);
@@ -2256,7 +2256,7 @@ public class IncidentRepository : IIncidentRepository
 
                 int mPriority = SharedKernel.Utils.Common.GetPriority(verifyInci.Severity);
 
-                Messaging MSG = new Messaging(_context,_httpContextAccessor)
+                Messaging MSG = new Messaging(_context,_httpContextAccessor, _DBC)
                 {
                     TimeZoneId = TimeZoneId
                 };
@@ -2396,7 +2396,7 @@ public class IncidentRepository : IIncidentRepository
         {
             foreach (AffectedLocation loc in AffectedLocations)
             {
-                CreateIncidentLocation(loc, IncidentActivationId, CompanyID);
+              await  CreateIncidentLocation(loc, IncidentActivationId, CompanyID);
             }
         }
     }
@@ -2435,7 +2435,7 @@ public class IncidentRepository : IIncidentRepository
         {
             var OldNotifyList = await _context.Set<IncidentNotificationList>().Where(ONL=> ONL.CompanyId == CompanyId && ONL.IncidentActivationId == IncidentActivationId).ToListAsync();
 
-            Messaging MSG = new Messaging(_context,_httpContextAccessor);
+            Messaging MSG = new Messaging(_context,_httpContextAccessor, _DBC);
 
             List<int> LINOList = new List<int>();
             List<IncidentNotificationObjLst> LstIncNotiLst = new List<IncidentNotificationObjLst>(LaunchIncidentNotificationObjLst);
@@ -2602,7 +2602,7 @@ public class IncidentRepository : IIncidentRepository
                         pushmethodid = await _context.Set<CommsMethod>().Where(w => w.MethodCode == "PUSH").Select(s => s.CommsMethodId).FirstOrDefaultAsync();
                     }
 
-                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                    Messaging MSG = new Messaging(_context,_httpContextAccessor,_DBC);
                     foreach (int Method in MessageMethod)
                     {
                        await  MSG.CreateMessageMethod(0, Method, inci.IncidentActivationId);
@@ -2618,13 +2618,13 @@ public class IncidentRepository : IIncidentRepository
 
             if (UsersToNotify != null)
             {
-                Messaging MSG = new Messaging(_context, _httpContextAccessor);
+                Messaging MSG = new Messaging(_context, _httpContextAccessor, DBC);
                 MSG.AddUserToNotify(0, UsersToNotify.ToList(), inci.IncidentActivationId);
             }
 
             if (MultiResponse)
             {
-                Messaging MSG = new Messaging(_context, _httpContextAccessor);
+                Messaging MSG = new Messaging(_context, _httpContextAccessor,DBC);
                 await MSG.SaveActiveMessageResponse(0, AckOptions, inci.IncidentActivationId);
             }
 
