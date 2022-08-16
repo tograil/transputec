@@ -863,21 +863,21 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public void CreateImportHeader(string SessionID, int CompanyID, string Status, int UserID, string DataFile = "NOFILE", string MappingFile = "NOFILE",
-            bool SendInvite = false, int ImportTriggerID = 0, bool AutoForceVerify = false, string JobType = "FULL")
+        public void CreateImportHeader(string sessionId, int companyId, string status, int userId, string dataFile = "NOFILE", string mappingFile = "NOFILE",
+            bool sendInvite = false, int importTriggerId = 0, bool autoForceVerify = false, string jobType = "FULL")
         {
             try
             {
-                var pSessionId = new SqlParameter("@SessionID", SessionID);
-                var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
-                var pMappingFile = new SqlParameter("@MappingFileName", MappingFile);
-                var pDataFile = new SqlParameter("@FileName", DataFile);
-                var pStatus = new SqlParameter("@Status", Status);
-                var pSendInvite = new SqlParameter("@SendInvite", SendInvite);
-                var pImportTriggerID = new SqlParameter("@ImportTriggerID", ImportTriggerID);
-                var pCurrentUserId = new SqlParameter("@LoggedInUserID", UserID);
-                var pAutoForceVerify = new SqlParameter("@AutoForceVerify", AutoForceVerify);
-                var pJobType = new SqlParameter("@JobType", JobType);
+                var pSessionId = new SqlParameter("@SessionID", sessionId);
+                var pCompanyId = new SqlParameter("@CompanyID", companyId);
+                var pMappingFile = new SqlParameter("@MappingFileName", mappingFile);
+                var pDataFile = new SqlParameter("@FileName", dataFile);
+                var pStatus = new SqlParameter("@Status", status);
+                var pSendInvite = new SqlParameter("@SendInvite", sendInvite);
+                var pImportTriggerID = new SqlParameter("@ImportTriggerID", importTriggerId);
+                var pCurrentUserId = new SqlParameter("@LoggedInUserID", userId);
+                var pAutoForceVerify = new SqlParameter("@AutoForceVerify", autoForceVerify);
+                var pJobType = new SqlParameter("@JobType", jobType);
 
                 var UserOnlyrec = _context.Set<JsonResult>().FromSqlRaw("EXEC Pro_ImportUser_CreateHeader @SessionID, @CompanyID, @MappingFileName, @FileName, @Status, " +
                     "@SendInvite, @AutoForceVerify, @JobType, @ImportTriggerID, @LoggedInUserID",
@@ -893,7 +893,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                CreateImportHeader(queueImport.SessionId, companyId, "DUMPING", userId, queueImport.DataFileName, queueImport.MappingFileName, queueImport.SendInvite, JobType: queueImport.JobType);
+                CreateImportHeader(queueImport.SessionId, companyId, "DUMPING", userId, queueImport.DataFileName, queueImport.MappingFileName, queueImport.SendInvite, jobType: queueImport.JobType);
 
                 string path = _DBC.LookupWithKey("UPLOAD_PATH");
 
@@ -924,7 +924,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     NI.BulkInsert();
 
-                    var queuStatus = QueueImportTask(queueImport.SessionId, companyId, queueImport.SendInvite, userId, JobType: queueImport.JobType);
+                    var queuStatus = QueueImportTask(queueImport.SessionId, companyId, queueImport.SendInvite, userId, jobType: queueImport.JobType);
 
                     return queuStatus;
                 }
@@ -936,24 +936,24 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        private string QueueImportTask(string SessionId, int CompanyId, bool SendInvite, int CurrentUserId, string JobType = "FULL")
+        private string QueueImportTask(string sessionId, int companyId, bool sendInvite, int currentUserId, string jobType = "FULL")
         {
             string queue_status = "DUMPED";
             DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now).AddHours(-1);
             var running_import = (from IM in _context.Set<ImportDumpHeader>()
-                                    where IM.CompanyId == CompanyId && IM.JobType == "FULL"
+                                    where IM.CompanyId == companyId && IM.JobType == "FULL"
                                     && (IM.Status == "IMPORTING" || IM.Status == "TOBEIMPORTED" || IM.Status == "VALIDATING" ||
                                     IM.Status == "VALIDATED" || IM.Status == "DUMPED" || IM.Status == "DUMPING") && IM.CreatedOn > dtNow
-                                    && IM.SessionId != SessionId && IM.FileName != "NOFILE"
+                                    && IM.SessionId != sessionId && IM.FileName != "NOFILE"
                                     select IM).Any();
             if (running_import)
             {
-                CreateImportHeader(SessionId, CompanyId, "WAITING", CurrentUserId, "NA", "NA", SendInvite, JobType: JobType);
+                CreateImportHeader(sessionId, companyId, "WAITING", currentUserId, "NA", "NA", sendInvite, jobType: jobType);
                 queue_status = "WAITING";
             }
             else
             {
-                CreateImportHeader(SessionId, CompanyId, "DUMPED", CurrentUserId, "NA", "NA", SendInvite, JobType: JobType);
+                CreateImportHeader(sessionId, companyId, "DUMPED", currentUserId, "NA", "NA", sendInvite, jobType: jobType);
                 queue_status = "DUMPED";
             }
             return queue_status;
@@ -974,12 +974,12 @@ namespace CrisesControl.Infrastructure.Repositories
             throw new NotImplementedException();
         }
 
-        public async Task<bool> createDepartmentData(string SessionId, int CompanyId, int UserId)
+        public async Task<bool> createDepartmentData(string sessionId, int companyId, int userId)
         {
 
             try
             {
-                var impDepData = await _context.Set<ImportDump>().Where(t => t.SessionId == SessionId).ToListAsync();
+                var impDepData = await _context.Set<ImportDump>().Where(t => t.SessionId == sessionId).ToListAsync();
                 if (impDepData.Count > 0)
                 {
 
@@ -1012,7 +1012,7 @@ namespace CrisesControl.Infrastructure.Repositories
                             MultiGroup = "Multiple departments found, seprate them per line." + Environment.NewLine;
                         }
 
-                        Rec = ImportCheckDepartmentExist(CompanyId, item.Department, SessionId, out DepartmentId);
+                        Rec = ImportCheckDepartmentExist(companyId, item.Department, sessionId, out DepartmentId);
 
                         string UpdateActionMessage = string.Empty;
 
@@ -1132,5 +1132,292 @@ namespace CrisesControl.Infrastructure.Repositories
                 return "EMPTY";
             }
         }
+
+        public bool CreateTempDepartment(List<ImportDumpInput> data, string sessionId, int companyId, int userId, string timeZoneId)
+        {
+
+            try
+            {
+                foreach (ImportDumpInput Dep in data)
+                {
+
+                    string Action = !string.IsNullOrEmpty(Dep.Action) ? Dep.Action : "ADD";
+                    ImportToDump(userId, companyId, sessionId,
+                        "", "", "", "", "", "", "", "", "0", Action, "", "0", Dep.Department, Dep.DepartmentStatus, "", "", "0", "", "", "",
+                        "", "", "", "", "", "", "", "", "", "", "DepartmentImportOnly", userId, TimeZoneId);
+
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public void ImportToDump(int userId, int companyId, string sessionId,
+           string firstName, string surname, string email, string ISD, string phone, string LLISD, string landline, string userRole, string status, string action,
+           string group, string groupStatus,
+           string department, string departmentStatus,
+           string location, string locationAddress, string locationStatus,
+           string security, string securityDescription,
+           string pingMethods, string incidentMethods,
+           string locationAction, string groupAction, string departmentAction,
+           string emailCheck, string locationCheck, string groupCheck, string departmentCheck, string securityCheck, string importAction, string actionType, int createdUpdatedBy, string timeZoneId)
+        {
+            try
+            {
+
+                ImportDump IMPDump = new ImportDump();
+
+                IMPDump.UserId = userId;
+                IMPDump.CompanyId = companyId;
+                IMPDump.SessionId = sessionId;
+
+                if (actionType.ToUpper() == "USERIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.FirstName = firstName;
+                    IMPDump.Surname = surname;
+                    IMPDump.Email = (!string.IsNullOrEmpty(email) ? email.ToLower() : "");
+                    IMPDump.EncryptedEmail = (!string.IsNullOrEmpty(email) ? email.ToLower() : "");
+                    IMPDump.Status = status;
+                    IMPDump.Isd = ISD;
+                    IMPDump.Phone = phone;
+                    IMPDump.Llisd = LLISD;
+                    IMPDump.Landline = landline;
+                    IMPDump.UserRole = (!string.IsNullOrEmpty(userRole) ? userRole.ToUpper() : "");
+                    IMPDump.EmailCheck = emailCheck;
+                    IMPDump.PingMethods = pingMethods;
+                    IMPDump.IncidentMethods = incidentMethods;
+                    IMPDump.LocationAction = locationAction;
+                    IMPDump.GroupAction = groupAction;
+                    IMPDump.ActionCheck = "";
+                }
+
+                if (actionType.ToUpper() == "GROUPIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.Group = group;
+                    IMPDump.GroupStatus = groupStatus;
+                    IMPDump.GroupCheck = groupCheck;
+                }
+                if (actionType.ToUpper() == "DEPARTMENTIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.Department = department;
+                    IMPDump.DepartmentStatus = departmentStatus;
+                    IMPDump.DepartmentCheck = departmentCheck;
+                }
+                if (actionType.ToUpper() == "LOCATIONIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.Location = location;
+                    IMPDump.LocationAddress = locationAddress;
+                    IMPDump.LocationStatus = locationStatus;
+                    IMPDump.LocationCheck = locationCheck;
+
+                }
+                if (actionType.ToUpper() == "SECURITYIMPORTONLY" || actionType.ToUpper() == "USERIMPORTCOMPLETE")
+                {
+                    IMPDump.Security = security;
+                    IMPDump.SecurityCheck = securityCheck;
+                }
+
+                IMPDump.ImportAction = importAction;
+                IMPDump.ActionType = actionType;
+                IMPDump.Action = action;
+                if (createdUpdatedBy > 0)
+                    IMPDump.CreatedBy = createdUpdatedBy;
+                IMPDump.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                if (createdUpdatedBy > 0)
+                    IMPDump.UpdatedBy = createdUpdatedBy;
+                IMPDump.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+
+                _context.Set<ImportDump>().Add(IMPDump);
+                _context.SaveChanges();
+            }
+            catch (Exception ex) { throw ex; }
+        }
+
+        public bool CreateTempUsers(List<ImportDumpInput> userData, string sessionId, int companyId, string jobType, int userId = 0, string timeZoneId = "GMT Standard Time")
+        {
+
+            try
+            {
+
+                CreateImportHeader(sessionId, companyId, "DUMPING", userId, "NOFILE", "NOFILE", false, 0, false, jobType);
+
+                foreach (ImportDumpInput Usr in userData)
+                {
+                    ImportToDump(0, companyId, sessionId, Usr.FirstName, Usr.Surname, Usr.Email, Usr.MobileISD, Usr.Mobile, Usr.ISDLandline, Usr.Landline,
+                        Usr.UserRole, Usr.Status, Usr.Action, Usr.Group, Usr.GroupStatus, Usr.Department, Usr.DepartmentStatus, Usr.Location, Usr.LocationAddress, Usr.LocationStatus,
+                    Usr.MenuAccess, Usr.MenuAccess, Usr.PingMethods, Usr.IncidentMethods, Usr.LocationAction, Usr.GroupAction, Usr.DepartmentAction,
+                    "", "", "", "", "", "", "USERIMPORTCOMPLETE", userId, TimeZoneId);
+                }
+
+                QueueImportTask(sessionId, companyId, false, userId, jobType);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public async Task<CommonDTO> RefreshTmpTable(int companyId, int userId, string sessionId)
+        {
+            CommonDTO ResultDTO = new CommonDTO();
+            try
+            {
+                DateTime DelTime = DateTime.Now.AddHours(-1);
+
+                var Imp = (from I in _context.Set<ImportDump>()
+                            where (I.CompanyId == companyId && I.UserId == userId && I.SessionId == sessionId) ||
+                            I.CreatedOn <= DelTime
+                            select I).ToList();
+                _context.Set<ImportDump>().RemoveRange(Imp);
+                await _context.SaveChangesAsync();
+                ResultDTO.ErrorId = 1;
+                ResultDTO.Message = "Table Refreshed";
+                return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                return ResultDTO;
+            }
+        }
+
+        public bool CreateTempLocation(List<ImportDumpInput> locData, string sessionId, int companyId, int userId = 0, string timeZoneId = "GMT Standard Time")
+        {
+
+            try
+            {
+                foreach (ImportDumpInput Loc in locData)
+                {
+
+                    string Action = !string.IsNullOrEmpty(Loc.Action) ? Loc.Action : "ADD";
+
+                    ImportToDump(userId, companyId, sessionId, "", "", "", "", "", "", "", "", "0",
+                        Action, "", "0", "", "0", Loc.Location, Loc.LocationAddress, Loc.LocationStatus, "", "", "", "", "", "", "", "",
+                        "", "", "", "", "", "LocationImportOnly", userId, timeZoneId);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public bool CreateTempGroup(List<ImportDumpInput> data, string sessionId, int companyId, int userId, string timeZoneId)
+        {
+
+            try
+            {
+                foreach (ImportDumpInput Dep in data)
+                {
+
+                    string Action = !string.IsNullOrEmpty(Dep.Action) ? Dep.Action : "ADD";
+                    ImportToDump(userId, companyId, sessionId,
+                        "", "", "", "", "", "", "", "", "0", Action, Dep.Group, Dep.Status, "", "0", "", "", "0", "", "", "", "", "", "",
+                        "", "", "", "", "", "", "", "GroupImportOnly", userId, timeZoneId);
+
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public object GetCountActionCheck(string sessionId, int outUserCompanyId)
+        {
+            CommonDTO ResultDTO = new CommonDTO();
+            try
+            {
+
+                var ImportActionCheck = (from UIT in _context.Set<ImportDump>()
+                                         where UIT.SessionId == sessionId
+                                         select new { ActionCheck = UIT.ActionCheck, ActionType = UIT.ActionType }).ToList();
+                if (ImportActionCheck.Count > 0)
+                {
+                    int TotalNewImported = 0;
+                    int TotalUpdated = 0;
+                    int TotalSkiped = 0;
+                    int TotalDeleted = 0;
+                    string ImportType = string.Empty;
+                    foreach (var item in ImportActionCheck)
+                    {
+                        if (!string.IsNullOrEmpty(item.ActionCheck))
+                        {
+                            if (item.ActionCheck.ToUpper() == NewCheck.ToUpper())
+                            {
+                                TotalNewImported += 1;
+                            }
+                            else if (item.ActionCheck.ToUpper() == OverrideCheck.ToUpper())
+                            {
+                                TotalUpdated += 1;
+                            }
+                            else if (item.ActionCheck.ToUpper() == SkipCheck.ToUpper() || item.ActionCheck == "ERROR")
+                            {
+                                TotalSkiped += 1;
+                            }
+                            else if (item.ActionCheck.ToUpper() == DeletedCheck.ToUpper())
+                            {
+                                TotalDeleted += 1;
+                            }
+                        }
+                        else
+                        {
+                            TotalSkiped += 1;
+                        }
+                        ImportType = item.ActionType;
+                    }
+
+                    ImportResult ImpDTO = new ImportResult();
+                    ImpDTO.TotalImport = TotalNewImported;
+                    ImpDTO.TotalUpdate = TotalUpdated;
+                    ImpDTO.TotalSkip = TotalSkiped;
+                    ImpDTO.TotalDelete = TotalDeleted;
+
+                    DateTime DelTime = DateTime.Now.AddHours(-1);
+
+                    var DelImprtData = (from UIT in _context.Set<ImportDump>()
+                                        where UIT.SessionId == sessionId
+                                        select UIT).ToList();
+                    try
+                    {
+
+                        string ResultFilePath = _DBC.Getconfig("ImportResultPath");
+                        string FileName = outUserCompanyId + "\\" + sessionId.TrimStart('{').TrimEnd('}') + "\\import_log_report.csv";
+                        bool fileCreated = DataHelper.CreateImportResult(DelImprtData, ResultFilePath + FileName, ImportType);
+                        if (fileCreated)
+                            ImpDTO.ResultFile = FileName;
+
+                        var DelRecs = (from UIT in _context.Set<ImportDump>()
+                                       where UIT.CreatedOn <= DelTime
+                                       select UIT).ToList();
+                        _context.Set<ImportDump>().RemoveRange(DelRecs);
+                        _context.SaveChanges();
+
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                    return ImpDTO;
+                }
+                else
+                {
+                    ResultDTO.ErrorId = 110;
+                    ResultDTO.Message = "Record not found";
+                }
+                return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                return ResultDTO;
+            }
+
+        }
+
     }
 }
