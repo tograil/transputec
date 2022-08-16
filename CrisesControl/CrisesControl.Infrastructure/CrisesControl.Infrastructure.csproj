@@ -36,6 +36,7 @@
     <PackageReference Include="RabbitMQ.Client.Core.DependencyInjection" Version="5.0.0" />
     <PackageReference Include="Serilog" Version="2.11.0" />
     <PackageReference Include="System.Runtime.Caching" Version="6.0.0" />
+    <PackageReference Include="Twilio" Version="5.75.2" />
   </ItemGroup>
 
 	<ItemGroup>

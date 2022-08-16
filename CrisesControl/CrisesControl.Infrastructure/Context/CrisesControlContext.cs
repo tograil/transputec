@@ -28,7 +28,7 @@ using CrisesControl.Core.Administrator;
 using CrisesControl.Core.System;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Academy;
-
+using static CrisesControl.Infrastructure.Services.CommsLogsHelper;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -209,6 +209,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<RegisteredUser>().HasNoKey();
             modelBuilder.Entity<CompaniesStats>().HasNoKey();
             modelBuilder.Entity<CompanyMessageTransactionStats>().HasNoKey();
+            modelBuilder.Entity<CMMultiPart>().HasNoKey();
+            modelBuilder.Entity<CMResult>().HasNoKey();
+            modelBuilder.Entity<CMSMSResponse>().HasNoKey();
+            modelBuilder.Entity<TwilioBatch>().HasNoKey();
+            modelBuilder.Entity<TwilioRequest>().HasNoKey();
+            modelBuilder.Entity<TwilioPriceByNumber>().HasNoKey();
+            modelBuilder.Entity<TwilioLogToClear>().HasNoKey();
             //modelBuilder.Entity<CompanyTranscationType>().HasNoKey();
             //modelBuilder.Entity<Location>().HasNoKey();
         }

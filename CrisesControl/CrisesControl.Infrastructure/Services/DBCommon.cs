@@ -31,6 +31,7 @@ using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
 using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.Core.Import;
+using Newtonsoft.Json;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -1374,8 +1375,46 @@ namespace CrisesControl.Api.Application.Helpers
             rtn.ResultID = resultId;
             return rtn;
         }
-        
-        
-        
+        public void ModelInputLog(string ControllerName, string MethodName, int UserID, int CompanyID, dynamic data)
+        {
+            try
+            {
+              
+                    string json = JsonConvert.SerializeObject(data);
+
+                    var pControllerName = new SqlParameter("@ControllerName", ControllerName);
+                    var pMethodName = new SqlParameter("@MethodName", MethodName);
+                    var pUserID = new SqlParameter("@UserID", UserID);
+                    var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                    var pData = new SqlParameter("@Data", json);
+
+                    _context.Database.ExecuteSqlRaw("Pro_Log_Model_Data @ControllerName, @MethodName, @UserID, @CompanyID, @Data",
+                    pControllerName, pMethodName, pUserID, pCompanyID, pData);
+            
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public DateTimeOffset ToNullIfTooEarlyForDb(DateTimeOffset date, bool ConvertUTC = false)
+        {
+            DateTimeOffset retDate = (date.Year >= 1990) ? date : DateTime.Now;
+            if (!ConvertUTC)
+            {
+                return retDate;
+            }
+            else
+            {
+                //retDate = GetLocalTimeScheduler("GMT Standard Time", retDate);
+                retDate = GetDateTimeOffset(retDate.LocalDateTime);
+            }
+            return retDate;
+        }
+        public string LogWrite(string str, string strType = "I")
+        {
+            return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
+        }
+
     }
 }

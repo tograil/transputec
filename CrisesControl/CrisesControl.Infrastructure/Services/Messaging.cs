@@ -2122,7 +2122,37 @@ namespace CrisesControl.Infrastructure.Services
             {
             }
         }
+        public AcknowledgeReturn AcknowledgeMessage(int UserID, int MessageID, int MessageListID, string Latitude, string Longitude, string AckMethod, int ResponseID, string TimeZoneId)
+        {
+            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+            try
+            {
+                DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                var pUserID = new SqlParameter("@UserID", UserID);
+                var pMessageID = new SqlParameter("@MessageID", MessageID);
+                var pMessageListID = new SqlParameter("@MessageListID", MessageListID);
+                var pLatitude = new SqlParameter("@Latitude", DBC.Left(Latitude, 15));
+                var pLongitude = new SqlParameter("@Longitude", DBC.Left(Longitude, 15));
+                var pMode = new SqlParameter("@Mode", AckMethod);
+                var pTimestamp = new SqlParameter("@Timestamp", dtNow);
+                var pResponseID = new SqlParameter("@ResponseID", ResponseID);
 
+
+                var MessageData = db.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID, @MessageID, @MessageListID, @Latitude, @Longitude, @Mode, @Timestamp, @ResponseID",
+                    pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode, pTimestamp, pResponseID).FirstOrDefault();
+
+                Task.Factory.StartNew(() => {
+                   // CCWebSocketHelper.SendMessageCountToUsersByMessage(MessageID);
+                });
+
+                return MessageData;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return null;
+            }
+        }
 
         #region Social Integration
         public void SocialPosting(int messageId, List<string> socialHandle, int companyId)
