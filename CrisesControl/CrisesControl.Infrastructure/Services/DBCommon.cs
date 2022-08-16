@@ -30,6 +30,7 @@ using System.Net;
 using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
 using CrisesControl.Infrastructure.Services.Jobs;
+using CrisesControl.Core.Import;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -151,18 +152,18 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return "";
         }
-        public async Task<int> IncidentNote(int ObjectID, string NoteType, string Notes, int CompanyID, int UserID)
+        public async Task<int> IncidentNote(int objectId, string noteType, string notes, int companyId, int userId)
         {
             try
             {
                 IncidentTaskNote Note = new IncidentTaskNote()
                 {
-                    UserId = UserID,
-                    ObjectId = ObjectID,
-                    CompanyId = CompanyID,
-                    IncidentTaskNotesId = ObjectID,
-                    NoteType = NoteType,
-                    Notes = Notes,
+                    UserId = userId,
+                    ObjectId = objectId,
+                    CompanyId = companyId,
+                    IncidentTaskNotesId = objectId,
+                    NoteType = noteType,
+                    Notes = notes,
                     CreatedDate = DateTime.Now,
                 };
                 await _context.AddAsync(Note);
@@ -897,20 +898,20 @@ namespace CrisesControl.Api.Application.Helpers
                 return testResult;
             }
         }
-        public void RemoveUserObjectRelation(string RelationName, int UserId, int SourceObjectId, int CompanyId, int CurrentUserId, string TimeZoneId)
+        public void RemoveUserObjectRelation(string relationName, int userId, int sourceObjectId, int companyId, int currentUserId, string timeZoneId)
         {
             try
             {
-                if (RelationName.ToUpper() == "GROUP" || RelationName.ToUpper() == "LOCATION")
+                if (relationName.ToUpper() == "GROUP" || relationName.ToUpper() == "LOCATION")
                 {
                     var ObjMapId = (from OM in _context.Set<ObjectMapping>()
                                     join OBJ in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals OBJ.ObjectId
-                                    where OBJ.ObjectTableName == RelationName
+                                    where OBJ.ObjectTableName == relationName
                                     select OM).Select(a => a.ObjectMappingId).FirstOrDefault();
 
                     var getRelationRec = (from OR in _context.Set<ObjectRelation>()
-                                          where OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == UserId &&
-                                          OR.SourceObjectPrimaryId == SourceObjectId
+                                          where OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == userId &&
+                                          OR.SourceObjectPrimaryId == sourceObjectId
                                           select OR).FirstOrDefault();
                     if (getRelationRec != null)
                     {
@@ -918,25 +919,25 @@ namespace CrisesControl.Api.Application.Helpers
                         _context.SaveChanges();
                     }
                 }
-                else if (RelationName.ToUpper() == "DEPARTMENT")
+                else if (relationName.ToUpper() == "DEPARTMENT")
                 {
-                    UpdateUserDepartment(UserId, 0, CurrentUserId, CompanyId, TimeZoneId);
+                    UpdateUserDepartment(userId, 0, currentUserId, companyId, timeZoneId);
                 }
             }
             catch (Exception ex)
             {
                 throw ex;
             }
-          
+
         }
-       
-       
-        public void RemoveUserDevice(int UserID, bool TokenReset = false)
+
+
+        public void RemoveUserDevice(int userId, bool tokenReset = false)
         {
             try
             {
-                var devices = (from UD in _context.Set<UserDevice>() where UD.UserId == UserID select UD).ToList();
-                if (!TokenReset)
+                var devices = (from UD in _context.Set<UserDevice>() where UD.UserId == userId select UD).ToList();
+                if (!tokenReset)
                 {
                     _context.Set<UserDevice>().RemoveRange(devices);
                 }
@@ -984,15 +985,15 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async void MessageProcessLog(int MessageID, string EventName, string MethodName = "", string QueueName = "", string AdditionalInfo = "")
+        public async Task MessageProcessLog(int messageId, string eventName, string methodName = "", string queueName = "", string additionalInfo = "")
         {
             try
             {
-                var pMessageID = new SqlParameter("@MessageID", MessageID);
-                var pEventName = new SqlParameter("@EventName", EventName);
-                var pMethodName = new SqlParameter("@MethodName", MethodName);
-                var pQueueName = new SqlParameter("@QueueName", QueueName);
-                var pAdditionalInfo = new SqlParameter("@AdditionalInfo", AdditionalInfo);
+                var pMessageID = new SqlParameter("@MessageID", messageId);
+                var pEventName = new SqlParameter("@EventName", eventName);
+                var pMethodName = new SqlParameter("@MethodName", methodName);
+                var pQueueName = new SqlParameter("@QueueName", queueName);
+                var pAdditionalInfo = new SqlParameter("@AdditionalInfo", additionalInfo);
 
                 await _context.Set<Result>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
                      pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).FirstOrDefaultAsync();
@@ -1084,18 +1085,112 @@ namespace CrisesControl.Api.Application.Helpers
             }
 
         }
-       public string Getconfig(string key, string DefaultVal = "")
+        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
         {
             try
             {
-                string value = System.Configuration.ConfigurationManager.ConnectionStrings.ToString();
+                var comp_pp = (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == companyId select CPP).FirstOrDefault();
+                var comp = (from C in _context.Set<Company>() where C.CompanyId == companyId select C).FirstOrDefault();
+                if (comp_pp != null && comp != null)
+                {
+
+                    if (comp.Status == 1)
+                    {
+                        bool sendAlert = false;
+
+                        DateTimeOffset LastUpdate = comp_pp.UpdatedOn;
+
+                        List<string> stopped_comms = new List<string>();
+
+                        if (comp_pp.MinimumEmailRate > 0)
+                        {
+                            stopped_comms.Add("EMAIL");
+                        }
+                        if (comp_pp.MinimumPhoneRate > 0)
+                        {
+                            stopped_comms.Add("PHONE");
+                        }
+                        if (comp_pp.MinimumTextRate > 0)
+                        {
+                            stopped_comms.Add("TEXT");
+                        }
+                        if (comp_pp.MinimumPushRate > 0)
+                        {
+                            stopped_comms.Add("PUSH");
+                        }
+
+                        if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
+                        { //Have positive balance + More than the minimum balance required.
+                            comp.CompanyProfile = "SUBSCRIBED";
+                            _set_comms_status(companyId, stopped_comms, true);
+                        }
+                        else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
+                        { //Used the overdraft amount as well, so stop their SMS and Phone
+                            comp.CompanyProfile = "STOP_MESSAGING";
+                            sendAlert = true;
+                            _set_comms_status(companyId, stopped_comms, false);
+                        }
+                        else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
+                        { //Using the overdraft facility, can still use the system
+                            comp.CompanyProfile = "ON_CREDIT";
+                            sendAlert = true;
+                            _set_comms_status(companyId, stopped_comms, true);
+                        }
+                        else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
+                        { //Less than the minimum balance, just send an alert, can still use the system.
+                            comp.CompanyProfile = "LOW_BALANCE";
+                            sendAlert = true;
+                            _set_comms_status(companyId, stopped_comms, true);
+                        }
+                        comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
+                        _context.SaveChanges();
+
+                        if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
+                        {
+                            sendAlert = false;
+                        }
+
+                        string CommsDebug = LookupWithKey("COMMS_DEBUG_MODE");
+
+                        if (sendAlert && CommsDebug == "false")
+                        {
+                            //await _SDE.UsageAlert(CompanyID);
+                        }
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+        
+
+        public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
+        {
+            try
+            {
+                CreateLog("INFO", Left(strErrorMessage, 8000), null, strControllerName, strMethodName, intCompanyId);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public string Getconfig(string key, string defaultVal = "")
+        {
+            try
+            {
+                string value = _context.Database.GetConnectionString();
                 if (value != null)
                 {
                     return value;
                 }
                 else
                 {
-                    return DefaultVal;
+                    return defaultVal;
                 }
             }
             catch (Exception ex)
@@ -1103,15 +1198,15 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public string FormatMobile(string ISD, string Mobile)
+        public string FormatMobile(string ISD, string mobile)
         {
-            if (!string.IsNullOrEmpty(Mobile))
+            if (!string.IsNullOrEmpty(mobile))
             {
-                Mobile = Mobile.TrimStart('0').TrimStart('+');
-                if (Mobile.Length > 4)
+                mobile = mobile.TrimStart('0').TrimStart('+');
+                if (mobile.Length > 4)
                 {
                     ISD = ISD.TrimStart('+').TrimStart('0');
-                    return "+" + ISD + Mobile;
+                    return "+" + ISD + mobile;
                 }
                 else
                 {
@@ -1123,13 +1218,13 @@ namespace CrisesControl.Api.Application.Helpers
                 return "";
             }
         }
-        public bool IsTrue(string BoolVal, bool Default = true)
+        public bool IsTrue(string boolVal, bool Default = true)
         {
-            if (BoolVal == "true")
+            if (boolVal == "true")
             {
                 return true;
             }
-            else if (BoolVal == "false")
+            else if (boolVal == "false")
             {
                 return false;
             }
@@ -1145,7 +1240,7 @@ namespace CrisesControl.Api.Application.Helpers
             int z = (str.Length / chunkSize) + (result > 0 ? 1 : 0);
             return z;
         }
-        public dynamic InitComms(string API_CLASS, string APIClass = "", string ClientId = "", string ClientSecret = "")
+        public dynamic InitComms(string API_CLASS, string apiClass = "", string clientId = "", string clientSecret = "")
         {
             DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
             try
@@ -1154,16 +1249,16 @@ namespace CrisesControl.Api.Application.Helpers
                 int RetryCount = 2;
                 int.TryParse(DBC.LookupWithKey(API_CLASS + "_MESSAGE_RETRY_COUNT"), out RetryCount);
 
-                if (string.IsNullOrEmpty(APIClass))
-                    APIClass = DBC.LookupWithKey(API_CLASS + "_API_CLASS");
+                if (string.IsNullOrEmpty(apiClass))
+                    apiClass = DBC.LookupWithKey(API_CLASS + "_API_CLASS");
 
-                if (string.IsNullOrEmpty(ClientId))
-                    ClientId = DBC.LookupWithKey(API_CLASS + "_CLIENTID");
+                if (string.IsNullOrEmpty(clientId))
+                    clientId = DBC.LookupWithKey(API_CLASS + "_CLIENTID");
 
-                if (string.IsNullOrEmpty(ClientSecret))
-                    ClientSecret = DBC.LookupWithKey(API_CLASS + "_CLIENT_SECRET");
+                if (string.IsNullOrEmpty(clientSecret))
+                    clientSecret = DBC.LookupWithKey(API_CLASS + "_CLIENT_SECRET");
 
-                string[] TmpClass = APIClass.Trim().Split('|');
+                string[] TmpClass = apiClass.Trim().Split('|');
 
                 string binPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "bin");
 
@@ -1171,8 +1266,8 @@ namespace CrisesControl.Api.Application.Helpers
                 Type type = assembly.GetType(TmpClass[1]);
                 dynamic CommsAPI = Activator.CreateInstance(type);
 
-                CommsAPI.ClientId = ClientId;
-                CommsAPI.Secret = ClientSecret;
+                CommsAPI.ClientId = clientId;
+                CommsAPI.Secret = clientSecret;
                 CommsAPI.RetryCount = RetryCount;
 
                 return CommsAPI;
@@ -1183,35 +1278,35 @@ namespace CrisesControl.Api.Application.Helpers
                 return null;
             }
         }
-        public async Task<List<NotificationUserList>> GetUniqueUsers(List<NotificationUserList> List1, List<NotificationUserList> List2, bool ParticipantCheck = true)
+        public async Task<List<NotificationUserList>> GetUniqueUsers(List<NotificationUserList> list1, List<NotificationUserList> list2, bool participantCheck = true)
         {
             try
             {
-                if (List2 != null)
+                if (list2 != null)
                 {
-                    if (List2.Count > 0)
+                    if (list2.Count > 0)
                     {
-                        List1.RemoveAll(x => List2.Exists(y => y.UserId == x.UserId && y.IsTaskRecipient == ParticipantCheck));
-                        List1 = List1.Union(List2).ToList();
+                        list1.RemoveAll(x => list2.Exists(y => y.UserId == x.UserId && y.IsTaskRecipient == participantCheck));
+                        list1 = list1.Union(list2).ToList();
                     }
                 }
-                List1 = List1.GroupBy(g => new { g.UserId, g.IsTaskRecipient })
+                list1 = list1.GroupBy(g => new { g.UserId, g.IsTaskRecipient })
                     .Select(g => g.First())
                     .ToList();
-                List1.RemoveAll(x => List1.Exists(y => y.UserId == x.UserId && y.IsTaskRecipient == true && x.IsTaskRecipient == false));
-                return List1;
+                list1.RemoveAll(x => list1.Exists(y => y.UserId == x.UserId && y.IsTaskRecipient == true && x.IsTaskRecipient == false));
+                return list1;
             }
             catch (Exception)
             {
                 return null;
             }
         }
-        public async Task<List<AckOption>> GetAckOptions(int MessageID)
+        public async Task<List<AckOption>> GetAckOptions(int messageId)
         {
             try
             {
                 return await _context.Set<ActiveMessageResponse>()
-                        .Where(MR => MR.MessageId == MessageID)
+                        .Where(MR => MR.MessageId == messageId)
                         .Select(MR => new AckOption()
                         {
                             ResponseId = MR.ResponseId,
@@ -1224,31 +1319,31 @@ namespace CrisesControl.Api.Application.Helpers
                 return null;
             }
         }
-        public string GetValueByIndex(List<string> ValueList, int IndexVal)
+        public string GetValueByIndex(List<string> valueList, int indexVal)
         {
             try
             {
 
                 bool isModed = false;
-                if (IndexVal > ValueList.Count)
+                if (indexVal > valueList.Count)
                 {
-                    IndexVal %= ValueList.Count;
+                    indexVal %= valueList.Count;
                     isModed = true;
                 }
 
-                if (IndexVal == 0 && isModed == true)
-                    IndexVal = ValueList.Count;
+                if (indexVal == 0 && isModed == true)
+                    indexVal = valueList.Count;
 
-                if (IndexVal < 0)
-                    IndexVal = 0;
+                if (indexVal < 0)
+                    indexVal = 0;
 
-                if (ValueList.ElementAtOrDefault(IndexVal) != null)
+                if (valueList.ElementAtOrDefault(indexVal) != null)
                 {
-                    return ValueList.ElementAtOrDefault(IndexVal);
+                    return valueList.ElementAtOrDefault(indexVal);
                 }
                 else
                 {
-                    return GetValueByIndex(ValueList, 0);
+                    return GetValueByIndex(valueList, 0);
                 }
             }
             catch (Exception ex)
@@ -1257,16 +1352,16 @@ namespace CrisesControl.Api.Application.Helpers
                 return "+441212855004";
             }
         }
-        public async Task LocalException(string Error, string Message, string Controller = "", string Method = "", int CompanyId = 0)
+        public async Task LocalException(string error, string message, string controller = "", string method = "", int companyId = 0)
         {
             ExceptionLog el = new ExceptionLog();
-            el.ControllerName = Controller;
-            el.MethodName = Method;
-            el.CompanyId = CompanyId;
+            el.ControllerName = controller;
+            el.MethodName = method;
+            el.CompanyId = companyId;
             el.CreatedBy = 0;
             el.EntryDate = DateTimeOffset.Now;
-            el.ErrorId = Error;
-            el.ErrorMessage = Message;
+            el.ErrorId = error;
+            el.ErrorMessage = message;
             await _context.AddAsync(el);
             await _context.SaveChangesAsync();
         }
@@ -1286,14 +1381,14 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return false;
         }
-        
-        public void CancelJobsByGroup(string JobGroup)
+
+        public void CancelJobsByGroup(string jobGroup)
         {
             try
             {
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
-                var groupMatcher = GroupMatcher<JobKey>.GroupContains(JobGroup);
+                var groupMatcher = GroupMatcher<JobKey>.GroupContains(jobGroup);
                 var jobKeys = _scheduler.GetJobKeys(groupMatcher).Result;
                 foreach (var jobKey in jobKeys)
                 {
@@ -1447,5 +1542,62 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
+        public async Task<List<SocialHandles>> GetSocialServiceProviders()
+        {
+            try
+            {
+                List<SocialHandles> SH = new List<SocialHandles>();
+                var syspr = await _context.Set<SysParameter>().Where(SP=> SP.Category == "SOCIAL_HANDLE" && SP.Status == 1).ToListAsync();
+                foreach (var spvar in syspr)
+                {
+                    SH.Add(new SocialHandles { ProviderCode = spvar.Name, ProviderName = spvar.Value });
+                }
+                return SH;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<int> SegregationWarning(int CompanyId, int UserID, int IncidentId)
+        {
+            var pIncidentId = new SqlParameter("@IncidentID", IncidentId);
+            var pUserID = new SqlParameter("@UserID", UserID);
+            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+
+            int SegWarning =await _context.Database.ExecuteSqlRawAsync("SELECT [dbo].[Incident_Segregation](@IncidentID,@UserID,@CompanyID)", pIncidentId, pUserID, pCompanyId);
+            return SegWarning;
+        }
+
+        public List<SocialIntegraion> GetSocialIntegration(int companyId, string accountType)
+        {
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pAccountType = new SqlParameter("@AccountType", accountType);
+
+                var result = _context.Set<SocialIntegraion>().FromSqlRaw("EXEC Pro_Get_Social_Integration @CompanyID, @AccountType", pCompanyID, pAccountType).ToList();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public Return Return(int errorId = 100, string errorCode = "E100", bool status = false, string message = "FAILURE", object data = null, int resultId = 0)
+        {
+            Return rtn = new Return();
+            rtn.ErrorId = errorId;
+            rtn.ErrorCode = errorCode;
+            rtn.Status = status;
+            rtn.Message = message;
+            rtn.Data = data;
+            rtn.ResultID = resultId;
+            return rtn;
+        }
+        
+        
+        
     }
 }
