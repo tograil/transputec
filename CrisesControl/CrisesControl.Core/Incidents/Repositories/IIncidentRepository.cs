@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.Messages;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Reports;
 
@@ -72,4 +74,49 @@ public interface IIncidentRepository
             string UserRole, string Reason, int NumberOfKeyHolder, string CompletionNotes = "", int[] MessageMethod = null, int CascadePlanID = 0, bool isSos = false);
     Task<List<IncidentSOSRequest>> GetIncidentSOSRequest(int IncidentActivationId);
     Task<UpdateIncidentStatusReturn> GetActiveIncidentBasic(int CompanyId, int IncidentActivationId);
+    Task<int> UpdateIncidentType(string Name, int IncidentTypeId, int UserId, int CompanyId);
+    Task DeleteEmptyTaskHeader(int IncidentID);
+    Task<int> UpdateCompanyIncidents(int CompanyId, int IncidentId, string IncidentIcon, string Name, string Description,
+      int PlanAssetID, int IncidentTypeId, int Severity, int Status, int NumberOfKeyHolders, int CurrentUserId, string TimeZoneId,
+      UpdIncidentKeyHldLst[] UpdIncidentKeyHldLst, int AudioAssetId, bool TrackUser, bool SilentMessage, List<AckOption> AckOptions,
+      int[] MessageMethod, int CascadePlanID, int[] Groups, int[] Keyholders);
+    Task<List<IncidentAssets>> AddIncidentAssets(int CompanyId, int IncidentId, string LinkedAssetId, int CurrentUserId, string TimeZoneId);
+    Task<TourIncident> GetIncidentByName(string IncidentName, int CompanyId, int UserId, string TimeZoneId);
+    Task IncidentParticipantGroup(int IncidentId, int ActionID, IncidentNotificationObjLst[] IncidentParticipants);
+    Task IncidentParticipantUser(int IncidentId, int ActionID, int[] UsersToNotify);
+    Task CreateIncidentParticipant(int IncidentID, int GroupID, int ObjectMapID, int IncidentActionID, int UserID, string ParticipantType);
+    Task<List<ActionLsts>> AddIncidentActions(int CompanyId, int IncidentId, string Title, string ActionDescription,
+          IncidentNotificationObjLst[] IncidentParticipants, int[] UsersToNotify, int Status, int CurrentUserId, string TimeZoneId);
+    Task<bool> DeleteIncidentAssets(int CompanyId, int IncidentId, int AssetObjMapId, int IncidentAssetId);
+    Task<bool> DeleteCompanyIncidentActions(int CompanyId, int IncidentId, int IncidentActionId, int CurrentUserId, string TimeZoneId);
+    Task<bool> DeleteCompanyIncidents(int CompanyId, int IncidentId, int CurrentUserId, string TimeZoneId);
+    Task<List<ActionLsts>> UpdateCompanyIncidentActions(int CompanyId, int IncidentId, int IncidentActionId, string Title, string ActionDescription,
+           IncidentNotificationObjLst[] IncidentParticipants, int[] UsersToNotify, int Status, int CurrentUserId, string TimeZoneId);
+    Task<UpdateIncidentStatus> ActiveIncidentDetailsById(int CompanyId, int IncidentActivationId, int CurrentUserID, bool isapp = false);
+    Task<List<IncidentLibraryDetails>> IncidentLibrary(int CompanyId);
+    Task<List<ActionLsts>> IncidentMessage(int CompanyId, int IncidentId);
+    Task<ActionLsts> GetIncidentAction(int CompanyId, int IncidentId, int IncidentActionId);
+    Task<List<IncidentAssets>> IncidentAsset(int CompanyId, int IncidentId, string Source = "WEB");
+    Task<IncidentDetails> GetCompanySOS(int CompanyID);
+    Task AddSOSNotificationGroup(int IncidentID, int ObjectMapID, int SourceID, int CompanyID);
+    Task AddSOSImpactedLoc(int IncidentID, int LocationID);
+    Task UpdateSOSNotificationGroup(int IncidentId, IncidentNotificationObjLst[] NotificationGroup, int CompanyID);
+    Task UpdateSOSLocation(int IncidentId, int[] ImpactedLocation);
+    Task<List<CmdMessage>> GetCMDMessage(int ActiveIncidentID, int UserID);
+    Task CreateIncidentLocation(AffectedLocation loc, int ActiveIncidentID, int CompanyID);
+    Task ProcessImpactedLocation(int[] LocationID, int IncidentActivationID, int CompanyID, string Action);
+    Task<UpdateIncidentStatusReturn> TestWithMe(int IncidentId, int[] ImpactedLocations, int CurrentUserId, int CompanyId, string TimeZoneId);
+    Task CleanUPJob(int ActiveIncidentID);
+    Task<bool> SaveIncidentJob(int CompanyId, int IncidentId, int IncidentActivationId, string Description, int Severity, int[] ImpactedLocationId,
+      string TimeZoneId, int CurrentUserId, IncidentKeyHldLst[] IncidentKeyHldLst, IncidentNotificationObjLst[] InitiateIncidentNotificationObjLst,
+      bool MultiResponse, List<AckOption> AckOptions, int AssetId = 0, bool TrackUser = false, bool SilentMessage = false, int[] MessageMethod = null,
+      List<AffectedLocation> AffectedLocations = null, int[] UsersToNotify = null, List<string> SocialHandle = null);
+    Task<bool> SaveIncidentParticipants(int IncidentId, int ActionID, IncidentNotificationObjLst[] IncidentParticipants, int[] UsersToNotify);
+    Task<List<MapLocationReturn>> GetIncidentMapLocations(int ActiveIncidentID, string Filter);
+    Task<bool> UpdateSegregationLink(int SourceID, int TargetID, string LinkType, int CurrentUserId, int CompanyId);
+    Task<List<IncidentSegLinks>> SegregationLinks(int TargetID, string MemberShipType, string LinkType, int OutUserCompanyId);
+    Task<DataTablePaging> GetIncidentEntityRecipient(int start, int length, Search search, int draw, string orderBy, string dir, int activeIncidentID, string entityType, int entityID, int companyId, int currentUserId, string companyKey);
+    Task<List<EntityRcpntResponse>> GetIncidentEntityRecipientData(int ActiveIncidentID, string EntityType, int EntityID, int CompanyId, int UserId,
+           int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir, string CompanyKey);
+    Task<List<MessageGroupObject>> GetIncidentRecipientEntity(int ActiveIncidentID, string EntityType, int TargetUserId, int CompanyId);
 }

@@ -102,7 +102,7 @@ namespace CrisesControl.Infrastructure.Services.Jobs
             try
             {
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
-                var data = await  db.Set<CompanyPackageItem>().FromSqlRaw(" exec Pro_Admin_GetCompanyDetails_PackageItems @CompanyID", pCompanyId).ToListAsync();
+                var data = await db.Set<CompanyPackageItem>().FromSqlRaw(" exec Pro_Admin_GetCompanyDetails_PackageItems @CompanyID", pCompanyId).ToListAsync();
                 return data;
             }
             catch (Exception ex)
@@ -111,12 +111,12 @@ namespace CrisesControl.Infrastructure.Services.Jobs
             }
         }
 
-        public async  Task<IncidentPingStats> GetIncidentPingStats(int CompanyID)
+        public async Task<IncidentPingStats> GetIncidentPingStats(int CompanyID)
         {
             try
             {
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyID);
-                var data = await  db.Set<IncidentPingStats>().FromSqlRaw("exec Pro_Admin_GetCompanyDetails_CompanyStats @CompanyID", pCompanyId).FirstOrDefaultAsync();
+                var data = await db.Set<IncidentPingStats>().FromSqlRaw("exec Pro_Admin_GetCompanyDetails_CompanyStats @CompanyID", pCompanyId).FirstOrDefaultAsync();
                 return data;
             }
             catch (Exception ex)

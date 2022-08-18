@@ -173,7 +173,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CrisesControl.Core.Reports.TrackingExport>().HasNoKey();
             modelBuilder.Entity<AcademyVideos>().HasNoKey();
             
-           // modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
+            modelBuilder.Entity<SecurityAllObjects>().HasNoKey();
             modelBuilder.Entity<CompanyCommunication>().HasNoKey();
             modelBuilder.Entity<ReplyChannel>().HasNoKey();
             modelBuilder.Entity<CompanyAccount>().HasNoKey();
@@ -214,6 +214,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<PackageItems>().HasNoKey();
             modelBuilder.Entity<TransactionRates>().HasNoKey();
             modelBuilder.Entity<CompanyPackage>().HasNoKey();
+            
+
+
+            modelBuilder.Entity<ModuleLinks>().HasNoKey();
             
 
 
