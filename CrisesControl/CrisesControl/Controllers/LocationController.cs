@@ -94,8 +94,8 @@ public class LocationController : Controller
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPut]
-    [Route("[action]")]
-    public async Task<IActionResult> UpdateSegregationLink([FromBody] UpdateSegregationLinkRequest request, CancellationToken cancellationToken)
+    [Route("[action]/{Action}/{TargetID}/{SourceID}/{LinkType}")]
+    public async Task<IActionResult> UpdateSegregationLink([FromRoute] UpdateSegregationLinkRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
 
