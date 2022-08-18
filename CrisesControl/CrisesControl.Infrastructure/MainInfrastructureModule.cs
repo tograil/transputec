@@ -35,6 +35,7 @@ using CrisesControl.Core.SopLibrary.Repositories;
 using CrisesControl.Core.System.Repositories;
 using CrisesControl.Core.Lookup.Repositories;
 using CrisesControl.Core.FileService.Repositories;
+using CrisesControl.Core.CustomEventLog.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -83,6 +84,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<SettingsRepository>().As<ISettingsRepository>().SingleInstance();
             builder.RegisterType<QueueRepository>().As<IQueueRepository>();
             builder.RegisterType<BillingRespository>().As<IBillingRepository>();
+            builder.RegisterType<CustomEventLogRepository>().As<ICustomEventLogRepository>();
 
 
             builder.RegisterType<MessageService>().As<IMessageService>();
