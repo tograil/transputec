@@ -748,13 +748,13 @@ namespace CrisesControl.Api.Application.Helpers
             return retVal;
         }
 
-        public void _set_comms_status(int companyId, List<string> methods, bool status)
+        public void _set_comms_status(int CompanyId, List<string> methods, bool status)
         {
             try
             {
                 (from CM in _context.Set<CompanyComm>()
                  join CO in _context.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
-                 where CM.CompanyId == companyId && methods.Contains(CO.MethodCode)
+                 where CM.CompanyId == CompanyId && methods.Contains(CO.MethodCode)
                  select CM).ToList().ForEach(x => x.ServiceStatus = status);
                 _context.SaveChanges();
             }
@@ -763,7 +763,7 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async void MessageProcessLog(int messageId, string eventName, string methodName = "", string queueName = "", string additionalInfo = "")
+        public async Task MessageProcessLog(int messageId, string eventName, string methodName = "", string queueName = "", string additionalInfo = "")
         {
             try
             {
@@ -782,7 +782,88 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public async void GetSetCompanyComms(int companyId)
+        public async void GetSetCompanyComms(int CompanyID)
+        {
+            try
+            {
+                var comp_pp = (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == CompanyID select CPP).FirstOrDefault();
+                var comp = (from C in _context.Set<Company>() where C.CompanyId == CompanyID select C).FirstOrDefault();
+                if (comp_pp != null && comp != null)
+                {
+
+                    if (comp.Status == 1)
+                    {
+                        bool sendAlert = false;
+
+                        DateTimeOffset LastUpdate = comp_pp.UpdatedOn;
+
+                        List<string> stopped_comms = new List<string>();
+
+                        if (comp_pp.MinimumEmailRate > 0)
+                        {
+                            stopped_comms.Add("EMAIL");
+                        }
+                        if (comp_pp.MinimumPhoneRate > 0)
+                        {
+                            stopped_comms.Add("PHONE");
+                        }
+                        if (comp_pp.MinimumTextRate > 0)
+                        {
+                            stopped_comms.Add("TEXT");
+                        }
+                        if (comp_pp.MinimumPushRate > 0)
+                        {
+                            stopped_comms.Add("PUSH");
+                        }
+
+                        if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
+                        { //Have positive balance + More than the minimum balance required.
+                            comp.CompanyProfile = "SUBSCRIBED";
+                            _set_comms_status(CompanyID, stopped_comms, true);
+                        }
+                        else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
+                        { //Used the overdraft amount as well, so stop their SMS and Phone
+                            comp.CompanyProfile = "STOP_MESSAGING";
+                            sendAlert = true;
+                            _set_comms_status(CompanyID, stopped_comms, false);
+                        }
+                        else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
+                        { //Using the overdraft facility, can still use the system
+                            comp.CompanyProfile = "ON_CREDIT";
+                            sendAlert = true;
+                            _set_comms_status(CompanyID, stopped_comms, true);
+                        }
+                        else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
+                        { //Less than the minimum balance, just send an alert, can still use the system.
+                            comp.CompanyProfile = "LOW_BALANCE";
+                            sendAlert = true;
+                            _set_comms_status(CompanyID, stopped_comms, true);
+                        }
+                        comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
+                        _context.SaveChanges();
+
+                        if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
+                        {
+                            sendAlert = false;
+                        }
+
+                        string CommsDebug = LookupWithKey("COMMS_DEBUG_MODE");
+
+                        if (sendAlert && CommsDebug == "false")
+                        {
+                           //await _SDE.UsageAlert(CompanyID);
+                        }
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
         {
             try
             {
@@ -863,37 +944,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
 
         }
-        public void CreateLog(string level, string message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
-        {
-
-            if (level.ToUpper() == "INFO")
-            {
-                string CreateLog = LookupWithKey("COLLECT_PERFORMANCE_LOG");
-                if (CreateLog == "false")
-                    return;
-            }
-
-            LogicalThreadContext.Properties["ControllerName"] = Controller;
-            LogicalThreadContext.Properties["MethodName"] = Method;
-            LogicalThreadContext.Properties["CompanyId"] = CompanyId;
-            if (level.ToUpper() == "ERROR")
-            {
-                Logger.Error(message, Ex);
-            }
-            else if (level.ToUpper() == "DEBUG")
-            {
-                Logger.Debug(message, Ex);
-            }
-            else if (level.ToUpper() == "INFO")
-            {
-                Logger.Info(message, Ex);
-            }
-
-
-
-            if (Ex != null)
-                Console.WriteLine(message + Ex.ToString());
-        }
+        
 
         public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
         {
@@ -910,7 +961,7 @@ namespace CrisesControl.Api.Application.Helpers
         {
             try
             {
-                string value = System.Configuration.ConfigurationManager.ConnectionStrings.ToString();
+                string value = _context.Database.GetConnectionString();
                 if (value != null)
                 {
                     return value;
@@ -1139,34 +1190,6 @@ namespace CrisesControl.Api.Application.Helpers
                     fi.Delete();
             }
         }
-
-        public List<SocialIntegraion> GetSocialIntegration(int companyId, string accountType)
-        {
-            try
-            {
-                var pCompanyID = new SqlParameter("@CompanyID", companyId);
-                var pAccountType = new SqlParameter("@AccountType", accountType);
-
-                var result = _context.Set<SocialIntegraion>().FromSqlRaw("EXEC Pro_Get_Social_Integration @CompanyID, @AccountType", pCompanyID, pAccountType).ToList();
-                return result;
-            }
-            catch (Exception ex)
-            {
-                return null;
-            }
-        }
-
-        public Return Return(int errorId = 100, string errorCode = "E100", bool status = false, string message = "FAILURE", object data = null, int resultId = 0)
-        {
-            Return rtn = new Return();
-            rtn.ErrorId = errorId;
-            rtn.ErrorCode = errorCode;
-            rtn.Status = status;
-            rtn.Message = message;
-            rtn.Data = data;
-            rtn.ResultID = resultId;
-            return rtn;
-        }
         public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentReviewDate, int CompanyID, int ReminderCount, out int ReminderCounter)
         {
             try
@@ -1297,6 +1320,48 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
+        public async Task<List<SocialHandles>> GetSocialServiceProviders()
+        {
+            try
+            {
+                List<SocialHandles> SH = new List<SocialHandles>();
+                var syspr = await _context.Set<SysParameter>().Where(SP=> SP.Category == "SOCIAL_HANDLE" && SP.Status == 1).ToListAsync();
+                foreach (var spvar in syspr)
+                {
+                    SH.Add(new SocialHandles { ProviderCode = spvar.Name, ProviderName = spvar.Value });
+                }
+                return SH;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<int> SegregationWarning(int CompanyId, int UserID, int IncidentId)
+        {
+            var pIncidentId = new SqlParameter("@IncidentID", IncidentId);
+            var pUserID = new SqlParameter("@UserID", UserID);
+            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+
+            int SegWarning =await _context.Database.ExecuteSqlRawAsync("SELECT [dbo].[Incident_Segregation](@IncidentID,@UserID,@CompanyID)", pIncidentId, pUserID, pCompanyId);
+            return SegWarning;
+        }
+
+        public List<SocialIntegraion> GetSocialIntegration(int companyId, string accountType)
+        {
+            try
+            {
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pAccountType = new SqlParameter("@AccountType", accountType);
+
+                var result = _context.Set<SocialIntegraion>().FromSqlRaw("EXEC Pro_Get_Social_Integration @CompanyID, @AccountType", pCompanyID, pAccountType).ToList();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
 
         public void GetStartEndDate(bool isThisWeek, bool isThisMonth, bool isLastMonth, ref DateTime stDate, ref DateTime enDate, DateTimeOffset startDate, DateTimeOffset endDate)
         {
@@ -1337,5 +1402,20 @@ namespace CrisesControl.Api.Application.Helpers
                 enDate = new DateTime(endDate.Year, endDate.Month, endDate.Day, 23, 59, 59);
             }
         }
+
+        public Return Return(int errorId = 100, string errorCode = "E100", bool status = false, string message = "FAILURE", object data = null, int resultId = 0)
+        {
+            Return rtn = new Return();
+            rtn.ErrorId = errorId;
+            rtn.ErrorCode = errorCode;
+            rtn.Status = status;
+            rtn.Message = message;
+            rtn.Data = data;
+            rtn.ResultID = resultId;
+            return rtn;
+        }
+        
+        
+        
     }
 }

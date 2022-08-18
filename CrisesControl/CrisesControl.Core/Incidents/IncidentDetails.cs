@@ -43,7 +43,7 @@ public class IncidentDetails
     public bool ShowSilentMessage { get; set; }
     public bool ShowMessageMethod { get; set; }
     [NotMapped]
-    public List<int?> ImpactedLocation { get; set; }
+    public List<ImpactedLocation> ImpactedLocation { get; set; }
     [NotMapped]
     public List<IIncNotificationLst> NotificationGroups { get; set; }
     public int SegregationWarning { get; set; }
