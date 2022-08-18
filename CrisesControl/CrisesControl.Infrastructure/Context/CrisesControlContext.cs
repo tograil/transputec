@@ -29,6 +29,7 @@ using CrisesControl.Core.System;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Academy;
 using CrisesControl.Core.Payments;
+using CrisesControl.Core.CCWebSocket;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -214,8 +215,9 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<PackageItems>().HasNoKey();
             modelBuilder.Entity<TransactionRates>().HasNoKey();
             modelBuilder.Entity<CompanyPackage>().HasNoKey();
-            
-
+            modelBuilder.Entity<SocketList>().HasNoKey();
+            modelBuilder.Entity<SocketClientList>().HasNoKey();
+            modelBuilder.Entity<MessageCountResponse>().HasNoKey();
 
             modelBuilder.Entity<ModuleLinks>().HasNoKey();
             
