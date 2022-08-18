@@ -31,10 +31,10 @@ namespace CrisesControl.Infrastructure.Repositories
             this.DBC = _DBC;
             this._adminRepository = adminRepository;
         }
-        public async Task<dynamic> GetCompanyByKey(string ActivationKey, int OutUserCompanyId)
+        public async Task<dynamic> GetCompanyByKey(string activationKey, int outUserCompanyId)
         {
             var cp = await _context.Set<Company>().Include(CA => CA.CompanyActivation)
-                                    .Where(CA => CA.CompanyActivation.ActivationKey == ActivationKey && CA.CompanyId == OutUserCompanyId && CA.Status == 0
+                                    .Where(CA => CA.CompanyActivation.ActivationKey == activationKey && CA.CompanyId == outUserCompanyId && CA.Status == 0
                                     ).FirstOrDefaultAsync();
        
             return cp;
@@ -50,20 +50,20 @@ namespace CrisesControl.Infrastructure.Repositories
                 
             
         }
-        public async Task<bool> OnTrialStatus(string CompanyProfile, bool CurrentTrial)
+        public async Task<bool> OnTrialStatus(string companyProfile, bool currentTrial)
         {
-            if (CompanyProfile == "SUBSCRIBED")
+            if (companyProfile == "SUBSCRIBED")
             {
                 return false;
             }
-            return CompanyProfile == "ON_TRIAL" ? true : CurrentTrial;
+            return companyProfile == "ON_TRIAL" ? true : currentTrial;
         }
-        public async Task UpdateCompanyPaymentProfileAsync(int companyId, int currntUserId, string PaymentPeriod, decimal CreditBalance, decimal CreditLimit, decimal MinimumBalance,
-           decimal TextUplift, decimal PhoneUplift, decimal EmailUplift, decimal PushUplift, decimal ConfUplift,
-           decimal MinimumTextRate, decimal MinimumPhoneRate, decimal MinimumEmailRate, decimal MinimumPushRate, decimal MinimumConfRate,
-           string TimeZoneId, DateTimeOffset ContractAnniversary, string AgreementNo, decimal MaxTransactionLimit, DateTimeOffset ContractStartDate,
-           string CardType, string CardHolderName, string BillingEmail, string BillingAddress1, string BillingAddress2, string City, string Town, string Postcode,
-           string Country)
+        public async Task UpdateCompanyPaymentProfileAsync(int companyId, int currntUserId, string paymentPeriod, decimal creditBalance, decimal creditLimit, decimal minimumBalance,
+           decimal textUplift, decimal phoneUplift, decimal emailUplift, decimal pushUplift, decimal confUplift,
+           decimal minimumTextRate, decimal minimumPhoneRate, decimal minimumEmailRate, decimal minimumPushRate, decimal minimumConfRate,
+           string timeZoneId, DateTimeOffset contractAnniversary, string agreementNo, decimal maxTransactionLimit, DateTimeOffset contractStartDate,
+           string cardType, string cardHolderName, string billingEmail, string billingAddress1, string billingAddress2, string city, string town, string postcode,
+           string country)
         {
 
             var c_pp = await _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == companyId).FirstOrDefaultAsync();
@@ -71,9 +71,9 @@ namespace CrisesControl.Infrastructure.Repositories
             {
 
                 DateTimeOffset Contractstart = c_pp.ContractStartDate;
-                if (ContractStartDate != null)
+                if (contractStartDate != null)
                 {
-                    double DaysExceeding = Contractstart.Subtract(ContractStartDate).TotalDays;
+                    double DaysExceeding = Contractstart.Subtract(contractStartDate).TotalDays;
                     if (DaysExceeding > 30)
                     {
                         SendEmail SDE = new SendEmail(_context,DBC);
@@ -81,75 +81,75 @@ namespace CrisesControl.Infrastructure.Repositories
                     }
                 }
 
-                if (ContractAnniversary != null)
-                    c_pp.ContractAnniversary = ContractAnniversary;
+                if (contractAnniversary != null)
+                    c_pp.ContractAnniversary = contractAnniversary;
 
-                if (!string.IsNullOrEmpty(PaymentPeriod))
+                if (!string.IsNullOrEmpty(paymentPeriod))
                 {
-                    c_pp.PaymentPeriod = PaymentPeriod;
+                    c_pp.PaymentPeriod = paymentPeriod;
                 }
 
                 //if(CreditBalance != 9999999999)
                 //    c_pp.CreditBalance = CreditBalance;
 
-                if (CreditLimit != 9999999999)
-                    c_pp.CreditLimit = CreditLimit;
+                if (creditLimit != 9999999999)
+                    c_pp.CreditLimit = creditLimit;
 
-                if (MinimumBalance != 9999999999)
+                if (minimumBalance != 9999999999)
                 {
-                    c_pp.MinimumBalance = MinimumBalance;
-                    await DBC.SaveParameter(0, "RECHARGE_BALANCE_TRIGGER", MinimumBalance.ToString(), currntUserId, companyId, TimeZoneId);
+                    c_pp.MinimumBalance = minimumBalance;
+                    await DBC.SaveParameter(0, "RECHARGE_BALANCE_TRIGGER", minimumBalance.ToString(), currntUserId, companyId, timeZoneId);
                 }
-                c_pp.TextUplift = TextUplift;
-                c_pp.PhoneUplift = PhoneUplift;
-                c_pp.EmailUplift = EmailUplift;
-                c_pp.PushUplift = PushUplift;
-                c_pp.ConfUplift = ConfUplift;
-                c_pp.MinimumTextRate = MinimumTextRate;
-                c_pp.MinimumPhoneRate = MinimumPhoneRate;
-                c_pp.MinimumEmailRate = MinimumEmailRate;
-                c_pp.MinimumPushRate = MinimumPushRate;
-                c_pp.MinimumConfRate = MinimumConfRate;
+                c_pp.TextUplift = textUplift;
+                c_pp.PhoneUplift = phoneUplift;
+                c_pp.EmailUplift = emailUplift;
+                c_pp.PushUplift = pushUplift;
+                c_pp.ConfUplift = confUplift;
+                c_pp.MinimumTextRate = minimumTextRate;
+                c_pp.MinimumPhoneRate = minimumPhoneRate;
+                c_pp.MinimumEmailRate = minimumEmailRate;
+                c_pp.MinimumPushRate = minimumPushRate;
+                c_pp.MinimumConfRate = minimumConfRate;
 
-                if (ContractStartDate != null)
-                    c_pp.ContractStartDate = ContractStartDate;
+                if (contractStartDate != null)
+                    c_pp.ContractStartDate = contractStartDate;
 
-                if (!string.IsNullOrEmpty(CardType))
-                    c_pp.CardType = CardType;
-                if (!string.IsNullOrEmpty(CardHolderName))
-                    c_pp.CardHolderName = CardHolderName;
-                if (!string.IsNullOrEmpty(BillingEmail))
-                    c_pp.BillingEmail = BillingEmail;
-                if (!string.IsNullOrEmpty(BillingAddress1))
-                    c_pp.BillingAddress1 = BillingAddress1;
-                if (!string.IsNullOrEmpty(BillingAddress2))
-                    c_pp.BillingAddress2 = BillingAddress2;
-                if (!string.IsNullOrEmpty(City))
-                    c_pp.City = City;
-                if (!string.IsNullOrEmpty(Town))
-                    c_pp.Town = Town;
-                if (!string.IsNullOrEmpty(Postcode))
-                    c_pp.Postcode = Postcode;
-                if (!string.IsNullOrEmpty(Country))
-                    c_pp.Country = Country;
+                if (!string.IsNullOrEmpty(cardType))
+                    c_pp.CardType = cardType;
+                if (!string.IsNullOrEmpty(cardHolderName))
+                    c_pp.CardHolderName = cardHolderName;
+                if (!string.IsNullOrEmpty(billingEmail))
+                    c_pp.BillingEmail = billingEmail;
+                if (!string.IsNullOrEmpty(billingAddress1))
+                    c_pp.BillingAddress1 = billingAddress1;
+                if (!string.IsNullOrEmpty(billingAddress2))
+                    c_pp.BillingAddress2 = billingAddress2;
+                if (!string.IsNullOrEmpty(city))
+                    c_pp.City = city;
+                if (!string.IsNullOrEmpty(town))
+                    c_pp.Town = town;
+                if (!string.IsNullOrEmpty(postcode))
+                    c_pp.Postcode = postcode;
+                if (!string.IsNullOrEmpty(country))
+                    c_pp.Country = country;
 
-                if (!string.IsNullOrEmpty(AgreementNo))
-                    c_pp.AgreementNo = AgreementNo;
+                if (!string.IsNullOrEmpty(agreementNo))
+                    c_pp.AgreementNo = agreementNo;
 
-                if (MaxTransactionLimit > 0)
-                    c_pp.MaxTransactionLimit = MaxTransactionLimit;
+                if (maxTransactionLimit > 0)
+                    c_pp.MaxTransactionLimit = maxTransactionLimit;
                 c_pp.UpdatedBy = currntUserId;
-                c_pp.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                c_pp.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 await _context.SaveChangesAsync();
             }
         }
 
-        public async Task<CompanyPackage> GetCompanyPackageItems(int OutUserCompanyId)
+        public async Task<CompanyPackage> GetCompanyPackageItems(int outUserCompanyId)
         {
             try
             {
                 var CompanyItem = await  _context.Set<Company>().Include(x=>x.PackagePlan)
-                                   .Where(C=> C.CompanyId == OutUserCompanyId && C.PackagePlan.PackagePlanId == C.PackagePlanId)
+                                   .Where(C=> C.CompanyId == outUserCompanyId && C.PackagePlan.PackagePlanId == C.PackagePlanId)
                                    .Select( P => new CompanyPackage
                                    {
                                        PlanName = P.PackagePlan.PlanName,
@@ -186,13 +186,13 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<List<PackageItems>> GetPackageAddons(int OutUserCompanyId, bool ShowAll = false)
+        public async Task<List<PackageItems>> GetPackageAddons(int outUserCompanyId, bool showAll = false)
         {
             try
             {
-                var pCompanyID = new SqlParameter("@CompanyId", OutUserCompanyId);
+                var pCompanyID = new SqlParameter("@CompanyId", outUserCompanyId);
                 var packageitemlist =await _context.Set<PackageItems>().FromSqlRaw("exec [Pro_Admin_GetPackageAddons] @CompanyId", pCompanyID).ToListAsync();
-                if (!ShowAll)
+                if (!showAll)
                     packageitemlist = packageitemlist.Where(s => s.Status == 0).ToList();
 
 
@@ -203,57 +203,57 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<CompanyPaymentProfile> UpdateCompanyPaymentProfile(UpdateCompanyPaymentProfileModel IP,int CurrentUserId, int OutUserCompanyId, string TimeZoneId)
+        public async Task<CompanyPaymentProfile> UpdateCompanyPaymentProfile(UpdateCompanyPaymentProfileModel ip,int currentUserId, int outUserCompanyId, string timeZoneId)
         {
             try
             {
                
 
-               await UpdateCompanyPaymentProfileAsync(OutUserCompanyId, CurrentUserId, IP.PaymentPeriod, IP.CreditBalance, IP.CreditLimit, IP.MinimumBalance,
-                    IP.TextUplift, IP.PhoneUplift, IP.EmailUplift, IP.PushUplift, IP.ConfUplift,
-                    IP.MinimumTextRate, IP.MinimumPhoneRate, IP.MinimumEmailRate, IP.MinimumPushRate, IP.MinimumConfRate,
-                    TimeZoneId, IP.ContractAnniversary, IP.AgreementNo, IP.MaxTransactionLimit, IP.ContractStartDate,
-                    IP.CardType, IP.CardHolderName, IP.BillingEmail, IP.BillingAddress1, IP.BillingAddress2, IP.City, IP.Town, IP.Postcode, IP.Country);
+               await UpdateCompanyPaymentProfileAsync(outUserCompanyId, currentUserId, ip.PaymentPeriod, ip.CreditBalance, ip.CreditLimit, ip.MinimumBalance,
+                    ip.TextUplift, ip.PhoneUplift, ip.EmailUplift, ip.PushUplift, ip.ConfUplift,
+                    ip.MinimumTextRate, ip.MinimumPhoneRate, ip.MinimumEmailRate, ip.MinimumPushRate, ip.MinimumConfRate,
+                    timeZoneId, ip.ContractAnniversary, ip.AgreementNo, ip.MaxTransactionLimit, ip.ContractStartDate,
+                    ip.CardType, ip.CardHolderName, ip.BillingEmail, ip.BillingAddress1, ip.BillingAddress2, ip.City, ip.Town, ip.Postcode, ip.Country);
 
                 var trans_id = await  _context.Set<CompanyTransactionType>().Include(x=>x.TransactionType)
-                                 .Where(CT=> CT.TransactionType.TransactionCode == IP.TransactionCode && CT.CompanyId == OutUserCompanyId
+                                 .Where(CT=> CT.TransactionType.TransactionCode == ip.TransactionCode && CT.CompanyId == outUserCompanyId
                                 ).FirstOrDefaultAsync();
 
                 int transaction_id = 0;
                 if (trans_id != null)
                     transaction_id = trans_id.CompanyTranscationTypeId;
 
-                await UpdateCompanyTranscationType(OutUserCompanyId, CurrentUserId, TimeZoneId, trans_id.TransactionTypeId, IP.ContractValue, transaction_id, IP.PaymentPeriod, null, IP.PaymentMethod);
+                await UpdateCompanyTranscationType(outUserCompanyId, currentUserId, timeZoneId, trans_id.TransactionTypeId, ip.ContractValue, transaction_id, ip.PaymentPeriod, null, ip.PaymentMethod);
 
-                if (!string.IsNullOrEmpty(IP.CompanyProfile))
+                if (!string.IsNullOrEmpty(ip.CompanyProfile))
                 {
-                    var comp = await _context.Set<Company>().Where(C=> C.CompanyId == OutUserCompanyId).FirstOrDefaultAsync();
+                    var comp = await _context.Set<Company>().Where(C=> C.CompanyId == outUserCompanyId).FirstOrDefaultAsync();
                     if (comp != null)
                     {
-                        comp.CompanyProfile = IP.CompanyProfile;
-                        if (IP.OnTrial)
+                        comp.CompanyProfile = ip.CompanyProfile;
+                        if (ip.OnTrial)
                         {
-                            comp.OnTrial = IP.OnTrial;
+                            comp.OnTrial = ip.OnTrial;
                         }
                         else
                         {
-                            comp.OnTrial = DBC.OnTrialStatus(IP.CompanyProfile, comp.OnTrial);
+                            comp.OnTrial = DBC.OnTrialStatus(ip.CompanyProfile, comp.OnTrial);
                         }
 
                        await _context.SaveChangesAsync();
                     }
                 }
 
-                if (IP.AgreementRegistered)
+                if (ip.AgreementRegistered)
                 {
                     SendEmail SDE = new SendEmail(_context,DBC);
-                    SDE.WorldPayAgreementSubscribe(OutUserCompanyId, IP.AgreementNo);
+                    SDE.WorldPayAgreementSubscribe(outUserCompanyId, ip.AgreementNo);
                 }
 
-                var Data = await _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == OutUserCompanyId).FirstOrDefaultAsync();
+                var Data = await _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == outUserCompanyId).FirstOrDefaultAsync();
                 if (Data != null)
                 {
-                    if (IP.AgreementRegistered)
+                    if (ip.AgreementRegistered)
                     {
                         Data.CardFailed = false;
                         _context.Update(Data);
@@ -269,33 +269,33 @@ namespace CrisesControl.Infrastructure.Repositories
             }
 
         }
-        public async Task<int> UpdateCompanyTranscationType(int companyId, int currntUserId, string TimeZoneId, int TransactionTypeID, decimal TransactionRate,
-          int CompnayTranscationTypeId = 0, string PaymentPeriod = "MONTHLY", DateTimeOffset? NextRunDate = null, string PaymentMethod = "INVOICE")
+        public async Task<int> UpdateCompanyTranscationType(int companyId, int currntUserId, string timeZoneId, int transactionTypeID, decimal transactionRate,
+          int compnayTranscationTypeId = 0, string paymentPeriod = "MONTHLY", DateTimeOffset? nextRunDate = null, string paymentMethod = "INVOICE")
         {
             int CTTId = 0;
-            if (CompnayTranscationTypeId == 0)
+            if (compnayTranscationTypeId == 0)
             {
                 CompanyTransactionType transaction = new CompanyTransactionType();
-                if (TransactionTypeID > 0)
-                    transaction.TransactionTypeId = TransactionTypeID;
-                transaction.TransactionRate = TransactionRate;
+                if (transactionTypeID > 0)
+                    transaction.TransactionTypeId = transactionTypeID;
+                transaction.TransactionRate = transactionRate;
                 transaction.CompanyId = companyId;
-                transaction.PaymentPeriod = PaymentPeriod;
-                if (NextRunDate.HasValue)
+                transaction.PaymentPeriod = paymentPeriod;
+                if (nextRunDate.HasValue)
                 {
-                    transaction.NextRunDate = (DateTimeOffset)NextRunDate;
+                    transaction.NextRunDate = (DateTimeOffset)nextRunDate;
                 }
                 else
                 {
-                    transaction.NextRunDate = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    transaction.NextRunDate = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 }
                 transaction.CreatedBy = currntUserId;
-                transaction.CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                transaction.CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 transaction.UpdatedBy = currntUserId;
-                transaction.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                transaction.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
-                if (!string.IsNullOrEmpty(PaymentMethod) && PaymentMethod != "UNKNOWN")
-                    transaction.PaymentMethod = PaymentMethod;
+                if (!string.IsNullOrEmpty(paymentMethod) && paymentMethod != "UNKNOWN")
+                    transaction.PaymentMethod = paymentMethod;
 
                 await _context.AddAsync(transaction);
                 await _context.SaveChangesAsync();
@@ -304,23 +304,23 @@ namespace CrisesControl.Infrastructure.Repositories
             else
             {
                 var newCompanyTranscationType = await _context.Set<CompanyTransactionType>()
-                                                 .Where(CTT=> CTT.CompanyTranscationTypeId == CompnayTranscationTypeId && CTT.CompanyId == companyId
+                                                 .Where(CTT=> CTT.CompanyTranscationTypeId == compnayTranscationTypeId && CTT.CompanyId == companyId
                                                  ).FirstOrDefaultAsync();
                 if (newCompanyTranscationType != null)
                 {
-                    if (TransactionTypeID > 0)
-                        newCompanyTranscationType.TransactionTypeId = TransactionTypeID;
+                    if (transactionTypeID > 0)
+                        newCompanyTranscationType.TransactionTypeId = transactionTypeID;
 
-                    newCompanyTranscationType.TransactionRate = TransactionRate;
-                    newCompanyTranscationType.PaymentPeriod = PaymentPeriod;
-                    newCompanyTranscationType.PaymentMethod = PaymentMethod;
+                    newCompanyTranscationType.TransactionRate = transactionRate;
+                    newCompanyTranscationType.PaymentPeriod = paymentPeriod;
+                    newCompanyTranscationType.PaymentMethod = paymentMethod;
 
-                    if (NextRunDate.HasValue)
+                    if (nextRunDate.HasValue)
                     {
-                        newCompanyTranscationType.NextRunDate = (DateTimeOffset)NextRunDate;
+                        newCompanyTranscationType.NextRunDate = (DateTimeOffset)nextRunDate;
                     }
                     newCompanyTranscationType.UpdatedBy = currntUserId;
-                    newCompanyTranscationType.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    newCompanyTranscationType.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                      _context.Update(newCompanyTranscationType);
                     await _context.SaveChangesAsync();
                     CTTId = newCompanyTranscationType.CompanyTranscationTypeId;
@@ -329,21 +329,21 @@ namespace CrisesControl.Infrastructure.Repositories
             return CTTId;
         }
 
-        public async Task<bool> UpgradePackage(UpdateCompanyPaymentProfileModel IP,int CurrentUserId, int OutUserCompanyId, string TimeZoneId)
+        public async Task<bool> UpgradePackage(UpdateCompanyPaymentProfileModel IP,int currentUserId, int outUserCompanyId, string timeZoneId)
         {
             try
             {
                
                 var cp =  await _context.Set<CompanyPaymentProfile>().Include(CP=>CP.Company)
-                         .Where(C=> C.CompanyId == OutUserCompanyId
+                         .Where(C=> C.CompanyId == outUserCompanyId
                           ).FirstOrDefaultAsync();
                 if (cp != null)
                 {
-                    DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
                     cp.Company.CompanyProfile = IP.CompanyProfile;
                     cp.Company.OnTrial = DBC.OnTrialStatus(IP.CompanyProfile, false);
-                    cp.Company.AnniversaryDate = DBC.GetDateTimeOffset(DateTime.Now.AddYears(1).AddDays(-1), TimeZoneId);
+                    cp.Company.AnniversaryDate = DBC.GetDateTimeOffset(DateTime.Now.AddYears(1).AddDays(-1), timeZoneId);
                     cp.AgreementNo = IP.AgreementNo;
                     cp.BillingAddress1 = IP.BillingAddress1;
                     cp.BillingAddress2 = IP.BillingAddress2;
@@ -353,14 +353,14 @@ namespace CrisesControl.Infrastructure.Repositories
                     cp.Country = IP.Country;
                     cp.Ipaddress = IP.IPAddress;
                     cp.PaymentPeriod = IP.PaymentPeriod;
-                    cp.ContractAnniversary = DBC.GetDateTimeOffset(DateTime.Now.AddYears(1).AddDays(-1), TimeZoneId);
+                    cp.ContractAnniversary = DBC.GetDateTimeOffset(DateTime.Now.AddYears(1).AddDays(-1), timeZoneId);
                     cp.ContractStartDate = dtNow;
                     cp.CardFailed = false;
                     cp.CardHolderName = IP.CardHolderName;
                     cp.CardType = IP.CardType;
                     cp.MaxTransactionLimit = IP.ContractValue;
                     cp.UpdatedOn = dtNow;
-                    cp.UpdatedBy = CurrentUserId;
+                    cp.UpdatedBy = currentUserId;
                     _context.Update(cp);
                    await _context.SaveChangesAsync();
 
@@ -392,7 +392,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         utd.PaymentMethod = IP.PaymentMethod;
                         
 
-                       await _adminRepository.AddTransaction(utd, CurrentUserId, OutUserCompanyId, TimeZoneId);
+                       await _adminRepository.AddTransaction(utd, currentUserId, outUserCompanyId, timeZoneId);
                     }
                     catch (Exception ex)
                     {
@@ -402,14 +402,14 @@ namespace CrisesControl.Infrastructure.Repositories
                     try
                     {
                         var trans_id = await _context.Set<CompanyTransactionType>().Include(x=>x.TransactionType)
-                                       .Where(CT=> CT.TransactionType.TransactionCode == IP.TransactionCode && CT.CompanyId == OutUserCompanyId
+                                       .Where(CT=> CT.TransactionType.TransactionCode == IP.TransactionCode && CT.CompanyId == outUserCompanyId
                                         ).FirstOrDefaultAsync();
 
                         int transaction_id = 0;
                         if (trans_id != null)
                         {
                             transaction_id = trans_id.CompanyTranscationTypeId;
-                            await UpdateCompanyTranscationType(OutUserCompanyId, CurrentUserId, TimeZoneId, trans_id.TransactionTypeId, IP.ContractValue, transaction_id, IP.PaymentPeriod, null, IP.PaymentMethod);
+                            await UpdateCompanyTranscationType(outUserCompanyId, currentUserId, timeZoneId, trans_id.TransactionTypeId, IP.ContractValue, transaction_id, IP.PaymentPeriod, null, IP.PaymentMethod);
                         }
                     }
                     catch (Exception ex)
@@ -424,12 +424,12 @@ namespace CrisesControl.Infrastructure.Repositories
                         foreach (var mod in tt)
                         {
                             //Add the company transaction type entry
-                            await UpdateCompanyTranscationType(OutUserCompanyId, CurrentUserId, TimeZoneId, mod.TransactionTypeId, mod.Rate, 0, IP.PaymentPeriod, null, IP.PaymentMethod);
+                            await UpdateCompanyTranscationType(outUserCompanyId, currentUserId, timeZoneId, mod.TransactionTypeId, mod.Rate, 0, IP.PaymentPeriod, null, IP.PaymentMethod);
 
                             //Enable the module for the company
                             var module = (from CPF in _context.Set<CompanyPackageFeature>()
                                           join CF in _context.Set<ChargeableFeature>() on CPF.SecurityObjectId equals CF.SecurityObjectId
-                                          where CPF.CompanyId == OutUserCompanyId && CF.TransactionTypeId == mod.TransactionTypeId
+                                          where CPF.CompanyId == outUserCompanyId && CF.TransactionTypeId == mod.TransactionTypeId
                                           select CPF).FirstOrDefault();
                             if (module != null)
                             {
@@ -443,7 +443,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     if (IP.AgreementRegistered)
                     {
                         SendEmail SDE = new SendEmail(_context,DBC);
-                        SDE.WorldPayAgreementSubscribe(OutUserCompanyId, IP.AgreementNo);
+                        SDE.WorldPayAgreementSubscribe(outUserCompanyId, IP.AgreementNo);
                     }
                     return true;
                 }
@@ -454,14 +454,14 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<bool> AddRemoveModule(int CompanyID, int ModuleID, string ActionVal)
+        public async Task<bool> AddRemoveModule(int companyID, int moduleID, string actionVal)
         {
             try
             {
 
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                var pModuleID = new SqlParameter("@ModuleID", ModuleID);
-                var pActionVal = new SqlParameter("@Action", ActionVal);
+                var pCompanyID = new SqlParameter("@CompanyID", companyID);
+                var pModuleID = new SqlParameter("@ModuleID", moduleID);
+                var pActionVal = new SqlParameter("@Action", actionVal);
 
                 await  _context.Database.ExecuteSqlRawAsync("Pro_Admin_Add_Remove_Module @CompanyID, @ModuleID, @Action", pCompanyID, pModuleID, pActionVal);
                 return true;
