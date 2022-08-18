@@ -45,5 +45,7 @@ public class MessageListConfiguration : IEntityTypeConfiguration<MessageList>
                .WithMany().HasForeignKey(x => x.MessageListId);
         builder.HasOne(x => x.ActiveMessageResponse)
               .WithMany().HasForeignKey(x => x.MessageListId);
+        builder.HasOne(x => x.User)
+             .WithMany().HasForeignKey(x => x.RecepientUserId);
     }
 }

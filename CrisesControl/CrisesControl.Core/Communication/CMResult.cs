@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,6 +33,7 @@ namespace CrisesControl.Core.Communication
         public string Customgrouping2 { get; set; }
         public string Reference { get; set; }
         public string Direction { get; set; }
+        [NotMapped]
         public CMMultiPart Multipart { get; set; }
     }
 }

@@ -36,11 +36,15 @@ namespace CrisesControl.Infrastructure.Services
         public string MessageSourceAction = "";
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly DBCommon _DBC;
+        private readonly Messaging _MSG;
+        private readonly SendEmail _SDE;
         public Messaging(CrisesControlContext _db, IHttpContextAccessor httpContextAccessor, DBCommon DBC)
         {
             db = _db;
             _httpContextAccessor = httpContextAccessor;
             _DBC = DBC;
+            _MSG = new Messaging(db,_httpContextAccessor,DBC);
+            _SDE = new SendEmail(db,DBC);
         }
  
 
@@ -2275,6 +2279,103 @@ namespace CrisesControl.Infrastructure.Services
         }
 
         #endregion Social Integration
+
+        public void DownloadRecording(string RecordingSid, int CompanyId, string RecordingUrl)
+        {
+         
+            try
+            {
+                int RetryCount = 2;
+                string ServerUploadFolder = _httpContextAccessor.HttpContext.GetServerVariable("../../tmp/");
+                string hostingEnv = _DBC.Getconfig("HostingEnvironment");
+                string AzureAPIShare = _DBC.Getconfig("AzureAPIShare");
+
+                string RecordingPath = _DBC.LookupWithKey("RECORDINGS_PATH");
+                int.TryParse(_DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT"), out RetryCount);
+                string SavePath = @RecordingPath + CompanyId + "\\";
+
+                _DBC.connectUNCPath();
+
+                FileHandler FH = new FileHandler(db,_httpContextAccessor);
+
+                if (FH.FileExists(RecordingSid + ".mp3", AzureAPIShare, SavePath))
+                {
+                    return;
+                }
+
+                if (hostingEnv != "AZURE")
+                {
+                    if (!Directory.Exists(SavePath))
+                        Directory.CreateDirectory(SavePath);
+                }
+
+                try
+                {
+                    WebClient Client = new WebClient();
+                    bool confdownloaded = false;
+                    bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                    string RoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+
+                    for (int i = 0; i < RetryCount; i++)
+                    {
+                        try
+                        {
+                            if (SendInDirect)
+                            {
+                                RecordingUrl = RoutingApi + "Communication/DownloadRecording?FileName=" + RecordingSid;
+                            }
+                            else
+                            {
+                                RecordingUrl += ".mp3";
+                            }
+                            Client.DownloadFile(RecordingUrl, @ServerUploadFolder + RecordingSid + ".mp3");
+                            confdownloaded = true;
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                              confdownloaded = false;
+                        }
+                    }
+                    if (confdownloaded)
+                    {
+                        if (File.Exists(@ServerUploadFolder + RecordingSid + ".mp3"))
+                        {
+                            using (FileStream filestream = File.OpenRead(@ServerUploadFolder + RecordingSid + ".mp3"))
+                            {
+                                if (hostingEnv == "AZURE")
+                                {
+                                    var result = FH.UploadToAzure(AzureAPIShare, SavePath, RecordingSid + ".mp3", filestream).Result;
+                                    if (FH.FileExists(RecordingSid + ".mp3", AzureAPIShare, SavePath))
+                                    {
+                                        CommsHelper CH = new CommsHelper(_DBC, db, _httpContextAccessor, _MSG, _SDE);
+                                        CH.DeleteRecording(RecordingSid);
+                                    }
+                                }
+                                else
+                                {
+                                    File.Copy(@ServerUploadFolder + RecordingSid + ".mp3", SavePath + RecordingSid + ".mp3");
+
+                                    if (File.Exists(SavePath + RecordingSid + ".mp3"))
+                                    {
+                                        CommsHelper CH = new CommsHelper(_DBC, db, _httpContextAccessor, _MSG, _SDE);
+                                        CH.DeleteRecording(RecordingSid);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+            catch (WebException ex)
+            {
+                throw new WebException();
+            }
+        }
 
     }
 }
