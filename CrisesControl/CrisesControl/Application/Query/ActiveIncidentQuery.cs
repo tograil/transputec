@@ -5,13 +5,16 @@ using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddNotes;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.CompleteTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.DeclineTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.DelegateTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetActiveTaskAsset;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetActiveTaskCheckList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetIncidentTasksAudit;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskAssignedUsers;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskAudit;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskCheckListHistory;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskDetails;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskUserList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetUserTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetUserTaskList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.NewAdHocTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReallocateTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReassignTask;
@@ -918,5 +921,46 @@ namespace CrisesControl.Api.Application.Query
                 throw ex;
             }
         }
+
+        public async Task<GetUserTaskListResponse> GetUserTaskList(GetUserTaskListRequest request)
+        {
+            try
+            {
+                var response  = await _activeIncidentRepository.incident_tasks_list(request.ActiveIncidentId, request.CurrentUserId, request.CompanyId);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTaskCheckListHistoryResponse> GetTaskCheckListHistory(GetTaskCheckListHistoryRequest request)
+        {
+            try
+            {
+                var response = new GetTaskCheckListHistoryResponse();
+                response.Data= await _activeIncidentRepository.GetTaskCheckListHistory(request.ActiveCheckListId, request.CompanyId, request.UserId);
+                return response;
+            } catch(Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetActiveTaskAssetResponse> GetActiveTaskAsset(GetActiveTaskAssetRequest request)
+        {
+            try
+            {
+                var response = new GetActiveTaskAssetResponse();
+                response.Data = await _activeIncidentRepository.GetActiveTaskAsset(request.ActiveTaskId, request.CompanyId, request.UserId);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
     }
 }
