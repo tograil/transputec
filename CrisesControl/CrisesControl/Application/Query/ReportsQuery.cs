@@ -14,9 +14,6 @@ using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Reports.SP_Response;
 using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc.Abstractions;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Api.Application.Commands.Reports.GetIndidentReportDetails;
 using CrisesControl.Api.Application.Commands.Reports.GetIncidentReport;
@@ -45,25 +42,33 @@ using System.Data;
 using CrisesControl.Api.Application.Commands.Reports.AppInvitation;
 using CrisesControl.Api.Application.Commands.Reports.GetPingReportAnalysis;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageAnslysisResponse;
+using CrisesControl.Api.Application.Commands.Reports.GetCompanyCommunicationReport;
+using CrisesControl.Api.Application.Commands.Reports.GetUserTracking;
+using CrisesControl.Api.Application.Commands.Reports.CMD_TaskOverView;
+using CrisesControl.Api.Application.Commands.Reports.GetUserInvitationReport;
+using CrisesControl.Core.Administrator.Repositories;
+using CrisesControl.Api.Application.Commands.Reports.ExportUserInvitationDump;
 
 namespace CrisesControl.Api.Application.Query
 {
     public class ReportsQuery : IReportsQuery
     {
         private readonly IReportsRepository _reportRepository;
+        private readonly IAdminRepository _adminRepository;
         private readonly IMapper _mapper;
         private readonly string _timeZoneId = "GMT Standard Time";
         private readonly ILogger<ReportsQuery> _logger;
         private readonly IPaging _paging;
         private readonly ICurrentUser _currentUser;
      
-        public ReportsQuery(IReportsRepository reportRepository, IMapper mapper,
+        public ReportsQuery(IReportsRepository reportRepository, IAdminRepository adminRepository, IMapper mapper,
             ILogger<ReportsQuery> logger, ICurrentUser currentUser, IPaging paging) {
             _mapper = mapper;
             _reportRepository = reportRepository;
             _currentUser = currentUser;
             _logger= logger;
             _paging= paging;
+            _adminRepository = adminRepository;
            
         }
 
@@ -955,5 +960,82 @@ namespace CrisesControl.Api.Application.Query
                 throw ex;
             }
         }
+
+        public async Task<GetCompanyCommunicationReportResponse> GetCompanyCommunicationReport(GetCompanyCommunicationReportRequest request)
+        {
+            try
+            {
+                var companyCommunication = await _reportRepository.GetCompanyCommunicationReport(request.CompanyId);
+                GetCompanyCommunicationReportResponse response = _mapper.Map<GetCompanyCommunicationReportResponse>(companyCommunication);
+                return response;
+            } catch(Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<List<GetUserTrackingResponse>> GetUserTracking(GetUserTrackingRequest request)
+        {
+            try
+            {
+                var result = await _reportRepository.GetUserTracking(request.Source, request.UserId, request.ActiveIncidentId);
+                List<GetUserTrackingResponse> response = _mapper.Map<List<GetUserTrackingResponse>>(result);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<CMD_TaskOverViewResponse> CMD_TaskOverView(CMD_TaskOverViewRequest request)
+        {
+            try
+            {
+                var result = await _reportRepository.CMD_TaskOverView(request.IncidentActivationId);
+                CMD_TaskOverViewResponse response = _mapper.Map<CMD_TaskOverViewResponse>(result);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetUserInvitationReportResponse> GetUserInvitationReport(GetUserInvitationReportRequest request)
+        {
+            try
+            {
+                UserInvitationModel mappedRequst = _mapper.Map<UserInvitationModel>(request);
+                var result = await _reportRepository.GetUserInvitationReport(mappedRequst);
+                GetUserInvitationReportResponse response = _mapper.Map<GetUserInvitationReportResponse>(result);
+                return response;
+            } catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public ExportUserInvitationDumpResponse ExportUserInvitationDump(ExportUserInvitationDumpRequest request)
+        {
+            try
+            {
+                var response = new ExportUserInvitationDumpResponse();
+                string rFilePath, rFileName;
+                UserInvitationModel mappedRequst = _mapper.Map<UserInvitationModel>(request);
+                DataTable dataTable = _reportRepository.GetUserInvitationReportData(mappedRequst, out rFilePath, out rFileName);
+
+
+                var data = _adminRepository.ToCSVHighPerformance(dataTable, true, ",");
+                using (StreamWriter SW = new StreamWriter(rFilePath, false))
+                {
+                    SW.Write(data);
+                }
+                response.FileName = rFileName;
+                return response;
+            }
+            catch(Exception ex) { throw ex; }
+        }
+
     }
 }
