@@ -1374,8 +1374,15 @@ namespace CrisesControl.Api.Application.Helpers
             rtn.ResultID = resultId;
             return rtn;
         }
-        
-        
-        
+
+        public bool OnTrialStatus(string companyProfile, bool currentTrial)
+        {
+            if (companyProfile == "SUBSCRIBED")
+            {
+                return false;
+            }
+            return companyProfile == "ON_TRIAL" ? true : currentTrial;
+        }
+
     }
 }

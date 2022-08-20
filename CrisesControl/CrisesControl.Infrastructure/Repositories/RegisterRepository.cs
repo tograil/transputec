@@ -1,4 +1,6 @@
-﻿using CrisesControl.Core.Companies;
+﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Administrator;
+using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Exceptions.NotFound.Base;
@@ -14,6 +16,7 @@ using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -23,6 +26,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace CrisesControl.Infrastructure.Repositories
 {
@@ -35,12 +39,13 @@ namespace CrisesControl.Infrastructure.Repositories
 
         private readonly ICompanyRepository _companyRepository;
         private readonly ISenderEmailService _senderEmail;
+        private readonly DBCommon _DBC;
     
         private int UserID;
         private int CompanyId;
         public RegisterRepository(ILogger<RegisterRepository> logger, ISenderEmailService senderEmail,  
             CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IIncidentRepository incidentRepository,
-            ICompanyRepository companyRepository)
+            ICompanyRepository companyRepository, DBCommon DBC)
         {
           this._logger = logger;
           this._context = context;
@@ -48,6 +53,7 @@ namespace CrisesControl.Infrastructure.Repositories
           this._senderEmail=senderEmail;
           this._incidentRepository=incidentRepository;
             this._companyRepository = companyRepository;
+            _DBC = DBC;
       
 
         }
@@ -895,6 +901,265 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 throw ex;
             }
+        }
+
+        public async Task<List<PackageModel>> GetAllPackagePlan()
+        {
+            try
+            {
+                var packageInfo = await (from PP in _context.Set<PackagePlan>()
+                                         where PP.Status == 1
+                                         select new PackageModel()
+                                         {
+                                             PackagePlanId = PP.PackagePlanId,
+                                             PackageName = PP.PlanName,
+                                             PackageDescription = PP.PlanDescription,
+                                         }).ToListAsync();
+
+                return packageInfo;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateCompanyStatus(ViewCompanyModel companyModel)
+        {
+            var CompanyStatus = await (from C in _context.Set<Company>() where C.CompanyId == companyModel.CompanyId select C).FirstOrDefaultAsync();
+            if (CompanyStatus != null)
+            {
+                CompanyStatus.CompanyProfile = companyModel.CompanyProfile;
+                CompanyStatus.OnTrial = _DBC.OnTrialStatus(companyModel.CompanyProfile, CompanyStatus.OnTrial);
+                CompanyStatus.Status = companyModel.Status;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            else
+            {
+                throw new CompanyNotFoundException(CompanyId, UserID);
+            }
+        }
+
+        public async Task<int> CreateCompany(string companyName, int status, string companyProfile, string isd, string switshBoardPhone, DateTime registrationDate,
+            DateTime anniversary, int packagePlanId, int timeZone, string customerId, string invitationCode, string sector)
+        {
+            Company TblComp = new Company();
+            TblComp.CompanyName = companyName;
+            TblComp.Status = status;
+            TblComp.CompanyProfile = companyProfile;
+            TblComp.OnTrial = _DBC.OnTrialStatus(companyProfile, false);
+            TblComp.Isdcode = isd;
+            TblComp.SwitchBoardPhone = switshBoardPhone;
+            TblComp.RegistrationDate = registrationDate;
+            TblComp.AnniversaryDate = anniversary;
+            TblComp.CompanyLogoPath = "";
+            TblComp.PackagePlanId = packagePlanId;
+            TblComp.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now);
+            TblComp.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now);
+            TblComp.TimeZone = timeZone;
+            TblComp.CreatedBy = 0;
+            TblComp.UpdatedBy = 0;
+            TblComp.UniqueKey = Guid.NewGuid().ToString();
+            TblComp.CustomerId = customerId;
+            TblComp.InvitationCode = invitationCode;
+            TblComp.Sector = sector;
+            TblComp.ContactLogoPath = "";
+            _context.Set<Company>().Add(TblComp);
+            await _context.SaveChangesAsync();
+            return TblComp.CompanyId;
+        }
+
+        public async Task<RegRet> CreateRegistrationData(int regId, int companyId, int userId, string lat, string lng)
+        {
+            try
+            {
+                DateTimeOffset CreatedNow = _DBC.GetDateTimeOffset(DateTime.Now);
+
+                var pRegID = new SqlParameter("@RegistrationID", regId);
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pUserID = new SqlParameter("@UserID", userId);
+                var pCreatedNow = new SqlParameter("@CreatedOnOffset", CreatedNow);
+                var pLat = new SqlParameter("@LocationLat", lat);
+                var pLng = new SqlParameter("@LocationLng", lng);
+                var err = await _context.Set<RegRet>().FromSqlRaw("EXEC Pro_Registration_Data_Create @RegistrationID, @CompanyID, @UserID, @CreatedOnOffset,@LocationLat,@LocationLng",
+                    pRegID, pCompanyID, pUserID, pCreatedNow, pLat, pLng).FirstOrDefaultAsync();
+                return err;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public async void SetupCompanyPaymentProfile(int companyId, int userId, int packagePlanId, string timeZoneId)
+        {
+            var comp_profile = await (from CP in _context.Set<CompanyPaymentProfile>() where CP.CompanyId == companyId select CP).AnyAsync();
+            if (comp_profile)
+            {
+                var PaymentProfile = await (from PP in _context.Set<PaymentProfile>() select PP).FirstOrDefaultAsync();
+                
+                decimal VatRate = Convert.ToDecimal(_DBC.LookupWithKey("COMP_VAT"));
+
+                if (packagePlanId == 1 && PaymentProfile.CreditBalance > 0)
+                {
+
+                    var topup_type = await (from TT in _context.Set<TransactionType>()
+                                      where TT.TransactionCode == "TOPUP"
+                                      select TT).FirstOrDefaultAsync();
+
+                    VatRate = (VatRate + 100) / 100;
+                    UpdateTransactionDetailsModel IP = new UpdateTransactionDetailsModel();
+                    IP.CustomerId = companyId;
+                    IP.TransactionTypeId = topup_type.TransactionTypeId;
+                    IP.TransactionRate = PaymentProfile.CreditBalance;
+                    IP.MinimumPrice = PaymentProfile.CreditBalance;
+                    IP.Quantity = 1;
+                    IP.Cost = PaymentProfile.CreditBalance;
+                    IP.LineValue = PaymentProfile.CreditBalance;
+                    IP.Vat = PaymentProfile.CreditBalance * 0;
+                    IP.Total = PaymentProfile.CreditBalance;
+                    IP.TransactionDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    IP.TransactionReference = "FREE CREDIT";
+                    IP.TransactionDetailsId = 0;
+                    IP.TransactionStatus = 1;
+                    IP.Storage = 0;
+                    IP.DRCR = "CR";
+
+                    //ADM.AddTransaction(IP, UserID, companyId, timeZoneId);
+                }
+            }
+        }
+
+        public async Task<UserValidatedDTO> CompleteRegistration(TempRegister tempRegister)
+        {
+            //int CompanyID = 0;
+            //string CustomerId = string.Empty;
+            //try
+            //{
+            //    UserValidatedDTO UserDTO = new UserValidatedDTO();
+            //    var reg = await (from R in _context.Set<Registration>() where R.Id == tempRegister.RegId select R).FirstOrDefaultAsync();
+            //    if (reg != null)
+            //    {
+            //        using (TransactionScope scope = new TransactionScope())
+            //        {
+            //            CustomerId = reg.CustomerId;
+
+            //            string InvitationCode = _DBC.Left(Guid.NewGuid().ToString().Replace("-", ""), 8).ToUpper();
+            //            CompanyID = await CreateCompany(reg.CompanyName, 2, "AWAITING_SETUP", reg.MobileIsd, reg.MobileNo, DateTime.Now, DateTime.Now.AddMonths(1), (int)reg.PackagePlanId, 26, IP.CustomerId, InvitationCode, reg.Sector);
+
+            //            if (CompanyID > 0)
+            //            {
+
+            //                string UniqueId = Guid.NewGuid().ToString();
+            //                int NewUserId = UH.CreateUsers(CompanyID, true, reg.FirstName, reg.Email, reg.Password, 1, 0,
+            //                    "GMT Standard Time", reg.LastName, reg.MobileNo, "SUPERADMIN", "", reg.MobileIsd, "", "", "",
+            //                    UniqueId, "", "", "", true, "en");
+
+
+            //                if (NewUserId > 0)
+            //                {
+
+            //                    var comp =await _context.Set<Company>().Where(w => w.CompanyId == CompanyID).FirstOrDefaultAsync();
+            //                    comp.CreatedBy = NewUserId;
+            //                    comp.UpdatedBy = NewUserId;
+
+            //                    var UserInfo = await (from User in _context.Set<User>() where User.UserId == NewUserId select User).FirstOrDefaultAsync();
+            //                    UserInfo.FirstLogin = false;
+            //                    await _context.SaveChangesAsync();
+
+            //                    //Send the activation email link
+            //                    string Plan = await _context.Set<PackagePlan>().Where(w => w.PackagePlanId == reg.PackagePlanId).Select(s => s.PlanName).FirstOrDefaultAsync();
+
+            //                    string TimeZoneId = _DBC.GetTimeZoneByCompany(CompanyID);
+
+            //                    //Create default location "ALL" and assgin to user to it.
+            //                    LatLng LL = _DBC.GetCoordinates(reg.City + ", " + reg.Postcode);
+            //                    try
+            //                    {
+            //                        RegRet err = await CreateRegistrationData(reg.Id, CompanyID, NewUserId, LL.Lat, LL.Lng);
+            //                        if (err.Error != 0)
+            //                        {
+            //                            throw new Exception("Company Data not created");
+            //                        }
+            //                        else
+            //                        {
+
+            //                            //Setup company payment profile
+            //                            SetupCompanyPaymentProfile(CompanyID, NewUserId, (int)reg.PackagePlanId, TimeZoneId);
+
+            //                            //Add license item in the company transaction type table.
+            //                            //DateTime firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            //                            DateTime NextRun = DateTime.Now.AddDays(30);
+            //                            var transac_type = (from TT in _context.Set<TransactionType>()
+            //                                                where TT.TransactionCode == "LICENSEFEE"
+            //                                                select TT).FirstOrDefault();
+
+            //                            int id = _billing.UpdateCompanyTranscationType(CompanyID, NewUserId, TimeZoneId, transac_type.TransactionTypeID, transac_type.Rate, 0, "MONTHLY", NextRun);
+
+            //                            _context.Set<Registration>().Remove(reg);
+            //                            _context.SaveChanges();
+
+            //                            //Confirm the account and send the account details to the user.
+            //                            _SDE.CompanySignUpConfirm(reg.Email, reg.FirstName + " " + reg.LastName, reg.MobileISD + reg.MobileNo, reg.PaymentMethod, Plan, reg.Password, CompanyID);
+
+            //                            UserDTO.companyid = CompanyID;
+            //                            UserDTO.userid = NewUserId;
+            //                            UserDTO.Password = reg.Password;
+            //                            UserDTO.CustomerId = reg.CustomerId;
+            //                            UserDTO.Token = UniqueId;
+            //                            UserDTO.ErrorId = 0;
+            //                            UserDTO.Message = "Validated Sucessfully";
+
+            //                            string companyname = string.IsNullOrEmpty(reg.CompanyName) ? "New Company " + CompanyID : reg.CompanyName;
+            //                            CustomerId = string.IsNullOrEmpty(reg.CustomerId) ? "newcompany" + CompanyID : reg.CustomerId;
+
+            //                            try
+            //                            {
+            //                                InsertCompanyApi(CompanyID, companyname, reg.CustomerId, InvitationCode);
+            //                            }
+            //                            catch (Exception ex)
+            //                            {
+            //                                DBC.catchException(ex);
+            //                                DeleteCompanyApi(CompanyID, CustomerId);
+            //                            }
+            //                        }
+            //                        scope.Complete();
+            //                    }
+            //                    catch (Exception ex)
+            //                    {
+            //                        DBC.catchException(ex);
+            //                    }
+            //                    return UserDTO;
+            //                }
+            //                else
+            //                {
+            //                    ResultDTO.ErrorId = 100;
+            //                    ResultDTO.Message = "User not created";
+            //                }
+            //            }
+            //        }
+            //    }
+
+            //}
+            //catch (Exception ex)
+            //{
+
+            //    ResultDTO = DBC.catchException(ex);
+            //    DeleteCompanyApi(CompanyID, CustomerId);
+            //}
+            //return ResultDTO;
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> DeleteTempRegistration(TempRegister tempRegister)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<Sectors>> BusinessSector()
+        {
+            throw new NotImplementedException();
         }
     }
     
