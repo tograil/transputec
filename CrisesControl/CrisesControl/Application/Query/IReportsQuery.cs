@@ -1,6 +1,9 @@
 ﻿using CrisesControl.Api.Application.Commands.Reports.AppInvitation;
+using CrisesControl.Api.Application.Commands.Reports.CMD_TaskOverView;
 using CrisesControl.Api.Application.Commands.Reports.DownloadDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.ExportAcknowledgement;
+using CrisesControl.Api.Application.Commands.Reports.ExportUserInvitationDump;
+using CrisesControl.Api.Application.Commands.Reports.GetCompanyCommunicationReport;
 using CrisesControl.Api.Application.Commands.Reports.GetFailedAttempts;
 using CrisesControl.Api.Application.Commands.Reports.GetFailedTasks;
 using CrisesControl.Api.Application.Commands.Reports.GetGroupPingReportChart;
@@ -24,7 +27,9 @@ using CrisesControl.Api.Application.Commands.Reports.GetTrackingData;
 using CrisesControl.Api.Application.Commands.Reports.GetTrackingUserCount;
 using CrisesControl.Api.Application.Commands.Reports.GetUndeliveredMessage;
 using CrisesControl.Api.Application.Commands.Reports.GetUserIncidentReport;
+using CrisesControl.Api.Application.Commands.Reports.GetUserInvitationReport;
 using CrisesControl.Api.Application.Commands.Reports.GetUserReportPiechartData;
+using CrisesControl.Api.Application.Commands.Reports.GetUserTracking;
 using CrisesControl.Api.Application.Commands.Reports.IncidentResponseDump;
 using CrisesControl.Api.Application.Commands.Reports.IncidentResponseSummaries;
 using CrisesControl.Api.Application.Commands.Reports.IncidentResponseSummary;
@@ -77,6 +82,10 @@ namespace CrisesControl.Api.Application.Query
         Task<AppInvitationResponse> AppInvitation(AppInvitationRequest request);
         Task<GetPingReportAnalysisResponse> PingReportAnalysis(GetPingReportAnalysisRequest request);
         Task<GetMessageAnslysisResponseResponse> GetMessageAnslysisResponse(GetMessageAnslysisResponseRequest request);
-        
+        Task<GetCompanyCommunicationReportResponse> GetCompanyCommunicationReport(GetCompanyCommunicationReportRequest request);
+        Task<List<GetUserTrackingResponse>> GetUserTracking(GetUserTrackingRequest request);
+        Task<CMD_TaskOverViewResponse> CMD_TaskOverView(CMD_TaskOverViewRequest request);
+        Task<GetUserInvitationReportResponse> GetUserInvitationReport(GetUserInvitationReportRequest request);
+        ExportUserInvitationDumpResponse ExportUserInvitationDump(ExportUserInvitationDumpRequest request);
     }
 }

@@ -1,8 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using CrisesControl.Core.Import;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrisesControl.Core.Compatibility
 {
-    public class DataTablePaging
+    public class DataTablePaging: CommonDTO
     {
         public int Draw { get; set; }
         public int RecordsTotal { get; set; }
