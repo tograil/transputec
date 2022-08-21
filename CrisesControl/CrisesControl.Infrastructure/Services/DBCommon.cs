@@ -1417,5 +1417,20 @@ namespace CrisesControl.Api.Application.Helpers
         
         
         
+        public string PhoneNumber(PhoneNumber strPhoneNumber)
+        {
+            try
+            {
+                if (strPhoneNumber != null)
+                {
+                    return strPhoneNumber.ISD + strPhoneNumber.Number;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return "";
+        }
     }
 }

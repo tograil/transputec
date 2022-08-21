@@ -21,6 +21,11 @@ using CrisesControl.Api.Application.Commands.Companies.UpdateCompanyComms;
 using CrisesControl.Api.Application.Commands.Companies.CompanyDataReset;
 using CrisesControl.Api.Application.Commands.Companies.DeactivateCompany;
 using CrisesControl.Api.Application.Commands.Companies.ReactivateCompany;
+using CrisesControl.Api.Application.Commands.Companies.DeleteCompanyComplete;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyObject;
+using CrisesControl.Api.Application.Commands.Companies.GetGroupUsers;
+using CrisesControl.Api.Application.Commands.Companies.GetScimProfile;
+using CrisesControl.Api.Application.Commands.Companies.SaveScimProfile;
 
 namespace CrisesControl.Api.Controllers;
 
@@ -198,6 +203,71 @@ public class CompanyController : Controller
     {
         var result = await _mediator.Send(request, cancellationToken);
 
+        return Ok(result);
+    }
+    /// <summary>
+    /// Delete Company Complete.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpDelete]
+    [Route("[action]/{CompanyId}/{UserId}/{GUID}/{DeleteType}")]
+    public async Task<IActionResult> DeleteCompanyComplete([FromRoute] DeleteCompanyCompleteRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Company Object.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]/{ObjectName}")]
+    public async Task<IActionResult> GetCompanyObject([FromRoute] GetCompanyObjectRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Group Users.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("[action]/{GroupId}/{ObjectMappingId}")]
+    public async Task<IActionResult> GetGroupUsers([FromRoute] GetGroupUsersRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get Scim Profile.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> GetScimProfile([FromRoute] GetScimProfileRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return Ok(result);
+    }
+    /// <summary>
+    /// Save Scim Profile.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("[action]")]
+    public async Task<IActionResult> SaveScimProfile([FromBody] SaveScimProfileRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 }
