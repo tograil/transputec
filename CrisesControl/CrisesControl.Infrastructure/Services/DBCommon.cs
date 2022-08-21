@@ -1585,6 +1585,46 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
+        public void GetStartEndDate(bool isThisWeek, bool isThisMonth, bool isLastMonth, ref DateTime stDate, ref DateTime enDate, DateTimeOffset startDate, DateTimeOffset endDate)
+        {
+            if (isThisWeek)
+            {
+                int dayofweek = Convert.ToInt32(DateTime.Now.DayOfWeek);
+                stDate = DateTime.Now.AddDays(0 - dayofweek);
+                enDate = DateTime.Now.AddDays(7 - dayofweek);
+                stDate = new DateTime(stDate.Year, stDate.Month, stDate.Day, 0, 0, 0);
+                enDate = new DateTime(enDate.Year, enDate.Month, enDate.Day, 23, 59, 59);
+            }
+            else if (isThisMonth)
+            {
+                stDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0);
+                enDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month), 23, 59, 59);
+            }
+            else if (isLastMonth)
+            {
+                DateTime currentDate = DateTime.Now;
+                int year = currentDate.Year;
+                int month = currentDate.Month;
+
+                if (month == 1)
+                {
+                    year = year - 1;
+                    month = 12;
+                }
+                else
+                {
+                    month = month - 1;
+                }
+                stDate = new DateTime(year, month, 1, 0, 0, 0);
+                enDate = new DateTime(year, month, DateTime.DaysInMonth(year, month), 23, 59, 59);
+            }
+            else
+            {
+                stDate = new DateTime(startDate.Year, startDate.Month, startDate.Day, 0, 0, 0);
+                enDate = new DateTime(endDate.Year, endDate.Month, endDate.Day, 23, 59, 59);
+            }
+        }
+
         public Return Return(int errorId = 100, string errorCode = "E100", bool status = false, string message = "FAILURE", object data = null, int resultId = 0)
         {
             Return rtn = new Return();
@@ -1599,5 +1639,20 @@ namespace CrisesControl.Api.Application.Helpers
         
         
         
+        public string PhoneNumber(PhoneNumber strPhoneNumber)
+        {
+            try
+            {
+                if (strPhoneNumber != null)
+                {
+                    return strPhoneNumber.ISD + strPhoneNumber.Number;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return "";
+        }
     }
 }

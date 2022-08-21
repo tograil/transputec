@@ -36,6 +36,12 @@ using CrisesControl.Api.Application.Commands.Reports.IncidentResponseSummary;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageAnslysisResponse;
 using CrisesControl.Api.Application.Commands.Reports.GetPingReportAnalysis;
 using CrisesControl.Api.Application.Commands.Reports.AppInvitation;
+using CrisesControl.Api.Application.Commands.Reports.GetCompanyCommunicationReport;
+using CrisesControl.Api.Application.Commands.Reports.GetUserTracking;
+using CrisesControl.Api.Application.Commands.Reports.CMD_TaskOverView;
+using CrisesControl.Api.Application.Commands.Reports.IncidentResponseDump;
+using CrisesControl.Api.Application.Commands.Reports.GetUserInvitationReport;
+using CrisesControl.Api.Application.Commands.Reports.ExportUserInvitationDump;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -380,17 +386,89 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
         [HttpGet]
-        [Route("PingReportAnalysis/{MessageId}/{MessageType}")]
+        [Route("PingReportAnalysis/{MessageId:int}/{MessageType}")]
         public async Task<IActionResult> PingReportAnalysis([FromRoute] GetPingReportAnalysisRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpGet]
-        [Route("AppInvitation/{CompanyId}")]
+        [Route("AppInvitation/{CompanyId:int}")]
         public async Task<IActionResult> AppInvitation([FromRoute] AppInvitationRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        /// <summary>
+        /// Get company's communication reports
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetCompanyCommunicationReport/{CompanyId:int}")]
+        public async Task<IActionResult> GetCompanyCommunicationReport([FromRoute] GetCompanyCommunicationReportRequest request)
+        {
+            var result = await _reportQuery.GetCompanyCommunicationReport(request);
+            return Ok(result);
+        }
+        /// <summary>
+        /// Return user tracking report
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetUserTracking/{Source}/{UserId:int}/{ActiveIncidentId:int}")]
+        public async Task<IActionResult> GetUserTracking([FromRoute] GetUserTrackingRequest request)
+        {
+            var result = await _reportQuery.GetUserTracking(request);
+            return Ok(result);
+        }
+        /// <summary>
+        /// Return task overview
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("CMD_TaskOverView/{IncidentActivationId:int}")]
+        public async Task<IActionResult> CMD_TaskOverView([FromRoute] CMD_TaskOverViewRequest request)
+        {
+            var result = await _reportQuery.CMD_TaskOverView(request);
+            return Ok(result);
+        }
+        /// <summary>
+        /// Returns incident response
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("Action")]
+        public async Task<IActionResult> IncidentResponseDump([FromBody] IncidentResponseDumpRequest request)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        /// <summary>
+        /// Get user invitation report
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("GetUserInvitationReport")]
+        public async Task<IActionResult> GetUserInvitationReport([FromBody] GetUserInvitationReportRequest request)
+        {
+            var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        /// <summary>
+        /// Download user invitation detail
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("ExportUserInvitationDump")]
+        public async Task<IActionResult> ExportUserInvitationDump([FromBody] ExportUserInvitationDumpRequest request)
+        {
+            var result = await _mediator.Send(request);
             return Ok(result);
         }
 
