@@ -30,6 +30,7 @@ using CrisesControl.Core.Companies;
 using CrisesControl.Core.Academy;
 using CrisesControl.Core.Payments;
 using CrisesControl.Core.CCWebSocket;
+using CrisesControl.Infrastructure.Services;
 
 namespace CrisesControl.Infrastructure.Context
 {

@@ -1,5 +1,7 @@
 ﻿using CrisesControl.Api.Application.Commands.CCWebSocket.Get;
+using CrisesControl.Api.Application.Commands.CCWebSocket.ProcessWebsocketSession;
 using CrisesControl.Core.CCWebSocket.Repositories;
+using CrisesControl.Infrastructure.Services;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -24,5 +26,26 @@ namespace CrisesControl.Api.Application.Query
                 throw ex;
             }
         }
+
+        public async Task<bool> ProcessWebsocketSession(ProcessWebsocketSessionRequest request)
+        {
+            try
+            {
+                 
+               if (request.Context != null)
+                {
+                    await _webSocketRepository.ProcessWebsocketSession(request.Context, request.WebSocket);
+                    return true;
+                }             
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+       
     }
 }

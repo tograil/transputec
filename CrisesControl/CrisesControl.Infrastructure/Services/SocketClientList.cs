@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Core.CCWebSocket
+namespace CrisesControl.Infrastructure.Services
 {
     public class SocketClientList
     {

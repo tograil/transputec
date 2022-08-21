@@ -53,6 +53,6 @@ public class ApiModule : Module
         builder.RegisterType<AcademyQuery>().As<IAcademyQuery>();
         builder.RegisterType<LookupQuery>().As<ILookupQuery>();
         builder.RegisterType<Mapper>().As<IMapper>();
-        builder.RegisterType<CCWebSocketQuery>().As<ICCWebSocketQuery>()
+        builder.RegisterType<WebSocketQuery>().As<ICCWebSocketQuery>();
     }
 }
