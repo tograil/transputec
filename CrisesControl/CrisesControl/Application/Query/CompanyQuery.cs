@@ -3,13 +3,18 @@ using CrisesControl.Api.Application.Commands.Companies.CheckCompany;
 using CrisesControl.Api.Application.Commands.Companies.CompanyDataReset;
 using CrisesControl.Api.Application.Commands.Companies.DeactivateCompany;
 using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
+using CrisesControl.Api.Application.Commands.Companies.DeleteCompanyComplete;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCompanyAccount;
 using CrisesControl.Api.Application.Commands.Companies.GetCompanyComms;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyObject;
+using CrisesControl.Api.Application.Commands.Companies.GetGroupUsers;
+using CrisesControl.Api.Application.Commands.Companies.GetScimProfile;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
 using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
 using CrisesControl.Api.Application.Commands.Companies.ReactivateCompany;
+using CrisesControl.Api.Application.Commands.Companies.SaveScimProfile;
 using CrisesControl.Api.Application.Commands.Companies.SaveSite;
 using CrisesControl.Api.Application.Commands.Companies.UpdateCompanyComms;
 using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
@@ -109,13 +114,13 @@ public class CompanyQuery : ICompanyQuery {
     {
         try
         {
-            var check = _companyRepository.DeleteCompanyComplete(request.CompanyId, request.UserId,request.GUID, request.DeleteType);
-            var result = _mapper.Map<CompanyInfo>(check);
+            var check = _companyRepository.DeleteCompany(request.TargetCompanyID,_currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
+            var result = _mapper.Map<string>(check);
             var response = new DeleteCompanyResponse();
             if (result!=null)
             {
                
-                response.Message = "Deleted";
+                response.Message = result;
 
             }
             else
@@ -128,7 +133,7 @@ public class CompanyQuery : ICompanyQuery {
         }
         catch (Exception ex)
         {
-            throw new CompanyNotFoundException(request.CompanyId, request.UserId);
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
         }
     }
 
@@ -452,6 +457,131 @@ public class CompanyQuery : ICompanyQuery {
 
                 response.IsReset = result;
                 response.Message = "Not Updated";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<DeleteCompanyCompleteResponse> DeleteCompanyComplete(DeleteCompanyCompleteRequest request)
+    {
+        try
+        {
+            var check = _companyRepository.DeleteCompanyComplete(request.CompanyId, request.UserId, request.GUID, request.DeleteType);
+            var result = _mapper.Map<string>(check);
+            var response = new DeleteCompanyCompleteResponse();
+            if (!string.IsNullOrEmpty(result))
+            {
+
+                response.Message = "Deleted";
+
+            }
+            else
+            {
+
+                response.Message = "No record found.";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(request.CompanyId, request.UserId);
+        }
+    }
+
+    public async Task<GetCompanyObjectResponse> GetCompanyObject(GetCompanyObjectRequest request)
+    {
+        try
+        {
+            var check = _companyRepository.GetCompanyObject(_currentUser.CompanyId, request.ObjectName);
+            var result = _mapper.Map<CompanyObject>(check);
+            var response = new GetCompanyObjectResponse();
+            if (result!=null)
+            {
+                response.Data = result;
+            }
+            else
+            {
+                response.Data = null;
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<GetGroupUsersResponse> GetGroupUsers(GetGroupUsersRequest request)
+    {
+        try
+        {
+            var check = await _companyRepository.GetGroupUsers( request.GroupId,request.ObjectMappingId);
+            var result = _mapper.Map<List<GroupUsers>>(check);
+            var response = new GetGroupUsersResponse();
+            if (result != null)
+            {
+                response.Data = result;
+            }
+            else
+            {
+                response.Data = null;
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<GetScimProfileResponse> GetScimProfile(GetScimProfileRequest request)
+    {
+        try
+        {
+            var scimProfile = await _companyRepository.GetScimProfile(_currentUser.CompanyId);
+            var result = _mapper.Map<CompanyScimProfile>(scimProfile);
+            var response = new GetScimProfileResponse();
+            if (result != null)
+            {
+                response.Data = result;
+            }
+            else
+            {
+                response.Data = null;
+                response.Message = "No data found.";
+            }
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            throw new CompanyNotFoundException(_currentUser.CompanyId, _currentUser.UserId);
+        }
+    }
+
+    public async Task<SaveScimProfileResponse> SaveScimProfile(SaveScimProfileRequest request)
+    {
+        try
+        {
+            var scimProfile = await _companyRepository.SaveScimProfileAsync(request.Model,_currentUser.UserId,_currentUser.CompanyId, _currentUser.TimeZone);
+            var result = _mapper.Map<CompanyScimProfile>(scimProfile);
+            var response = new SaveScimProfileResponse();
+            if (result != null)
+            {
+                response.Data = result;
+            }
+            else
+            {
+                response.Data = null;
+                response.Message = "No data found.";
             }
             return response;
 

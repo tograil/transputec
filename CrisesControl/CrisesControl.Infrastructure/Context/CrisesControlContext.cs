@@ -224,6 +224,10 @@ namespace CrisesControl.Infrastructure.Context
             
 
 
+            modelBuilder.Entity<CompanyObject>().HasNoKey();
+            modelBuilder.Entity<GroupUsers>().HasNoKey();
+            modelBuilder.Entity<CompanyScimProfile>().HasNoKey();
+
             //modelBuilder.Entity<Location>().HasNoKey();
         }
 

@@ -20,5 +20,7 @@ public class ObjectRelationConfiguration : IEntityTypeConfiguration<ObjectRelati
             .HasFillFactor(100);
 
         builder.HasIndex(e => e.ObjectMappingId, "IDX_Target_Source_ID");
+
+        builder.HasOne(e => e.User).WithMany().HasForeignKey(e => e.TargetObjectPrimaryId);
     }
 }

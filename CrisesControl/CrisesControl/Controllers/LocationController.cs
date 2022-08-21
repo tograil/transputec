@@ -99,6 +99,6 @@ public class LocationController : Controller
     {
         var result = await _mediator.Send(request, cancellationToken);
 
-        return Ok(result);
-    }
+    //    return Ok(result);
+    //}
 }

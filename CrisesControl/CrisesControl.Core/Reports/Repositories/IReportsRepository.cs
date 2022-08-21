@@ -63,5 +63,10 @@ namespace CrisesControl.Core.Reports.Repositories
         Task<DataTablePaging> GetMessageAnslysisResponse(int companyId, int MessageId, string MessageType, int DrillOpt, int start, int length, string search, string orderBy, string orderDir, string CompanyKey, int draw);
         Task<List<PingReportGrid>> GetMessageAnalysis(int _CompanyID, int MessageId, string MessageType, int DrillOpt, int RecordStart, int RecordLength, string SearchString,
             string OrderBy, string OrderDir, string CompanyKey);
+        Task<CompanyCountReturn> GetCompanyCommunicationReport(int companyId);
+        Task<List<TrackingExport>> GetUserTracking(string source, int userId, int activeIncidentId);
+        Task<TaskOverview> CMD_TaskOverView(int activeIncidentId);
+        Task<DataTablePaging> GetUserInvitationReport(UserInvitationModel userInvitation);
+        DataTable GetUserInvitationReportData(UserInvitationModel inputModel, out string rFilePath, out string rFileName);
     }
 }

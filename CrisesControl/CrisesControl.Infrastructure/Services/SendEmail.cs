@@ -1529,6 +1529,31 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex; ;
             }
         }
+        public void RegistrationCancelled(string CompanyName, int PlanId, DateTimeOffset RegDate, UserFullName pUserName, string pUserEmail, PhoneNumber pUserMobile)
+        {
+            string hostname = _DBC.LookupWithKey("SMTPHOST");
+            string fromadd = _DBC.LookupWithKey("EMAILFROM");
+
+            if ((hostname != null) && (fromadd != null))
+            {
+
+                System.Text.StringBuilder adminMsg = new System.Text.StringBuilder();
+                string Plan = (PlanId == 1 ? "Business" : "EnterPrise");
+                adminMsg.AppendLine("<h2>A company has cancelled their subscription from Crises Control</h2>");
+                adminMsg.AppendLine("<p>Below are the company information:</p>");
+                adminMsg.AppendLine("<strong>Company Name: </strong>" + CompanyName + "</br>");
+                adminMsg.AppendLine("<strong>Registration Date: </strong>" + RegDate.ToString() + "</br>");
+                adminMsg.AppendLine("<strong>Plan Name: </strong>" + Plan + "</br>");
+                adminMsg.AppendLine("<strong>Primary Email: </strong>" + pUserEmail + "</br>");
+                adminMsg.AppendLine("<strong>Contact Person: </strong>" + _DBC.UserName(pUserName) + "</br>");
+                adminMsg.AppendLine("<strong>Mobile: </strong>" + _DBC.PhoneNumber(pUserMobile) + "</br>");
+                string[] AdminEmail = _DBC.LookupWithKey("SENDFEEDBACKTO").Split(',');
+
+                Email(AdminEmail, adminMsg.ToString(), fromadd, hostname, CompanyName + ": Crises Control: Membership Cancellation Alert");
+            }
+
+        }
+
         public async Task ContractStartDaysExceeded(int companyId, double DaysExceeding)
         {
 
