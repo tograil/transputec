@@ -49,8 +49,7 @@ builder.Services.AddDbContext<OpenIddictContext>(options => {
     options.UseOpenIddict();
 });
 
-builder.Services.Configure<IdentityOptions>(options =>
-{
+builder.Services.Configure<IdentityOptions>(options => {
     options.ClaimsIdentity.UserNameClaimType = OpenIddictConstants.Claims.Name;
     options.ClaimsIdentity.UserIdClaimType = OpenIddictConstants.Claims.Subject;
     options.ClaimsIdentity.RoleClaimType = OpenIddictConstants.Claims.Role;
@@ -130,35 +129,30 @@ builder.Services.AddIdentityCore<User>()
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-    {
-        c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crises Control API", Version = "v1" });
+builder.Services.AddSwaggerGen(c => {
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crises Control API", Version = "v1" });
 
-        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-        c.IncludeXmlComments(xmlPath);
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
 
-        c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
-            {
-                Flows = new OpenApiOAuthFlows
-                {
-                    Password = new OpenApiOAuthFlow
-                    {
-                        Scopes = new Dictionary<string, string>
-                        {
-                            ["api"] = "api scope description"
-                        },
-                        TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
-                    },
+    c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme {
+        Flows = new OpenApiOAuthFlows {
+            Password = new OpenApiOAuthFlow {
+                Scopes = new Dictionary<string, string> {
+                    ["api"] = "api scope description"
                 },
-                In = ParameterLocation.Header,
-                Name = HeaderNames.Authorization,
-                Type = SecuritySchemeType.OAuth2
-            }
-        );
-        c.AddSecurityRequirement(
-            new OpenApiSecurityRequirement
-            {
+                TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
+            },
+        },
+        In = ParameterLocation.Header,
+        Name = HeaderNames.Authorization,
+        Type = SecuritySchemeType.OAuth2
+    }
+    );
+    c.AddSecurityRequirement(
+        new OpenApiSecurityRequirement
+        {
                 {
                     new OpenApiSecurityScheme
                     {
@@ -167,9 +161,9 @@ builder.Services.AddSwaggerGen(c =>
                     },
                     new[] { "api" }
                 }
-            }
-        );
-    }
+        }
+    );
+}
 );
 
 builder.Services.AddHostedService<AuthService>();
@@ -182,26 +176,30 @@ builder.Services.AddCors(options => {
         });
 });
 
-TokenCredential credentials = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-{
-    ManagedIdentityClientId = builder.Configuration["AzureADManagedIdentityClientId"]
-});
+bool isAzureDb = Convert.ToBoolean(builder.Configuration["IsAzureDataBase"]);
 
-if (builder.Environment.IsProduction())
-{
-    credentials = new ManagedIdentityCredential();
+if (isAzureDb) {
+    TokenCredential credentials = new DefaultAzureCredential(new DefaultAzureCredentialOptions {
+        ManagedIdentityClientId = builder.Configuration["AzureADManagedIdentityClientId"]
+    });
+
+    if (builder.Environment.IsProduction()) {
+        credentials = new ManagedIdentityCredential();
+    }
+
+    builder.Configuration.AddAzureKeyVault(
+        new Uri($"https://{builder.Configuration["KeyVaultName"]}.vault.azure.net/"),
+        credentials);
+
+    var akvProvider = new SqlColumnEncryptionAzureKeyVaultProvider(credentials);
+
+    SqlConnection.RegisterColumnEncryptionKeyStoreProviders(customProviders: new Dictionary<string, SqlColumnEncryptionKeyStoreProvider>(capacity: 1, comparer: StringComparer.OrdinalIgnoreCase)
+    {
+    { SqlColumnEncryptionAzureKeyVaultProvider.ProviderName, akvProvider}
+
+    });
 }
 
-builder.Configuration.AddAzureKeyVault(
-    new Uri($"https://{builder.Configuration["KeyVaultName"]}.vault.azure.net/"),
-    credentials);
-
-var akvProvider = new SqlColumnEncryptionAzureKeyVaultProvider(credentials);
-
-SqlConnection.RegisterColumnEncryptionKeyStoreProviders(customProviders: new Dictionary<string, SqlColumnEncryptionKeyStoreProvider>(capacity: 1, comparer: StringComparer.OrdinalIgnoreCase)
-{
-    { SqlColumnEncryptionAzureKeyVaultProvider.ProviderName, akvProvider}
-});
 
 builder.Services.AddDbContext<CrisesControlAuthContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlDatabase"));
@@ -218,10 +216,12 @@ builder.Services.AddHttpContextAccessor();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Asif") {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(setupAction => {
+        setupAction.OAuthClientId(serverCredentials.ClientId);
+        setupAction.OAuthClientSecret(serverCredentials.ClientSecret);
+    });
 }
 
 app.UseDeveloperExceptionPage();
@@ -240,25 +240,21 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapControllers();     
+app.UseEndpoints(endpoints => {
+    endpoints.MapControllers();
 });
 
-await using (var scope = app.Services.CreateAsyncScope())
-{
+await using (var scope = app.Services.CreateAsyncScope()) {
     var context = scope.ServiceProvider.GetService<OpenIddictContext>();
-        context.Database.Migrate();
+    context.Database.Migrate();
 
-        var context2 = scope.ServiceProvider.GetService<CrisesControlAuthContext>();
-        context2.Database.Migrate();
+    var context2 = scope.ServiceProvider.GetService<CrisesControlAuthContext>();
+    context2.Database.Migrate();
 
     var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
 
-    if (await manager.FindByNameAsync("api") is null)
-    {
-        await manager.CreateAsync(new OpenIddictScopeDescriptor
-        {
+    if (await manager.FindByNameAsync("api") is null) {
+        await manager.CreateAsync(new OpenIddictScopeDescriptor {
             Name = "api",
             Resources =
             {
@@ -268,18 +264,18 @@ await using (var scope = app.Services.CreateAsyncScope())
     }
 }
 
-app.UseSpa(spa =>
-{
-    // To learn more about options for serving an Angular SPA from ASP.NET Core,
-    // see https://go.microsoft.com/fwlink/?linkid=864501
+if (app.Environment.IsDevelopment()) {
+    app.UseSpa(spa => {
+        // To learn more about options for serving an Angular SPA from ASP.NET Core,
+        // see https://go.microsoft.com/fwlink/?linkid=864501
 
     spa.Options.SourcePath = "ClientApp";
 
-    if (app.Environment.IsDevelopment())
-    {
-        spa.UseAngularCliServer(npmScript: "start");
-        // spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
-    }
-});
+        if (app.Environment.IsDevelopment()) {
+            spa.UseAngularCliServer(npmScript: "start");
+            // spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
+        }
+    });
+}
 
 app.Run();

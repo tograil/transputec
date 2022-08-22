@@ -20,6 +20,7 @@ namespace CC.Authority.Implementation.Services
         private readonly HttpClient _httpClient;
 
         private readonly Uri _baseUri;
+        private readonly string _appPath;
 
         public UserManager(HttpClient httpClient, IOptions<CrisesControlServerConfig> options)
         {
@@ -27,6 +28,8 @@ namespace CC.Authority.Implementation.Services
             var crisesControlServerConfig = options.Value;
 
             _baseUri = new Uri(crisesControlServerConfig.ApiEndpoint);
+            _appPath = crisesControlServerConfig.AppPath;
+
             _httpClient.DefaultRequestHeaders.Add("X-ApiKey", crisesControlServerConfig.ApiSecret);
         }
 
@@ -49,7 +52,7 @@ namespace CC.Authority.Implementation.Services
 
         public async Task<(bool, UserResponse?)> UserExists(string email, string externalScimId)
         {
-            var checkUserUri = new Uri(_baseUri, $"{CheckUserPath}?UserId=0&PrimaryEmail={email}&ExternalScimId={externalScimId}");
+            var checkUserUri = new Uri(_baseUri, $"{_appPath}{CheckUserPath}?UserId=0&PrimaryEmail={email}&ExternalScimId={externalScimId}");
 
             var response = await _httpClient.GetAsync(checkUserUri);
 
