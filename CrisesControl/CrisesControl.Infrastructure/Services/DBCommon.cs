@@ -31,6 +31,8 @@ using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
 using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.Core.Import;
+using System.Data;
+using Newtonsoft.Json;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -42,6 +44,7 @@ namespace CrisesControl.Api.Application.Helpers
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
         ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
+        public delegate void UpdateHandler(object sender, UpdateEventArgs e);
 
         public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
@@ -49,6 +52,14 @@ namespace CrisesControl.Api.Application.Helpers
             _httpContextAccessor = httpContextAccessor;
             userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+        }
+        public class UpdateEventArgs : EventArgs
+        {
+            public UpdateEventArgs(string _Msg)
+            {
+                Message = _Msg;
+            }
+            public string Message { get; }
         }
 
         public StringBuilder ReadHtmlFile(string fileCode, string source, int companyId, out string subject, string provider = "AWSSES")
@@ -1431,6 +1442,116 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
             return "";
+        }
+        public string ToCSVHighPerformance(DataTable dataTable, bool includeHeaderAsFirstRow = true, string separator = ",")
+        {
+            //DataTable dataTable = new DataTable();
+            StringBuilder csvRows = new StringBuilder();
+            string row = "";
+            int columns;
+            try
+            {
+                //dataTable.Load(dataReader);
+                columns = dataTable.Columns.Count;
+                //Create Header
+                if (includeHeaderAsFirstRow)
+                {
+                    for (int index = 0; index < columns; index++)
+                    {
+                        row += (dataTable.Columns[index]);
+                        if (index < columns - 1)
+                            row += (separator);
+                    }
+                    row += (Environment.NewLine);
+                }
+                csvRows.Append(row);
+
+                //Create Rows
+                for (int rowIndex = 0; rowIndex < dataTable.Rows.Count; rowIndex++)
+                {
+                    row = "";
+                    //Row
+                    for (int index = 0; index < columns; index++)
+                    {
+                        string value = dataTable.Rows[rowIndex][index].ToString();
+
+                        //If type of field is string
+                        if (dataTable.Rows[rowIndex][index] is string)
+                        {
+                            //If double quotes are used in value, ensure each are replaced by double quotes.
+                            if (value.IndexOf("\"") >= 0)
+                                value = value.Replace("\"", "\"\"");
+
+                            //If separtor are is in value, ensure it is put in double quotes.
+                            if (value.IndexOf(separator) >= 0)
+                                value = "\"" + value + "\"";
+
+                            //If string contain new line character
+                            while (value.Contains("\r"))
+                            {
+                                value = value.Replace("\r", "");
+                            }
+                            while (value.Contains("\n"))
+                            {
+                                value = value.Replace("\n", "");
+                            }
+                        }
+                        row += value;
+                        if (index < columns - 1)
+                            row += separator;
+                    }
+                    dataTable.Rows[rowIndex][columns - 1].ToString().ToString().Replace(separator, " ");
+                    row += Environment.NewLine;
+                    csvRows.Append(row);
+                }
+                dataTable.Dispose();
+                return csvRows.ToString();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            
+        }
+        public void ModelInputLog(string ControllerName, string MethodName, int UserID, int CompanyID, dynamic data)
+        {
+            try
+            {
+             
+                    string json = JsonConvert.SerializeObject(data);
+
+                    var pControllerName = new SqlParameter("@ControllerName", ControllerName);
+                    var pMethodName = new SqlParameter("@MethodName", MethodName);
+                    var pUserID = new SqlParameter("@UserID", UserID);
+                    var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                    var pData = new SqlParameter("@Data", json);
+
+                    _context.Database.ExecuteSqlRawAsync("Pro_Log_Model_Data @ControllerName, @MethodName, @UserID, @CompanyID, @Data",
+                    pControllerName, pMethodName, pUserID, pCompanyID, pData);
+             
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public DateTimeOffset ToNullIfTooEarlyForDb(DateTimeOffset date, bool ConvertUTC = false)
+        {
+            DateTimeOffset retDate = (date.Year >= 1990) ? date : DateTime.Now;
+            if (!ConvertUTC)
+            {
+                return retDate;
+            }
+            else
+            {
+                //retDate = GetLocalTimeScheduler("GMT Standard Time", retDate);
+                retDate = GetDateTimeOffset(retDate.LocalDateTime);
+            }
+            return retDate;
+        }
+        public string LogWrite(string str, string strType = "I")
+        {
+            return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
         }
     }
 }

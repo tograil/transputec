@@ -217,6 +217,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyObject>().HasNoKey();
             modelBuilder.Entity<GroupUsers>().HasNoKey();
             modelBuilder.Entity<CompanyScimProfile>().HasNoKey();
+            modelBuilder.Entity<AuditHelp>().HasNoKey();
+            modelBuilder.Entity<AuditList>().HasNoKey();
+            modelBuilder.Entity<AdminCompanyStats>().HasNoKey();
+            modelBuilder.Entity<ErrorLogReturn>().HasNoKey();
+            modelBuilder.Entity<TwilioLogModel>().HasNoKey();
+            modelBuilder.Entity<TwilioLogToClear>().HasNoKey();
+            modelBuilder.Entity<TwilioPriceByNumber>().HasNoKey();
 
             //modelBuilder.Entity<Location>().HasNoKey();
         }

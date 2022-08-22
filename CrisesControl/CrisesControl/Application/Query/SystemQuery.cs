@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.System.ExportTrackingData;
+using CrisesControl.Api.Application.Commands.System.ViewErrorLog;
 using CrisesControl.Api.Application.Commands.System.ViewModelLog;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Maintenance.Interfaces;
@@ -38,6 +39,59 @@ namespace CrisesControl.Api.Application.Query
                 else
                 {
                     response.FileName = result;
+                }
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<ViewErrorLogResponse> ViewErrorLog(ViewErrorLogRequest request)
+        {
+            try
+            {
+                var RecordStart = _paging.PageNumber == 0 ? 0 : _paging.PageNumber;
+                var RecordLength = _paging.PageSize == 0 ? int.MaxValue : _paging.PageSize;
+                var SearchString = (request.search != null) ? request.search.Value : "";
+              
+                string OrderDir = request.order != null ? request.order.FirstOrDefault().Dir : "desc";
+
+                int totalRecord = 0;
+                DataTablePaging rtn = new DataTablePaging();
+                rtn.Draw = request.draw;
+
+                var result = await _systemRepository.GetErrorLog(request.StartDate, request.EndDate, RecordStart, RecordLength, SearchString, _paging.OrderBy, OrderDir);
+
+                if (result != null)
+                {
+                    totalRecord = result.Count;
+                    rtn.RecordsFiltered = result.Count;
+                    rtn.Data = result;
+                }
+
+                var TotalList = await _systemRepository.GetErrorLog(request.StartDate, request.EndDate, RecordStart, int.MaxValue, "", "Id", "asc");
+
+                if (TotalList != null)
+                {
+                    totalRecord = TotalList.Count;
+                }
+
+                rtn.RecordsTotal = totalRecord;
+
+                var result1 = _mapper.Map<DataTablePaging>(rtn);
+                var response = new ViewErrorLogResponse();
+                if (result != null)
+                {
+                    response.Data = rtn;
+
+                }
+                else
+                {
+                    response.Data = null;
                 }
 
                 return response;

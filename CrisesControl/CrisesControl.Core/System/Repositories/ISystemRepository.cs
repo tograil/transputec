@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,6 +10,16 @@ namespace CrisesControl.Core.System.Repositories
     public  interface ISystemRepository
     {
         Task<string> ExportTrackingData(int TrackMeID, int UserDeviceID, DateTimeOffset StartDate, DateTimeOffset EndDate, int OutUserCompanyId);
-        Task<List<ModelLogReturn>> GetModelLog(DateTimeOffset StartDate, DateTimeOffset EndDate, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir);
+        Task<List<ModelLogReturn>> GetModelLog(DateTimeOffset startDate, DateTimeOffset endDate, int recordStart, int recordLength, string searchString, string orderBy, string orderDir);
+        Task<HttpResponseMessage> DownloadExportFile(int companyId, string fileName);
+        Task<bool> TwilioLogDump(TwilioLogModel log);
+        Task<bool> PushTwilioLog(string method, string sId);
+        Task<bool> PushCMLog(string method, string sId);
+        Task<HttpResponseMessage> ApiStatus();
+        Task CleanLoadTestResult();
+        Task<List<ErrorLogReturn>> GetErrorLog(DateTimeOffset startDate, DateTimeOffset endDate, int recordStart, int recordLength, string searchString, string orderBy, string orderDir);
+        Task<string> ExportCompanyData(int outUserCompanyId, string entity, int outLoginUserId, bool showDeleted = false);
+        Task<List<AuditHelp>> GetAuditLogsByRecordId(string tableName, int recordId, bool isThisWeek, bool isThisMonth, bool isLastMonth,
+           DateTimeOffset startDate, DateTimeOffset endDate, bool limitResult, int companyId);
     }
 }
