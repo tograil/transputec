@@ -2,13 +2,18 @@
 using CrisesControl.Api.Application.Commands.Companies.CompanyDataReset;
 using CrisesControl.Api.Application.Commands.Companies.DeactivateCompany;
 using CrisesControl.Api.Application.Commands.Companies.DeleteCompany;
+using CrisesControl.Api.Application.Commands.Companies.DeleteCompanyComplete;
 using CrisesControl.Api.Application.Commands.Companies.GetCommsMethod;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
 using CrisesControl.Api.Application.Commands.Companies.GetCompanyAccount;
 using CrisesControl.Api.Application.Commands.Companies.GetCompanyComms;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyObject;
+using CrisesControl.Api.Application.Commands.Companies.GetGroupUsers;
+using CrisesControl.Api.Application.Commands.Companies.GetScimProfile;
 using CrisesControl.Api.Application.Commands.Companies.GetSite;
 using CrisesControl.Api.Application.Commands.Companies.GetSocialIntegration;
 using CrisesControl.Api.Application.Commands.Companies.ReactivateCompany;
+using CrisesControl.Api.Application.Commands.Companies.SaveScimProfile;
 using CrisesControl.Api.Application.Commands.Companies.SaveSite;
 using CrisesControl.Api.Application.Commands.Companies.UpdateCompanyComms;
 using CrisesControl.Api.Application.Commands.Companies.ViewCompany;
@@ -34,4 +39,9 @@ public interface ICompanyQuery
     Task<DeactivateCompanyResponse> DeactivateCompany(DeactivateCompanyRequest request);
     Task<ReactivateCompanyResponse> ReactivateCompany(ReactivateCompanyRequest request);
     Task<CompanyDataResetResponse> CompanyDataReset(CompanyDataResetRequest request);
+    Task<DeleteCompanyCompleteResponse> DeleteCompanyComplete(DeleteCompanyCompleteRequest request);
+    Task<GetCompanyObjectResponse> GetCompanyObject(GetCompanyObjectRequest request);
+    Task<GetGroupUsersResponse> GetGroupUsers(GetGroupUsersRequest request);
+    Task<GetScimProfileResponse> GetScimProfile(GetScimProfileRequest request);
+    Task<SaveScimProfileResponse> SaveScimProfile(SaveScimProfileRequest request);
 }
