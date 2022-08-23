@@ -21,5 +21,6 @@ public class SopheaderConfiguration : IEntityTypeConfiguration<Sopheader>
         builder.Property(e => e.Sopversion)
             .HasMaxLength(20)
             .HasColumnName("SOPVersion");
+        builder.HasOne(e => e.IncidentSOP).WithMany().HasForeignKey(e=>e.SopheaderId);
     }
 }
