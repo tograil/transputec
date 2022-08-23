@@ -1,13 +1,16 @@
 ﻿using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AcceptTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ActiveIncidentTasks;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddAttachment;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddNotes;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.CompleteTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.DeclineTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.DelegateTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetActiveTaskAsset;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetActiveTaskCheckList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetIncidentTasksAudit;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskAssignedUsers;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskAudit;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskCheckListHistory;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskDetails;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskUserList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetUserTask;
@@ -15,6 +18,7 @@ using CrisesControl.Api.Application.Commands.ActiveIncidentTask.NewAdHocTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReallocateTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReassignTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveCheckListResponse;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveTaskAsset;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SendTaskUpdate;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.TakeOwnership;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.UnattendedTask;
@@ -43,5 +47,9 @@ namespace CrisesControl.Api.Application.Query
         Task<NewAdHocTaskResponse> NewAdHocTask(NewAdHocTaskRequest request);
         Task<AddNotesResponse> AddNotes(AddNotesRequest request);
         Task<SaveActiveCheckListResponse> SaveActiveCheckListResponse(SaveActiveCheckListResponseRequest request);
+        Task<SaveActiveTaskAssetResponse> SaveActiveTaskAsset(SaveActiveTaskAssetRequest request);
+        Task<GetActiveTaskAssetResponse> GetActiveTaskAsset(GetActiveTaskAssetRequest request);
+        Task<GetTaskCheckListHistoryResponse> GetTaskCheckListHistory(GetTaskCheckListHistoryRequest request);
+        Task<AddAttachmentResponse> AddAttachment(AddAttachmentRequest request);
     }
 }

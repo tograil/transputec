@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Common;
 using CrisesControl.Core.Companies;
-using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
@@ -425,10 +424,10 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                                           where PT.ParticipantTypeID == reallocate_type &&
                                           PT.ActiveIncidentTaskID == c.ActiveIncidentTaskID
                                           select PT.ParticipantUserID).ToList();
-                c.DelegateRecepeints = (from PT in participent_list
-                                        where PT.ParticipantTypeID == delegate_type &&
-                                        PT.ActiveIncidentTaskID == c.ActiveIncidentTaskID
-                                        select PT.ParticipantUserID).ToList();
+                c.DelegateRecepeints =  participent_list
+                                        .Where(PT => PT.ParticipantTypeID == delegate_type &&
+                                        PT.ActiveIncidentTaskID == c.ActiveIncidentTaskID)
+                                        .Select(PT => PT.ParticipantUserID).ToList();
                 c.TaskPredecessor = await _active_incident_tasks_predeccessor(c.ActiveIncidentTaskID, c.ActiveIncidentID);
                 c.TaskSuccessor = await _active_incident_tasks_successor(c.ActiveIncidentTaskID, c.ActiveIncidentID);
                 return c;
@@ -436,7 +435,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
             if (single)
             {
-                return (from T in TaskList where T.ActiveIncidentTaskID == ActiveIncidentTaskID select T).ToList();
+                return TaskList.Where(T=> T.ActiveIncidentTaskID == ActiveIncidentTaskID).ToList();
             }
             return TaskList;
         }
@@ -617,7 +616,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
                 IsFundAvailable = await _MSG.CalculateMessageCost(CompanyID, tblmessageid, Message);
 
-                Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, CascadePlanID));
+               Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, CascadePlanID));
                 //QueueHelper.MessageDevicePublish(tblmessageid, 1);
 
                 QueueConsumer.CreateCascadingJobs(CascadePlanID, tblmessageid, ActiveIncidentID, CompanyID, TimeZoneId);
@@ -647,6 +646,42 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
         }
         catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<CheckListHistoryRsp>> GetTaskCheckListHistory(int ActiveCheckListID, int CompanyID, int UserID)
+    {
+        try
+        {
+            var pActiveCheckListID = new SqlParameter("@ActiveCheckListID", ActiveCheckListID);
+            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pUserID = new SqlParameter("@UserID", UserID);
+
+            var AuditData = await _context.Set<CheckListHistoryRsp>().FromSqlRaw("exec Pro_Get_Checklist_History @ActiveCheckListID, @CompanyID, @UserID",
+                pActiveCheckListID, pCompanyID, pUserID).ToListAsync();
+
+            return AuditData;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<TaskAssetList>> GetActiveTaskAsset(int ActiveTaskID, int CompanyID, int UserID)
+    {
+        try { 
+
+        var pActiveTaskID = new SqlParameter("@ActiveIncidentTaskID", ActiveTaskID);
+        var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+        var pUserID = new SqlParameter("@UserID", UserID);
+
+        var result = await _context.Set<TaskAssetList>().FromSqlRaw("exec Pro_Get_Active_Task_Assets @ActiveIncidentTaskID, @CompanyID, @UserID",
+            pActiveTaskID, pCompanyID, pUserID).ToListAsync();
+
+        return result;
+        }
+       catch (Exception ex)
         {
             throw ex;
         }
@@ -1729,6 +1764,73 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
               
             }
             return false;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<bool> AddTaskAttachment(int ActiveIncidentTaskID, string AttachmentTitle, string FileName, string SourceFileName, double FileSize, int UserID, string TimeZoneId)
+    {
+        try
+        {
+            TaskIncidentAction TIA = new TaskIncidentAction
+            {
+                ActionDate = DateTime.Now.GetDateTimeOffset(TimeZoneId),
+                ActionDescription = AttachmentTitle,
+                ActiveIncidentTaskId = ActiveIncidentTaskID,
+                TaskActionBy = UserID,
+                TaskActionTypeId = 11
+            };
+            await _context.AddAsync(TIA);
+            await _context.SaveChangesAsync();
+            int incidentTaskActionId = TIA.IncidentTaskActionId;
+            if (incidentTaskActionId > 0) {
+            TaskAttachment TA = new TaskAttachment
+            {
+                ActiveTaskId = ActiveIncidentTaskID,
+                TaskActionId = TIA.IncidentTaskActionId,
+                FileName = FileName,
+                SourceFileName = SourceFileName,
+                FileSize = FileSize
+            };
+         
+                await _context.AddAsync(TA);
+                await _context.SaveChangesAsync();
+
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+           throw ex;
+        }
+    }
+    public async Task SaveActiveTaskAssets(int ActiveTaskID, int[] TaskAssets, int CompanyID, int UserID)
+    {
+        
+
+            foreach (int AssetId in TaskAssets)
+            {
+               await  CreateActiveTaskTaskAsset(AssetId, ActiveTaskID, CompanyID, UserID);
+            }
+        
+    }
+
+    public async Task CreateActiveTaskTaskAsset(int AssetID, int ActiveIncidentTaskID, int CompanyID, int UserID)
+    {
+        try
+        {
+           
+                var pActiveIncidentTaskID = new SqlParameter("@ActiveIncidentTaskID", ActiveIncidentTaskID);
+                var pAssetID = new SqlParameter("@AssetID", AssetID);
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pUserID = new SqlParameter("@UserID", UserID);
+
+                 await _context.Database.ExecuteSqlRawAsync("Pro_Create_Active_Task_Assets @ActiveIncidentTaskID, @AssetID, @CompanyID, @UserID",
+                    pActiveIncidentTaskID, pAssetID, pCompanyID, pUserID);
+           
         }
         catch (Exception ex)
         {

@@ -1,14 +1,17 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AcceptTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ActiveIncidentTasks;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddAttachment;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddNotes;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.CompleteTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.DeclineTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.DelegateTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetActiveTaskAsset;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetActiveTaskCheckList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetIncidentTasksAudit;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskAssignedUsers;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskAudit;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskCheckListHistory;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskDetails;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskUserList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetUserTask;
@@ -16,6 +19,7 @@ using CrisesControl.Api.Application.Commands.ActiveIncidentTask.NewAdHocTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReallocateTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReassignTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveCheckListResponse;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveTaskAsset;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SendTaskUpdate;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.TakeOwnership;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.UnattendedTask;
@@ -910,6 +914,113 @@ namespace CrisesControl.Api.Application.Query
                     response.result = false;
                     response.Message = "Not added";
 
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<SaveActiveTaskAssetResponse> SaveActiveTaskAsset(SaveActiveTaskAssetRequest request)
+        {
+            try
+            {
+                await _activeIncidentRepository.SaveActiveTaskAssets(request.ActiveIncidentTaskID, request.TaskAssets, _currentUser.CompanyId, _currentUser.UserId);
+                var TaskList = await _activeIncidentRepository.GetActiveTaskAsset(request.ActiveIncidentTaskID, _currentUser.CompanyId, _currentUser.UserId);
+                var result = _mapper.Map<List<TaskAssetList>>(TaskList);
+                var response = new SaveActiveTaskAssetResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Data loaded";
+
+                }
+                else
+                {
+                    response.Data = TaskList;
+                    response.Message = "No data found";
+
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetActiveTaskAssetResponse> GetActiveTaskAsset(GetActiveTaskAssetRequest request)
+        {
+            try
+            {
+                var TaskAsset = await _activeIncidentRepository.GetActiveTaskAsset(request.ActiveTaskID, _currentUser.CompanyId, _currentUser.UserId);
+                var result = _mapper.Map<List<TaskAssetList>>(TaskAsset);
+                var response = new GetActiveTaskAssetResponse();
+                if (result!=null)
+                {
+                    response.Data = result;
+                    response.Message = "Data loaded";
+
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Message = "No record data.";
+
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTaskCheckListHistoryResponse> GetTaskCheckListHistory(GetTaskCheckListHistoryRequest request)
+        {
+            try
+            {
+                var TaskAsset = await _activeIncidentRepository.GetTaskCheckListHistory(request.ActiveCheckListId, _currentUser.CompanyId, _currentUser.UserId);
+                var result = _mapper.Map<List<CheckListHistoryRsp>>(TaskAsset);
+                var response = new GetTaskCheckListHistoryResponse();
+                if (result != null)
+                {
+                    response.Data = result;
+                    response.Message = "Data loaded";
+
+                }
+                else
+                {
+                    response.Data = result;
+                    response.Message = "No record data.";
+
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<AddAttachmentResponse> AddAttachment(AddAttachmentRequest request)
+        {
+            try
+            {
+                var TaskAttach = await _activeIncidentRepository.AddTaskAttachment(request.ActiveIncidentTaskID, request.AttachmentTitle, request.FileName, request.SourceFileName, request.FileSize, _currentUser.UserId,_currentUser.TimeZone);
+                var result = _mapper.Map<bool>(TaskAttach);
+                var response = new AddAttachmentResponse();
+                if (result != null)
+                {
+                    response.result = result;
+                    response.Message = "Added";
+                }
+                else
+                {
+                    response.result = result;
+                    response.Message = "No record data.";
                 }
                 return response;
             }
