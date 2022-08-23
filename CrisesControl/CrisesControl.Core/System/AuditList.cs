@@ -20,6 +20,7 @@ namespace CrisesControl.Core.System
             get { return new UserFullName { Firstname = FirstName, Lastname = LastName }; }
             set { }
         }
+        [NotMapped]
         public UserFullName RecordUserName
         {
             get { return new UserFullName { Firstname = RecordFirstName, Lastname = RecordLastName }; }

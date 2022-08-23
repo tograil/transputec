@@ -23,6 +23,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
+using MessageMethod = CrisesControl.SharedKernel.Enums.MessageMethod;
 
 namespace CrisesControl.Infrastructure.Repositories
 {
@@ -604,7 +605,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> TwilioLogDump(TwilioLogModel log)
+        public async Task<bool> TwilioLogDump( string logType, List<CallResource> calls, List<MessageResource> texts, List<RecordingResource> recordings)
         {
             try
             {
@@ -612,23 +613,23 @@ namespace CrisesControl.Infrastructure.Repositories
                 CommsLogsHelper CLH = new CommsLogsHelper();
                 string session = Guid.NewGuid().ToString();
 
-                if (log.LogType == LogType.PHONE.ToLGString())
+                if (logType == LogType.PHONE.ToLGString())
                 {
-                    foreach (var item in log.Calls)
+                    foreach (var item in calls)
                     {
                         CLH.ProcessCallLogs(item, session);
                     }
                 }
-                else if (log.LogType == LogType.TEXT.ToLGString())
+                else if (logType == LogType.TEXT.ToLGString())
                 {
-                    foreach (var item in log.Texts)
+                    foreach (var item in texts)
                     {
                         CLH.ProcessSMSLog(item, session);
                     }
                 }
-                else if (log.LogType == LogType.RECORDING.ToLGString())
+                else if (logType == LogType.RECORDING.ToLGString())
                 {
-                    foreach (var item in log.Recordings)
+                    foreach (var item in recordings)
                     {
                         CLH.ProcessRecLog(item, session);
                     }
@@ -659,7 +660,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 TwilioClient.Init(PHONESID, PHONETOKEN);
 
-                if (method.ToUpper() == "TEXT")
+                if (method.ToUpper() == MessageType.Text.ToDbString())
                 {
                     var message = MessageResource.Fetch(pathSid: sId);
                     if (message != null)
@@ -667,7 +668,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         CLH.ProcessSMSLog(message, session);
                     }
                 }
-                else if (method.ToUpper() == "PHONE")
+                else if (method.ToUpper() == MessageType.Phone.ToDbString())
                 {
                     var call = CallResource.Fetch(pathSid: sId);
                     if (call != null)
@@ -702,7 +703,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 TwilioClient.Init(PHONESID, PHONETOKEN);
 
-                if (method.ToUpper() == "TEXT")
+                if (method.ToUpper() == MessageType.Text.ToDbString().ToUpper())
                 {
                     var message = MessageResource.Fetch(pathSid: sId);
                     if (message != null)
@@ -710,7 +711,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         CLH.ProcessSMSLog(message, session);
                     }
                 }
-                else if (method.ToUpper() == "PHONE")
+                else if (method.ToUpper() == MessageType.Phone.ToDbString())
                 {
                     var call = CallResource.Fetch(pathSid: sId);
                     if (call != null)
