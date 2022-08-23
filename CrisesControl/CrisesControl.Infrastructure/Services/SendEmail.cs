@@ -50,13 +50,13 @@ namespace CrisesControl.Api.Application.Helpers
                                where C.CompanyId == companyId
                                select new { C, CP }).FirstOrDefault();
 
-                string website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault()!;
-                string portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault()!;
-                string adminPortal = sysparms.Where(w => w.Name == "ADMIN_SITE_URL").Select(s => s.Value).FirstOrDefault()!;
+                string website = _DBC.LookupWithKey("DOMAIN");
+                string portal = _DBC.LookupWithKey("PORTAL");
+                string adminPortal = _DBC.LookupWithKey("ADMIN_SITE_URL");
 
-                string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault()!;
-                string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault()!;
-                string CCimage = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault()!;
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
+                string CCimage = _DBC.LookupWithKey("CCLOGO");
 
 
                 StringBuilder adminMsg = new StringBuilder();
@@ -111,34 +111,23 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 string Subject = string.Empty;
                 string message = Convert.ToString(_DBC.ReadHtmlFile("NEW_USER_ACCOUNT", "DB", companyId, out Subject))!;
-
-                var sysparms = (from SP in _context.Set<SysParameter>()
-                                where SP.Name == "CC_TWITTER_PAGE" || SP.Name == "CC_FB_PAGE"
-                                || SP.Name == "CC_LINKEDIN_PAGE" || SP.Name == "DOMAIN"
-                                || SP.Name == "CC_TWITTER_ICON" || SP.Name == "CC_FB_ICON"
-                                || SP.Name == "CC_LINKEDIN_ICON" || SP.Name == "CC_USER_SUPPORT_LINK"
-                                || SP.Name == "PORTAL" || SP.Name == "SMTPHOST" || SP.Name == "EMAIL_VALIDATE_URL" || SP.Name == "EMAIL_VALIDATE_ACCOUNT_DELETE"
-                                || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO"
-                                select new { SP.Name, SP.Value }).ToList();
-
-
                 var company = _context.Set<Company>().Where(c=> c.CompanyId == companyId).FirstOrDefault();
 
-                string website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault()!;
-                string portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault()!;
-                string valdiateURL = sysparms.Where(w => w.Name == "EMAIL_VALIDATE_URL").Select(s => s.Value).FirstOrDefault()!;
-                string accountDeleteURL = sysparms.Where(w => w.Name == "EMAIL_VALIDATE_ACCOUNT_DELETE").Select(s => s.Value).FirstOrDefault()!;
+                string website = _DBC.LookupWithKey("DOMAIN");
+                string portal = _DBC.LookupWithKey("PORTAL");
+                string valdiateURL = _DBC.LookupWithKey("EMAIL_VALIDATE_URL");
+                string accountDeleteURL = _DBC.LookupWithKey("EMAIL_VALIDATE_ACCOUNT_DELETE");
 
                 string verifylink = portal + valdiateURL + companyId + "/" + guid;
                 string deleteVerifyLink = portal + accountDeleteURL + companyId + "/" + guid;
 
-                string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault()!;
-                string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault()!;
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
                 string companyLogo = portal + "/uploads/" + companyId + "/companylogos/" + company?.CompanyLogoPath;
 
                 if (string.IsNullOrEmpty(company?.CompanyLogoPath))
                 {
-                    companyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault()!;
+                    companyLogo = _DBC.LookupWithKey("CCLOGO");
                 }
 
 
@@ -157,12 +146,12 @@ namespace CrisesControl.Api.Application.Helpers
                     messagebody = messagebody.Replace("{CC_WEBSITE}", website);
                     messagebody = messagebody.Replace("{CUSTOMER_ID}", company?.CustomerId);
 
-                    messagebody = messagebody.Replace("{TWITTER_LINK}", sysparms.Where(w => w.Name == "CC_TWITTER_PAGE").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{TWITTER_ICON}", sysparms.Where(w => w.Name == "CC_TWITTER_ICON").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", sysparms.Where(w => w.Name == "CC_FB_PAGE").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{FACEBOOK_ICON}", sysparms.Where(w => w.Name == "CC_FB_ICON").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", sysparms.Where(w => w.Name == "CC_LINKEDIN_PAGE").Select(s => s.Value).FirstOrDefault());
-                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", sysparms.Where(w => w.Name == "CC_LINKEDIN_ICON").Select(s => s.Value).FirstOrDefault());
+                    messagebody = messagebody.Replace("{TWITTER_LINK}", _DBC.LookupWithKey("CC_TWITTER_PAGE"));
+                    messagebody = messagebody.Replace("{TWITTER_ICON}", _DBC.LookupWithKey("CC_TWITTER_ICON"));
+                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", _DBC.LookupWithKey("CC_FB_PAGE"));
+                    messagebody = messagebody.Replace("{FACEBOOK_ICON}", _DBC.LookupWithKey("CC_FB_ICON"));
+                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", _DBC.LookupWithKey("CC_LINKEDIN_PAGE"));
+                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", _DBC.LookupWithKey("CC_LINKEDIN_ICON"));
 
                     string[] toEmails = { emailId };
                     bool ismailsend = Email(toEmails, messagebody, fromadd, hostname, Subject);
@@ -188,21 +177,16 @@ namespace CrisesControl.Api.Application.Helpers
                 string subject = string.Empty;
                 string message = Convert.ToString(_DBC.ReadHtmlFile(path, "DB", companyId, out subject))!;
 
-                var sysparms = (from SP in _context.Set<SysParameter>()
-                                where SP.Name == "DOMAIN" || SP.Name == "CC_USER_SUPPORT_LINK"
-                                || SP.Name == "PORTAL" || SP.Name == "SMTPHOST" || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO"
-                                select new { SP.Name, SP.Value }).ToList();
-
-
+                
                 var companyInfo = _context.Set<Company>().Where(c => c.CompanyId == companyId).FirstOrDefault()!;
-                string website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault()!;
-                string portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault()!;
-                string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault()!;
-                string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault()!;
+                string website = _DBC.LookupWithKey("DOMAIN");
+                string portal = _DBC.LookupWithKey("PORTAL");
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
                 string companyLogo = portal + "/uploads/" + companyInfo.CompanyId + "/companylogos/" + companyInfo.CompanyLogoPath;
                 if (string.IsNullOrEmpty(companyInfo.CompanyLogoPath))
                 {
-                    companyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault()!;
+                    companyLogo = _DBC.LookupWithKey("CCLOGO");
                 }
                 string incidentname = string.Empty;
                 string incidentimage = portal + "/assets/images/incident-icons/";
@@ -399,28 +383,20 @@ namespace CrisesControl.Api.Application.Helpers
                 string subject = string.Empty;
                 string template = "COMPANY_SIGNUP_TEMP";
 
-                //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH"));
-
-                var sysparms = (from SP in _context.Set<SysParameter>()
-                                where SP.Name == "PORTAL" || SP.Name == "SMTPHOST" || SP.Name == "TEMP_EMAIL_VALIDATE_URL" || SP.Name == "EMAIL_VALIDATE_COMPANY_DELETE"
-                                || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO" || SP.Name == "DOMAIN"
-                                select new { SP.Name, SP.Value }).ToList();
-
-
-                string portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault()!;
-                string valdiateURL = sysparms.Where(w => w.Name == "TEMP_EMAIL_VALIDATE_URL").Select(s => s.Value).FirstOrDefault()!;
-                string accountDeleteURL = sysparms.Where(w => w.Name == "EMAIL_VALIDATE_COMPANY_DELETE").Select(s => s.Value).FirstOrDefault()!;
+                string portal = _DBC.LookupWithKey("PORTAL");
+                string valdiateURL = _DBC.LookupWithKey("TEMP_EMAIL_VALIDATE_URL");
+                string accountDeleteURL = _DBC.LookupWithKey("EMAIL_VALIDATE_COMPANY_DELETE");
 
                 string verifylink = portal + valdiateURL + reg.UniqueReference;
 
-                string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault()!;
-                string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault()!;
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
 
                 string deleteVerifyLink = portal + accountDeleteURL + reg.UniqueReference;
 
                 string message = _DBC.ReadHtmlFile(template, "DB", 0, out subject).ToString();
-                string CCimage = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault()!;
-                string domain = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault()!;
+                string CCimage = _DBC.LookupWithKey("CCLOGO");
+                string domain = _DBC.LookupWithKey("DOMAIN");
 
                 if ((hostname != null) && (fromadd != null))
                 {
@@ -563,29 +539,22 @@ namespace CrisesControl.Api.Application.Helpers
                         string facebookicon = string.Empty;
                         string usersupportlink = string.Empty;
 
-                        var sysparms = (from SP in _context.Set<SysParameter>()
-                                        where SP.Name == "CC_TWITTER_PAGE" || SP.Name == "CC_FB_PAGE"
-                                        || SP.Name == "CC_LINKEDIN_PAGE" || SP.Name == "DOMAIN"
-                                        || SP.Name == "CC_TWITTER_ICON" || SP.Name == "CC_FB_ICON"
-                                        || SP.Name == "CC_LINKEDIN_ICON" || SP.Name == "CC_USER_SUPPORT_LINK"
-                                        || SP.Name == "PORTAL" || SP.Name == "CCLOGO"
-                                        select new { SP.Name, SP.Value }).ToList();
 
-                        twiterlink = sysparms.Where(w => w.Name == "CC_TWITTER_PAGE").Select(s => s.Value).FirstOrDefault()!;
-                        facebooklink = sysparms.Where(w => w.Name == "CC_FB_PAGE").Select(s => s.Value).FirstOrDefault()!;
-                        linkedinlink = sysparms.Where(w => w.Name == "CC_LINKEDIN_PAGE").Select(s => s.Value).FirstOrDefault()!;
-                        domain = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault()!;
-                        twitericon = sysparms.Where(w => w.Name == "CC_TWITTER_ICON").Select(s => s.Value).FirstOrDefault()!;
-                        facebookicon = sysparms.Where(w => w.Name == "CC_FB_ICON").Select(s => s.Value).FirstOrDefault()!;
-                        linkedinicon = sysparms.Where(w => w.Name == "CC_LINKEDIN_ICON").Select(s => s.Value).FirstOrDefault()!;
-                        usersupportlink = sysparms.Where(w => w.Name == "CC_USER_SUPPORT_LINK").Select(s => s.Value).FirstOrDefault()!;
-                        LoginLink = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault()!;
+                        twiterlink = _DBC.LookupWithKey("CC_TWITTER_PAGE");
+                        facebooklink = _DBC.LookupWithKey("CC_FB_PAGE");
+                        linkedinlink = _DBC.LookupWithKey("CC_LINKEDIN_PAGE");
+                        domain = _DBC.LookupWithKey("DOMAIN");
+                        twitericon = _DBC.LookupWithKey("CC_TWITTER_ICON");
+                        facebookicon = _DBC.LookupWithKey("CC_FB_ICON");
+                        linkedinicon = _DBC.LookupWithKey("CC_LINKEDIN_ICON");
+                        usersupportlink = _DBC.LookupWithKey("CC_USER_SUPPORT_LINK");
+                        LoginLink = _DBC.LookupWithKey("PORTAL");
 
 
                         string CompanyLogo = LoginLink + "/uploads/" + userInfo.CompanyID + "/companylogos/" + userInfo.CompanyLogo;
                         if (string.IsNullOrEmpty(userInfo.CompanyLogo))
                         {
-                            CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault()!;
+                            CompanyLogo = _DBC.LookupWithKey("CCLOGO");
                         }
 
 
@@ -839,7 +808,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public bool ServiceJobExecution(string emailType, string jobKey, string jobName, string failureEmailList, int companyid, string strSubject = "", string message = "", System.Net.Mail.Attachment fileattached = null)
+        public async Task<bool> ServiceJobExecution(string emailType, string jobKey, string jobName, string failureEmailList, int companyid, string strSubject = "", string message = "", System.Net.Mail.Attachment fileattached = null)
         {
             try
             {
@@ -889,27 +858,19 @@ namespace CrisesControl.Api.Application.Helpers
                     string CCimage = string.Empty;
                     string portal = string.Empty;
 
-                    var sysparms = (from SP in _context.Set<SysParameter>()
-                                    where SP.Name == "CC_TWITTER_PAGE" || SP.Name == "CC_FB_PAGE"
-                                    || SP.Name == "CC_LINKEDIN_PAGE" || SP.Name == "DOMAIN"
-                                    || SP.Name == "CC_TWITTER_ICON" || SP.Name == "CC_FB_ICON"
-                                    || SP.Name == "CC_LINKEDIN_ICON" || SP.Name == "CC_USER_SUPPORT_LINK"
-                                    || SP.Name == "SMTPHOST" || SP.Name == "EMAILFROM"
-                                    || SP.Name == "CCLOGO" || SP.Name == "PORTAL"
-                                    select new { SP.Name, SP.Value }).ToList();
 
-                    twiterlink = sysparms.Where(w => w.Name == "CC_TWITTER_PAGE").Select(s => s.Value).FirstOrDefault();
-                    facebooklink = sysparms.Where(w => w.Name == "CC_FB_PAGE").Select(s => s.Value).FirstOrDefault();
-                    linkedinlink = sysparms.Where(w => w.Name == "CC_LINKEDIN_PAGE").Select(s => s.Value).FirstOrDefault();
-                    domain = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
-                    twitericon = sysparms.Where(w => w.Name == "CC_TWITTER_ICON").Select(s => s.Value).FirstOrDefault();
-                    facebookicon = sysparms.Where(w => w.Name == "CC_FB_ICON").Select(s => s.Value).FirstOrDefault();
-                    linkedinicon = sysparms.Where(w => w.Name == "CC_LINKEDIN_ICON").Select(s => s.Value).FirstOrDefault();
-                    usersupportlink = sysparms.Where(w => w.Name == "CC_USER_SUPPORT_LINK").Select(s => s.Value).FirstOrDefault();
-                    hostName = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
-                    emailFrom = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
-                    CCimage = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
-                    portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
+                    twiterlink = _DBC.LookupWithKey("CC_TWITTER_PAGE");
+                    facebooklink = _DBC.LookupWithKey("CC_FB_PAGE");
+                    linkedinlink = _DBC.LookupWithKey("CC_LINKEDIN_PAGE");
+                    domain = _DBC.LookupWithKey("DOMAIN");
+                    twitericon = _DBC.LookupWithKey("CC_TWITTER_ICON");
+                    facebookicon = _DBC.LookupWithKey("CC_FB_ICON");
+                    linkedinicon = _DBC.LookupWithKey("CC_LINKEDIN_ICON");
+                    usersupportlink = _DBC.LookupWithKey("CC_USER_SUPPORT_LINK");
+                    hostName = _DBC.LookupWithKey("SMTPHOST");
+                    emailFrom = _DBC.LookupWithKey("EMAILFROM");
+                    CCimage = _DBC.LookupWithKey("CCLOGO");
+                    portal = _DBC.LookupWithKey("PORTAL");
 
 
                     string messagebody = Convert.ToString(_DBC.ReadHtmlFile(filename, "DB", companyid, out Subject));
@@ -973,19 +934,14 @@ namespace CrisesControl.Api.Application.Helpers
                     {
 
 
-                        var sysparms = (from SP in _context.Set<SysParameter>()
-                                        where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
-                                        || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO"
-                                        select new { SP.Name, SP.Value }).ToList();
-
-                        string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault()!;
-                        string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault()!;
-                        string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault()!;
+                        string Portal = _DBC.LookupWithKey("PORTAL");
+                        string hostname = _DBC.LookupWithKey("SMTPHOST");
+                        string fromadd = _DBC.LookupWithKey("EMAILFROM");
 
                         string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
                         if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
                         {
-                            CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault()!;
+                            CompanyLogo = _DBC.LookupWithKey("CCLOGO");
                         }
 
                         if ((message != null) && (hostname != null) && (fromadd != null))
@@ -1066,22 +1022,17 @@ namespace CrisesControl.Api.Application.Helpers
                     string templatename = "USER_DELETE_ALERT";
                     string Subject = string.Empty;
                     string message = Convert.ToString(_DBC.ReadHtmlFile(templatename, "DB", company.C.CompanyId, out Subject));
+                
+                    string Website = _DBC.LookupWithKey("DOMAIN");
+                    string Portal = _DBC.LookupWithKey("PORTAL");
 
-                    var sysparms = (from SP in _context.Set<SysParameter>()
-                                    where SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
-                                    || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO"
-                                    select new { SP.Name, SP.Value }).ToList();
-
-                    string Website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
-                    string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
-
-                    string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
-                    string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
+                    string hostname = _DBC.LookupWithKey("SMTPHOST");
+                    string fromadd = _DBC.LookupWithKey("EMAILFROM");
                     string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
 
                     if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
                     {
-                        CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                        CompanyLogo = _DBC.LookupWithKey("CCLOGO");
                     }
 
                     if ((message != null) && (hostname != null) && (fromadd != null))
@@ -1137,22 +1088,16 @@ namespace CrisesControl.Api.Application.Helpers
                     string Subject = string.Empty;
                     string message = Convert.ToString(_DBC.ReadHtmlFile(templatename, "DB", company.C.CompanyId, out Subject));
 
-                    var sysparms = (from SP in _context.Set<SysParameter>()
-                                    where SP.Name == "DOMAIN" || SP.Name == "CC_USER_SUPPORT_LINK"
-                                    || SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
-                                    || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO"
-                                    select new { SP.Name, SP.Value }).ToList();
-
-                    string Website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
-                    string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
-
-                    string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
-                    string fromadd = sysparms.Where(w => w.Name == "ALERT_EMAILFROM").Select(s => s.Value).FirstOrDefault();
+                    string Website = _DBC.LookupWithKey("DOMAIN");
+                    string Portal = _DBC.LookupWithKey("PORTAL");
+                    string hostname = _DBC.LookupWithKey("SMTPHOST");
+                    string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
+                   
                     string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
 
                     if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
                     {
-                        CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                        CompanyLogo = _DBC.LookupWithKey("CCLOGO");
                     }
 
                     if ((message != null) && (hostname != null) && (fromadd != null))
@@ -1297,21 +1242,16 @@ namespace CrisesControl.Api.Application.Helpers
                         string Subject = string.Empty;
                         string message = Convert.ToString(_DBC.ReadHtmlFile(templatename, "DB", company.CompanyId, out Subject));
 
-                        var sysparms = await _context.Set<SysParameter>()
-                                        .Where(SP => SP.Name == "PORTAL" || SP.Name == "SMTPHOST"
-                                        || SP.Name == "EMAILFROM" || SP.Name == "CCLOGO")
-                                        .Select(SP => new { SP.Name, SP.Value }).ToListAsync();
 
-                        string Website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
-                        string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
-
-                        string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
-                        string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
+                        string Website = _DBC.LookupWithKey("DOMAIN");
+                        string Portal = _DBC.LookupWithKey("PORTAL");
+                        string hostname = _DBC.LookupWithKey("SMTPHOST");
+                        string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
                         string CompanyLogo = Portal + "/uploads/" + company.CompanyId + "/companylogos/" + company.CompanyLogoPath;
 
                         if (string.IsNullOrEmpty(company.CompanyLogoPath))
                         {
-                            CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                            CompanyLogo = _DBC.LookupWithKey("CCLOGO");
                         }
 
                         if ((message != null) && (hostname != null) && (fromadd != null))
@@ -1367,14 +1307,14 @@ namespace CrisesControl.Api.Application.Helpers
                                         || SP.Name == "ALERT_EMAILFROM" || SP.Name == "CCLOGO"
                                         select new { SP.Name, SP.Value }).ToList();
 
-                        string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
-                        string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
-                        string fromadd = sysparms.Where(w => w.Name == "ALERT_EMAILFROM").Select(s => s.Value).FirstOrDefault();
-
+                        string Website = _DBC.LookupWithKey("DOMAIN");
+                        string Portal = _DBC.LookupWithKey("PORTAL");
+                        string hostname = _DBC.LookupWithKey("SMTPHOST");
+                        string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
                         string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
                         if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
                         {
-                            CompanyLogo = sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
+                            CompanyLogo = _DBC.LookupWithKey("CCLOGO"); //sysparms.Where(w => w.Name == "CCLOGO").Select(s => s.Value).FirstOrDefault();
                         }
 
                         if ((message != null) && (hostname != null) && (fromadd != null))
@@ -1448,85 +1388,314 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return returndt;
         }
-        public async Task SendAssetReviewAlert(int AssetID, int CompanyID)
+        public void SendFailedPaymentAlert(int CompanyID, decimal TransactionAmount, string Response)
         {
             try
             {
 
-                string path = "ASSET_REVIEW_REMINDER";
-
+                //                string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "PaymentTransactionFailed.html";
                 string Subject = string.Empty;
-                string message = Convert.ToString(_DBC.ReadHtmlFile(path, "DB", CompanyID, out Subject));
-
-              
-                string Portal = _DBC.LookupWithKey("PORTAL");
-                string hostname = _DBC.LookupWithKey("SMTPHOST");
-                string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
-
-                var CompanyInfo = await  _context.Set<Company>().Where(C=> C.CompanyId == CompanyID).FirstOrDefaultAsync();
-                string Website = _DBC.LookupWithKey("DOMAIN");
-               
-                string CompanyLogo = Portal + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
-                if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
+                string message = Convert.ToString(_DBC.ReadHtmlFile("PAYMENT_TRANSACTION_FAILED", "DB", CompanyID, out Subject));
+                if (!string.IsNullOrEmpty(message))
                 {
-                    CompanyLogo = _DBC.LookupWithKey("CCLOGO");
-                }
-                string assetname = string.Empty;
 
-                DateTimeOffset review_date = DateTimeOffset.Now;
 
-                string emailmessage = string.Empty;
-
-                var asset =  (from A in _context.Set<Assets>().AsEnumerable()
-                             where A.CompanyId == CompanyID && A.AssetId == AssetID
-                             select new
-                             {
-                                 A,
-                                 AssetOwner = (from U in _context.Set<User>()
-                                               where U.UserId == A.AssetOwner && U.Status == 1
-                                               select new
-                                               {
-                                                   UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
-                                                   U.PrimaryEmail
-                                               }).FirstOrDefault()
-                             }).FirstOrDefault();
-
-                if (asset != null)
-                {
-                    assetname = asset.A.AssetTitle;
-                    review_date = (DateTimeOffset)asset.A.ReviewDate;
-                    emailmessage = "This is the reminder for you to review the following media asset.";
-                    if (asset.A.ReminderCount == 3)
+                    var company = (from C in _context.Set<Company>()
+                                   join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                                   where C.CompanyId == CompanyID
+                                   select new { C, CP }).FirstOrDefault();
+                    if (company != null)
                     {
-                        emailmessage = "<span style='color:#ff0000'>This is the final reminder for you to review the following media asset.</span>";
-                    }
 
-                    if ((message != null) && (hostname != null) && (fromadd != null))
-                    {
-                        string messagebody = message;
 
-                        messagebody = messagebody.Replace("{COMPANY_NAME}", CompanyInfo.CompanyName);
-                        messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
-                        messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
-                        messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
-                        messagebody = messagebody.Replace("{PORTAL}", Portal);
+                        string Portal = _DBC.LookupWithKey("PORTAL");
+                        string hostname = _DBC.LookupWithKey("SMTPHOST");
+                        string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
 
-                        messagebody = messagebody.Replace("{ASSET_TITLE}", assetname);
-                        messagebody = messagebody.Replace("{ASSET_REVIEW_DATE}", review_date.ToString("dd-MMM-yy"));
-                        messagebody = messagebody.Replace("{REVIEW_MESSAGE}", emailmessage);
+                        
 
-                        string sendbody = messagebody;
-                        sendbody = sendbody.Replace("{RECIPIENT_NAME}", _DBC.UserName(asset.AssetOwner.UserName));
-                        sendbody = sendbody.Replace("{RECIPIENT_EMAIL}", asset.AssetOwner.PrimaryEmail);
-                        string[] toEmails = { asset.AssetOwner.PrimaryEmail };
-                        bool ismailsend = Email(toEmails, sendbody, fromadd, hostname, Subject);
+                        string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+                        if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                        {
+                            CompanyLogo = _DBC.LookupWithKey("CCLOGO");
+                        }
+
+                        if ((message != null) && (hostname != null) && (fromadd != null))
+                        {
+                            string messagebody = message;
+
+                            string billing_email = _DBC.LookupWithKey("BILLING_EMAIL");
+
+                            //Get company billing email list.
+                            string billing_users = _DBC.GetCompanyParameter("BILLING_USERS", company.C.CompanyId);
+
+                            List<string> emaillist = new List<string>();
+
+                            if (!string.IsNullOrEmpty(billing_users))
+                            {
+                                var user_ids = billing_users.Split(',').Select(int.Parse).ToList();
+                                if (user_ids.Count > 0)
+                                {
+                                    var get_user = (from U in _context.Set<User>()
+                                                    where user_ids.Contains(U.UserId) && U.Status != 3
+                                                    select new
+                                                    {
+                                                        U.PrimaryEmail
+                                                    }).ToList();
+                                    foreach (var bill_user in get_user)
+                                    {
+                                        emaillist.Add(bill_user.PrimaryEmail);
+                                    }
+                                }
+                            }
+
+                            decimal remaing_credit_limit = 0;
+                            if (company.CP.CreditLimit > 0)
+                            {
+                                remaing_credit_limit = company.CP.CreditLimit;
+                            }
+                            else
+                            {
+                                remaing_credit_limit = company.CP.CreditLimit + company.CP.CreditBalance;
+                            }
+
+                            messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                            messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+                            messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                            messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                            messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                            messagebody = messagebody.Replace("{CREDIT_BALANCE}", _DBC.ToCurrency(company.CP.CreditBalance));
+                            messagebody = messagebody.Replace("{MINIMUM_BALANCE}", _DBC.ToCurrency(company.CP.MinimumBalance));
+                            messagebody = messagebody.Replace("{CREDIT_LIMIT}", _DBC.ToCurrency(remaing_credit_limit));
+                            messagebody = messagebody.Replace("{TRANSACTION_AMOUNT}", _DBC.ToCurrency(TransactionAmount));
+                            messagebody = messagebody.Replace("{REASON}", Response);
+
+                            string[] toEmails = emaillist.ToArray();
+                            string[] adm_email = { billing_email };
+                            Email(adm_email, messagebody, fromadd, hostname, Subject);
+                            Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        }
                     }
                 }
 
             }
             catch (Exception ex)
             {
-                throw ex; ;
+                throw ex;
+            }
+        }
+        public async Task SendMonthlyPartialPaymentAlert(int CompanyID, decimal TotalMonthlyDebitAmount, decimal TotalAmountDebited, decimal VatAmount, string email_items)
+        {
+            try
+            {
+
+                //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "MonthlyPaymentFailed.html";
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile("MONTHLY_PAYMENT_FAILED", "DB", CompanyID, out Subject));
+
+                if (!string.IsNullOrEmpty(message))
+                {
+
+
+                    var company = (from C in _context.Set<Company>()
+                                   join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                                   where C.CompanyId == CompanyID
+                                   select new { C, CP }).FirstOrDefault();
+                    if (company != null)
+                    {
+
+
+                        string Portal = _DBC.LookupWithKey("PORTAL");
+                        string hostname = _DBC.LookupWithKey("SMTPHOST");
+                        string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
+                        string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+                        if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                        {
+                            CompanyLogo = _DBC.LookupWithKey("CCLOGO");
+                        }
+
+                        if ((message != null) && (hostname != null) && (fromadd != null))
+                        {
+                            string messagebody = message;
+
+                            string billing_email = _DBC.LookupWithKey("BILLING_EMAIL");
+
+                            //Get company billing email list.
+                            string billing_users = _DBC.GetCompanyParameter("BILLING_USERS", company.C.CompanyId);
+
+                            List<string> emaillist = new List<string>();
+
+                            if (!string.IsNullOrEmpty(billing_users))
+                            {
+                                var user_ids = billing_users.Split(',').Select(int.Parse).ToList();
+                                if (user_ids.Count > 0)
+                                {
+                                    var get_user = (from U in _context.Set<User>()
+                                                    where user_ids.Contains(U.UserId) && U.Status != 3
+                                                    select new
+                                                    {
+                                                        U.PrimaryEmail
+                                                    }).ToList();
+                                    foreach (var bill_user in get_user)
+                                    {
+                                        emaillist.Add(bill_user.PrimaryEmail);
+                                    }
+                                }
+                            }
+                            decimal remining_balance = TotalMonthlyDebitAmount - TotalAmountDebited;
+
+                            messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                            messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+                            messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                            messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                            messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                            messagebody = messagebody.Replace("{TOTAL_PAYMENT_WITH_VAT}", _DBC.ToCurrency(TotalMonthlyDebitAmount));
+                            messagebody = messagebody.Replace("{VAT_VALUE}", _DBC.ToCurrency(VatAmount));
+                            messagebody = messagebody.Replace("{PAYMENT_COLLECTED}", _DBC.ToCurrency(TotalAmountDebited));
+                            messagebody = messagebody.Replace("{BALANCE_REMAINING}", _DBC.ToCurrency(remining_balance));
+                            messagebody = messagebody.Replace("{TRANSACTION_ITEMS}", email_items);
+
+                            string[] toEmails = emaillist.ToArray();
+                            string[] adm_email = { billing_email };
+                            Email(adm_email, messagebody, fromadd, hostname, Subject);
+                            Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public void InvoicePaymentAlert(int CompanyID, decimal TransactionAmount)
+        {
+            try
+            {
+
+                //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "InvoicePaymentAlert.html";
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile("INVOICE_PAYMENT_ALERT", "DB", CompanyID, out Subject));
+                if (!string.IsNullOrEmpty(message))
+                {
+
+
+                    var company = (from C in _context.Set<Company>()
+                                   join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                                   where C.CompanyId == CompanyID
+                                   select new { C, CP }).FirstOrDefault();
+                    if (company != null)
+                    {
+
+                        string Portal = _DBC.LookupWithKey("PORTAL");
+                        string hostname = _DBC.LookupWithKey("SMTPHOST");
+                        string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
+
+                        string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+                        if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                        {
+                            CompanyLogo = _DBC.LookupWithKey("CCLOGO");
+                        }
+
+                        if ((message != null) && (hostname != null) && (fromadd != null))
+                        {
+                            string messagebody = message;
+
+                            string billing_email = _DBC.LookupWithKey("BILLING_EMAIL");
+
+
+                            messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                            messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+                            messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                            messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                            messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                            messagebody = messagebody.Replace("{TRANSACTION_AMOUNT}", _DBC.ToCurrency(TransactionAmount));
+
+                            string[] adm_email = { billing_email };
+                            Email(adm_email, messagebody, fromadd, hostname, Subject);
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task NotifyKeyContactForSOPAttach(int IncidentID, int CompanyID)
+        {
+            try
+            {
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile("SOP_EDITED_ALERT", "DB", CompanyID, out Subject));
+
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+                    string messagebody = message;
+
+
+                    string inidate = string.Empty;
+                    string actionby = string.Empty;
+                    string domain = string.Empty;
+                    string LoginLink = string.Empty;
+                    string logo = string.Empty;
+                    domain = _DBC.LookupWithKey("DOMAIN");
+                    LoginLink = _DBC.LookupWithKey("PORTAL");
+                    logo = _DBC.LookupWithKey("CCLOGO");
+
+
+                    var CompanyInfo = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyID).FirstOrDefaultAsync();
+
+                    string CompanyLogo = LoginLink + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
+                    if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
+                    {
+                        CompanyLogo =_DBC.LookupWithKey("CCLOGO");
+                    }
+
+                    var keycontacts = (from IU in _context.Set<IncidentKeyContact>()
+                                       join U in _context.Set<User>() on IU.UserId equals U.UserId
+                                       join I in _context.Set<Incident>() on IU.IncidentId equals I.IncidentId
+                                       where I.IncidentId == IncidentID && U.Status == 1
+                                       select new
+                                       {
+                                           IncidentIcon = I.IncidentIcon,
+                                           IncidentName = I.Name,
+                                           I.UpdatedOn,
+                                           IU.UserId,
+                                           UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                                           U.PrimaryEmail
+                                       }).ToList();
+
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", CompanyInfo.CompanyName);
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                    messagebody = messagebody.Replace("{PORTAL}", LoginLink);
+                    messagebody = messagebody.Replace("{CC_WEBSITE}", domain);
+
+                    foreach (var kc in keycontacts)
+                    {
+                        string sendbody = messagebody;
+                        sendbody = sendbody.Replace("{RECIPIENT_NAME}", _DBC.UserName(kc.UserName));
+                        sendbody = sendbody.Replace("{RECIPIENT_EMAIL}", kc.PrimaryEmail);
+                        sendbody = sendbody.Replace("{INCIDENT_NAME}", kc.IncidentName);
+                        sendbody = sendbody.Replace("{SOP_LAST_UPDATED}", kc.UpdatedOn.ToString("dd-MMM-yy HH:mm"));
+                        sendbody = sendbody.Replace("{INCIDENT_ICON}", kc.IncidentIcon == null || kc.IncidentIcon == "" ? "" : LoginLink + "/assets/images/incident-icons/" + kc.IncidentIcon);
+
+                        string[] toEmails = { kc.PrimaryEmail };
+                        bool ismailsend = Email(toEmails, sendbody, fromadd, hostname, Subject);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
         public void RegistrationCancelled(string CompanyName, int PlanId, DateTimeOffset RegDate, UserFullName pUserName, string pUserEmail, PhoneNumber pUserMobile)

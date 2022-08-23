@@ -1,20 +1,24 @@
-﻿using CrisesControl.Api.Application.Commands.Register;
+﻿using CrisesControl.Api.Application.Commands.Companies.CompleteRegistration;
+using CrisesControl.Api.Application.Commands.Register;
 using CrisesControl.Api.Application.Commands.Register.ActivateCompany;
 using CrisesControl.Api.Application.Commands.Register.BusinessSector;
 using CrisesControl.Api.Application.Commands.Register.CheckAppDownloaded;
 using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.GetAllPackagePlan;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.Index;
 using CrisesControl.Api.Application.Commands.Register.SendCredentials;
 using CrisesControl.Api.Application.Commands.Register.SendVerification;
 using CrisesControl.Api.Application.Commands.Register.SetupCompleted;
 using CrisesControl.Api.Application.Commands.Register.TempRegister;
+using CrisesControl.Api.Application.Commands.Register.UpdateCompanyStatus;
 using CrisesControl.Api.Application.Commands.Register.UpgradeRequest;
 using CrisesControl.Api.Application.Commands.Register.ValidateMobile;
 using CrisesControl.Api.Application.Commands.Register.ValidateUserEmail;
 using CrisesControl.Api.Application.Commands.Register.VerifyTempRegistration;
+using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 
@@ -28,9 +32,11 @@ namespace CrisesControl.Api.Controllers
     public class RegisterController : ControllerBase
     {
         private readonly IMediator _mediator;
-        public RegisterController(IMediator mediator)
+        private readonly IRegisterQuery _registerQuery;
+        public RegisterController(IMediator mediator, IRegisterQuery registerQuery)
         {
-          _mediator=mediator;
+            _mediator = mediator;
+            _registerQuery = registerQuery;
         }
         
         [HttpGet]
@@ -149,6 +155,28 @@ namespace CrisesControl.Api.Controllers
         {
             var result = await _mediator.Send(request, cancellationToken);
 
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("GetAllPackagePlan")]
+        public async Task<IActionResult> GetAllPackagePlan([FromRoute] GetAllPackagePlanRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _registerQuery.GetAllPackagePlan();
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("UpdateCompanyStatus")]
+        public async Task<IActionResult> UpdateCompanyStatus([FromBody] UpdateCompanyStatusRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("CompleteRegistration")]
+        public async Task<IActionResult> CompleteRegistration([FromBody] CompleteRegistrationRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
     }

@@ -87,5 +87,10 @@ public interface IActiveIncidentRepository
     Task CompleteAllTask(int ActiveIncidentID, int CurrentUserID, int CompanyID, string TimeZoneId);
 
     Task<User?> GetUserById(int id);
+    Task<bool> AddTaskAttachment(int ActiveIncidentTaskID, string AttachmentTitle, string FileName, string SourceFileName, double FileSize, int UserID, string TimeZoneId);
+    Task<List<CheckListHistoryRsp>> GetTaskCheckListHistory(int ActiveCheckListID, int CompanyID, int UserID);
+    Task<List<TaskAssetList>> GetActiveTaskAsset(int ActiveTaskID, int CompanyID, int UserID);
+    Task SaveActiveTaskAssets(int ActiveTaskID, int[] TaskAssets, int CompanyID, int UserID);
+    Task CreateActiveTaskTaskAsset(int AssetID, int ActiveIncidentTaskID, int CompanyID, int UserID);
 
 }

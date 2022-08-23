@@ -16,5 +16,6 @@ namespace CrisesControl.Core.Models
         public int ReminderCount { get; set; }
         public string? ReviewFrequency { get; set; }
         public int Sopowner { get; set; }
+        public IncidentSop IncidentSOP { get; set; }
     }
 }

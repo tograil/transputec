@@ -38,5 +38,10 @@ namespace CrisesControl.Core.Register.Repositories
         Task UpdateTemp(User user);
         Task<List<Registration>> GetAllRegistrations();
         Task<List<Sectors>> GetSectors();
+        Task<List<PackageModel>> GetAllPackagePlan();
+        Task<bool> UpdateCompanyStatus(ViewCompanyModel companyModel);
+        Task<UserValidatedDTO> CompleteRegistration(TempRegister tempRegister);
+        Task<bool> DeleteTempRegistration(TempRegister tempRegister);
+        Task<List<Sectors>> BusinessSector();
     }
 }
