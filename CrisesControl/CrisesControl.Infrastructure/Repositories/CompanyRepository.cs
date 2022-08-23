@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.CompanyParameters;
@@ -22,6 +23,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Object = CrisesControl.Core.Models.Object;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -32,16 +34,18 @@ public class CompanyRepository : ICompanyRepository
     private readonly ILogger<CompanyRepository> _logger;
     private readonly ISenderEmailService _senderEmailService;
     //private readonly ICompanyParametersRepository _companyParametersRepository;
-   // private readonly IUserRepository _userRepository;
+    // private readonly IUserRepository _userRepository;
+    private readonly DBCommon _DBC;
 
-    public CompanyRepository(CrisesControlContext context, ISenderEmailService senderEmailService, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
+    public CompanyRepository(CrisesControlContext context, DBCommon DBC, ISenderEmailService senderEmailService, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
     {
         _context = context;
         _globalParametersRepository = globalParametersRepository;
         _logger = logger;
         _senderEmailService = senderEmailService;
-       // _companyParametersRepository = companyParametersRepository;
+        // _companyParametersRepository = companyParametersRepository;
         //_userRepository = userRepository;
+        _DBC = DBC;
      }
 
     public async Task<IEnumerable<Company>> GetAllCompanies()
@@ -240,7 +244,7 @@ public class CompanyRepository : ICompanyRepository
             return false;
         }
     }
-    public async Task<dynamic> DeleteCompanyComplete(int CompanyId, int UserId, string GUID, string DeleteType)
+    public async Task<string> DeleteCompanyComplete(int CompanyId, int UserId, string GUID, string DeleteType)
     {
 
         try
@@ -273,14 +277,14 @@ public class CompanyRepository : ICompanyRepository
 
                             try
                             {
-                                Task.Factory.StartNew(() => { DeleteCompanyApi(CompanyId, compDelete.CustomerId); });
+                               await Task.Factory.StartNew(async () => {await DeleteCompanyApi(CompanyId, compDelete.CustomerId); });
                             }
                             catch (Exception ex)
                             {
                                 throw new CompanyNotFoundException(CompanyId, UserId);
                             }
 
-                            return true;
+                            Message = "Company has been deleted";
 
                         }
                         else
@@ -321,7 +325,7 @@ public class CompanyRepository : ICompanyRepository
 
                         _context.Remove(userdata);
                        await _context.SaveChangesAsync();
-                        return true;
+                        Message = "User account has been deleted";
                     }
                     else
                     {
@@ -332,9 +336,9 @@ public class CompanyRepository : ICompanyRepository
             }
             else
             {
-                return false;
+                Message = "User is not registered.";
             }
-            return userdata;
+            return Message;
         }
         catch (Exception ex)
         {
@@ -1071,4 +1075,186 @@ public class CompanyRepository : ICompanyRepository
             throw ex;
         }
     }
+    public async Task<string> DeleteCompany(int TargetCompanyID, int CompanyID, int CurrentUserID, string TimeZoneId)
+    {
+
+        try
+        {
+            string Message = "";
+            var CompanyToDelete = await  _context.Set<Company>().Where(C=> C.CompanyId == TargetCompanyID).FirstOrDefaultAsync();
+            if (CompanyToDelete != null)
+            {
+                CompanyToDelete.Status = 3;
+                CompanyToDelete.CompanyProfile = "MEMBERSHIP_CANCELLED";
+                CompanyToDelete.UpdatedBy = CurrentUserID;
+                CompanyToDelete.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                await _context.SaveChangesAsync();
+
+                var AllUserOfDeletedCompany = await _context.Set<User>().Where(U=> U.CompanyId == TargetCompanyID).ToListAsync();
+                UserFullName primaryUserName = AllUserOfDeletedCompany.Where(w => w.RegisteredUser == true).Select(s => new UserFullName { Firstname = s.FirstName, Lastname = s.LastName }).FirstOrDefault();
+                string primaryUserEmail = AllUserOfDeletedCompany.Where(w => w.RegisteredUser == true).Select(s => s.PrimaryEmail).FirstOrDefault();
+                PhoneNumber primaryUserMobile = AllUserOfDeletedCompany.Where(w => w.RegisteredUser == true).Select(s => new PhoneNumber { ISD = s.Isdcode, Number = s.MobileNo }).FirstOrDefault();
+
+                foreach (var item in AllUserOfDeletedCompany)
+                {
+                    if (item.Status != 3)
+                    {
+                        item.PrimaryEmail = "CompanyDel-" + item.PrimaryEmail;
+                    }
+                    item.Status = 3;
+                    //item.TOKEN = "";
+                   await _context.SaveChangesAsync();
+                }
+                SendEmail SDE = new SendEmail(_context,_DBC);
+                SDE.RegistrationCancelled(CompanyToDelete.CompanyName, (int)CompanyToDelete.PackagePlanId, CompanyToDelete.RegistrationDate, primaryUserName, primaryUserEmail, primaryUserMobile);
+
+                try
+                {
+                    await Task.Factory.StartNew(async () => {await DeleteCompanyApi(CompanyID, CompanyToDelete.CustomerId); });
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+
+                Message = "Company has been deleted";
+            }
+            else
+            {
+           
+                Message = "No record found to delete.";
+            }
+            return Message;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<CompanyObject> GetCompanyObject(int CompanyID, string ObjectName)
+    {
+
+       
+        try
+        {
+            var ObjectInfo = await _context.Set<ObjectMapping>().Include(o=>o.Object)
+                              .Where(ObjMap => (ObjMap.CompanyId == CompanyID || ObjMap.CompanyId == null) && ObjMap.Object.ObjectName == ObjectName)
+                              .Select(ObjMap=> new CompanyObject
+                              {
+                                  ObjectMappingId = ObjMap.ObjectMappingId,
+                                  ObjectId = ObjMap.Object.ObjectId,
+                                  CompanyId = ObjMap.CompanyId,
+
+                                  ObjectName =  _context.Set<Object>()
+                                                .Where(OBJD=> OBJD.ObjectId == ObjMap.SourceObjectId)
+                                                .Select(OBJD => OBJD.ObjectName).FirstOrDefault(),
+
+                                  ObjectTableName =  _context.Set<Object>()
+                                                     .Where(OBJD=> OBJD.ObjectId == ObjMap.SourceObjectId)
+                                                     .Select(OBJD=> OBJD.ObjectTableName).FirstOrDefault(),
+
+                                 
+                              }).FirstOrDefaultAsync();
+
+            if (ObjectInfo != null)
+            {
+                return ObjectInfo;
+            }
+            return null;           
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<GroupUsers>> GetGroupUsers(int GroupId, int ObjectMappingId)
+    {
+
+        try
+        {
+            var UserList =await _context.Set<ObjectRelation>().Include(u=>u.User)
+                            .Where(OR=> OR.ObjectMappingId == ObjectMappingId && OR.SourceObjectPrimaryId == GroupId)
+                            .Select(U=> new GroupUsers
+                            {
+                                UserId = U.User.UserId,
+                                UserFullName = new UserFullName { Firstname = U.User.FirstName, Lastname = U.User.LastName },
+                                UserPhoto = U.User.UserPhoto,
+                                UserRole = U.User.UserRole,
+                                Status = U.User.Status
+                            }).ToListAsync();
+
+            if (UserList != null)
+            {
+                return UserList;
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            throw ex; ;
+        }
+    }
+    #region SCIM Methods
+    public async Task<CompanyScimProfile> GetScimProfile(int outUserCompanyId)
+    {
+        try
+        {
+            var pCompanyID = new SqlParameter("@CompanyID", outUserCompanyId);
+            var result = await _context.Set<CompanyScimProfile>().FromSqlRaw("exec Pro_Get_Scim_Profile @CompanyID", pCompanyID).FirstOrDefaultAsync();
+            if (result != null)
+            {
+                return result;
+            }
+            return new CompanyScimProfile();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+       
+    }
+
+    public async Task<CompanyScimProfile> SaveScimProfileAsync(CompanyScim IP, int CurrentUserId, int CompanyId, string TimezoneId)
+    {
+        try
+        {
+            DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimezoneId);
+
+            List<SqlParameter> parameters = new List<SqlParameter>();
+            parameters.Add(new SqlParameter("@CompanyId", CompanyId));
+            parameters.Add(new SqlParameter("@ScimToken", IP.ScimToken));
+            parameters.Add(new SqlParameter("@TokenExpiry", IP.TokenExpiry));
+            parameters.Add(new SqlParameter("@DefaultMenuAccess", IP.DefaultMenuAccess));
+            parameters.Add(new SqlParameter("@DefaultGroup", IP.DefaultGroup));
+            parameters.Add(new SqlParameter("@DefaultLocation", IP.DefaultLocation));
+            parameters.Add(new SqlParameter("@DefaultDepartment", IP.DefaultDepartment));
+            parameters.Add(new SqlParameter("@DefaultMobile", IP.DefaultMobile));
+            parameters.Add(new SqlParameter("@TokenGenerated", IP.TokenGenerated));
+            parameters.Add(new SqlParameter("@TokenGeneratedOn", dtNow));
+            parameters.Add(new SqlParameter("@NotificationEmails", IP.NotificationEmails));
+            parameters.Add(new SqlParameter("@SendInvitation", IP.SendInvitation));
+            parameters.Add(new SqlParameter("@PingMethods", IP.PingMethods));
+            parameters.Add(new SqlParameter("@IncidentMethods", IP.IncidentMethods));
+            parameters.Add(new SqlParameter("@UpdatedBy", CurrentUserId));
+            parameters.Add(new SqlParameter("@UpdatedOn", dtNow));
+
+            var result = await _context.Set<CompanyScimProfile>().FromSqlRaw(
+                "exec Pro_Save_Scim_Profile @CompanyID,@ScimToken,@TokenExpiry,@DefaultMenuAccess,@DefaultGroup,@DefaultLocation,@DefaultDepartment,@DefaultMobile," +
+                "@TokenGenerated,@TokenGeneratedOn,@NotificationEmails,@SendInvitation,@PingMethods,@IncidentMethods,@UpdatedBy,@UpdatedOn",
+                parameters.ToArray()).FirstOrDefaultAsync();
+            if (result != null)
+            {
+                return result;
+            }
+            return new CompanyScimProfile();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+       
+    }
+    #endregion SCIM Methods
+
+
 }

@@ -36,6 +36,7 @@ using CrisesControl.Core.System.Repositories;
 using CrisesControl.Core.Lookup.Repositories;
 using CrisesControl.Core.FileService.Repositories;
 using CrisesControl.Core.CustomEventLog.Repositories;
+using CrisesControl.Core.Sop.Respositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -112,6 +113,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<AcademyRepository>().As<IAcademyRepository>();
             builder.RegisterType<LookupRepository>().As<ILookupRepository>();
             builder.RegisterType<FileServiceRepository>().As<IFileServiceRepository>();
+            builder.RegisterType<SopRepository>().As<ISopRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

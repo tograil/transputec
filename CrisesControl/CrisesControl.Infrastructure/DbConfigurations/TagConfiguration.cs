@@ -18,5 +18,6 @@ public class TagConfiguration : IEntityTypeConfiguration<Tag>
 
         builder.Property(e => e.TagName).HasMaxLength(100);
         builder.HasOne(e => e.LibContentTag).WithMany().HasForeignKey(e=>e.TagId);
+        builder.HasOne(x => x.TagCategory).WithMany().HasForeignKey(x => x.TagCategoryId);
     }
 }

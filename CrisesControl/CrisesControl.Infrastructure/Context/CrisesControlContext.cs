@@ -28,6 +28,8 @@ using CrisesControl.Core.Administrator;
 using CrisesControl.Core.System;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Academy;
+using CrisesControl.Core.Sop;
+using CrisesControl.Core.Payments;
 
 
 namespace CrisesControl.Infrastructure.Context
@@ -178,6 +180,17 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ReplyChannel>().HasNoKey();
             modelBuilder.Entity<CompanyAccount>().HasNoKey();
 
+            modelBuilder.Entity<SOPList>().HasNoKey();
+            modelBuilder.Entity<SOP>().HasNoKey();
+            modelBuilder.Entity<GetSopResponse>().HasNoKey();
+            modelBuilder.Entity<Profit>().HasNoKey();
+            modelBuilder.Entity<PaymentResponse>().HasNoKey();
+            modelBuilder.Entity<ContentTags>().HasNoKey();
+            modelBuilder.Entity<ContentSectionData>().HasNoKey();
+            modelBuilder.Entity<SectionGroup>().HasNoKey();
+            modelBuilder.Entity<SOPContentTag>().HasNoKey();
+            modelBuilder.Entity<Section>().HasNoKey();
+            modelBuilder.Entity<LibraryText>().HasNoKey();
 
 
             //modelBuilder.Entity<CrisesControl.Core.Incidents.IncidentMessagesRtn>().HasNoKey();
@@ -213,6 +226,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ModuleLinks>().HasNoKey();
             
 
+
+            modelBuilder.Entity<CompanyObject>().HasNoKey();
+            modelBuilder.Entity<GroupUsers>().HasNoKey();
+            modelBuilder.Entity<CompanyScimProfile>().HasNoKey();
 
             //modelBuilder.Entity<Location>().HasNoKey();
         }

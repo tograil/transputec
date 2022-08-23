@@ -10,7 +10,7 @@ namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskUserL
         public Search Search { get; set; }
         public string TypeName { get; set; }
         public int ActiveIncidentTaskID { get; set; }
-       public  string CompanyKey { get; set; }
+        public  string CompanyKey { get; set; }
         public int draw { get; set; }
     }
 }
