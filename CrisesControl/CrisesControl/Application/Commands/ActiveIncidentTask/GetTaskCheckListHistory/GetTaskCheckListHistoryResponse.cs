@@ -6,5 +6,6 @@ namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskCheck
     public class GetTaskCheckListHistoryResponse
     {
         public List<CheckListHistoryRsp> Data { get; set; }
+        public string Message { get; set; }
     }
 }

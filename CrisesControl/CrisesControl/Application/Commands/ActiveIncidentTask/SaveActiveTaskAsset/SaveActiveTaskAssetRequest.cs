@@ -4,7 +4,7 @@ namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveTa
 {
     public class SaveActiveTaskAssetRequest : IRequest<SaveActiveTaskAssetResponse>
     {
-        public int ActiveTaskId { get; set; }
+        public int ActiveIncidentTaskId { get; set; }
         public int[] TaskAssets { get; set; }
         public int CompanyId { get; set; }
         public int UserId { get; set; }

@@ -88,8 +88,8 @@ public interface IActiveIncidentRepository
 
     Task<User?> GetUserById(int id);
     Task<dynamic> incident_tasks_list(int activeIncidentId, int currentUserId, int companyId);
-    Task<bool> AddTaskAttachment(int activeIncidentTaskId, string attachmentTitle, string fileName, string sourceFileName, double fileSize, int userId, int companyId, string timeZoneId);
+    Task<bool> AddTaskAttachment(int activeIncidentTaskId, string attachmentTitle, string fileName, string sourceFileName, double fileSize, int userId, string timeZoneId);
     Task<List<CheckListHistoryRsp>> GetTaskCheckListHistory(int activeCheckListId, int companyId, int userId);
     Task<List<TaskAssetList>> GetActiveTaskAsset(int activeTaskId, int companyId, int userId);
-    Task<bool> SaveActiveTaskAssets(int activeTaskId, int[] taskAssets, int companyId, int userId);
+    Task SaveActiveTaskAssets(int activeTaskId, int[] taskAssets, int companyId, int userId);
 }

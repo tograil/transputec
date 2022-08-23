@@ -16,7 +16,7 @@ namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddAttachmen
         {
             Guard.Against.Null(request, nameof(AddAttachmentRequest));
             var response = new AddAttachmentResponse();
-            response.Result = await _activeIncidentRepository.AddTaskAttachment(request.ActiveIncidentTaskId, request.AttachmentTitle, request.FileName, request.SourceFileName, request.FileSize, request.UserId, request.CompanyId, request.TimeZoneId);
+            response.Result = await _activeIncidentRepository.AddTaskAttachment(request.ActiveIncidentTaskId, request.AttachmentTitle, request.FileName, request.SourceFileName, request.FileSize, request.UserId, request.TimeZoneId);
             return response;
         }
     }

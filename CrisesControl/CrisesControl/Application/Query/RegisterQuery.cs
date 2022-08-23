@@ -5,6 +5,7 @@ using CrisesControl.Api.Application.Commands.Register.CheckAppDownloaded;
 using CrisesControl.Api.Application.Commands.Register.CheckCustomer;
 using CrisesControl.Api.Application.Commands.Register.CreateSampleIncident;
 using CrisesControl.Api.Application.Commands.Register.DeleteTempRegistration;
+using CrisesControl.Api.Application.Commands.Register.GetAllPackagePlan;
 using CrisesControl.Api.Application.Commands.Register.GetTempRegistration;
 using CrisesControl.Api.Application.Commands.Register.Index;
 using CrisesControl.Api.Application.Commands.Register.SendCredentials;
@@ -462,6 +463,20 @@ namespace CrisesControl.Api.Application.Query
             return response;
             }
             catch (Exception ex) 
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<List<GetAllPackagePlanResponse>> GetAllPackagePlan()
+        {
+            try
+            {
+                var result = await _registerRepository.GetAllPackagePlan();
+                var response = _mapper.Map<List<GetAllPackagePlanResponse>>(result);
+                return response;
+            }
+            catch (Exception ex)
             {
                 throw ex;
             }

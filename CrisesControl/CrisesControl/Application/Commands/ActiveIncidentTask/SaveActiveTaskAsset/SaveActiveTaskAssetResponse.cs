@@ -1,7 +1,10 @@
-﻿namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveTaskAsset
+﻿using CrisesControl.Core.Tasks;
+
+namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveTaskAsset
 {
     public class SaveActiveTaskAssetResponse
     {
-        public bool Sucess { get; set; }
+        public List<TaskAssetList> Data { get; set; }
+        public string Message { get; set; }
     }
 }

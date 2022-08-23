@@ -1,5 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AcceptTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ActiveIncidentTasks;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddAttachment;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddNotes;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.CompleteTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.DeclineTask;
@@ -18,6 +19,7 @@ using CrisesControl.Api.Application.Commands.ActiveIncidentTask.NewAdHocTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReallocateTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReassignTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveCheckListResponse;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveTaskAsset;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.SendTaskUpdate;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.TakeOwnership;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.UnattendedTask;
@@ -49,5 +51,7 @@ namespace CrisesControl.Api.Application.Query
         Task<GetUserTaskListResponse> GetUserTaskList(GetUserTaskListRequest request);
         Task<GetTaskCheckListHistoryResponse> GetTaskCheckListHistory(GetTaskCheckListHistoryRequest request);
         Task<GetActiveTaskAssetResponse> GetActiveTaskAsset(GetActiveTaskAssetRequest request);
+        Task<SaveActiveTaskAssetResponse> SaveActiveTaskAsset(SaveActiveTaskAssetRequest request);
+        Task<AddAttachmentResponse> AddAttachment(AddAttachmentRequest request);
     }
 }

@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Common;
 using CrisesControl.Core.Companies;
-using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
@@ -427,10 +426,10 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                                           where PT.ParticipantTypeID == reallocate_type &&
                                           PT.ActiveIncidentTaskID == c.ActiveIncidentTaskID
                                           select PT.ParticipantUserID).ToList();
-                c.DelegateRecepeints = (from PT in participent_list
-                                        where PT.ParticipantTypeID == delegate_type &&
-                                        PT.ActiveIncidentTaskID == c.ActiveIncidentTaskID
-                                        select PT.ParticipantUserID).ToList();
+                c.DelegateRecepeints =  participent_list
+                                        .Where(PT => PT.ParticipantTypeID == delegate_type &&
+                                        PT.ActiveIncidentTaskID == c.ActiveIncidentTaskID)
+                                        .Select(PT => PT.ParticipantUserID).ToList();
                 c.TaskPredecessor = await _active_incident_tasks_predeccessor(c.ActiveIncidentTaskID, c.ActiveIncidentID);
                 c.TaskSuccessor = await _active_incident_tasks_successor(c.ActiveIncidentTaskID, c.ActiveIncidentID);
                 return c;
@@ -438,7 +437,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
             if (single)
             {
-                return (from T in TaskList where T.ActiveIncidentTaskID == activeIncidentTaskId select T).ToList();
+                return TaskList.Where(T=> T.ActiveIncidentTaskID == activeIncidentTaskId).ToList();
             }
             return TaskList;
         }
@@ -655,7 +654,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     }
 
     public async Task notify_users(int activeIncidentId, int activeIncidentTaskId, List<NotificationUserList> userToNotify, string message, int currentUserId,
-        int companyId, string timeZoneId, bool includeKeyContact = true, int source = 1, int[] messageMetod = null, int cascadePlanId = 0)
+       int companyId, string timeZoneId, bool includeKeyContact = true, int source = 1, int[] messageMetod = null, int cascadePlanId = 0)
     {
         try
         {
@@ -1823,7 +1822,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         }
     }
 
-    public async Task<bool> AddTaskAttachment(int activeIncidentTaskId, string attachmentTitle, string fileName, string sourceFileName, double fileSize, int userId, int companyId, string timeZoneId)
+    public async Task<bool> AddTaskAttachment(int activeIncidentTaskId, string attachmentTitle, string fileName, string sourceFileName, double fileSize, int userId, string timeZoneId)
     {
         try
         {
@@ -1853,9 +1852,10 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         }
         catch (Exception ex)
         {
-            throw ex;
-            return false;
+        throw ex;
+              
         }
+        return false;
     }
 
     public async Task<List<CheckListHistoryRsp>> GetTaskCheckListHistory(int activeCheckListId, int companyId, int userId)
@@ -1892,10 +1892,11 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         } catch(Exception ex)
         {
             throw ex;
+           throw ex;
         }
     }
 
-    public async Task<bool> SaveActiveTaskAssets(int activeTaskId, int[] taskAssets, int companyId, int userId)
+    public async Task SaveActiveTaskAssets(int activeTaskId, int[] taskAssets, int companyId, int userId)
     {
         try
         {
@@ -1903,11 +1904,9 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             {
                 CreateActiveTaskTaskAsset(AssetId, activeTaskId, companyId, userId);
             }
-            return true;
         }
         catch (Exception ex)
         {
-            return false;
         }
        
     }
@@ -1926,7 +1925,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         }
         catch (Exception ex)
         {
+            throw ex;
         }
     }
-
 }

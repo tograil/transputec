@@ -77,7 +77,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPut]
+        [HttpPost]
         [Route("AcceptTask/{ActiveIncidentTaskID}")]
         public async Task<IActionResult> AcceptTask([FromRoute] AcceptTaskRequest request, CancellationToken cancellationToken)
         {
@@ -90,7 +90,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPut]
+        [HttpPost]
         [Route("DeclineTask/{ActiveIncidentTaskID}/{TaskActionReason}")]
         public async Task<IActionResult> DeclineTask([FromRoute] DeclineTaskRequest request, CancellationToken cancellationToken)
         {
@@ -103,7 +103,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPut]
+        [HttpPost]
         [Route("CompleteTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote}/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
         public async Task<IActionResult> CompleteTask([FromRoute] CompleteTaskRequest request, CancellationToken cancellationToken)
         {
@@ -116,7 +116,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPut]
+        [HttpPost]
         [Route("DelegateTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote}/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
         public async Task<IActionResult> DelegateTask([FromRoute] DelegateTaskRequest request, CancellationToken cancellationToken)
         {
@@ -129,19 +129,14 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpPut]
+        [HttpPost]
         [Route("ReallocateTask/{ActiveIncidentTaskID}/{TaskActionReason}/{TaskCompletionNote}/{SendUpdateTo}/{MessageMethod}/{CascadePlanID}")]
         public async Task<IActionResult> ReallocateTask([FromRoute] ReallocateTaskRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="request"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
+      
         [HttpGet]
         [Route("GetTaskAssignedUsers/{ActiveIncidentTaskID}/{TypeName}")]
         public async Task<IActionResult> GetTaskAssignedUsers([FromRoute] GetTaskAssignedUsersRequest request, CancellationToken cancellationToken)
@@ -168,6 +163,20 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
+        [HttpGet]
+        [Route("[action]/{ActiveCheckListId}")]
+        public async Task<IActionResult> GetTaskCheckListHistory([FromRoute] GetTaskCheckListHistoryRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Route("[action]/{ActiveTaskID}")]
+        public async Task<IActionResult> GetActiveTaskAsset([FromRoute] GetActiveTaskAssetRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
         [HttpGet]
         [Route("SendTaskUpdate/{ActiveIncidentTaskID}/{TaskActionReason}/{SendUpdateTo}/{MessageMethod}")]
         public async Task<IActionResult> SendTaskUpdate([FromRoute] SendTaskUpdateRequest request, CancellationToken cancellationToken)
@@ -221,8 +230,8 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPost]
-        [Route("SaveActiveCheckListResponseRequest")]
-        public async Task<IActionResult> SaveActiveCheckListResponse([FromBody] SaveActiveCheckListResponseRequest request, CancellationToken cancellationToken)
+        [Route("SaveActiveCheckListResponseRequest/{ActiveIncidentTaskID}/{CheckListResponse}")]
+        public async Task<IActionResult> SaveActiveCheckListResponse([FromRoute] SaveActiveCheckListResponseRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
