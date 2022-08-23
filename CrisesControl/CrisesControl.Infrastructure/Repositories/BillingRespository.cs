@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Billing;
 using CrisesControl.Core.Billing.Repositories;
 using CrisesControl.Core.Common;
@@ -829,6 +830,65 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 return null;
             }
+        }
+
+        public async Task<int> UpdateCompanyTranscationType(int companyId, int currntUserId, string timeZoneId, int transactionTypeId, decimal transactionRate,
+           int compnayTranscationTypeId = 0, string paymentPeriod = "MONTHLY", DateTimeOffset? nextRunDate = null, string paymentMethod = "INVOICE")
+        {
+            int CTTId = 0;
+            if (compnayTranscationTypeId == 0)
+            {
+                CompanyTranscationType transaction = new CompanyTranscationType();
+                if (transactionTypeId > 0)
+                    transaction.TransactionTypeID = transactionTypeId;
+                transaction.TransactionRate = transactionRate;
+                transaction.CompanyId = companyId;
+                transaction.PaymentPeriod = paymentPeriod;
+                if (nextRunDate.HasValue)
+                {
+                    transaction.NextRunDate = (DateTimeOffset)nextRunDate;
+                }
+                else
+                {
+                    transaction.NextRunDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                }
+                transaction.CreatedBy = currntUserId;
+                transaction.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                transaction.UpdatedBy = currntUserId;
+                transaction.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+
+                if (!string.IsNullOrEmpty(paymentMethod) && paymentMethod != "UNKNOWN")
+                    transaction.PaymentMethod = paymentMethod;
+
+                _context.Set<CompanyTranscationType>().Add(transaction);
+                _context.SaveChangesAsync();
+                CTTId = transaction.CompanyTranscationTypeId;
+            }
+            else
+            {
+                var newCompanyTranscationType = await (from CTT in _context.Set<CompanyTranscationType>()
+                                                 where CTT.CompanyTranscationTypeId == compnayTranscationTypeId && CTT.CompanyId == companyId
+                                                 select CTT).FirstOrDefaultAsync();
+                if (newCompanyTranscationType != null)
+                {
+                    if (transactionTypeId > 0)
+                        newCompanyTranscationType.TransactionTypeID = transactionTypeId;
+
+                    newCompanyTranscationType.TransactionRate = transactionRate;
+                    newCompanyTranscationType.PaymentPeriod = paymentPeriod;
+                    newCompanyTranscationType.PaymentMethod = paymentMethod;
+
+                    if (nextRunDate.HasValue)
+                    {
+                        newCompanyTranscationType.NextRunDate = (DateTimeOffset)nextRunDate;
+                    }
+                    newCompanyTranscationType.UpdatedBy = currntUserId;
+                    newCompanyTranscationType.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    await _context.SaveChangesAsync();
+                    CTTId = newCompanyTranscationType.CompanyTranscationTypeId;
+                }
+            }
+            return CTTId;
         }
     }
 }
