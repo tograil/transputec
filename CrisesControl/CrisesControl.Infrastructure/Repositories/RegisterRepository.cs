@@ -1,28 +1,36 @@
-﻿using CrisesControl.Core.Companies;
+﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Administrator;
+using CrisesControl.Core.Administrator.Repositories;
+using CrisesControl.Core.Billing.Repositories;
+using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
-using CrisesControl.Core.Exceptions.NotFound.Base;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Locations;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Register.Repositories;
 using CrisesControl.Core.Users;
+using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace CrisesControl.Infrastructure.Repositories
 {
@@ -35,12 +43,18 @@ namespace CrisesControl.Infrastructure.Repositories
 
         private readonly ICompanyRepository _companyRepository;
         private readonly ISenderEmailService _senderEmail;
-    
+        private readonly IAdminRepository _ADM;
+        private readonly IUserRepository _UH;
+        private readonly DBCommon _DBC;
+        private readonly IBillingRepository _BH;
+        private readonly SendEmail _SDE;
+
         private int UserID;
         private int CompanyId;
         public RegisterRepository(ILogger<RegisterRepository> logger, ISenderEmailService senderEmail,  
             CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IIncidentRepository incidentRepository,
-            ICompanyRepository companyRepository)
+            ICompanyRepository companyRepository, DBCommon DBC, IAdminRepository ADM, IUserRepository UH,
+            IBillingRepository BH, SendEmail SDE)
         {
           this._logger = logger;
           this._context = context;
@@ -48,8 +62,11 @@ namespace CrisesControl.Infrastructure.Repositories
           this._senderEmail=senderEmail;
           this._incidentRepository=incidentRepository;
             this._companyRepository = companyRepository;
-      
-
+            _DBC = DBC;
+            _ADM = ADM;
+            _UH = UH;
+            _BH = BH;
+            _SDE = SDE;
         }
         public async Task<List<Registration>> GetAllRegistrations()
         {
@@ -73,7 +90,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<CommsStatus> SendText(string ISD, string ToNumber, string Message, string CallbackUrl = "")
+        public async Task<CommsStatus> SendText(string isd, string toNumber, string message, string callbackUrl = "")
         {
             try
             {
@@ -100,15 +117,15 @@ namespace CrisesControl.Infrastructure.Repositories
                 string istextsend = "NOTSENT";
 
                 //Getting the from number based on the destination.
-                var FromNum = await _context.Set<PhoneNumberMapping>().Where(F=> F.CountryDialCode == ISD).FirstOrDefaultAsync();
+                var FromNum = await _context.Set<PhoneNumberMapping>().Where(F=> F.CountryDialCode == isd).FirstOrDefaultAsync();
                 if (FromNum != null)
                 {
                     FromNumber =  FromNum.FromNumber;
                 }
 
-                ToNumber = ToNumber.FixMobileZero();
+                toNumber = toNumber.FixMobileZero();
 
-                textrslt = CommsAPI.Text(FromNumber, ToNumber, Message, CallbackUrl);
+                textrslt = CommsAPI.Text(FromNumber, toNumber, message, callbackUrl);
                 if (textrslt != null)
                 {
                     istextsend = textrslt.CurrentAction;
@@ -126,7 +143,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<string> ValidateMobile(string Code, string ISD, string MobileNo, string Message = "")
+        public async Task<string> ValidateMobile(string code, string isd, string mobileNo, string message = "")
         {
             try
             {
@@ -135,21 +152,21 @@ namespace CrisesControl.Infrastructure.Repositories
                 bool SendInDirect = IsTrue(await LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
                 string TwilioRoutingApi = await LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
 
-                if (string.IsNullOrEmpty(Message))
-                    Message = await LookupWithKey(KeyType.PHONEVALIDATIONMSG.ToDbKeyString());
+                if (string.IsNullOrEmpty(message))
+                    message = await LookupWithKey(KeyType.PHONEVALIDATIONMSG.ToDbKeyString());
 
-                Message = Message.Replace("{OTP}", Code).Replace("{CODE}", Code);
+                message = message.Replace("{OTP}", code).Replace("{CODE}", code);
 
-                MobileNo = MobileNo.FixMobileZero();
+                mobileNo = mobileNo.FixMobileZero();
 
                 if (validation_method == MessageType.Text.ToDbString())
                 {
-                    CommsStatus status = await SendText(ISD, MobileNo, Message);
+                    CommsStatus status = await SendText(isd, mobileNo, message);
                     return status.CurrentAction;
                 }
                 else
                 {
-                    CommsStatus status =await VerificationCall(MobileNo, Message, SendInDirect, TwilioRoutingApi);
+                    CommsStatus status =await VerificationCall(mobileNo, message, SendInDirect, TwilioRoutingApi);
                     return status.CommsId;
                 }
             }
@@ -185,13 +202,13 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        private bool IsTrue(string BoolVal, bool Default = true)
+        private bool IsTrue(string boolVal, bool Default = true)
         {
-            if (BoolVal == true.ToString())
+            if (boolVal == true.ToString())
             {
                 return true;
             }
-            else if (BoolVal == false.ToString())
+            else if (boolVal == false.ToString())
             {
                 return false;
             }
@@ -200,12 +217,12 @@ namespace CrisesControl.Infrastructure.Repositories
                 return Default;
             }
         }
-        private async Task<string> LookupWithKey(string Key, string Default = "")
+        private async Task<string> LookupWithKey(string key, string Default = "")
         {
             try
             {
                 var LKP = await _context.Set<SysParameter>()
-                           .Where(L=> L.Name == Key
+                           .Where(L=> L.Name == key
                            ).FirstOrDefaultAsync();
                 if (LKP != null)
                 {
@@ -218,7 +235,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 return Default;
             }
         }
-        public async Task<dynamic> InitComms(string API_CLASS, string APIClass = "", string ClientId = "", string ClientSecret = "")
+        public async Task<dynamic> InitComms(string API_CLASS, string APIClass = "", string clientId = "", string clientSecret = "")
         {
             
             try
@@ -230,11 +247,11 @@ namespace CrisesControl.Infrastructure.Repositories
                 if (string.IsNullOrEmpty(APIClass))
                     APIClass =await LookupWithKey(API_CLASS + KeyType.APICLASS.ToDbKeyString());
 
-                if (string.IsNullOrEmpty(ClientId))
-                    ClientId = await LookupWithKey(API_CLASS + KeyType._CLIENTID.ToDbKeyString());
+                if (string.IsNullOrEmpty(clientId))
+                    clientId = await LookupWithKey(API_CLASS + KeyType._CLIENTID.ToDbKeyString());
 
-                if (string.IsNullOrEmpty(ClientSecret))
-                    ClientSecret = await LookupWithKey(API_CLASS + KeyType.CLIENTSECRET.ToDbKeyString());
+                if (string.IsNullOrEmpty(clientSecret))
+                    clientSecret = await LookupWithKey(API_CLASS + KeyType.CLIENTSECRET.ToDbKeyString());
 
                 string[] TmpClass = APIClass.Trim().Split('|');
 
@@ -244,8 +261,8 @@ namespace CrisesControl.Infrastructure.Repositories
                 Type type = assembly.GetType(TmpClass[1]);
                 dynamic CommsAPI = Activator.CreateInstance(type);
 
-                CommsAPI.ClientId = ClientId;
-                CommsAPI.Secret = ClientSecret;
+                CommsAPI.ClientId = clientId;
+                CommsAPI.Secret = clientSecret;
                 CommsAPI.RetryCount = RetryCount;
 
                 return CommsAPI;
@@ -285,43 +302,43 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             return new User { };
         }
-        public async Task CreateObjectRelationship(int TargetObjectID, int SourceObjectID, string RelationName, int CompanyId, int CreatedUpdatedBy, string TimeZoneId, string RelatinFilter = "")
+        public async Task CreateObjectRelationship(int targetObjectId, int sourceObjectId, string relationName, int companyId, int createdUpdatedBy, string timeZoneId, string relatinFilter = "")
         {
             try
             {
               
 
-                if (RelationName.ToUpper() == "GROUP" || RelationName.ToUpper() == "LOCATION")
+                if (relationName.ToUpper() == "GROUP" || relationName.ToUpper() == "LOCATION")
                 {
-                    if (TargetObjectID > 0)
+                    if (targetObjectId > 0)
                     {
                         int NewSourceObjectID = 0;
 
-                        var ObjMapId = await _context.Set<ObjectMapping>().Include(om => om.Object).Where(OBJ => OBJ.Object.ObjectName == RelationName).Select(a => a.ObjectMappingId).FirstOrDefaultAsync();
+                        var ObjMapId = await _context.Set<ObjectMapping>().Include(om => om.Object).Where(OBJ => OBJ.Object.ObjectName == relationName).Select(a => a.ObjectMappingId).FirstOrDefaultAsync();
 
-                        if (SourceObjectID > 0)
+                        if (sourceObjectId > 0)
                         {
-                            NewSourceObjectID = SourceObjectID;
-                            await CreateNewObjectRelation(NewSourceObjectID, TargetObjectID, ObjMapId, CreatedUpdatedBy, TimeZoneId);
+                            NewSourceObjectID = sourceObjectId;
+                            await CreateNewObjectRelation(NewSourceObjectID, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId);
                         }
 
-                        if (!string.IsNullOrEmpty(RelatinFilter))
+                        if (!string.IsNullOrEmpty(relatinFilter))
                         {
-                            if (RelationName.ToUpper() == "GROUP")
+                            if (relationName.ToUpper() == "GROUP")
                             {
-                                NewSourceObjectID = await _context.Set<Group>().Where(D=> D.GroupName == RelatinFilter && D.CompanyId == CompanyId).Select(g=>g.GroupId).FirstOrDefaultAsync();
+                                NewSourceObjectID = await _context.Set<Group>().Where(D=> D.GroupName == relatinFilter && D.CompanyId == CompanyId).Select(g=>g.GroupId).FirstOrDefaultAsync();
                             }
-                            else if (RelationName.ToUpper() == "LOCATION")
+                            else if (relationName.ToUpper() == "LOCATION")
                             {
-                                NewSourceObjectID = await  _context.Set<Location>().Where(L=> L.LocationName == RelatinFilter && L.CompanyId == CompanyId).Select(L=>L.LocationId).FirstOrDefaultAsync();
+                                NewSourceObjectID = await  _context.Set<Location>().Where(L=> L.LocationName == relatinFilter && L.CompanyId == CompanyId).Select(L=>L.LocationId).FirstOrDefaultAsync();
                             }
-                            await CreateNewObjectRelation(NewSourceObjectID, TargetObjectID, ObjMapId, CreatedUpdatedBy, TimeZoneId);
+                            await CreateNewObjectRelation(NewSourceObjectID, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId);
                         }
                     }
                 }
-                else if (RelationName.ToUpper() == "DEPARTMENT")
+                else if (relationName.ToUpper() == "DEPARTMENT")
                 {
-                  await  UpdateUserDepartment(SourceObjectID, CreatedUpdatedBy, TimeZoneId);
+                  await  UpdateUserDepartment(sourceObjectId, createdUpdatedBy, timeZoneId);
                 }
             }
             catch (Exception ex) {
@@ -329,25 +346,25 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task CreateNewObjectRelation(int SourceObjectID, int TargetObjectID, int ObjMapId, int CreatedUpdatedBy, string TimeZoneId)
+        public async Task CreateNewObjectRelation(int sourceObjectId, int targetObjectId, int objMapId, int createdUpdatedBy, string timeZoneId)
         {
             try
             {
 
-                bool IsALLOBJrelationExist = await _context.Set<ObjectRelation>().Where(OBR=> OBR.TargetObjectPrimaryId == TargetObjectID
-                                              && OBR.ObjectMappingId == ObjMapId
-                                              && OBR.SourceObjectPrimaryId == SourceObjectID).AnyAsync();
+                bool IsALLOBJrelationExist = await _context.Set<ObjectRelation>().Where(OBR=> OBR.TargetObjectPrimaryId == targetObjectId
+                                              && OBR.ObjectMappingId == objMapId
+                                              && OBR.SourceObjectPrimaryId == sourceObjectId).AnyAsync();
                 if (!IsALLOBJrelationExist)
                 {
                     ObjectRelation tblDepObjRel = new ObjectRelation()
                     {
-                        TargetObjectPrimaryId = TargetObjectID,
-                        ObjectMappingId = ObjMapId,
-                        SourceObjectPrimaryId = SourceObjectID,
-                        CreatedBy = CreatedUpdatedBy,
-                        UpdatedBy = CreatedUpdatedBy,
+                        TargetObjectPrimaryId = targetObjectId,
+                        ObjectMappingId = objMapId,
+                        SourceObjectPrimaryId = sourceObjectId,
+                        CreatedBy = createdUpdatedBy,
+                        UpdatedBy = createdUpdatedBy,
                         CreatedOn = System.DateTime.Now,
-                        UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneId, System.DateTime.Now),
+                        UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(timeZoneId, System.DateTime.Now),
                         ReceiveOnly = false
                     };
                     await _context.AddAsync(tblDepObjRel);
@@ -359,7 +376,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task UpdateUserDepartment(int DepartmentID, int CreatedUpdatedBy, string TimeZoneId)
+        public async Task UpdateUserDepartment(int departmentId, int createdUpdatedBy, string timeZoneId)
         {
             try
             {
@@ -367,9 +384,9 @@ namespace CrisesControl.Infrastructure.Repositories
                 var user = await _context.Set<User>().Where(U=> U.UserId == UserID).FirstOrDefaultAsync();
                 if (user != null)
                 {
-                    user.DepartmentId = DepartmentID;
-                    user.UpdatedBy = CreatedUpdatedBy;
-                    user.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    user.DepartmentId = departmentId;
+                    user.UpdatedBy = createdUpdatedBy;
+                    user.UpdatedOn = DateTime.Now.GetDateTimeOffset(timeZoneId);
                    await _context.SaveChangesAsync();
                 }
             }
@@ -378,7 +395,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task NewUserAccountConfirm(string EmailId, string UserName, string UserPass, int CompanyId, string guid)
+        public async Task NewUserAccountConfirm(string emailId, string userName, string userPass, int companyId, string guid)
         {
             try
             {
@@ -406,15 +423,15 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
 
                 if (!string.IsNullOrEmpty(sso_login))
-                    UserPass = "Use the single sign-on to login";
+                    userPass = "Use the single sign-on to login";
 
                 if ((message != null) && (hostname != null) && (fromadd != null))
                 {
                     string messagebody = message;
 
-                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", UserName);
-                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", EmailId);
-                    messagebody = messagebody.Replace("{RECIPIENT_PASSWORD}", UserPass);
+                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", userName);
+                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", emailId);
+                    messagebody = messagebody.Replace("{RECIPIENT_PASSWORD}", userPass);
                     messagebody = messagebody.Replace("{COMPANY_NAME}", CompanyInfo.CompanyName);
                     messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
                     messagebody = messagebody.Replace("{VERIFY_LINK}", Verifylink);
@@ -429,7 +446,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     messagebody = messagebody.Replace("{LINKEDIN_LINK}", await LookupWithKey("CC_LINKEDIN_PAGE"));
                     messagebody = messagebody.Replace("{LINKEDIN_ICON}", await LookupWithKey("CC_LINKEDIN_ICON"));
 
-                    string[] toEmails = { EmailId };
+                    string[] toEmails = { emailId };
 
                     bool ismailsend =await _senderEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
@@ -439,16 +456,16 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public  StringBuilder ReadHtmlFile(string FileCode, string Source, int CompanyId, out string Subject, string Provider = "AWSSES")
+        public  StringBuilder ReadHtmlFile(string fileCode, string source, int companyId, out string subject, string provider = "AWSSES")
         {
             StringBuilder htmlContent = new StringBuilder();
             string line;
-            Subject = "";
+            subject = "";
             try
             {
-                if (Source == "FILE")
+                if (source == "FILE")
                 {
-                    using (StreamReader htmlReader = new System.IO.StreamReader(FileCode))
+                    using (StreamReader htmlReader = new System.IO.StreamReader(fileCode))
                     {
                         while ((line = htmlReader.ReadLine()) != null)
                         {
@@ -461,12 +478,12 @@ namespace CrisesControl.Infrastructure.Repositories
 
 
                     var content =  _context.Set<EmailTemplate>()
-                                .Where(MSG => MSG.CompanyId == 0 && MSG.Code == FileCode)
+                                .Where(MSG => MSG.CompanyId == 0 && MSG.Code == fileCode)
                                 .Union(_context.Set<EmailTemplate>()
-                                .Where(MSG => MSG.Code == FileCode && MSG.CompanyId == CompanyId))
+                                .Where(MSG => MSG.Code == fileCode && MSG.CompanyId == CompanyId))
                                 .OrderByDescending(MSG => MSG.CompanyId).FirstOrDefault();
                     {
-                        Subject = content.EmailSubject;
+                        subject = content.EmailSubject;
 
                         var head =  _context.Set<EmailTemplate>().Where(MSG => MSG.Code == "DOCHEAD").FirstOrDefault();
                         if (head != null)
@@ -476,7 +493,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                         htmlContent.Append(content.HtmlData.ToString());
 
-                        if (Provider.ToUpper() != "OFFICE365")
+                        if (provider.ToUpper() != "OFFICE365")
                         {
                             var desc =  _context.Set<EmailTemplate>()
                                 .Where(MSG => MSG.CompanyId == 0 && MSG.Code == "DISCLAIMER_TEXT")
@@ -499,7 +516,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             return htmlContent;
         }
-        public async Task<bool> UpgradeRequest(int CompanyId)
+        public async Task<bool> UpgradeRequest(int companyId)
         {
             try
             {
@@ -573,14 +590,14 @@ namespace CrisesControl.Infrastructure.Repositories
             return 0;
 
         }
-        public async Task<Registration> GetRegistrationByUniqueReference(string UniqueRef)
+        public async Task<Registration> GetRegistrationByUniqueReference(string uniqueRef)
         {
-            var reg = await _context.Set<Registration>().Where(R => R.UniqueReference == UniqueRef ).FirstOrDefaultAsync();
+            var reg = await _context.Set<Registration>().Where(R => R.UniqueReference == uniqueRef ).FirstOrDefaultAsync();
             return reg;
         }
-        public async Task<Registration> GetRegistrationDataByEmail(string Email)
+        public async Task<Registration> GetRegistrationDataByEmail(string email)
         {
-            var reg = await _context.Set<Registration>().Where(R =>  R.Email == Email).OrderBy(a => a.Id).FirstOrDefaultAsync();
+            var reg = await _context.Set<Registration>().Where(R =>  R.Email == email).OrderBy(a => a.Id).FirstOrDefaultAsync();
             return reg;
         }
         public async Task<Registration> TempRegister(Registration reg)
@@ -616,18 +633,18 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             return false;
         }
-        public async Task<Registration> GetTempRegistration(int RegID, string UniqueRef)
+        public async Task<Registration> GetTempRegistration(int regId, string uniqueRef)
         {
             try
             {
-                if (RegID > 0)
+                if (regId > 0)
                 {
-                    var reg = await _context.Set<Registration>().Where(R=> R.Id == RegID).FirstOrDefaultAsync();
+                    var reg = await _context.Set<Registration>().Where(R=> R.Id == regId).FirstOrDefaultAsync();
                     return reg;
                 }
-                else if (!string.IsNullOrEmpty(UniqueRef))
+                else if (!string.IsNullOrEmpty(uniqueRef))
                 {
-                    var reg = await _context.Set<Registration>().Where(R=> R.UniqueReference == UniqueRef).FirstOrDefaultAsync();
+                    var reg = await _context.Set<Registration>().Where(R=> R.UniqueReference == uniqueRef).FirstOrDefaultAsync();
                     return reg;
                 }
             }
@@ -636,7 +653,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 _logger.LogError("Error occured while seeding into database {0}, {1},{2}",ex.Message,ex.InnerException,ex.StackTrace);
               
             }
-            throw new RegisterNotFoundException(RegID, 0);
+            throw new RegisterNotFoundException(regId, 0);
 
 
         }
@@ -663,23 +680,23 @@ namespace CrisesControl.Infrastructure.Repositories
             
         }
 
-        public async Task<bool> ActivateCompany(int UserId, string ActivationKey, string IPAddress, int SalesSource = 0, string TimeZoneId = "GMT Standard Time")
+        public async Task<bool> ActivateCompany(int userId, string activationKey, string ipAddress, int salesSource = 0, string timeZoneId = "GMT Standard Time")
         {
 
             try
             {
-                int getuser = await _context.Set<User>().Where(U=> U.UserId == UserId).Select(U=>U.CompanyId).FirstOrDefaultAsync();
+                int getuser = await _context.Set<User>().Where(U=> U.UserId == userId).Select(U=>U.CompanyId).FirstOrDefaultAsync();
 
                 if (getuser > 0)
                 {
                     var checkkey =  _context.Set<Company>().Include(CP=>CP.CompanyPaymentProfiles)
                                     .Include(CA=>CA.CompanyActivation)                                   
-                                    .Where(CA=> CA.CompanyActivation.ActivationKey == ActivationKey && CA.CompanyId == getuser && CA.Status == 0
+                                    .Where(CA=> CA.CompanyActivation.ActivationKey == activationKey && CA.CompanyId == getuser && CA.Status == 0
                                     ).FirstOrDefault();
                     if (checkkey != null)
                     {
-                        checkkey.CompanyActivation.ActivatedBy = UserId;
-                        checkkey.CompanyActivation.ActivatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
+                        checkkey.CompanyActivation.ActivatedBy = userId;
+                        checkkey.CompanyActivation.ActivatedOn = DateTime.Now.GetDateTimeOffset( timeZoneId);
 
                         if (checkkey.Status == 4)
                         {
@@ -687,9 +704,9 @@ namespace CrisesControl.Infrastructure.Repositories
                         }
 
                         checkkey.CompanyActivation.Status = 1;
-                        checkkey.CompanyActivation.Ipaddress = IPAddress;
+                        checkkey.CompanyActivation.Ipaddress = ipAddress;
                         if (checkkey.CompanyActivation.SalesSource <= 0)
-                            checkkey.CompanyActivation.SalesSource = SalesSource;
+                            checkkey.CompanyActivation.SalesSource = salesSource;
                         checkkey.Status = 1;
                         _context.Update(checkkey);
                         await _context.SaveChangesAsync();
@@ -708,26 +725,26 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                throw new CompanyNotFoundException(CompanyId, UserId);
+                throw new CompanyNotFoundException(CompanyId, userId);
                 return false;
             }
         }
-        public async Task<UserDevice> GetUserDeviceByUserId(int UserID)
+        public async Task<UserDevice> GetUserDeviceByUserId(int userId)
         {
-            var device =await  _context.Set<UserDevice>().Where(UD=> UD.UserId == UserID && UD.Status == 1 ).FirstOrDefaultAsync();
+            var device =await  _context.Set<UserDevice>().Where(UD=> UD.UserId == userId && UD.Status == 1 ).FirstOrDefaultAsync();
             return device;
   
         }
-        public async Task<User> GetUserByUniqueId(string UniqueId)
+        public async Task<User> GetUserByUniqueId(string uniqueId)
         {
-            var data = await _context.Set<User>().Where(U => U.UniqueGuiId == UniqueId)
+            var data = await _context.Set<User>().Where(U => U.UniqueGuiId == uniqueId)
                       .FirstOrDefaultAsync();
             return data;
 
         }
-        public async Task<CompanyUser> SendVerification(string UniqueId)
+        public async Task<CompanyUser> SendVerification(string uniqueId)
         {
-            var data = await _context.Set<User>().Include(x=>x.Company).Where(U=>U.UniqueGuiId == UniqueId)
+            var data = await _context.Set<User>().Include(x=>x.Company).Where(U=>U.UniqueGuiId == uniqueId)
             . Select(U => new CompanyUser()
               {
                   UserId = U.UserId,
@@ -740,14 +757,14 @@ namespace CrisesControl.Infrastructure.Repositories
             return data;
 
         }
-        public async Task NewUserAccount(string EmailId, string UserName, int CompanyId, string guid)
+        public async Task NewUserAccount(string emailId, string userName, int companyId, string guid)
         {
             try
             {
                 //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "NewUserAccount.html";
                 string Subject = string.Empty;
 
-                string message = Convert.ToString(ReadHtmlFile("NEW_USER_ACCOUNT", "DB", CompanyId, out Subject));
+                string message = Convert.ToString(ReadHtmlFile("NEW_USER_ACCOUNT", "DB", companyId, out Subject));
                 var sysparms = await  _context.Set<SysParameter>().
                                 Where(SP=> SP.Name == "CC_TWITTER_PAGE" || SP.Name == "CC_FB_PAGE"
                                 || SP.Name == "CC_LINKEDIN_PAGE" || SP.Name == "DOMAIN"
@@ -783,8 +800,8 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     string messagebody = message;
 
-                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", UserName);
-                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", EmailId);
+                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", userName);
+                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", emailId);
                     messagebody = messagebody.Replace("{COMPANY_NAME}", Company.CompanyName);
                     messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
                     messagebody = messagebody.Replace("{PORTAL}", Portal);
@@ -800,7 +817,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     messagebody = messagebody.Replace("{LINKEDIN_LINK}", sysparms.Where(w => w.Name == "CC_LINKEDIN_PAGE").Select(s => s.Value).FirstOrDefault());
                     messagebody = messagebody.Replace("{LINKEDIN_ICON}", sysparms.Where(w => w.Name == "CC_LINKEDIN_ICON").Select(s => s.Value).FirstOrDefault());
 
-                    string[] toEmails = { EmailId };
+                    string[] toEmails = { emailId };
                     bool ismailsend = await _senderEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
             }
@@ -826,7 +843,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             return "";
         }
-        public async Task SendCredentials(string EmailId, string UserName, string UserPass, int CompanyId, string guid)
+        public async Task SendCredentials(string emailId, string userName, string userPass, int companyId, string guid)
         {
             try
             {
@@ -850,15 +867,15 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
 
                 if (!string.IsNullOrEmpty(sso_login))
-                    UserPass = "Use the single sign-on to login";
+                    userPass = "Use the single sign-on to login";
 
                 if ((message != null) && (hostname != null) && (fromadd != null))
                 {
                     string messagebody = message;
 
-                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", UserName);
-                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", EmailId);
-                    messagebody = messagebody.Replace("{RECIPIENT_PASSWORD}", UserPass);
+                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", userName);
+                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", emailId);
+                    messagebody = messagebody.Replace("{RECIPIENT_PASSWORD}", userPass);
                     messagebody = messagebody.Replace("{COMPANY_NAME}", CompanyInfo.CompanyName);
                     messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
                     messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
@@ -866,7 +883,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
                     messagebody = messagebody.Replace("{PORTAL}", Portal);
 
-                    string[] toEmails = { EmailId };
+                    string[] toEmails = { emailId };
 
                     bool ismailsend = await _senderEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
@@ -894,6 +911,365 @@ namespace CrisesControl.Infrastructure.Repositories
             catch (Exception ex)
             {
                 throw ex;
+            }
+        }
+
+        public async Task<List<PackageModel>> GetAllPackagePlan()
+        {
+            try
+            {
+                var packageInfo = await (from PP in _context.Set<PackagePlan>()
+                                         where PP.Status == 1
+                                         select new PackageModel()
+                                         {
+                                             PackagePlanId = PP.PackagePlanId,
+                                             PackageName = PP.PlanName,
+                                             PackageDescription = PP.PlanDescription,
+                                         }).ToListAsync();
+
+                return packageInfo;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateCompanyStatus(ViewCompanyModel companyModel)
+        {
+            var CompanyStatus = await (from C in _context.Set<Company>() where C.CompanyId == companyModel.CompanyId select C).FirstOrDefaultAsync();
+            if (CompanyStatus != null)
+            {
+                CompanyStatus.CompanyProfile = companyModel.CompanyProfile;
+                CompanyStatus.OnTrial = _DBC.OnTrialStatus(companyModel.CompanyProfile, CompanyStatus.OnTrial);
+                CompanyStatus.Status = companyModel.Status;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            else
+            {
+                throw new CompanyNotFoundException(CompanyId, UserID);
+            }
+        }
+
+        public async Task<int> CreateCompany(string companyName, int status, string companyProfile, string isd, string switshBoardPhone, DateTime registrationDate,
+            DateTime anniversary, int packagePlanId, int timeZone, string customerId, string invitationCode, string sector)
+        {
+            Company TblComp = new Company();
+            TblComp.CompanyName = companyName;
+            TblComp.Status = status;
+            TblComp.CompanyProfile = companyProfile;
+            TblComp.OnTrial = _DBC.OnTrialStatus(companyProfile, false);
+            TblComp.Isdcode = isd;
+            TblComp.SwitchBoardPhone = switshBoardPhone;
+            TblComp.RegistrationDate = registrationDate;
+            TblComp.AnniversaryDate = anniversary;
+            TblComp.CompanyLogoPath = "";
+            TblComp.PackagePlanId = packagePlanId;
+            TblComp.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now);
+            TblComp.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now);
+            TblComp.TimeZone = timeZone;
+            TblComp.CreatedBy = 0;
+            TblComp.UpdatedBy = 0;
+            TblComp.UniqueKey = Guid.NewGuid().ToString();
+            TblComp.CustomerId = customerId;
+            TblComp.InvitationCode = invitationCode;
+            TblComp.Sector = sector;
+            TblComp.ContactLogoPath = "";
+            _context.Set<Company>().Add(TblComp);
+            await _context.SaveChangesAsync();
+            return TblComp.CompanyId;
+        }
+
+        public async Task<RegRet> CreateRegistrationData(int regId, int companyId, int userId, string lat, string lng)
+        {
+            try
+            {
+                DateTimeOffset CreatedNow = _DBC.GetDateTimeOffset(DateTime.Now);
+
+                var pRegID = new SqlParameter("@RegistrationID", regId);
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pUserID = new SqlParameter("@UserID", userId);
+                var pCreatedNow = new SqlParameter("@CreatedOnOffset", CreatedNow);
+                var pLat = new SqlParameter("@LocationLat", lat);
+                var pLng = new SqlParameter("@LocationLng", lng);
+                var err = await _context.Set<RegRet>().FromSqlRaw("EXEC Pro_Registration_Data_Create @RegistrationID, @CompanyID, @UserID, @CreatedOnOffset,@LocationLat,@LocationLng",
+                    pRegID, pCompanyID, pUserID, pCreatedNow, pLat, pLng).FirstOrDefaultAsync();
+                return err;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public async void SetupCompanyPaymentProfile(int companyId, int userId, int packagePlanId, string timeZoneId)
+        {
+            var comp_profile = await (from CP in _context.Set<CompanyPaymentProfile>() where CP.CompanyId == companyId select CP).AnyAsync();
+            if (comp_profile)
+            {
+                var PaymentProfile = await (from PP in _context.Set<PaymentProfile>() select PP).FirstOrDefaultAsync();
+                
+                decimal VatRate = Convert.ToDecimal(_DBC.LookupWithKey("COMP_VAT"));
+
+                if (packagePlanId == 1 && PaymentProfile.CreditBalance > 0)
+                {
+
+                    var topup_type = await (from TT in _context.Set<TransactionType>()
+                                      where TT.TransactionCode == "TOPUP"
+                                      select TT).FirstOrDefaultAsync();
+
+                    VatRate = (VatRate + 100) / 100;
+                    UpdateTransactionDetailsModel IP = new UpdateTransactionDetailsModel();
+                    IP.CustomerId = companyId;
+                    IP.TransactionTypeId = topup_type.TransactionTypeId;
+                    IP.TransactionRate = PaymentProfile.CreditBalance;
+                    IP.MinimumPrice = PaymentProfile.CreditBalance;
+                    IP.Quantity = 1;
+                    IP.Cost = PaymentProfile.CreditBalance;
+                    IP.LineValue = PaymentProfile.CreditBalance;
+                    IP.Vat = PaymentProfile.CreditBalance * 0;
+                    IP.Total = PaymentProfile.CreditBalance;
+                    IP.TransactionDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    IP.TransactionReference = "FREE CREDIT";
+                    IP.TransactionDetailsId = 0;
+                    IP.TransactionStatus = 1;
+                    IP.Storage = 0;
+                    IP.DRCR = "CR";
+
+                    await _ADM.AddTransaction(IP, UserID, companyId, timeZoneId);
+                }
+            }
+        }
+
+        public bool InsertCompanyApi(int companyId, string companyName, string customerId, string invitationCode)
+        {
+            try
+            {
+                string CompanyApi = _DBC.LookupWithKey("COMPANY_API_MGMT_URL");
+                string Host = _DBC.LookupWithKey("CRISES_CONTROL_HOST");
+                string ApiMode = _DBC.LookupWithKey("CRISES_CONTROL_API_MODE");
+
+                HttpClient client = new HttpClient();
+                client.BaseAddress = new Uri(CompanyApi);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var cmpapirequest = new CompanyApiRequest()
+                {
+                    ApiHost = Host,
+                    CompanyId = CompanyId,
+                    CompanyName = companyName,
+                    CustomerId = customerId,
+                    InvitationCode = invitationCode,
+                    ApiMode = ApiMode
+                };
+
+                HttpResponseMessage RspApi = client.PostAsJsonAsync("Company/SaveCompanyApi", cmpapirequest).Result;
+                Task<string> resultstring = RspApi.Content.ReadAsStringAsync();
+                string ressultstr = resultstring.Result.Trim();
+                if (RspApi.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public bool DeleteCompanyApi(int companyId, string customerId)
+        {
+            try
+            {
+                string CompanyApi = _DBC.LookupWithKey("COMPANY_API_MGMT_URL");
+
+                HttpClient client = new HttpClient();
+                client.BaseAddress = new Uri(CompanyApi);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var cmpapirequest = new CompanyApiRequest()
+                {
+                    ApiHost = "",
+                    CompanyId = CompanyId,
+                    CompanyName = "",
+                    CustomerId = customerId,
+                    InvitationCode = "",
+                    ApiMode = ""
+                };
+
+                HttpResponseMessage RspApi = client.PostAsJsonAsync("Company/DeleteCompanyApi", cmpapirequest).Result;
+                Task<string> resultstring = RspApi.Content.ReadAsStringAsync();
+                string ressultstr = resultstring.Result.Trim();
+                if (RspApi.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public async Task<UserValidatedDTO> CompleteRegistration(TempRegister tempRegister)
+        {
+            int CompanyID = 0;
+            string CustomerId = string.Empty;
+            try
+            {
+                UserValidatedDTO UserDTO = new UserValidatedDTO();
+                var reg = await (from R in _context.Set<Registration>() where R.Id == tempRegister.RegId select R).FirstOrDefaultAsync();
+                if (reg != null)
+                {
+                    using (TransactionScope scope = new TransactionScope())
+                    {
+                        CustomerId = reg.CustomerId;
+
+                        string InvitationCode = _DBC.Left(Guid.NewGuid().ToString().Replace("-", ""), 8).ToUpper();
+                        CompanyID = await CreateCompany(reg.CompanyName, 2, "AWAITING_SETUP", reg.MobileIsd, reg.MobileNo, DateTime.Now, DateTime.Now.AddMonths(1), (int)reg.PackagePlanId, 26, tempRegister.CustomerId, InvitationCode, reg.Sector);
+
+                        if (CompanyID > 0)
+                        {
+
+                            string UniqueId = Guid.NewGuid().ToString();
+                            int NewUserId = await _UH.CreateUsers(CompanyID, true, reg.FirstName, reg.Email, reg.Password, 1, 0,
+                                "GMT Standard Time", reg.LastName, reg.MobileNo, "SUPERADMIN", "", reg.MobileIsd, "", "", "",
+                                UniqueId, "", "", "", true, "en");
+
+
+                            if (NewUserId > 0)
+                            {
+
+                                var comp = await _context.Set<Company>().Where(w => w.CompanyId == CompanyID).FirstOrDefaultAsync();
+                                comp.CreatedBy = NewUserId;
+                                comp.UpdatedBy = NewUserId;
+
+                                var UserInfo = await (from User in _context.Set<User>() where User.UserId == NewUserId select User).FirstOrDefaultAsync();
+                                UserInfo.FirstLogin = false;
+                                await _context.SaveChangesAsync();
+
+                                //Send the activation email link
+                                string Plan = await _context.Set<PackagePlan>().Where(w => w.PackagePlanId == reg.PackagePlanId).Select(s => s.PlanName).FirstOrDefaultAsync();
+
+                                string TimeZoneId = _DBC.GetTimeZoneByCompany(CompanyID);
+
+                                //Create default location "ALL" and assgin to user to it.
+                                LatLng LL = _DBC.GetCoordinates(reg.City + ", " + reg.Postcode);
+                                try
+                                {
+                                    RegRet err = await CreateRegistrationData(reg.Id, CompanyID, NewUserId, LL.Lat, LL.Lng);
+                                    if (err.Error != 0)
+                                    {
+                                        throw new Exception("Company Data not created");
+                                    }
+                                    else
+                                    {
+
+                                        //Setup company payment profile
+                                        SetupCompanyPaymentProfile(CompanyID, NewUserId, (int)reg.PackagePlanId, TimeZoneId);
+
+                                        //Add license item in the company transaction type table.
+                                        //DateTime firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                                        DateTime NextRun = DateTime.Now.AddDays(30);
+                                        var transac_type = (from TT in _context.Set<TransactionType>()
+                                                            where TT.TransactionCode == "LICENSEFEE"
+                                                            select TT).FirstOrDefault();
+
+                                        int id = await _BH.UpdateCompanyTranscationType(CompanyID, NewUserId, TimeZoneId, transac_type.TransactionTypeId, transac_type.Rate, 0, "MONTHLY", NextRun);
+
+                                        _context.Set<Registration>().Remove(reg);
+                                        _context.SaveChanges();
+
+                                        //Confirm the account and send the account details to the user.
+                                        _SDE.CompanySignUpConfirm(reg.Email, reg.FirstName + " " + reg.LastName, reg.MobileIsd + reg.MobileNo, reg.PaymentMethod, Plan, reg.Password, CompanyID);
+
+                                        UserDTO.companyid = CompanyID;
+                                        UserDTO.userid = NewUserId;
+                                        UserDTO.Password = reg.Password;
+                                        UserDTO.CustomerId = reg.CustomerId;
+                                        UserDTO.Token = UniqueId;
+                                        UserDTO.ErrorId = 0;
+                                        UserDTO.Message = "Validated Sucessfully";
+
+                                        string companyname = string.IsNullOrEmpty(reg.CompanyName) ? "New Company " + CompanyID : reg.CompanyName;
+                                        CustomerId = string.IsNullOrEmpty(reg.CustomerId) ? "newcompany" + CompanyID : reg.CustomerId;
+
+                                        try
+                                        {
+                                            InsertCompanyApi(CompanyID, companyname, reg.CustomerId, InvitationCode);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            DeleteCompanyApi(CompanyID, CustomerId);
+                                        }
+                                    }
+                                    scope.Complete();
+                                }
+                                catch (Exception ex)
+                                {
+                                }
+                            }
+                            else
+                            {
+                                UserDTO.ErrorId = 100;
+                                UserDTO.Message = "User not created";
+                            }
+                        }
+                    }
+                }
+                return UserDTO;
+            }
+            catch (Exception ex)
+            {
+
+                DeleteCompanyApi(CompanyID, CustomerId);
+                return null;
+            }
+        }
+
+        public async Task<bool> DeleteTempRegistration(TempRegister tempRegister)
+        {
+            try
+            {
+                var reg = await _context.Set<Registration>().Where(t => t.UniqueReference == tempRegister.UniqueRef).FirstOrDefaultAsync();
+                if (reg != null)
+                {
+                    _context.Set<Registration>().Remove(reg);
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public async Task<List<Sectors>> BusinessSector()
+        {
+            try
+            {
+                var result = await _context.Set<Sectors>().FromSqlRaw("EXEC Pro_Get_IndustrySector").ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return null;
             }
         }
     }
