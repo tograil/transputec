@@ -35,7 +35,7 @@ namespace CC.Authority.Implementation.Services
 
         public async Task<UserResponse> AddUser(UserInput userInput)
         {
-            var addUserUri = new Uri(_baseUri, AddUserPath);
+            var addUserUri = new Uri(_baseUri, $"{_appPath}{AddUserPath}");
 
             var serialized = JsonConvert.SerializeObject(userInput);
 
@@ -68,7 +68,7 @@ namespace CC.Authority.Implementation.Services
 
         public async Task<UserResponse> GetUser(int id)
         {
-            var getUserUri = new Uri(_baseUri, $"{GetUserPath}{id}");
+            var getUserUri = new Uri(_baseUri, $"{_appPath}{GetUserPath}{id}");
 
             var response = await _httpClient.GetAsync(getUserUri);
 
@@ -81,7 +81,7 @@ namespace CC.Authority.Implementation.Services
 
         public async Task<UserResponse> UpdateUser(UserInput userInput)
         {
-            var addUserUri = new Uri(_baseUri, UpdateUserPath);
+            var addUserUri = new Uri(_baseUri, $"{_appPath}{UpdateUserPath}");
 
             var serialized = JsonConvert.SerializeObject(userInput);
 
