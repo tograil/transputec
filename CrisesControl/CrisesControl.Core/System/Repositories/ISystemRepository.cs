@@ -10,7 +10,7 @@ namespace CrisesControl.Core.System.Repositories
 {
     public  interface ISystemRepository
     {
-        Task<string> ExportTrackingData(int TrackMeID, int UserDeviceID, DateTimeOffset StartDate, DateTimeOffset EndDate, int OutUserCompanyId);
+        Task<string> ExportTrackingData(int trackMeID, int userDeviceID, DateTimeOffset startDate, DateTimeOffset endDate, int outUserCompanyId);
         Task<List<ModelLogReturn>> GetModelLog(DateTimeOffset startDate, DateTimeOffset endDate, int recordStart, int recordLength, string searchString, string orderBy, string orderDir);
         Task<HttpResponseMessage> DownloadExportFile(int companyId, string fileName);
         Task<bool> TwilioLogDump(string logType, List<CallResource> calls, List<MessageResource> texts, List<RecordingResource> recordings);

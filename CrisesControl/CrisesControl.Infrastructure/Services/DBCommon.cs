@@ -281,9 +281,9 @@ namespace CrisesControl.Api.Application.Helpers
             return sBuilder.ToString();
         }
 
-        public string ToCurrency(decimal Amount, int points = 2)
+        public string ToCurrency(decimal amount, int points = 2)
         {
-            return "&pound;" + Amount.ToString("n" + points);
+            return "&pound;" + amount.ToString("n" + points);
         }
 
         public DateTimeOffset GetDateTimeOffset(DateTime crTime, string timeZoneId = "GMT Standard Time")
@@ -469,19 +469,17 @@ namespace CrisesControl.Api.Application.Helpers
             //}
         }
 
-        public string GetTimeZoneVal(int UserId)
+        public async Task<string> GetTimeZoneVal(int userId)
         {
             try
             {
                 string tmpZoneVal = "GMT Standard Time";
-                var userInfo = (from U in _context.Set<User>()
-                                join C in _context.Set<Company>() on U.CompanyId equals C.CompanyId
-                                join T in _context.Set<StdTimeZone>() on C.TimeZone equals T.TimeZoneId
-                                where U.UserId == UserId
-                                select new
+                var userInfo = await  _context.Set<User>().Include(c=>c.Company)
+                                .Where(U=> U.UserId == userId)
+                                .Select(T=> new
                                 {
-                                    UserTimezone = T.ZoneLabel
-                                }).FirstOrDefault();
+                                    UserTimezone = T.Company.StdTimeZone.ZoneLabel
+                                }).FirstOrDefaultAsync();
                 if (userInfo != null)
                 {
                     tmpZoneVal = userInfo.UserTimezone;
@@ -1201,94 +1199,94 @@ namespace CrisesControl.Api.Application.Helpers
                     fi.Delete();
             }
         }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentReviewDate, int CompanyID, int ReminderCount, out int ReminderCounter)
+        public DateTimeOffset GetNextReviewDate(DateTimeOffset currentReviewDate, int companyID, int reminderCount, out int reminderCounter)
         {
             try
             {
-                ReminderCounter = 0;
+                reminderCounter = 0;
                 int reminder1 = 30;
                 int reminder2 = 15;
                 int reminder3 = 7;
 
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", CompanyID), out reminder1);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", CompanyID), out reminder2);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", CompanyID), out reminder3);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", companyID), out reminder1);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", companyID), out reminder2);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", companyID), out reminder3);
 
-                DateTime CheckDate = CurrentReviewDate.AddDays(-reminder1).Date;
+                DateTime CheckDate = currentReviewDate.AddDays(-reminder1).Date;
 
-                if (CheckDate.Date >= DateTime.Now.Date && ReminderCount == 0)
+                if (CheckDate.Date >= DateTime.Now.Date && reminderCount == 0)
                 {
-                    ReminderCounter = 1;
+                    reminderCounter = 1;
                     return CheckDate;
                 }
 
-                if (CurrentReviewDate.AddDays(-reminder2).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1))
+                if (currentReviewDate.AddDays(-reminder2).Date >= DateTime.Now.Date && (reminderCount == 0 || reminderCount == 1))
                 {
-                    ReminderCounter = 2;
-                    return CurrentReviewDate.AddDays(-reminder2).Date;
+                    reminderCounter = 2;
+                    return currentReviewDate.AddDays(-reminder2).Date;
                 }
 
-                if (CurrentReviewDate.AddDays(-reminder3).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1 || ReminderCount == 2))
+                if (currentReviewDate.AddDays(-reminder3).Date >= DateTime.Now.Date && (reminderCount == 0 || reminderCount == 1 || reminderCount == 2))
                 {
-                    ReminderCounter = 3;
-                    return CurrentReviewDate.AddDays(-reminder3).Date;
+                    reminderCounter = 3;
+                    return currentReviewDate.AddDays(-reminder3).Date;
                 }
 
-                return CurrentReviewDate.AddYears(-1).Date;
+                return currentReviewDate.AddYears(-1).Date;
 
             }
             catch (Exception ex)
             {
-                ReminderCounter = 0;
-                return CurrentReviewDate.AddYears(-1).Date;
+                reminderCounter = 0;
+                return currentReviewDate.AddYears(-1).Date;
             }
         }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentDateTime, string Frequency)
+        public DateTimeOffset GetNextReviewDate(DateTimeOffset currentDateTime, string frequency)
         {
-            DateTimeOffset NewReviewDate = CurrentDateTime;
+            DateTimeOffset newReviewDate = currentDateTime;
 
-            if (string.IsNullOrEmpty(Frequency))
-                Frequency = "MONTH";
+            if (string.IsNullOrEmpty(frequency))
+                frequency = "MONTH";
 
-            switch (Frequency)
+            switch (frequency)
             {
                 case "WEEK":
-                    NewReviewDate = CurrentDateTime.AddDays(7);
+                    newReviewDate = currentDateTime.AddDays(7);
                     break;
                 case "MONTH":
-                    NewReviewDate = CurrentDateTime.AddMonths(1);
+                    newReviewDate = currentDateTime.AddMonths(1);
                     break;
                 case "QUARTER":
-                    NewReviewDate = CurrentDateTime.AddMonths(3);
+                    newReviewDate = currentDateTime.AddMonths(3);
                     break;
                 case "YEAR":
-                    NewReviewDate = CurrentDateTime.AddYears(1);
+                    newReviewDate = currentDateTime.AddYears(1);
                     break;
             }
-            return NewReviewDate;
+            return newReviewDate;
         }
-        public async Task CreateSOPReviewReminder(int IncidentID, int SOPHeaderID, int CompanyID, DateTimeOffset NextReviewDate, string ReviewFrequency, int ReminderCount)
+        public async Task CreateSOPReviewReminder(int incidentID, int sopHeaderID, int companyID, DateTimeOffset nextReviewDate, string reviewFrequency, int reminderCount)
         {
             try
             {
 
-                DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
+                DeleteScheduledJob("SOP_REVIEW_" + sopHeaderID, "REVIEW_REMINDER");
 
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
-                string jobName = "SOP_REVIEW_" + SOPHeaderID;
-                string taskTrigger = "SOP_REVIEW_" + SOPHeaderID;
+                string jobName = "SOP_REVIEW_" + sopHeaderID;
+                string taskTrigger = "SOP_REVIEW_" + sopHeaderID;
 
                 var jobDetail = new Quartz.Impl.JobDetailImpl(jobName, "REVIEW_REMINDER", typeof(SOPReviewJob));
-                jobDetail.JobDataMap["IncidentID"] = IncidentID;
-                jobDetail.JobDataMap["SOPHeaderID"] = SOPHeaderID;
+                jobDetail.JobDataMap["IncidentID"] = incidentID;
+                jobDetail.JobDataMap["SOPHeaderID"] = sopHeaderID;
 
                 int Counter = 0;
-                DateTimeOffset DateCheck =GetNextReviewDate(NextReviewDate, CompanyID, ReminderCount, out Counter);
+                DateTimeOffset DateCheck =GetNextReviewDate(nextReviewDate, companyID, reminderCount, out Counter);
                 jobDetail.JobDataMap["Counter"] = Counter;
 
-                var sop_head =  _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == SOPHeaderID).FirstOrDefault();
+                var sop_head =  _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == sopHeaderID).FirstOrDefault();
                 sop_head.ReminderCount = Counter;
                 _context.Update(sop_head);
                 await _context.SaveChangesAsync();
@@ -1309,18 +1307,18 @@ namespace CrisesControl.Api.Application.Helpers
                                                               .StartAt(DateCheck.ToUniversalTime())
                                                               .ForJob(jobDetail)
                                                               .Build();
-                    _scheduler.ScheduleJob(jobDetail, trigger);
+                  await   _scheduler.ScheduleJob(jobDetail, trigger);
                 }
                 else
                 {
-                    DateTimeOffset NewReviewDate = GetNextReviewDate(NextReviewDate, ReviewFrequency);
+                    DateTimeOffset NewReviewDate = GetNextReviewDate(nextReviewDate, reviewFrequency);
 
                     if (sop_head != null)
                     {
                         sop_head.ReviewDate = NewReviewDate;
                         sop_head.ReminderCount = 0;
                         await _context.SaveChangesAsync();
-                        await CreateSOPReviewReminder(IncidentID, SOPHeaderID, CompanyID, NewReviewDate, ReviewFrequency, 0);
+                        await CreateSOPReviewReminder(incidentID, sopHeaderID, companyID, NewReviewDate, reviewFrequency, 0);
                     }
                 }
 
@@ -1348,11 +1346,11 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task<int> SegregationWarning(int CompanyId, int UserID, int IncidentId)
+        public async Task<int> SegregationWarning(int companyId, int userID, int incidentId)
         {
-            var pIncidentId = new SqlParameter("@IncidentID", IncidentId);
-            var pUserID = new SqlParameter("@UserID", UserID);
-            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+            var pIncidentId = new SqlParameter("@IncidentID", incidentId);
+            var pUserID = new SqlParameter("@UserID", userID);
+            var pCompanyId = new SqlParameter("@CompanyID", companyId);
 
             int SegWarning =await _context.Database.ExecuteSqlRawAsync("SELECT [dbo].[Incident_Segregation](@IncidentID,@UserID,@CompanyID)", pIncidentId, pUserID, pCompanyId);
             return SegWarning;
@@ -1513,17 +1511,17 @@ namespace CrisesControl.Api.Application.Helpers
             }
             
         }
-        public void ModelInputLog(string ControllerName, string MethodName, int UserID, int CompanyID, dynamic data)
+        public void ModelInputLog(string controllerName, string methodName, int userID, int companyID, dynamic data)
         {
             try
             {
              
                     string json = JsonConvert.SerializeObject(data);
 
-                    var pControllerName = new SqlParameter("@ControllerName", ControllerName);
-                    var pMethodName = new SqlParameter("@MethodName", MethodName);
-                    var pUserID = new SqlParameter("@UserID", UserID);
-                    var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                    var pControllerName = new SqlParameter("@ControllerName", controllerName);
+                    var pMethodName = new SqlParameter("@MethodName", methodName);
+                    var pUserID = new SqlParameter("@UserID", userID);
+                    var pCompanyID = new SqlParameter("@CompanyID", companyID);
                     var pData = new SqlParameter("@Data", json);
 
                     _context.Database.ExecuteSqlRawAsync("Pro_Log_Model_Data @ControllerName, @MethodName, @UserID, @CompanyID, @Data",
@@ -1535,10 +1533,10 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public DateTimeOffset ToNullIfTooEarlyForDb(DateTimeOffset date, bool ConvertUTC = false)
+        public DateTimeOffset ToNullIfTooEarlyForDb(DateTimeOffset date, bool convertUTC = false)
         {
             DateTimeOffset retDate = (date.Year >= 1990) ? date : DateTime.Now;
-            if (!ConvertUTC)
+            if (!convertUTC)
             {
                 return retDate;
             }

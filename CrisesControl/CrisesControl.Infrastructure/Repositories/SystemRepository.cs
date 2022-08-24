@@ -40,19 +40,19 @@ namespace CrisesControl.Infrastructure.Repositories
             this._httpContextAccessor = httpContextAccessor;
             DBC = new DBCommon(_context, _httpContextAccessor);
         }
-        public async Task<string> ExportTrackingData(int TrackMeID, int UserDeviceID, DateTimeOffset StartDate, DateTimeOffset EndDate, int OutUserCompanyId)
+        public async Task<string> ExportTrackingData(int trackMeID, int userDeviceID, DateTimeOffset startDate, DateTimeOffset endDate, int outUserCompanyId)
         {
-            var pTrackMeID = new SqlParameter("@TrackMeID", TrackMeID);
-            var pUserDeviceID = new SqlParameter("@UserDeviceID", UserDeviceID);
-            var pStartDate = new SqlParameter("@StartDate", StartDate);
-            var pEndDate = new SqlParameter("@EndDate", EndDate);
+            var pTrackMeID = new SqlParameter("@TrackMeID", trackMeID);
+            var pUserDeviceID = new SqlParameter("@UserDeviceID", userDeviceID);
+            var pStartDate = new SqlParameter("@StartDate", startDate);
+            var pEndDate = new SqlParameter("@EndDate", endDate);
 
 
 
-            string FileName = "Tracking_" + TrackMeID + "_" + DateTime.Now.ToString("ddMMyyHHmmss") + ".csv";
+            string FileName = "Tracking_" + trackMeID + "_" + DateTime.Now.ToString("ddMMyyHHmmss") + ".csv";
 
             string ResultFilePath = DBC.Getconfig("ImportResultPath");
-            string ExportPath = ResultFilePath + OutUserCompanyId + "\\DataExport\\";
+            string ExportPath = ResultFilePath + outUserCompanyId + "\\DataExport\\";
             string FilePath = ExportPath + FileName;
 
             if (!Directory.Exists(ExportPath))
