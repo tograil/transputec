@@ -70,13 +70,12 @@ namespace CrisesControl.Api.Application.Helpers
                 }
                 else
                 {
-                    var content = (from MSG in _context.Set<EmailTemplate>()
-                                   where MSG.Code == fileCode
-                                   where MSG.CompanyId == 0
-                                   select MSG)
-                                   .Union(from MSG in _context.Set<EmailTemplate>()
-                                          where MSG.Code == fileCode && MSG.CompanyId == companyId
-                                          select MSG)
+                    var content =  _context.Set<EmailTemplate>()
+                                   .Where(MSG=> MSG.Code == fileCode && MSG.CompanyId == 0
+                                  )
+                                   .Union( _context.Set<EmailTemplate>()
+                                          .Where(MSG=> MSG.Code == fileCode && MSG.CompanyId == companyId
+                                          ))
                                           .OrderByDescending(o => o.CompanyId).FirstOrDefault();
                     if (content != null)
                     {
@@ -94,13 +93,12 @@ namespace CrisesControl.Api.Application.Helpers
 
                         if (provider.ToUpper() != "OFFICE365")
                         {
-                            var desc = (from MSG in _context.Set<EmailTemplate>()
-                                        where MSG.Code == "DISCLAIMER_TEXT"
-                                        where MSG.CompanyId == 0
-                                        select MSG)
-                                  .Union(from MSG in _context.Set<EmailTemplate>()
-                                         where MSG.Code == "DISCLAIMER_TEXT" && MSG.CompanyId == companyId
-                                         select MSG)
+                            var desc =  _context.Set<EmailTemplate>()
+                                        .Where(MSG=> MSG.Code == "DISCLAIMER_TEXT" && MSG.CompanyId == 0
+                                        )
+                                  .Union( _context.Set<EmailTemplate>()
+                                         .Where(MSG=> MSG.Code == "DISCLAIMER_TEXT" && MSG.CompanyId == companyId
+                                         ))
                                          .OrderByDescending(o => o.CompanyId).FirstOrDefault();
 
                             if (desc != null)
@@ -185,18 +183,18 @@ namespace CrisesControl.Api.Application.Helpers
 
                 if (companyId > 0)
                 {
-                    var LKP = (from CP in _context.Set<CompanyParameter>()
-                               where CP.Name == key && CP.CompanyId == companyId
-                               select CP).FirstOrDefault();
+                    var LKP =  _context.Set<CompanyParameter>()
+                               .Where(CP=> CP.Name == key && CP.CompanyId == companyId
+                               ).FirstOrDefault();
                     if (LKP != null)
                     {
                         Default = LKP.Value;
                     }
                     else
                     {
-                        var LPR = (from CP in _context.Set<LibCompanyParameters>()
-                                   where CP.Name == key
-                                   select CP).FirstOrDefault();
+                        var LPR =  _context.Set<LibCompanyParameters>()
+                                   .Where(CP=> CP.Name == key
+                                   ).FirstOrDefault();
                         if (LPR != null)
                         {
                             Default = LPR.Value;
@@ -213,9 +211,9 @@ namespace CrisesControl.Api.Application.Helpers
                     var cmp = _context.Set<Company>().Where(w => w.CustomerId == customerId).FirstOrDefault();
                     if (cmp != null)
                     {
-                        var LKP = (from CP in _context.Set<CompanyParameter>()
-                                   where CP.Name == key && CP.CompanyId == cmp.CompanyId
-                                   select CP).FirstOrDefault();
+                        var LKP =  _context.Set<CompanyParameter>()
+                                   .Where(CP=> CP.Name == key && CP.CompanyId == cmp.CompanyId
+                                   ).FirstOrDefault();
                         if (LKP != null)
                         {
                             Default = LKP.Value;
@@ -322,10 +320,10 @@ namespace CrisesControl.Api.Application.Helpers
                     {
                         int newSourceObjectId = 0;
 
-                        var ObjMapId = (from OM in _context.Set<ObjectMapping>()
-                                        join OBJ in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals OBJ.ObjectId
-                                        where OBJ.ObjectTableName == relationName
-                                        select OM).Select(a => a.ObjectMappingId).FirstOrDefault();
+                        var ObjMapId =  _context.Set<ObjectMapping>()
+                                       .Include(OBJ=>OBJ.Object) 
+                                       .Where(OBJ=> OBJ.Object.ObjectTableName == relationName)
+                                       .Select(a => a.ObjectMappingId).FirstOrDefault();
 
                         if (sourceObjectId > 0)
                         {
@@ -458,18 +456,16 @@ namespace CrisesControl.Api.Application.Helpers
             //}
         }
 
-        public string GetTimeZoneVal(int UserId)
+        public string GetTimeZoneVal(int userId)
         {
             try
             {
                 string tmpZoneVal = "GMT Standard Time";
-                var userInfo = (from U in _context.Set<User>()
-                                join C in _context.Set<Company>() on U.CompanyId equals C.CompanyId
-                                join T in _context.Set<StdTimeZone>() on C.TimeZone equals T.TimeZoneId
-                                where U.UserId == UserId
-                                select new
+                var userInfo = _context.Set<User>().Include(C=>C.Company)                               
+                                .Where(U=> U.UserId == userId)
+                                .Select(T=> new
                                 {
-                                    UserTimezone = T.ZoneLabel
+                                    UserTimezone = T.Company.StdTimeZone.ZoneLabel
                                 }).FirstOrDefault();
                 if (userInfo != null)
                 {
@@ -501,12 +497,11 @@ namespace CrisesControl.Api.Application.Helpers
             try
             {
                 string tmpZoneVal = "GMT Standard Time";
-                var Companytime = (from C in _context.Set<Company>()
-                                   join T in _context.Set<StdTimeZone>() on C.TimeZone equals T.TimeZoneId
-                                   where C.CompanyId == companyId
-                                   select new
+                var Companytime =  _context.Set<Company>().Include(st=>st.StdTimeZone)
+                                   .Where(C=> C.CompanyId == companyId)
+                                   .Select(T=> new
                                    {
-                                       CompanyTimezone = T.ZoneLabel
+                                       CompanyTimezone = T.StdTimeZone.ZoneLabel
                                    }).FirstOrDefault();
                 if (Companytime != null)
                 {
@@ -517,36 +512,36 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex) { throw ex; }
             return "GMT Standard Time";
         }
-        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
+        public void CreateLog(string level, string message, Exception ex = null, string controller = "", string method = "", int companyId = 0)
         {
 
-            if (Level.ToUpper() == "INFO")
+            if (level.ToUpper() == "INFO")
             {
                 string CreateLog = LookupWithKey("COLLECT_PERFORMANCE_LOG");
                 if (CreateLog == "false")
                     return;
             }
 
-            LogicalThreadContext.Properties["ControllerName"] = Controller;
-            LogicalThreadContext.Properties["MethodName"] = Method;
-            LogicalThreadContext.Properties["CompanyId"] = CompanyId;
-            if (Level.ToUpper() == "ERROR")
+            LogicalThreadContext.Properties["ControllerName"] = controller;
+            LogicalThreadContext.Properties["MethodName"] = method;
+            LogicalThreadContext.Properties["CompanyId"] = companyId;
+            if (level.ToUpper() == "ERROR")
             {
-                Logger.Error(Message, Ex);
+                Logger.Error(message, ex);
             }
-            else if (Level.ToUpper() == "DEBUG")
+            else if (level.ToUpper() == "DEBUG")
             {
-                Logger.Debug(Message, Ex);
+                Logger.Debug(message, ex);
             }
-            else if (Level.ToUpper() == "INFO")
+            else if (level.ToUpper() == "INFO")
             {
-                Logger.Info(Message, Ex);
+                Logger.Info(message, ex);
             }
 
 
 
-            if (Ex != null)
-                Console.WriteLine(Message + Ex.ToString());
+            if (ex != null)
+                Console.WriteLine(message + ex.ToString());
         }
 
         public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
@@ -644,14 +639,13 @@ namespace CrisesControl.Api.Application.Helpers
             }
 
         }
-        public void _set_comms_status(int CompanyId, List<string> methods, bool status)
+        public void _set_comms_status(int companyId, List<string> methods, bool status)
         {
             try
             {
-                (from CM in _context.Set<CompanyComm>().AsEnumerable()
-                 join CO in _context.Set<CommsMethod>().AsEnumerable() on CM.MethodId equals CO.CommsMethodId
-                 where CM.CompanyId == CompanyId && methods.Contains(CO.MethodCode)
-                 select CM).ToList().ForEach(x => x.ServiceStatus = status);
+                 _context.Set<CompanyComm>().Include( CO => CO.CommsMethod)
+                 .Where(CM=> CM.CompanyId == companyId && methods.Contains(CM.CommsMethod.MethodCode)
+                 ).ToList().ForEach(x => x.ServiceStatus = status);
                 _context.SaveChanges();
             }
             catch (Exception ex)
@@ -675,71 +669,71 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return retVal;
         }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentDateTime, string Frequency)
+        public DateTimeOffset GetNextReviewDate(DateTimeOffset currentDateTime, string frequency)
         {
-            DateTimeOffset NewReviewDate = CurrentDateTime;
+            DateTimeOffset NewReviewDate = currentDateTime;
 
-            if (string.IsNullOrEmpty(Frequency))
-                Frequency = "MONTH";
+            if (string.IsNullOrEmpty(frequency))
+                frequency = "MONTH";
 
-            switch (Frequency)
+            switch (frequency)
             {
                 case "WEEK":
-                    NewReviewDate = CurrentDateTime.AddDays(7);
+                    NewReviewDate = currentDateTime.AddDays(7);
                     break;
                 case "MONTH":
-                    NewReviewDate = CurrentDateTime.AddMonths(1);
+                    NewReviewDate = currentDateTime.AddMonths(1);
                     break;
                 case "QUARTER":
-                    NewReviewDate = CurrentDateTime.AddMonths(3);
+                    NewReviewDate = currentDateTime.AddMonths(3);
                     break;
                 case "YEAR":
-                    NewReviewDate = CurrentDateTime.AddYears(1);
+                    NewReviewDate = currentDateTime.AddYears(1);
                     break;
             }
             return NewReviewDate;
         }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentReviewDate, int CompanyID, int ReminderCount, out int ReminderCounter)
+        public DateTimeOffset GetNextReviewDate(DateTimeOffset currentReviewDate, int companyID, int reminderCount, out int reminderCounter)
         {
             try
             {
-                ReminderCounter = 0;
+                reminderCounter = 0;
                 int reminder1 = 30;
                 int reminder2 = 15;
                 int reminder3 = 7;
 
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", CompanyID), out reminder1);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", CompanyID), out reminder2);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", CompanyID), out reminder3);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", companyID), out reminder1);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", companyID), out reminder2);
+                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", companyID), out reminder3);
 
-                DateTime CheckDate = CurrentReviewDate.AddDays(-reminder1).Date;
+                DateTime CheckDate = currentReviewDate.AddDays(-reminder1).Date;
 
-                if (CheckDate.Date >= DateTime.Now.Date && ReminderCount == 0)
+                if (CheckDate.Date >= DateTime.Now.Date && reminderCount == 0)
                 {
-                    ReminderCounter = 1;
+                    reminderCounter = 1;
                     return CheckDate;
                 }
 
-                if (CurrentReviewDate.AddDays(-reminder2).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1))
+                if (currentReviewDate.AddDays(-reminder2).Date >= DateTime.Now.Date && (reminderCount == 0 || reminderCount == 1))
                 {
-                    ReminderCounter = 2;
-                    return CurrentReviewDate.AddDays(-reminder2).Date;
+                    reminderCounter = 2;
+                    return currentReviewDate.AddDays(-reminder2).Date;
                 }
 
-                if (CurrentReviewDate.AddDays(-reminder3).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1 || ReminderCount == 2))
+                if (currentReviewDate.AddDays(-reminder3).Date >= DateTime.Now.Date && (reminderCount == 0 || reminderCount == 1 || reminderCount == 2))
                 {
-                    ReminderCounter = 3;
-                    return CurrentReviewDate.AddDays(-reminder3).Date;
+                    reminderCounter = 3;
+                    return currentReviewDate.AddDays(-reminder3).Date;
                 }
 
-                return CurrentReviewDate.AddYears(-1).Date;
+                return currentReviewDate.AddYears(-1).Date;
 
             }
             catch (Exception ex)
             {
                 throw ex;
-                ReminderCounter = 0;
-                return CurrentReviewDate.AddYears(-1).Date;
+                reminderCounter = 0;
+                return currentReviewDate.AddYears(-1).Date;
             }
         }
         public bool verifyLength(string str, int minLength, int maxLength)
@@ -804,12 +798,12 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public bool connectUNCPath(string UNCPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "")
+        public bool connectUNCPath(string uncPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "")
         {
             try
             {
-                if (!string.IsNullOrEmpty(UNCPath))
-                    UNCPath = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UNCPath"]);
+                if (!string.IsNullOrEmpty(uncPath))
+                    uncPath = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UNCPath"]);
                 if (!string.IsNullOrEmpty(UseUNC))
                     UseUNC = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UseUNC"]);
                 if (!string.IsNullOrEmpty(strUncUsername))
@@ -819,8 +813,8 @@ namespace CrisesControl.Api.Application.Helpers
 
                 if (UseUNC == "true")
                 {
-                    UNCAccessWithCredentials.disconnectRemote(@UNCPath);
-                    if (string.IsNullOrEmpty(UNCAccessWithCredentials.connectToRemote(@UNCPath, strUncUsername, strUncPassword)))
+                    UNCAccessWithCredentials.disconnectRemote(@uncPath);
+                    if (string.IsNullOrEmpty(UNCAccessWithCredentials.connectToRemote(@uncPath, strUncUsername, strUncPassword)))
                     {
                         return true;
                     }
@@ -836,9 +830,9 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return true;
         }
-        public string PureAscii(string str, bool KeepAccent = false)
+        public string PureAscii(string str, bool keepAccent = false)
         {
-            if (!KeepAccent)
+            if (!keepAccent)
             {
                 return Regex.Replace(str, @"[^\u001F-\u007F]", string.Empty);
             }
@@ -904,15 +898,13 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 if (relationName.ToUpper() == "GROUP" || relationName.ToUpper() == "LOCATION")
                 {
-                    var ObjMapId = (from OM in _context.Set<ObjectMapping>()
-                                    join OBJ in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals OBJ.ObjectId
-                                    where OBJ.ObjectTableName == relationName
-                                    select OM).Select(a => a.ObjectMappingId).FirstOrDefault();
+                    var ObjMapId =  _context.Set<ObjectMapping>().Include(o=>o.Object) 
+                                    .Where(OBJ=> OBJ.Object.ObjectTableName == relationName
+                                    ).Select(a => a.ObjectMappingId).FirstOrDefault();
 
-                    var getRelationRec = (from OR in _context.Set<ObjectRelation>()
-                                          where OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == userId &&
-                                          OR.SourceObjectPrimaryId == sourceObjectId
-                                          select OR).FirstOrDefault();
+                    var getRelationRec =  _context.Set<ObjectRelation>()
+                                          .Where(OR=> OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == userId &&
+                                          OR.SourceObjectPrimaryId == sourceObjectId).FirstOrDefault();
                     if (getRelationRec != null)
                     {
                         _context.Set<ObjectRelation>().Remove(getRelationRec);
@@ -953,38 +945,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public string GetPackageItem(string itemCode, int companyId)
-        {
-            string retVal = string.Empty;
-            itemCode = itemCode.Trim();
-            var ItemRec = (from PI in _context.Set<CompanyPackageItem>() where PI.ItemCode == itemCode && PI.CompanyId == companyId select PI).FirstOrDefault();
-            if (ItemRec != null)
-            {
-                retVal = ItemRec.ItemValue;
-            }
-            else
-            {
-                var LibItemRec = (from PI in _context.Set<LibPackageItem>() where PI.ItemCode == itemCode select PI).FirstOrDefault();
-                retVal = LibItemRec.ItemValue;
-            }
-            return retVal;
-        }
-
-        public void _set_comms_status(int CompanyId, List<string> methods, bool status)
-        {
-            try
-            {
-                (from CM in _context.Set<CompanyComm>()
-                 join CO in _context.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
-                 where CM.CompanyId == CompanyId && methods.Contains(CO.MethodCode)
-                 select CM).ToList().ForEach(x => x.ServiceStatus = status);
-                _context.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
+        
         public async Task MessageProcessLog(int messageId, string eventName, string methodName = "", string queueName = "", string additionalInfo = "")
         {
             try
@@ -1004,181 +965,11 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public async void GetSetCompanyComms(int CompanyID)
-        {
-            try
-            {
-                var comp_pp = (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == CompanyID select CPP).FirstOrDefault();
-                var comp = (from C in _context.Set<Company>() where C.CompanyId == CompanyID select C).FirstOrDefault();
-                if (comp_pp != null && comp != null)
-                {
+       
 
-                    if (comp.Status == 1)
-                    {
-                        bool sendAlert = false;
-
-                        DateTimeOffset LastUpdate = comp_pp.UpdatedOn;
-
-                        List<string> stopped_comms = new List<string>();
-
-                        if (comp_pp.MinimumEmailRate > 0)
-                        {
-                            stopped_comms.Add("EMAIL");
-                        }
-                        if (comp_pp.MinimumPhoneRate > 0)
-                        {
-                            stopped_comms.Add("PHONE");
-                        }
-                        if (comp_pp.MinimumTextRate > 0)
-                        {
-                            stopped_comms.Add("TEXT");
-                        }
-                        if (comp_pp.MinimumPushRate > 0)
-                        {
-                            stopped_comms.Add("PUSH");
-                        }
-
-                        if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
-                        { //Have positive balance + More than the minimum balance required.
-                            comp.CompanyProfile = "SUBSCRIBED";
-                            _set_comms_status(CompanyID, stopped_comms, true);
-                        }
-                        else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
-                        { //Used the overdraft amount as well, so stop their SMS and Phone
-                            comp.CompanyProfile = "STOP_MESSAGING";
-                            sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, false);
-                        }
-                        else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
-                        { //Using the overdraft facility, can still use the system
-                            comp.CompanyProfile = "ON_CREDIT";
-                            sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, true);
-                        }
-                        else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
-                        { //Less than the minimum balance, just send an alert, can still use the system.
-                            comp.CompanyProfile = "LOW_BALANCE";
-                            sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, true);
-                        }
-                        comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
-                        _context.SaveChanges();
-
-                        if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
-                        {
-                            sendAlert = false;
-                        }
-
-                        string CommsDebug = LookupWithKey("COMMS_DEBUG_MODE");
-
-                        if (sendAlert && CommsDebug == "false")
-                        {
-                           //await _SDE.UsageAlert(CompanyID);
-                        }
-
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-
-        }
-        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
-        {
-            try
-            {
-                var comp_pp = (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == companyId select CPP).FirstOrDefault();
-                var comp = (from C in _context.Set<Company>() where C.CompanyId == companyId select C).FirstOrDefault();
-                if (comp_pp != null && comp != null)
-                {
-
-                    if (comp.Status == 1)
-                    {
-                        bool sendAlert = false;
-
-                        DateTimeOffset LastUpdate = comp_pp.UpdatedOn;
-
-                        List<string> stopped_comms = new List<string>();
-
-                        if (comp_pp.MinimumEmailRate > 0)
-                        {
-                            stopped_comms.Add("EMAIL");
-                        }
-                        if (comp_pp.MinimumPhoneRate > 0)
-                        {
-                            stopped_comms.Add("PHONE");
-                        }
-                        if (comp_pp.MinimumTextRate > 0)
-                        {
-                            stopped_comms.Add("TEXT");
-                        }
-                        if (comp_pp.MinimumPushRate > 0)
-                        {
-                            stopped_comms.Add("PUSH");
-                        }
-
-                        if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
-                        { //Have positive balance + More than the minimum balance required.
-                            comp.CompanyProfile = "SUBSCRIBED";
-                            _set_comms_status(companyId, stopped_comms, true);
-                        }
-                        else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
-                        { //Used the overdraft amount as well, so stop their SMS and Phone
-                            comp.CompanyProfile = "STOP_MESSAGING";
-                            sendAlert = true;
-                            _set_comms_status(companyId, stopped_comms, false);
-                        }
-                        else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
-                        { //Using the overdraft facility, can still use the system
-                            comp.CompanyProfile = "ON_CREDIT";
-                            sendAlert = true;
-                            _set_comms_status(companyId, stopped_comms, true);
-                        }
-                        else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
-                        { //Less than the minimum balance, just send an alert, can still use the system.
-                            comp.CompanyProfile = "LOW_BALANCE";
-                            sendAlert = true;
-                            _set_comms_status(companyId, stopped_comms, true);
-                        }
-                        comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
-                        _context.SaveChanges();
-
-                        if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
-                        {
-                            sendAlert = false;
-                        }
-
-                        string CommsDebug = LookupWithKey("COMMS_DEBUG_MODE");
-
-                        if (sendAlert && CommsDebug == "false")
-                        {
-                            //await _SDE.UsageAlert(CompanyID);
-                        }
-
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-
-        }
         
 
-        public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
-        {
-            try
-            {
-                CreateLog("INFO", Left(strErrorMessage, 8000), null, strControllerName, strMethodName, intCompanyId);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
+      
         public string Getconfig(string key, string defaultVal = "")
         {
             try
@@ -1412,94 +1203,30 @@ namespace CrisesControl.Api.Application.Helpers
                     fi.Delete();
             }
         }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentReviewDate, int CompanyID, int ReminderCount, out int ReminderCounter)
-        {
-            try
-            {
-                ReminderCounter = 0;
-                int reminder1 = 30;
-                int reminder2 = 15;
-                int reminder3 = 7;
-
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", CompanyID), out reminder1);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", CompanyID), out reminder2);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", CompanyID), out reminder3);
-
-                DateTime CheckDate = CurrentReviewDate.AddDays(-reminder1).Date;
-
-                if (CheckDate.Date >= DateTime.Now.Date && ReminderCount == 0)
-                {
-                    ReminderCounter = 1;
-                    return CheckDate;
-                }
-
-                if (CurrentReviewDate.AddDays(-reminder2).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1))
-                {
-                    ReminderCounter = 2;
-                    return CurrentReviewDate.AddDays(-reminder2).Date;
-                }
-
-                if (CurrentReviewDate.AddDays(-reminder3).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1 || ReminderCount == 2))
-                {
-                    ReminderCounter = 3;
-                    return CurrentReviewDate.AddDays(-reminder3).Date;
-                }
-
-                return CurrentReviewDate.AddYears(-1).Date;
-
-            }
-            catch (Exception ex)
-            {
-                ReminderCounter = 0;
-                return CurrentReviewDate.AddYears(-1).Date;
-            }
-        }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentDateTime, string Frequency)
-        {
-            DateTimeOffset NewReviewDate = CurrentDateTime;
-
-            if (string.IsNullOrEmpty(Frequency))
-                Frequency = "MONTH";
-
-            switch (Frequency)
-            {
-                case "WEEK":
-                    NewReviewDate = CurrentDateTime.AddDays(7);
-                    break;
-                case "MONTH":
-                    NewReviewDate = CurrentDateTime.AddMonths(1);
-                    break;
-                case "QUARTER":
-                    NewReviewDate = CurrentDateTime.AddMonths(3);
-                    break;
-                case "YEAR":
-                    NewReviewDate = CurrentDateTime.AddYears(1);
-                    break;
-            }
-            return NewReviewDate;
-        }
-        public async Task CreateSOPReviewReminder(int IncidentID, int SOPHeaderID, int CompanyID, DateTimeOffset NextReviewDate, string ReviewFrequency, int ReminderCount)
+        
+        
+        public async Task CreateSOPReviewReminder(int incidentID, int sopHeaderID, int companyID, DateTimeOffset nextReviewDate, string reviewFrequency, int reminderCount)
         {
             try
             {
 
-                DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
+                DeleteScheduledJob("SOP_REVIEW_" + sopHeaderID, "REVIEW_REMINDER");
 
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
-                string jobName = "SOP_REVIEW_" + SOPHeaderID;
-                string taskTrigger = "SOP_REVIEW_" + SOPHeaderID;
+                string jobName = "SOP_REVIEW_" + sopHeaderID;
+                string taskTrigger = "SOP_REVIEW_" + sopHeaderID;
 
                 var jobDetail = new Quartz.Impl.JobDetailImpl(jobName, "REVIEW_REMINDER", typeof(SOPReviewJob));
-                jobDetail.JobDataMap["IncidentID"] = IncidentID;
-                jobDetail.JobDataMap["SOPHeaderID"] = SOPHeaderID;
+                jobDetail.JobDataMap["IncidentID"] = incidentID;
+                jobDetail.JobDataMap["SOPHeaderID"] = sopHeaderID;
 
                 int Counter = 0;
-                DateTimeOffset DateCheck =GetNextReviewDate(NextReviewDate, CompanyID, ReminderCount, out Counter);
+                DateTimeOffset DateCheck =GetNextReviewDate(nextReviewDate, companyID, reminderCount, out Counter);
                 jobDetail.JobDataMap["Counter"] = Counter;
 
-                var sop_head =  _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == SOPHeaderID).FirstOrDefault();
+                var sop_head =  _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == sopHeaderID).FirstOrDefault();
                 sop_head.ReminderCount = Counter;
                 _context.Update(sop_head);
                 await _context.SaveChangesAsync();
@@ -1520,18 +1247,18 @@ namespace CrisesControl.Api.Application.Helpers
                                                               .StartAt(DateCheck.ToUniversalTime())
                                                               .ForJob(jobDetail)
                                                               .Build();
-                    _scheduler.ScheduleJob(jobDetail, trigger);
+                  await  _scheduler.ScheduleJob(jobDetail, trigger);
                 }
                 else
                 {
-                    DateTimeOffset NewReviewDate = GetNextReviewDate(NextReviewDate, ReviewFrequency);
+                    DateTimeOffset newReviewDate = GetNextReviewDate(nextReviewDate, reviewFrequency);
 
                     if (sop_head != null)
                     {
-                        sop_head.ReviewDate = NewReviewDate;
+                        sop_head.ReviewDate = newReviewDate;
                         sop_head.ReminderCount = 0;
                         await _context.SaveChangesAsync();
-                        await CreateSOPReviewReminder(IncidentID, SOPHeaderID, CompanyID, NewReviewDate, ReviewFrequency, 0);
+                        await CreateSOPReviewReminder(incidentID, sopHeaderID, companyID, newReviewDate, reviewFrequency, 0);
                     }
                 }
 
@@ -1559,11 +1286,11 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task<int> SegregationWarning(int CompanyId, int UserID, int IncidentId)
+        public async Task<int> SegregationWarning(int companyId, int userID, int incidentId)
         {
-            var pIncidentId = new SqlParameter("@IncidentID", IncidentId);
-            var pUserID = new SqlParameter("@UserID", UserID);
-            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+            var pIncidentId = new SqlParameter("@IncidentID", incidentId);
+            var pUserID = new SqlParameter("@UserID", userID);
+            var pCompanyId = new SqlParameter("@CompanyID", companyId);
 
             int SegWarning =await _context.Database.ExecuteSqlRawAsync("SELECT [dbo].[Incident_Segregation](@IncidentID,@UserID,@CompanyID)", pIncidentId, pUserID, pCompanyId);
             return SegWarning;
@@ -1584,14 +1311,14 @@ namespace CrisesControl.Api.Application.Helpers
                 return null;
             }
         }
-        public async Task SaveParameter(int ParameterID, string ParameterName, string ParameterValue, int CurrentUserID, int CompanyID, string TimeZoneId)
+        public async Task SaveParameter(int parameterID, string parameterName, string parameterValue, int currentUserID, int companyID, string timeZoneId)
         {
             try
             {
-                if (ParameterID > 0)
+                if (parameterID > 0)
                 {
                     var CompanyParameter = await _context.Set<CompanyParameter>()
-                                            .Where(CP=> CP.CompanyId == CompanyID && CP.CompanyParametersId == ParameterID
+                                            .Where(CP=> CP.CompanyId == companyID && CP.CompanyParametersId == parameterID
                                             ).FirstOrDefaultAsync();
 
                     if (CompanyParameter != null)
@@ -1599,58 +1326,58 @@ namespace CrisesControl.Api.Application.Helpers
                         //if(!string.IsNullOrEmpty(ParameterName)) {
                         //    CompanyParameter.Name = ParameterName;
                         //}
-                        if (ParameterValue != null)
+                        if (parameterValue != null)
                         {
                             if (CompanyParameter.Name == "MAX_PING_KPI" || CompanyParameter.Name == "MAX_INCIDENT_KPI")
                             {
-                                CompanyParameter.Value = Convert.ToString(Convert.ToInt32(ParameterValue) * 60);
+                                CompanyParameter.Value = Convert.ToString(Convert.ToInt32(parameterValue) * 60);
                             }
                             else
                             {
-                                CompanyParameter.Value = ParameterValue;
+                                CompanyParameter.Value = parameterValue;
                             }
                         }
-                        CompanyParameter.UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId);
-                        CompanyParameter.UpdatedBy = CurrentUserID;
+                        CompanyParameter.UpdatedOn = GetDateTimeOffset(DateTime.Now, timeZoneId);
+                        CompanyParameter.UpdatedBy = currentUserID;
                         _context.Update(CompanyParameter);
                         await _context.SaveChangesAsync();
                     }
                 }
-                else if (!string.IsNullOrEmpty(ParameterName))
+                else if (!string.IsNullOrEmpty(parameterName))
                 {
                     var CompanyParameter = await _context.Set<CompanyParameter>()
-                                            .Where(CP=> CP.CompanyId == CompanyID && CP.Name == ParameterName).FirstOrDefaultAsync();
+                                            .Where(CP=> CP.CompanyId == companyID && CP.Name == parameterName).FirstOrDefaultAsync();
 
                     if (CompanyParameter != null)
                     {
-                        if (ParameterValue != null)
+                        if (parameterValue != null)
                         {
                             if (CompanyParameter.Name == "MAX_PING_KPI" || CompanyParameter.Name == "MAX_INCIDENT_KPI")
                             {
-                                CompanyParameter.Value = Convert.ToString(Convert.ToInt32(ParameterValue) * 60);
+                                CompanyParameter.Value = Convert.ToString(Convert.ToInt32(parameterValue) * 60);
                             }
                             else
                             {
-                                CompanyParameter.Value = ParameterValue;
+                                CompanyParameter.Value = parameterValue;
                             }
                         }
-                        CompanyParameter.UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId);
-                        CompanyParameter.UpdatedBy = CurrentUserID;
+                        CompanyParameter.UpdatedOn = GetDateTimeOffset(DateTime.Now, timeZoneId);
+                        CompanyParameter.UpdatedBy = currentUserID;
                         _context.Update(CompanyParameter);
                         await _context.SaveChangesAsync();
                     }
                     else
                     {
-                        int CompanyParametersId = await AddCompanyParameter(ParameterName, ParameterValue, CompanyID, CurrentUserID, TimeZoneId);
+                        int CompanyParametersId = await AddCompanyParameter(parameterName, parameterValue, companyID, currentUserID, timeZoneId);
                     }
                 }
 
-                if (ParameterName.ToUpper() == "RECHARGE_BALANCE_TRIGGER")
+                if (parameterName.ToUpper() == "RECHARGE_BALANCE_TRIGGER")
                 {
-                    var profile = await _context.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == CompanyID).FirstOrDefaultAsync();
+                    var profile = await _context.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == companyID).FirstOrDefaultAsync();
                     if (profile != null)
                     {
-                        profile.MinimumBalance = Convert.ToDecimal(ParameterValue);
+                        profile.MinimumBalance = Convert.ToDecimal(parameterValue);
                         _context.Update(profile);
                         await _context.SaveChangesAsync();
                     }
@@ -1661,23 +1388,23 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task<int> AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
+        public async Task<int> AddCompanyParameter(string name, string value, int companyId, int currentUserId, string timeZoneId)
         {
             try
             {
-                var comp_param = await _context.Set<CompanyParameter>().Where(CP=> CP.CompanyId == CompanyId && CP.Name == Name).AnyAsync();
+                var comp_param = await _context.Set<CompanyParameter>().Where(CP=> CP.CompanyId == companyId && CP.Name == name).AnyAsync();
                 if (!comp_param)
                 {
                     CompanyParameter NewCompanyParameters = new CompanyParameter()
                     {
-                        CompanyId = CompanyId,
-                        Name = Name,
-                        Value = Value,
+                        CompanyId = companyId,
+                        Name = name,
+                        Value = value,
                         Status = 1,
-                        CreatedBy = CurrentUserId,
-                        UpdatedBy = CurrentUserId,
+                        CreatedBy = currentUserId,
+                        UpdatedBy = currentUserId,
                         CreatedOn = DateTime.Now,
-                        UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                        UpdatedOn = GetDateTimeOffset(DateTime.Now, timeZoneId)
                     };
                     await _context.AddAsync(NewCompanyParameters);
                     await _context.SaveChangesAsync();
@@ -1690,13 +1417,13 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return 0;
         }
-        public bool OnTrialStatus(string CompanyProfile, bool CurrentTrial)
+        public bool OnTrialStatus(string companyProfile, bool currentTrial)
         {
-            if (CompanyProfile == "SUBSCRIBED")
+            if (companyProfile == "SUBSCRIBED")
             {
                 return false;
             }
-            return CompanyProfile == "ON_TRIAL" ? true : CurrentTrial;
+            return companyProfile == "ON_TRIAL" ? true : currentTrial;
         }
 
         public void GetStartEndDate(bool isThisWeek, bool isThisMonth, bool isLastMonth, ref DateTime stDate, ref DateTime enDate, DateTimeOffset startDate, DateTimeOffset endDate)
@@ -1750,19 +1477,6 @@ namespace CrisesControl.Api.Application.Helpers
             rtn.ResultID = resultId;
             return rtn;
         }
-
-        public bool OnTrialStatus(string companyProfile, bool currentTrial)
-        {
-            if (companyProfile == "SUBSCRIBED")
-            {
-                return false;
-            }
-            return companyProfile == "ON_TRIAL" ? true : currentTrial;
-        }
-
-        
-        
-        
         public string PhoneNumber(PhoneNumber strPhoneNumber)
         {
             try

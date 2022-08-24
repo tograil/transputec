@@ -1745,21 +1745,21 @@ namespace CrisesControl.Api.Application.Helpers
                 }
             }
         }
-        public void WorldPayAgreementSubscribe(int CompanyID, string AgreementNo)
+        public void WorldPayAgreementSubscribe(int companyID, string agreementNo)
         {
             try
             {
 
                 //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "AgreementSubscribed.html";
                 string Subject = string.Empty;
-                string message = Convert.ToString(_DBC.ReadHtmlFile("AGREEMENT_SUBSCRIPTION", "DB", CompanyID, out Subject));
+                string message = Convert.ToString(_DBC.ReadHtmlFile("AGREEMENT_SUBSCRIPTION", "DB", companyID, out Subject));
 
                 if (!string.IsNullOrEmpty(message))
                 {
 
                     var company = (from C in _context.Set<Company>()
                                    join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
-                                   where C.CompanyId == CompanyID
+                                   where C.CompanyId == companyID
                                    select new { C, CP }).FirstOrDefault();
                     if (company != null)
                     {                    
@@ -1790,9 +1790,9 @@ namespace CrisesControl.Api.Application.Helpers
                                 var user_ids = billing_users.Split(',').Select(int.Parse).ToList();
                                 if (user_ids.Count > 0)
                                 {
-                                    var get_user = (from U in _context.Set<User>()
-                                                    where user_ids.Contains(U.UserId) && U.Status != 3
-                                                    select new
+                                    var get_user =  _context.Set<User>()
+                                                    .Where(U=> user_ids.Contains(U.UserId) && U.Status != 3)
+                                                    .Select(U=> new
                                                     {
                                                         U.PrimaryEmail
                                                     }).ToList();
@@ -1818,7 +1818,7 @@ namespace CrisesControl.Api.Application.Helpers
                             messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
 
                             messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
-                            messagebody = messagebody.Replace("{AGREEMENT_NUMBER}", AgreementNo);
+                            messagebody = messagebody.Replace("{AGREEMENT_NUMBER}", agreementNo);
                             messagebody = messagebody.Replace("{FREE_BALANCE}", _DBC.ToCurrency(company.CP.CreditBalance));
 
                             string[] toEmails = emaillist.ToArray();
