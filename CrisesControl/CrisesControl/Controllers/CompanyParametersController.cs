@@ -14,6 +14,7 @@ using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SavePriority;
 using CrisesControl.Api.Application.Commands.CompanyParameters.GetCompanyParameterByName;
 using CrisesControl.Api.Application.Commands.CompanyParameters.AddCompanyParameter;
+using CrisesControl.Api.Application.Commands.CompanyParameters.SegregationOtp;
 
 namespace CrisesControl.Api.Controllers {
     [Route("api/[controller]")]
@@ -119,6 +120,20 @@ namespace CrisesControl.Api.Controllers {
         [HttpPost]
         [Route("AddCompanyParameter")]
         public async Task<IActionResult> AddCompanyParameter([FromBody] AddCompanyParameterRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+
+            return Ok(result);
+        }
+        /// <summary>
+        /// Segregation Otp.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("SegregationOtp")]
+        public async Task<IActionResult> SegregationOtpRequest([FromBody] SegregationOtpRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 
