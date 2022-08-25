@@ -54,5 +54,6 @@ public class ApiModule : Module
         builder.RegisterType<LookupQuery>().As<ILookupQuery>();
         builder.RegisterType<Mapper>().As<IMapper>();
         builder.RegisterType<SopQuery>().As<ISopQuery>();
+        builder.RegisterType<AppQuery>().As<IAppQuery>();
     }
 }
