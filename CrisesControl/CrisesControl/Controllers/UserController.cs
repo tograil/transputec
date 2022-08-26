@@ -34,6 +34,7 @@ using CrisesControl.Api.Application.Commands.Users.GetUserDashboard;
 using CrisesControl.Api.Application.Commands.Users.SaveDashboard;
 using CrisesControl.Api.Application.Commands.Users.AddDashlet;
 using CrisesControl.Api.Application.Commands.Users.GetUserSystemInfo;
+using CrisesControl.Api.Application.Commands.Users.GetKeyHolders;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -319,6 +320,19 @@ namespace CrisesControl.Api.Controllers
         public async Task<ActionResult> GetUserSystemInfo(GetUserSystemInfoRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request);
+            return Ok(result);
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetKeyHolders/{UserId:int}")]
+        public async Task<IActionResult> GetKeyHolders([FromRoute] GetKeyHoldersRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
     }
