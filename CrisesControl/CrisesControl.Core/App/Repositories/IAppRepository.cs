@@ -17,7 +17,7 @@ namespace CrisesControl.Core.App.Repositories
         Task<bool> CaptureUserLocation(List<LocationInfo> userLocations, int userId, int userDeviceID, int companyID, string timeZoneId);
         Task<List<LanguageItem>> GetLanguage(string locale);
         Task<List<UserLocation>> GetUserLocationsList(int userDeviceID, int pLength, string action = "list");
-        Task UpdatePushToken(int userDeviceID, string pushDeviceId);
+        Task<bool> UpdatePushToken(int userDeviceID, string pushDeviceId);
         Task<bool> UpdateTrackMe(bool enabled, string trackType, int activeIncidentID, int userId, int userDeviceID, int companyID, string timeZoneId, string latitude, string longitude);
         Task AddTrackMe(int userID, string trackType, int userDeviceID, int activeIncidentID, int companyID, string timeZoneId);
         Task<List<AppLanguageList>> GetAppLanguage();

@@ -577,7 +577,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task UpdatePushToken(int userDeviceID, string pushDeviceId)
+        public async Task<bool> UpdatePushToken(int userDeviceID, string pushDeviceId)
         {
             try
             {
@@ -587,7 +587,9 @@ namespace CrisesControl.Infrastructure.Repositories
                     device.DeviceId = pushDeviceId;
                     _context.Update(device);
                     await _context.SaveChangesAsync();
+                    return true;
                 }
+                return false;
             }
             catch (Exception ex)
             {
