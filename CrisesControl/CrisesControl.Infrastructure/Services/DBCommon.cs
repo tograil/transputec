@@ -519,36 +519,36 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex) { throw ex; }
             return "GMT Standard Time";
         }
-        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
+        public void CreateLog(string level, string message, Exception ex = null, string controller = "", string method = "", int companyId = 0)
         {
 
-            if (Level.ToUpper() == "INFO")
+            if (level.ToUpper() == "INFO")
             {
                 string CreateLog = LookupWithKey("COLLECT_PERFORMANCE_LOG");
                 if (CreateLog == "false")
                     return;
             }
 
-            LogicalThreadContext.Properties["ControllerName"] = Controller;
-            LogicalThreadContext.Properties["MethodName"] = Method;
-            LogicalThreadContext.Properties["CompanyId"] = CompanyId;
-            if (Level.ToUpper() == "ERROR")
+            LogicalThreadContext.Properties["ControllerName"] = controller;
+            LogicalThreadContext.Properties["MethodName"] = method;
+            LogicalThreadContext.Properties["CompanyId"] = companyId;
+            if (level.ToUpper() == "ERROR")
             {
-                Logger.Error(Message, Ex);
+                Logger.Error(message, ex);
             }
-            else if (Level.ToUpper() == "DEBUG")
+            else if (level.ToUpper() == "DEBUG")
             {
-                Logger.Debug(Message, Ex);
+                Logger.Debug(message, ex);
             }
-            else if (Level.ToUpper() == "INFO")
+            else if (level.ToUpper() == "INFO")
             {
-                Logger.Info(Message, Ex);
+                Logger.Info(message, ex);
             }
 
 
 
-            if (Ex != null)
-                Console.WriteLine(Message + Ex.ToString());
+            if (ex != null)
+                Console.WriteLine(message + ex.ToString());
         }
 
         public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
@@ -562,13 +562,13 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task GetSetCompanyComms(int CompanyID)
+        public async Task GetSetCompanyComms(int companyId)
         {
             try
             {
                 DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
-                var comp_pp = await  _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
-                var comp = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyID).FirstOrDefaultAsync();
+                var comp_pp = await  _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == companyId).FirstOrDefaultAsync();
+                var comp = await _context.Set<Company>().Where(C=> C.CompanyId == companyId).FirstOrDefaultAsync();
                 if (comp_pp != null && comp != null)
                 {
 
@@ -600,25 +600,25 @@ namespace CrisesControl.Api.Application.Helpers
                         if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
                         { //Have positive balance + More than the minimum balance required.
                             comp.CompanyProfile = "SUBSCRIBED";
-                            _set_comms_status(CompanyID, stopped_comms, true);
+                            _set_comms_status(companyId, stopped_comms, true);
                         }
                         else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
                         { //Used the overdraft amount as well, so stop their SMS and Phone
                             comp.CompanyProfile = "STOP_MESSAGING";
                             sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, false);
+                            _set_comms_status(companyId, stopped_comms, false);
                         }
                         else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
                         { //Using the overdraft facility, can still use the system
                             comp.CompanyProfile = "ON_CREDIT";
                             sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, true);
+                            _set_comms_status(companyId, stopped_comms, true);
                         }
                         else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
                         { //Less than the minimum balance, just send an alert, can still use the system.
                             comp.CompanyProfile = "LOW_BALANCE";
                             sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, true);
+                            _set_comms_status(companyId, stopped_comms, true);
                         }
                         comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
                         _context.Update(comp_pp);
@@ -634,7 +634,7 @@ namespace CrisesControl.Api.Application.Helpers
                         if (sendAlert && CommsDebug == "false")
                         {
                             SendEmail SDE = new SendEmail(_context,DBC);
-                            await SDE.UsageAlert(CompanyID);
+                            await SDE.UsageAlert(companyId);
                         }
 
                     }
@@ -661,18 +661,18 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task<string> GetPackageItem(string ItemCode, int CompanyId)
+        public async Task<string> GetPackageItem(string itemCode, int companyId)
         {
             string retVal = string.Empty;
-            ItemCode = ItemCode.Trim();
-            var ItemRec = await  _context.Set<CompanyPackageItem>().Where(PI=> PI.ItemCode == ItemCode && PI.CompanyId == CompanyId).FirstOrDefaultAsync();
+            itemCode = itemCode.Trim();
+            var ItemRec = await  _context.Set<CompanyPackageItem>().Where(PI=> PI.ItemCode == itemCode && PI.CompanyId == companyId).FirstOrDefaultAsync();
             if (ItemRec != null)
             {
                 retVal = ItemRec.ItemValue;
             }
             else
             {
-                var LibItemRec = await _context.Set<LibPackageItem>().Where(PI=> PI.ItemCode == ItemCode).FirstOrDefaultAsync();
+                var LibItemRec = await _context.Set<LibPackageItem>().Where(PI=> PI.ItemCode == itemCode).FirstOrDefaultAsync();
                 retVal = LibItemRec.ItemValue;
             }
             return retVal;

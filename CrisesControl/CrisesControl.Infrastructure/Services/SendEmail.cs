@@ -1722,7 +1722,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
 
         }
-        public async Task SendAssetReviewAlert(int AssetID, int CompanyID)
+        public async Task SendAssetReviewAlert(int assetID, int companyID)
         {
             try
             {
@@ -1730,14 +1730,14 @@ namespace CrisesControl.Api.Application.Helpers
                 string path = "ASSET_REVIEW_REMINDER";
 
                 string Subject = string.Empty;
-                string message = Convert.ToString(_DBC.ReadHtmlFile(path, "DB", CompanyID, out Subject));
+                string message = Convert.ToString(_DBC.ReadHtmlFile(path, "DB", companyID, out Subject));
 
 
                 string Portal = _DBC.LookupWithKey("PORTAL");
                 string hostname = _DBC.LookupWithKey("SMTPHOST");
                 string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
 
-                var CompanyInfo = await _context.Set<Company>().Where(C => C.CompanyId == CompanyID).FirstOrDefaultAsync();
+                var CompanyInfo = await _context.Set<Company>().Where(C => C.CompanyId == companyID).FirstOrDefaultAsync();
                 string Website = _DBC.LookupWithKey("DOMAIN");
 
                 string CompanyLogo = Portal + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
@@ -1752,7 +1752,7 @@ namespace CrisesControl.Api.Application.Helpers
                 string emailmessage = string.Empty;
 
                 var asset = (from A in _context.Set<Assets>().AsEnumerable()
-                             where A.CompanyId == CompanyID && A.AssetId == AssetID
+                             where A.CompanyId == CompanyID && A.AssetId == assetID
                              select new
                              {
                                  A,
@@ -1803,6 +1803,5 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex; ;
             }
         }
-
     }
 }
