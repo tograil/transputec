@@ -2682,7 +2682,7 @@ public class UserRepository : IUserRepository
                   where U.CompanyId == OutUserCompanyId &&
                   U.Status == 1 &&
                   (roles.Contains(U.UserRole))
-                  select new { U.UserId, UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName } }).ToListAsync();
+                  select new KeyHolderResponse() { UserId = U.UserId, UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName } }).ToListAsync();
 
         if (kc != null)
         {
