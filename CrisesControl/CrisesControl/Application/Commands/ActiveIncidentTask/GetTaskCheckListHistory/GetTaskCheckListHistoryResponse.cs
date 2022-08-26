@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Core.Tasks;
+using CrisesControl.Core.Users;
 
 namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskCheckListHistory
 {

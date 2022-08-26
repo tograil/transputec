@@ -517,36 +517,36 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex) { throw ex; }
             return "GMT Standard Time";
         }
-        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
+        public void CreateLog(string level, string message, Exception ex = null, string controller = "", string method = "", int companyId = 0)
         {
 
-            if (Level.ToUpper() == "INFO")
+            if (level.ToUpper() == "INFO")
             {
                 string CreateLog = LookupWithKey("COLLECT_PERFORMANCE_LOG");
                 if (CreateLog == "false")
                     return;
             }
 
-            LogicalThreadContext.Properties["ControllerName"] = Controller;
-            LogicalThreadContext.Properties["MethodName"] = Method;
-            LogicalThreadContext.Properties["CompanyId"] = CompanyId;
-            if (Level.ToUpper() == "ERROR")
+            LogicalThreadContext.Properties["ControllerName"] = controller;
+            LogicalThreadContext.Properties["MethodName"] = method;
+            LogicalThreadContext.Properties["CompanyId"] = companyId;
+            if (level.ToUpper() == "ERROR")
             {
-                Logger.Error(Message, Ex);
+                Logger.Error(message, ex);
             }
-            else if (Level.ToUpper() == "DEBUG")
+            else if (level.ToUpper() == "DEBUG")
             {
-                Logger.Debug(Message, Ex);
+                Logger.Debug(message, ex);
             }
-            else if (Level.ToUpper() == "INFO")
+            else if (level.ToUpper() == "INFO")
             {
-                Logger.Info(Message, Ex);
+                Logger.Info(message, ex);
             }
 
 
 
-            if (Ex != null)
-                Console.WriteLine(Message + Ex.ToString());
+            if (ex != null)
+                Console.WriteLine(message + ex.ToString());
         }
 
         public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
@@ -560,13 +560,13 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task GetSetCompanyComms(int CompanyID)
+        public async Task GetSetCompanyComms(int companyId)
         {
             try
             {
                 DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
-                var comp_pp = await  _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
-                var comp = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyID).FirstOrDefaultAsync();
+                var comp_pp = await  _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == companyId).FirstOrDefaultAsync();
+                var comp = await _context.Set<Company>().Where(C=> C.CompanyId == companyId).FirstOrDefaultAsync();
                 if (comp_pp != null && comp != null)
                 {
 
@@ -598,25 +598,25 @@ namespace CrisesControl.Api.Application.Helpers
                         if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
                         { //Have positive balance + More than the minimum balance required.
                             comp.CompanyProfile = "SUBSCRIBED";
-                            _set_comms_status(CompanyID, stopped_comms, true);
+                            _set_comms_status(companyId, stopped_comms, true);
                         }
                         else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
                         { //Used the overdraft amount as well, so stop their SMS and Phone
                             comp.CompanyProfile = "STOP_MESSAGING";
                             sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, false);
+                            _set_comms_status(companyId, stopped_comms, false);
                         }
                         else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
                         { //Using the overdraft facility, can still use the system
                             comp.CompanyProfile = "ON_CREDIT";
                             sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, true);
+                            _set_comms_status(companyId, stopped_comms, true);
                         }
                         else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
                         { //Less than the minimum balance, just send an alert, can still use the system.
                             comp.CompanyProfile = "LOW_BALANCE";
                             sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, true);
+                            _set_comms_status(companyId, stopped_comms, true);
                         }
                         comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
                         _context.Update(comp_pp);
@@ -632,7 +632,7 @@ namespace CrisesControl.Api.Application.Helpers
                         if (sendAlert && CommsDebug == "false")
                         {
                             SendEmail SDE = new SendEmail(_context,DBC);
-                            await SDE.UsageAlert(CompanyID);
+                            await SDE.UsageAlert(companyId);
                         }
 
                     }
@@ -659,18 +659,18 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task<string> GetPackageItem(string ItemCode, int CompanyId)
+        public async Task<string> GetPackageItem(string itemCode, int companyId)
         {
             string retVal = string.Empty;
-            ItemCode = ItemCode.Trim();
-            var ItemRec = await  _context.Set<CompanyPackageItem>().Where(PI=> PI.ItemCode == ItemCode && PI.CompanyId == CompanyId).FirstOrDefaultAsync();
+            itemCode = itemCode.Trim();
+            var ItemRec = await  _context.Set<CompanyPackageItem>().Where(PI=> PI.ItemCode == itemCode && PI.CompanyId == companyId).FirstOrDefaultAsync();
             if (ItemRec != null)
             {
                 retVal = ItemRec.ItemValue;
             }
             else
             {
-                var LibItemRec = await _context.Set<LibPackageItem>().Where(PI=> PI.ItemCode == ItemCode).FirstOrDefaultAsync();
+                var LibItemRec = await _context.Set<LibPackageItem>().Where(PI=> PI.ItemCode == itemCode).FirstOrDefaultAsync();
                 retVal = LibItemRec.ItemValue;
             }
             return retVal;
@@ -953,38 +953,6 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public string GetPackageItem(string itemCode, int companyId)
-        {
-            string retVal = string.Empty;
-            itemCode = itemCode.Trim();
-            var ItemRec = (from PI in _context.Set<CompanyPackageItem>() where PI.ItemCode == itemCode && PI.CompanyId == companyId select PI).FirstOrDefault();
-            if (ItemRec != null)
-            {
-                retVal = ItemRec.ItemValue;
-            }
-            else
-            {
-                var LibItemRec = (from PI in _context.Set<LibPackageItem>() where PI.ItemCode == itemCode select PI).FirstOrDefault();
-                retVal = LibItemRec.ItemValue;
-            }
-            return retVal;
-        }
-
-        public void _set_comms_status(int CompanyId, List<string> methods, bool status)
-        {
-            try
-            {
-                (from CM in _context.Set<CompanyComm>()
-                 join CO in _context.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
-                 where CM.CompanyId == CompanyId && methods.Contains(CO.MethodCode)
-                 select CM).ToList().ForEach(x => x.ServiceStatus = status);
-                _context.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
         public async Task MessageProcessLog(int messageId, string eventName, string methodName = "", string queueName = "", string additionalInfo = "")
         {
             try
@@ -1004,181 +972,6 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public async void GetSetCompanyComms(int CompanyID)
-        {
-            try
-            {
-                var comp_pp = (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == CompanyID select CPP).FirstOrDefault();
-                var comp = (from C in _context.Set<Company>() where C.CompanyId == CompanyID select C).FirstOrDefault();
-                if (comp_pp != null && comp != null)
-                {
-
-                    if (comp.Status == 1)
-                    {
-                        bool sendAlert = false;
-
-                        DateTimeOffset LastUpdate = comp_pp.UpdatedOn;
-
-                        List<string> stopped_comms = new List<string>();
-
-                        if (comp_pp.MinimumEmailRate > 0)
-                        {
-                            stopped_comms.Add("EMAIL");
-                        }
-                        if (comp_pp.MinimumPhoneRate > 0)
-                        {
-                            stopped_comms.Add("PHONE");
-                        }
-                        if (comp_pp.MinimumTextRate > 0)
-                        {
-                            stopped_comms.Add("TEXT");
-                        }
-                        if (comp_pp.MinimumPushRate > 0)
-                        {
-                            stopped_comms.Add("PUSH");
-                        }
-
-                        if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
-                        { //Have positive balance + More than the minimum balance required.
-                            comp.CompanyProfile = "SUBSCRIBED";
-                            _set_comms_status(CompanyID, stopped_comms, true);
-                        }
-                        else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
-                        { //Used the overdraft amount as well, so stop their SMS and Phone
-                            comp.CompanyProfile = "STOP_MESSAGING";
-                            sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, false);
-                        }
-                        else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
-                        { //Using the overdraft facility, can still use the system
-                            comp.CompanyProfile = "ON_CREDIT";
-                            sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, true);
-                        }
-                        else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
-                        { //Less than the minimum balance, just send an alert, can still use the system.
-                            comp.CompanyProfile = "LOW_BALANCE";
-                            sendAlert = true;
-                            _set_comms_status(CompanyID, stopped_comms, true);
-                        }
-                        comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
-                        _context.SaveChanges();
-
-                        if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
-                        {
-                            sendAlert = false;
-                        }
-
-                        string CommsDebug = LookupWithKey("COMMS_DEBUG_MODE");
-
-                        if (sendAlert && CommsDebug == "false")
-                        {
-                           //await _SDE.UsageAlert(CompanyID);
-                        }
-
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-
-        }
-        public void CreateLog(string Level, string Message, Exception Ex = null, string Controller = "", string Method = "", int CompanyId = 0)
-        {
-            try
-            {
-                var comp_pp = (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == companyId select CPP).FirstOrDefault();
-                var comp = (from C in _context.Set<Company>() where C.CompanyId == companyId select C).FirstOrDefault();
-                if (comp_pp != null && comp != null)
-                {
-
-                    if (comp.Status == 1)
-                    {
-                        bool sendAlert = false;
-
-                        DateTimeOffset LastUpdate = comp_pp.UpdatedOn;
-
-                        List<string> stopped_comms = new List<string>();
-
-                        if (comp_pp.MinimumEmailRate > 0)
-                        {
-                            stopped_comms.Add("EMAIL");
-                        }
-                        if (comp_pp.MinimumPhoneRate > 0)
-                        {
-                            stopped_comms.Add("PHONE");
-                        }
-                        if (comp_pp.MinimumTextRate > 0)
-                        {
-                            stopped_comms.Add("TEXT");
-                        }
-                        if (comp_pp.MinimumPushRate > 0)
-                        {
-                            stopped_comms.Add("PUSH");
-                        }
-
-                        if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
-                        { //Have positive balance + More than the minimum balance required.
-                            comp.CompanyProfile = "SUBSCRIBED";
-                            _set_comms_status(companyId, stopped_comms, true);
-                        }
-                        else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
-                        { //Used the overdraft amount as well, so stop their SMS and Phone
-                            comp.CompanyProfile = "STOP_MESSAGING";
-                            sendAlert = true;
-                            _set_comms_status(companyId, stopped_comms, false);
-                        }
-                        else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
-                        { //Using the overdraft facility, can still use the system
-                            comp.CompanyProfile = "ON_CREDIT";
-                            sendAlert = true;
-                            _set_comms_status(companyId, stopped_comms, true);
-                        }
-                        else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
-                        { //Less than the minimum balance, just send an alert, can still use the system.
-                            comp.CompanyProfile = "LOW_BALANCE";
-                            sendAlert = true;
-                            _set_comms_status(companyId, stopped_comms, true);
-                        }
-                        comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
-                        _context.SaveChanges();
-
-                        if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
-                        {
-                            sendAlert = false;
-                        }
-
-                        string CommsDebug = LookupWithKey("COMMS_DEBUG_MODE");
-
-                        if (sendAlert && CommsDebug == "false")
-                        {
-                            //await _SDE.UsageAlert(CompanyID);
-                        }
-
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-
-        }
-        
-
-        public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
-        {
-            try
-            {
-                CreateLog("INFO", Left(strErrorMessage, 8000), null, strControllerName, strMethodName, intCompanyId);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
         public string Getconfig(string key, string defaultVal = "")
         {
             try
@@ -1411,72 +1204,6 @@ namespace CrisesControl.Api.Application.Helpers
                 if (fi.CreationTime < DateTime.Now.AddDays(-1))
                     fi.Delete();
             }
-        }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentReviewDate, int CompanyID, int ReminderCount, out int ReminderCounter)
-        {
-            try
-            {
-                ReminderCounter = 0;
-                int reminder1 = 30;
-                int reminder2 = 15;
-                int reminder3 = 7;
-
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", CompanyID), out reminder1);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", CompanyID), out reminder2);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", CompanyID), out reminder3);
-
-                DateTime CheckDate = CurrentReviewDate.AddDays(-reminder1).Date;
-
-                if (CheckDate.Date >= DateTime.Now.Date && ReminderCount == 0)
-                {
-                    ReminderCounter = 1;
-                    return CheckDate;
-                }
-
-                if (CurrentReviewDate.AddDays(-reminder2).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1))
-                {
-                    ReminderCounter = 2;
-                    return CurrentReviewDate.AddDays(-reminder2).Date;
-                }
-
-                if (CurrentReviewDate.AddDays(-reminder3).Date >= DateTime.Now.Date && (ReminderCount == 0 || ReminderCount == 1 || ReminderCount == 2))
-                {
-                    ReminderCounter = 3;
-                    return CurrentReviewDate.AddDays(-reminder3).Date;
-                }
-
-                return CurrentReviewDate.AddYears(-1).Date;
-
-            }
-            catch (Exception ex)
-            {
-                ReminderCounter = 0;
-                return CurrentReviewDate.AddYears(-1).Date;
-            }
-        }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset CurrentDateTime, string Frequency)
-        {
-            DateTimeOffset NewReviewDate = CurrentDateTime;
-
-            if (string.IsNullOrEmpty(Frequency))
-                Frequency = "MONTH";
-
-            switch (Frequency)
-            {
-                case "WEEK":
-                    NewReviewDate = CurrentDateTime.AddDays(7);
-                    break;
-                case "MONTH":
-                    NewReviewDate = CurrentDateTime.AddMonths(1);
-                    break;
-                case "QUARTER":
-                    NewReviewDate = CurrentDateTime.AddMonths(3);
-                    break;
-                case "YEAR":
-                    NewReviewDate = CurrentDateTime.AddYears(1);
-                    break;
-            }
-            return NewReviewDate;
         }
         public async Task CreateSOPReviewReminder(int IncidentID, int SOPHeaderID, int CompanyID, DateTimeOffset NextReviewDate, string ReviewFrequency, int ReminderCount)
         {

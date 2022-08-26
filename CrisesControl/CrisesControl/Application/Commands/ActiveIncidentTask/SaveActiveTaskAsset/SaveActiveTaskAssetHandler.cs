@@ -1,4 +1,6 @@
-﻿using CrisesControl.Api.Application.Query;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Api.Application.Query;
+using CrisesControl.Core.Incidents.Repositories;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveTaskAsset
@@ -6,16 +8,17 @@ namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.SaveActiveTa
     public class SaveActiveTaskAssetHandler : IRequestHandler<SaveActiveTaskAssetRequest, SaveActiveTaskAssetResponse>
     {
         private readonly IActiveIncidentQuery _activeIncidentQuery;
-        private readonly ILogger<SaveActiveTaskAssetHandler> _logger;
-        public SaveActiveTaskAssetHandler(IActiveIncidentQuery activeIncidentQuery, ILogger<SaveActiveTaskAssetHandler> logger)
+        public SaveActiveTaskAssetHandler(IActiveIncidentQuery activeIncidentQuery)
         {
-            this._activeIncidentQuery = activeIncidentQuery;
-            this._logger = logger;
+            _activeIncidentQuery = activeIncidentQuery;
         }
+
         public async Task<SaveActiveTaskAssetResponse> Handle(SaveActiveTaskAssetRequest request, CancellationToken cancellationToken)
         {
-            var result = await _activeIncidentQuery.SaveActiveTaskAsset(request);
-            return result;
+            Guard.Against.Null(request, nameof(SaveActiveTaskAssetRequest));
+            var response = new SaveActiveTaskAssetResponse();
+            response = await _activeIncidentQuery.SaveActiveTaskAsset(request);
+            return response;
         }
     }
 }
