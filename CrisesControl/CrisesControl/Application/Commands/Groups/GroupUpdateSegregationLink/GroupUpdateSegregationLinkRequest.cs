@@ -1,8 +1,8 @@
 ﻿using MediatR;
 
-namespace CrisesControl.Api.Application.Commands.Groups.UpdateSegregationLink
+namespace CrisesControl.Api.Application.Commands.Groups.GroupUpdateSegregationLink
 {
-    public class UpdateSegregationLinkRequest : IRequest<UpdateSegregationLinkResponse>
+    public class GroupUpdateSegregationLinkRequest : IRequest<GroupUpdateSegregationLinkResponse>
     {
         public int SourceId { get; set; }
         public int TargetId { get; set; }

@@ -4,7 +4,7 @@ using CrisesControl.Api.Application.Commands.Groups.GetGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroups;
 using CrisesControl.Api.Application.Commands.Groups.SegregationLinks;
 using CrisesControl.Api.Application.Commands.Groups.UpdateGroup;
-using CrisesControl.Api.Application.Commands.Groups.UpdateSegregationLink;
+using CrisesControl.Api.Application.Commands.Groups.GroupUpdateSegregationLink;
 using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -72,7 +72,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("GroupUpdateSegregationLink")]
-        public async Task<IActionResult> UpdateSegregationLink([FromBody] UpdateSegregationLinkRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> GroupUpdateSegregationLink([FromBody] GroupUpdateSegregationLinkRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
