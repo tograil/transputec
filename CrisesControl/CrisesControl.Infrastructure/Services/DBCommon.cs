@@ -1197,30 +1197,28 @@ namespace CrisesControl.Api.Application.Helpers
                     fi.Delete();
             }
         }
-       
-
-        public async Task CreateSOPReviewReminder(int incidentID, int sopHeaderID, int companyID, DateTimeOffset nextReviewDate, string reviewFrequency, int reminderCount)
+        public async Task CreateSOPReviewReminder(int incidentId, int sopHeaderId, int companyId, DateTimeOffset nextReviewDate, string reviewFrequency, int reminderCount)
         {
             try
             {
 
-                DeleteScheduledJob("SOP_REVIEW_" + sopHeaderID, "REVIEW_REMINDER");
+                DeleteScheduledJob("SOP_REVIEW_" + sopHeaderId, "REVIEW_REMINDER");
 
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
-                string jobName = "SOP_REVIEW_" + sopHeaderID;
-                string taskTrigger = "SOP_REVIEW_" + sopHeaderID;
+                string jobName = "SOP_REVIEW_" + sopHeaderId;
+                string taskTrigger = "SOP_REVIEW_" + sopHeaderId;
 
                 var jobDetail = new Quartz.Impl.JobDetailImpl(jobName, "REVIEW_REMINDER", typeof(SOPReviewJob));
-                jobDetail.JobDataMap["IncidentID"] = incidentID;
-                jobDetail.JobDataMap["SOPHeaderID"] = sopHeaderID;
+                jobDetail.JobDataMap["IncidentID"] = incidentId;
+                jobDetail.JobDataMap["SOPHeaderID"] = sopHeaderId;
 
                 int Counter = 0;
-                DateTimeOffset DateCheck =GetNextReviewDate(nextReviewDate, companyID, reminderCount, out Counter);
+                DateTimeOffset DateCheck =GetNextReviewDate(nextReviewDate, companyId, reminderCount, out Counter);
                 jobDetail.JobDataMap["Counter"] = Counter;
 
-                var sop_head =  _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == sopHeaderID).FirstOrDefault();
+                var sop_head =  _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == sopHeaderId).FirstOrDefault();
                 sop_head.ReminderCount = Counter;
                 _context.Update(sop_head);
                 await _context.SaveChangesAsync();
@@ -1252,7 +1250,7 @@ namespace CrisesControl.Api.Application.Helpers
                         sop_head.ReviewDate = newReviewDate;
                         sop_head.ReminderCount = 0;
                         await _context.SaveChangesAsync();
-                        await CreateSOPReviewReminder(incidentID, sopHeaderID, companyID, newReviewDate, reviewFrequency, 0);
+                        await CreateSOPReviewReminder(incidentId, sopHeaderId, companyId, newReviewDate, reviewFrequency, 0);
                     }
                 }
 

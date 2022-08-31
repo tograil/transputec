@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Lookup.AssetTypes;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpDept;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpLoc;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpUser;
@@ -216,6 +217,30 @@ namespace CrisesControl.Api.Application.Query
                 else
                 {
                     response.Data = TempUser;
+                    response.Message = "No Data Found";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<AssetTypesResponse> AssetTypes()
+        {
+            try
+            {
+                var TempUser = await _lookupRepository.AssetTypes();
+                var response = new AssetTypesResponse();
+                if (TempUser != null)
+                {
+                    response.Data = TempUser;
+                    response.Message = "Data loaded";
+                }
+                else
+                {
+                    response.Data = new List<AssetType>();
                     response.Message = "No Data Found";
                 }
                 return response;
