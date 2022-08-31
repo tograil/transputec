@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,5 +18,7 @@ namespace CrisesControl.Core.Billing.Repositories {
         Task<GetInvoiceByIdResponse> GetInvoicesById(int companyId, int transactionHeaderId, bool showPayments);
         Task<List<TransactionItemDetails>> GetTransactionItem(int companyId, int messageId, string method, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc", string companyKey = "");
         Task<List<UsageGraph>> GetUsageGraph(int companyId, string reportType, int lastMonth);
+        Task<int> UpdateCompanyTranscationType(int companyId, int currntUserId, string timeZoneId, int transactionTypeId, decimal transactionRate,
+           int compnayTranscationTypeId = 0, string paymentPeriod = "MONTHLY", DateTimeOffset? nextRunDate = null, string paymentMethod = "INVOICE");
     }
 }

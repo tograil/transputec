@@ -38,54 +38,58 @@ public interface IActiveIncidentRepository
 
     Task CreateTaskRecipient(int activeIncidentId, int activeIncidentTaskId, int incidentTaskId);
 
-    List<UpdateIncidentStatusReturn> GetCompanyActiveIncident(int CompanyID, int UserID, string Status, int RecordStart = 0, int RecordLength = 100, string SearchString = "", string OrderBy = "Name", string OrderDir = "asc");
-    Task<List<UserTaskHead>> GetUserTasks(int CurrentUserID);
-    Task<TaskIncidentHeader> TaskIncidentHeader(int ActiveIncidentID);
+    List<UpdateIncidentStatusReturn> GetCompanyActiveIncident(int companyId, int userId, string status, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc");
+    Task<List<UserTaskHead>> GetUserTasks(int currentUserId);
+    Task<TaskIncidentHeader> TaskIncidentHeader(int activeIncidentId);
     Task<TaskIncidentHeader> GetActiveIncidentWorkflow(int activeIncidentID);
-    Task<List<IncidentTaskDetails>> _active_incident_tasks(int ActiveIncidentID, int ActiveIncidentTaskID);
-    Task FixActiveTaskOrder(int ActiveIncidentID);
-    Task<List<TaskPredecessorList>> _active_incident_tasks_successor(int ActiveIncidentTaskID, int ActiveIncidentID);
-    Task<List<TaskPredecessorList>> _active_incident_tasks_predeccessor(int ActiveIncidentTaskID, int ActiveIncidentID);
-    Task<List<ActiveTaskParticiants>> _active_participants(int ActiveIncidentID, int ActiveTaskID = 0, string RecipientType = "");
-    Task<List<IncidentTaskDetails>> GetActiveIncidentTasks(int ActiveIncidentID, int ActiveIncidentTaskID, int CompanyID, bool single = false);
-    Task<TaskActiveIncident> GetTaskActiveIncidentById(int ActiveIncidentTaskID, int CompanyID);
-    Task change_participant_type(int UserID, int ActiveIncidentTaskID, int NewTypeId, string ActionStatus, bool AddNew = false);
-    Task create_active_participant_list(int ObjectId, int ActiveIncidentTaskID, int PaticipentTypeId, string objtype, string ActionStatus = "UNALLOCATED");
-    Task<TaskActiveIncidentParticipant> GetTaskActiveIncidentParticipantById(int ActiveIncidentTaskID, int CurrentUserID);
-    Task remove_old_delegates(int ActiveIncidentTaskID);
+    Task<List<IncidentTaskDetails>> _active_incident_tasks(int activeIncidentId, int activeIncidentTaskId);
+    Task FixActiveTaskOrder(int activeIncidentId);
+    Task<List<TaskPredecessorList>> _active_incident_tasks_successor(int activeIncidentTaskId, int activeIncidentId);
+    Task<List<TaskPredecessorList>> _active_incident_tasks_predeccessor(int activeIncidentTaskId, int activeIncidentId);
+    Task<List<ActiveTaskParticiants>> _active_participants(int activeIncidentId, int activeTaskId = 0, string recipientType = "");
+    Task<List<IncidentTaskDetails>> GetActiveIncidentTasks(int activeIncidentId, int activeIncidentTaskId, int companyId, bool single = false);
+    Task<TaskActiveIncident> GetTaskActiveIncidentById(int activeIncidentTaskId, int companyId);
+    Task change_participant_type(int userId, int activeIncidentTaskId, int newTypeId, string actionStatus, bool addNew = false);
+    Task create_active_participant_list(int objectId, int activeIncidentTaskId, int paticipentTypeId, string objtype, string actionStatus = "UNALLOCATED");
+    Task<TaskActiveIncidentParticipant> GetTaskActiveIncidentParticipantById(int activeIncidentTaskId, int currentUserId);
+    Task remove_old_delegates(int activeIncidentTaskId);
     Task<int> UpdateTaskActiveIncident(TaskActiveIncident task);
-    Task<int> GetTaskActiveIncidentParticipantIdByStatus(int ActiveIncidentTaskID);
-    Task notify_users(int ActiveIncidentID, int ActiveIncidentTaskID, List<NotificationUserList> UserToNotify, string Message, int CurrentUserID,
-        int CompanyID, string TimeZoneId, bool IncludeKeyContact = true, int Source = 1, int[] MessageMetod = null, int CascadePlanID = 0);
+    Task<int> GetTaskActiveIncidentParticipantIdByStatus(int activeIncidentTaskId);
+    Task notify_users(int ActiveIncidentID, int ActiveIncidentTaskID, List<NotificationUserList> userToNotify, string message, int currentUserId,
+        int companyId, string timeZoneId, bool includeKeyContact = true, int source = 1, int[] messageMetod = null, int cascadePlanId = 0);
     Task<int> AddTaskAction(int ActiveIncidentTaskID, string ActionDescription, int CurrentUserID, int TaskActionTypeID, string TimeZoneId);
-    Task send_notifiation_to_groups(List<string> GroupType, int ActiveIncidentID, int ActiveIncidentTaskID,
-           string Message, int CurrentUserID, int CompanyID, string TimeZoneId, bool IncludeKeyContact = true,
-           int Source = 1, int[] MessageMethod = null, List<NotificationUserList> UserToNotify = null, int CascadePlanID = 0, string sourceAction = "");
-    Task<List<TaskIncidentAction>> GetTaskIncidentActionByDeline(int ActiveIncidentTaskID);
-    Task<bool> check_for_last_member(int ActiveIncidentID, int ActiveIncidentTaskID, string Group);
+    Task send_notifiation_to_groups(List<string> groupType, int activeIncidentId, int activeIncidentTaskId,
+           string message, int currentUserId, int companyId, string timeZoneId, bool includeKeyContact = true,
+           int source = 1, int[] messageMethod = null, List<NotificationUserList> userToNotify = null, int cascadePlanId = 0, string sourceAction = "");
+    Task<List<TaskIncidentAction>> GetTaskIncidentActionByDeline(int activeIncidentTaskId);
+    Task<bool> check_for_last_member(int activeIncidentId, int activeIncidentTaskId, string group);
    
-    Task<List<NotificationUserList>> GetActiveParticipantList(int IncidentActivationId, string GroupType = "ACTION", int ActiveIncidentTaskID = 0, bool IsTaskRecipient = true);
-    Task<TaskActiveIncident> ReallocateTask(int ActiveIncidentTaskID, string TaskActionReason, int ReallocateTo, int[] MessageMethod, int CascadePlanID, int CurrentUserID, int CompanyID, string TimeZoneId);
-    Task CreatePredecessorJobs(int ActiveIncidentID, int IncidentTaskID, int CurrentUserID, string TimeZoneId);
-    Task<TaskActiveIncident> DelegateTask(int ActiveIncidentTaskID, string TaskActionReason, int[] DelegateTo, int[] MessageMethod, int CascadePlanID, int CurrentUserID, int CompanyID, string TimeZoneId);
-    Task<List<TaskAssignedUser>> GetTaskAssignedUsers(int ActiveIncidentTaskID, string TypeName, int CompanyID);
-    Task<List<ActiveCheckList>> GetActiveTaskCheckList(int ActiveIncidentTaskID, int CompanyID, int UserID);
-    Task<List<TaskAudit>> GetTaskAudit(int ActiveIncidentTaskID);
-    Task<dynamic> GetTaskDetails(int ActiveIncidentTaskID, int CompanyID);
-    Task<List<IncidentTaskAudit>> GetIncidentTasksAudit(int ActiveIncidentID, int CompanyID);
-    Task<List<FailedTaskList>> get_unattended_tasks(int CompanyID, int UserID, int ActiveIncidentID);
-    Task<List<GetAllUser>> GetTaskUserList(int Start, int Length, Search Search, string TypeName, int ActiveIncidentTaskID, string CompanyKey, int OutLoginUserId, int OutUserCompanyId);
-    Task<Incidents> GetIncidentActivation(int ActiveIncidentID);
-    Task<TaskActiveIncident> ReassignTask(int ActiveIncidentTaskID, int[] ActionUsers, int[] EscalationUsers,
-        string TaskActionReason, bool RemoveCurrentOwner, int CurrentUserID, int CompanyID, string TimeZoneId);
-    Task<int> NewAdHocTask(int ActiveIncidentID, string TaskTitle, string TaskDescription, int[] ActionUsers, int[] ActionGroups, int[] EscalationUsers, int[] EscalationGroups, double EscalationDuration, double ExpectedCompletionTime, int CompanyID, int UserID, string TimeZoneId);
-    Task AdHocIncidentTaskParticipants(int ActiveIncidentID, int ActiveIncidentTaskID, int[] ActionUsers, int[] ActionGroups, int[] EscalationUsers, int[] EscalationGroups);
-    Task adhoc_create_participant_list(int[] UList, int ActiveIncidentTaskID, int PaticipentTypeId, string objtype);
+    Task<List<NotificationUserList>> GetActiveParticipantList(int incidentActivationId, string groupType = "ACTION", int activeIncidentTaskId = 0, bool isTaskRecipient = true);
+    Task<TaskActiveIncident> ReallocateTask(int activeIncidentTaskId, string taskActionReason, int reallocateTo, int[] messageMethod, int cascadePlanId, int currentUserId, int companyId, string timeZoneId);
+    Task CreatePredecessorJobs(int activeIncidentId, int incidentTaskId, int currentUserId, string timeZoneId);
+    Task<TaskActiveIncident> DelegateTask(int activeIncidentTaskId, string taskActionReason, int[] delegateTo, int[] messageMethod, int cascadePlanId, int currentUserId, int companyId, string timeZoneId);
+    Task<List<TaskAssignedUser>> GetTaskAssignedUsers(int activeIncidentTaskId, string typeName, int companyId);
+    Task<List<ActiveCheckList>> GetActiveTaskCheckList(int activeIncidentTaskId, int companyId, int userId);
+    Task<List<TaskAudit>> GetTaskAudit(int activeIncidentTaskId);
+    Task<dynamic> GetTaskDetails(int activeIncidentTaskId, int companyId);
+    Task<List<IncidentTaskAudit>> GetIncidentTasksAudit(int activeIncidentId, int companyId);
+    Task<List<FailedTaskList>> get_unattended_tasks(int companyId, int userId, int activeIncidentId);
+    Task<List<GetAllUser>> GetTaskUserList(int start, int length, Search search, string typeName, int activeIncidentTaskId, string companyKey, int outLoginUserId, int outUserCompanyId);
+    Task<Incidents> GetIncidentActivation(int activeIncidentId);
+    Task<TaskActiveIncident> ReassignTask(int activeIncidentTaskId, int[] actionUsers, int[] escalationUsers,
+        string taskActionReason, bool removeCurrentOwner, int currentUserId, int companyId, string timeZoneId);
+    Task<int> NewAdHocTask(int activeIncidentId, string taskTitle, string taskDescription, int[] actionUsers, int[] actionGroups, int[] escalationUsers, int[] escalationGroups, double escalationDuration, double expectedCompletionTime, int companyId, int userId, string itmeZoneId);
+    Task AdHocIncidentTaskParticipants(int activeIncidentId, int activeIncidentTaskId, int[] actionUsers, int[] actionGroups, int[] escalationUsers, int[] escalationGroups);
+    Task adhoc_create_participant_list(int[] uList, int activeIncidentTaskId, int paticipentTypeId, string objtype);
     Task<string> GetCompanyParameter(string key, int companyId, string @default = "",string customerId = "");
-    Task<string> LookupWithKey(string Key, string Default = "");
-    Task<bool> SaveActiveCheckListResponse(int ActiveIncidentTaskID, List<CheckListOption> CheckListResponse, int UserID, int CompanyID, string TimeZoneId);
-    Task CompleteAllTask(int ActiveIncidentID, int CurrentUserID, int CompanyID, string TimeZoneId);
+    Task<string> LookupWithKey(string key, string Default = "");
+    Task<bool> SaveActiveCheckListResponse(int activeIncidentTaskId, List<CheckListOption> checkListResponse, int userId, int companyId, string timeZoneId);
+    Task CompleteAllTask(int activeIncidentId, int currentUserId, int companyId, string timeZoneId);
 
     Task<User?> GetUserById(int id);
-
+    Task<dynamic> incident_tasks_list(int activeIncidentId, int currentUserId, int companyId);
+    Task<bool> AddTaskAttachment(int activeIncidentTaskId, string attachmentTitle, string fileName, string sourceFileName, double fileSize, int userId, string timeZoneId);
+    Task<List<CheckListHistoryRsp>> GetTaskCheckListHistory(int activeCheckListId, int companyId, int userId);
+    Task<List<TaskAssetList>> GetActiveTaskAsset(int activeTaskId, int companyId, int userId);
+    Task SaveActiveTaskAssets(int activeTaskId, int[] taskAssets, int companyId, int userId);
 }
