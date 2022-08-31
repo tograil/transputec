@@ -76,5 +76,6 @@ public interface IUserRepository
     Task<dynamic> SaveDashboard(List<DashboardModule> moduleItems, string modulePage, int userId, CancellationToken cancellationToken);
     void AddUserModuleItem(int userId, int moduleId, decimal xPos, decimal yPos, decimal width, decimal height, CancellationToken cancellationToken);
     Task<dynamic> AddDashlet(int moduleId, int userId, decimal xPos, decimal yPos);
+    Task<List<KeyHolderResponse>> GetKeyHolders(int OutUserCompanyId);
 
 }
