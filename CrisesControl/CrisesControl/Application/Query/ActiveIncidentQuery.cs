@@ -15,6 +15,7 @@ using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskCheckList
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskDetails;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetTaskUserList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetUserTask;
+using CrisesControl.Api.Application.Commands.ActiveIncidentTask.GetUserTaskList;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.NewAdHocTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReallocateTask;
 using CrisesControl.Api.Application.Commands.ActiveIncidentTask.ReassignTask;
@@ -38,7 +39,7 @@ using CrisesControl.SharedKernel.Utils;
 
 namespace CrisesControl.Api.Application.Query
 {
-    public class ActiveIncidentQuery:IActiveIncidentQuery
+    public class ActiveIncidentQuery : IActiveIncidentQuery
     {
         private readonly IActiveIncidentRepository _activeIncidentRepository;
         private readonly IMapper _mapper;
@@ -50,7 +51,7 @@ namespace CrisesControl.Api.Application.Query
         private readonly DBCommon _dBCommon;
         private string MessageSourceAction = string.Empty;
         private readonly IPaging _paging;
-       
+
         public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, IUserRepository userRepository, IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser, DBCommon dBCommon, IPaging paging)
         {
             this._activeIncidentRepository = activeIncidentRepository;
@@ -58,7 +59,7 @@ namespace CrisesControl.Api.Application.Query
             this._logger = logger;
             this._currentUser = currentUser;
             this._userRepository = userRepository;
-         
+
             this._dBCommon = dBCommon;
             this._paging = paging;
         }
@@ -74,7 +75,7 @@ namespace CrisesControl.Api.Application.Query
                 {
                     if (task.TaskStatus != 1 && task.TaskStatus != 4 && task.TaskStatus != 6)
                     {
-                       // response.ErrorId = 184;
+                        // response.ErrorId = 184;
                         response.Message = "Cannot accept the task, already accepted or declined by you";
                         return response;
                     }
@@ -82,12 +83,12 @@ namespace CrisesControl.Api.Application.Query
                     {
                         if (_currentUser.UserId != task.TaskOwnerId)
                         {
-                           // result.ErrorId = 184;
+                            // result.ErrorId = 184;
                             response.Message = "Task already accepted";
                         }
                         else
                         {
-                           // result.ErrorId = 189;
+                            // result.ErrorId = 189;
                             response.Message = "You have already accepted the task";
                         }
                         return response;
@@ -95,7 +96,7 @@ namespace CrisesControl.Api.Application.Query
 
                     int previousOwner = task.TaskOwnerId;
                     string ActionStatus = "UNALLOCATED";
-                    
+
 
                     if (previousOwner > 0)
                     {
@@ -125,10 +126,10 @@ namespace CrisesControl.Api.Application.Query
 
                         task.UpdatedDate = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone);
                         task.UpdatedBy = _currentUser.UserId;
-                       var ActivetaskId= await _activeIncidentRepository.UpdateTaskActiveIncident(task);
+                        var ActivetaskId = await _activeIncidentRepository.UpdateTaskActiveIncident(task);
                     }
                     //Get Action By username
-                    var action_user =await _userRepository.GetUser(_currentUser.CompanyId,_currentUser.UserId);
+                    var action_user = await _userRepository.GetUser(_currentUser.CompanyId, _currentUser.UserId);
                     string username = "";
                     if (action_user != null)
                     {
@@ -147,7 +148,7 @@ namespace CrisesControl.Api.Application.Query
 
                     if (ActionStatus == "REALLOCATED" || ActionStatus == "DELEGATED")
                     {
-                        TaskPtcpntList.Add(new NotificationUserList( previousOwner, true ));
+                        TaskPtcpntList.Add(new NotificationUserList(previousOwner, true));
 
                         if (ActionStatus == "DELEGATED")
                         {
@@ -156,8 +157,8 @@ namespace CrisesControl.Api.Application.Query
                             TaskPtcpntList.Add(new NotificationUserList(previousOwner, true));
                         }
 
-                        string action_update = "Reallocated task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate( task.TaskTitle, 50) + "\" is accepted by " + username + ".";
-                        await   _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
+                        string action_update = "Reallocated task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 50) + "\" is accepted by " + username + ".";
+                        await _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
                     }
                     else
                     {
@@ -187,7 +188,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var header  = await _activeIncidentRepository.GetActiveIncidentWorkflow(request.ActiveIncidentID);
+                var header = await _activeIncidentRepository.GetActiveIncidentWorkflow(request.ActiveIncidentID);
                 var TaskList = await _activeIncidentRepository.GetActiveIncidentTasks(request.ActiveIncidentID, 0, _currentUser.CompanyId, false);
                 var result = _mapper.Map<TaskIncidentHeader>(header);
                 var response = new ActiveIncidentTasksResponse();
@@ -222,13 +223,13 @@ namespace CrisesControl.Api.Application.Query
 
                     if (task.TaskOwnerId != _currentUser.UserId)
                     {
-                        
+
                         result.Message = "You are not longer the own of the task";
                         return result;
                     }
                     else if (task.TaskStatus == 7)
                     {
-                        
+
                         result.Message = "Task already completed! Task cannot be completed.";
                         return result;
                     }
@@ -242,7 +243,7 @@ namespace CrisesControl.Api.Application.Query
 
                     if (!string.IsNullOrEmpty(request.TaskCompletionNote))
                     {
-                      await _dBCommon.IncidentNote(task.ActiveIncidentTaskId, "TASK", request.TaskCompletionNote, _currentUser.CompanyId, _currentUser.UserId);
+                        await _dBCommon.IncidentNote(task.ActiveIncidentTaskId, "TASK", request.TaskCompletionNote, _currentUser.CompanyId, _currentUser.UserId);
                     }
 
                     //Get Action By username
@@ -256,7 +257,7 @@ namespace CrisesControl.Api.Application.Query
                     string task_action = "Task completed by " + username + "<br/>Comment:" + request.TaskActionReason;
 
                     //Add task action history
-                  await  _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, task_action, _currentUser.UserId, task.TaskStatus, _currentUser.TimeZone);
+                    await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, task_action, _currentUser.UserId, task.TaskStatus, _currentUser.TimeZone);
 
                     List<string> grp = new List<string>();
 
@@ -283,13 +284,13 @@ namespace CrisesControl.Api.Application.Query
                     }
 
                     string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 50) + "\" is completed by " + username + "." + Environment.NewLine + " With comment: " + request.TaskActionReason;
-                  await  _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3, request.MessageMethod, null, request.CascadePlanID, sourceAction: SourceAction.TaskCompleted);
+                    await _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3, request.MessageMethod, null, request.CascadePlanID, sourceAction: SourceAction.TaskCompleted);
 
                     _dBCommon.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
-                   _dBCommon.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
+                    _dBCommon.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
 
                     //Start the escalation job for the successor tasks
-                  await _activeIncidentRepository.CreatePredecessorJobs(task.ActiveIncidentId, task.IncidentTaskId, _currentUser.UserId, _currentUser.TimeZone);
+                    await _activeIncidentRepository.CreatePredecessorJobs(task.ActiveIncidentId, task.IncidentTaskId, _currentUser.UserId, _currentUser.TimeZone);
 
                     result.task = task;
                 }
@@ -345,7 +346,7 @@ namespace CrisesControl.Api.Application.Query
                         }
                         else
                         {
-                            isLastMember =await  _activeIncidentRepository.check_for_last_member(task.ActiveIncidentId, request.ActiveIncidentTaskID, "ACTION");
+                            isLastMember = await _activeIncidentRepository.check_for_last_member(task.ActiveIncidentId, request.ActiveIncidentTaskID, "ACTION");
                         }
                         if (!isLastMember)
                             await _activeIncidentRepository.change_participant_type(_currentUser.UserId, request.ActiveIncidentTaskID, 0, "DECLINED");
@@ -354,7 +355,7 @@ namespace CrisesControl.Api.Application.Query
                     if (isLastMember)
                     {
                         //task.TaskStatus = 6;
-                      
+
                         response.Message = "Task cannot be declined as you are the only member left.";
                         return response;
                     }
@@ -365,9 +366,9 @@ namespace CrisesControl.Api.Application.Query
                         if (task.TaskOwnerId > 0)
                             task.TaskStatus = 3;
                     }
-                   var taskActiveIncidenId= await _activeIncidentRepository.UpdateTaskActiveIncident(task);
+                    var taskActiveIncidenId = await _activeIncidentRepository.UpdateTaskActiveIncident(task);
 
-                    var action_user = await _activeIncidentRepository.GetUserById( _currentUser.UserId);
+                    var action_user = await _activeIncidentRepository.GetUserById(_currentUser.UserId);
                     string username = "";
                     if (action_user != null)
                     {
@@ -376,7 +377,7 @@ namespace CrisesControl.Api.Application.Query
 
                     //Add task action history
                     string task_action = "Task Declined<br/>Comment: " + request.TaskActionReason;
-                   await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, task_action, _currentUser.UserId, 3, _currentUser.TimeZone);
+                    await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, task_action, _currentUser.UserId, 3, _currentUser.TimeZone);
 
                     bool NotifyKeyContact = false;
                     bool.TryParse(await _activeIncidentRepository.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", _currentUser.CompanyId), out NotifyKeyContact);
@@ -384,10 +385,10 @@ namespace CrisesControl.Api.Application.Query
                     if (ActionStatus == "REALLOCATED" && task.TaskOwnerId > 0)
                     {
                         List<NotificationUserList> TaskPtcpntList = new List<NotificationUserList>();
-                        TaskPtcpntList.Add(new NotificationUserList( task.TaskOwnerId, true ));
+                        TaskPtcpntList.Add(new NotificationUserList(task.TaskOwnerId, true));
                         string action_update = "Reallocated task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" declined by " + username + "." + Environment.NewLine + " Comment: " + request.TaskActionReason;
 
-                    await   _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, task_action, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
+                        await _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, task_action, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
                     }
                     else
                     {
@@ -412,7 +413,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var Delegate = await _activeIncidentRepository.DelegateTask(request.ActiveIncidentTaskID,request.TaskActionReason, request.DelegateTo, request.MessageMethod,request.CascadePlanID,_currentUser.UserId, _currentUser.CompanyId,_currentUser.TimeZone);
+                var Delegate = await _activeIncidentRepository.DelegateTask(request.ActiveIncidentTaskID, request.TaskActionReason, request.DelegateTo, request.MessageMethod, request.CascadePlanID, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
                 var result = _mapper.Map<TaskActiveIncident>(Delegate);
                 var response = new DelegateTaskResponse();
                 if (result != null)
@@ -437,18 +438,18 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var activeChecks = await _activeIncidentRepository.GetActiveTaskCheckList(request.ActiveIncidentTaskID,   _currentUser.CompanyId, _currentUser.UserId);
+                var activeChecks = await _activeIncidentRepository.GetActiveTaskCheckList(request.ActiveIncidentTaskID, _currentUser.CompanyId, _currentUser.UserId);
                 var result = _mapper.Map<List<ActiveCheckList>>(activeChecks);
                 var response = new GetActiveTaskCheckListResponse();
                 if (result != null)
                 {
                     response.Data = result;
-                    
+
                 }
                 else
                 {
                     response.Data = result;
-                   
+
                 }
                 return response;
             }
@@ -512,18 +513,18 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var details = await _activeIncidentRepository.GetTaskDetails(request.ActiveIncidentTaskID,_currentUser.CompanyId);
-                
+                var details = await _activeIncidentRepository.GetTaskDetails(request.ActiveIncidentTaskID, _currentUser.CompanyId);
+
                 var response = new GetTaskDetailsResponse();
                 if (details != null)
                 {
                     response.Data = details;
-                   
+
                 }
                 else
                 {
                     response.Data = details;
-                   
+
                 }
                 return response;
             }
@@ -537,15 +538,15 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var MainUserlist = await _activeIncidentRepository.GetTaskUserList(_paging.PageNumber,_paging.PageSize,request.Search,request.TypeName, request.ActiveIncidentTaskID, request.CompanyKey,request.OutLoginUserId,request.OutLoginCompanyId );
+                var MainUserlist = await _activeIncidentRepository.GetTaskUserList(_paging.PageNumber, _paging.PageSize, request.Search, request.TypeName, request.ActiveIncidentTaskID, request.CompanyKey, request.OutLoginUserId, request.OutLoginCompanyId);
                 var result = _mapper.Map<List<GetAllUser>>(MainUserlist);
-                
-                
+
+
                 var response = new GetTaskUserListResponse();
                 request.Search.Value = "";
-               
 
-                var TotalUsers = await _activeIncidentRepository.GetTaskUserList(_paging.PageNumber, _paging.PageSize, request.Search, request.TypeName, request.ActiveIncidentTaskID, request.CompanyKey, request.OutLoginUserId, request.OutLoginCompanyId); 
+
+                var TotalUsers = await _activeIncidentRepository.GetTaskUserList(_paging.PageNumber, _paging.PageSize, request.Search, request.TypeName, request.ActiveIncidentTaskID, request.CompanyKey, request.OutLoginUserId, request.OutLoginCompanyId);
 
                 DataTablePaging rtn = new DataTablePaging();
 
@@ -576,10 +577,10 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var groups = await _activeIncidentRepository.GetUserTasks( _currentUser.UserId);
+                var groups = await _activeIncidentRepository.GetUserTasks(_currentUser.UserId);
                 var result = _mapper.Map<List<UserTaskHead>>(groups);
                 var response = new GetUserTaskResponse();
-                if (result!=null)
+                if (result != null)
                 {
                     response.Data = result;
                     response.Message = "Data has been loaded.";
@@ -627,15 +628,15 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                 bool NotifyKeyContact = false;
-                var task = await _activeIncidentRepository.GetTaskActiveIncidentById(request.ActiveIncidentTaskID,_currentUser.CompanyId);
+                var task = await _activeIncidentRepository.GetTaskActiveIncidentById(request.ActiveIncidentTaskID, _currentUser.CompanyId);
                 var result = new SendTaskUpdateResponse();
                 if (task != null)
                 {
 
                     if (task.TaskOwnerId != _currentUser.UserId && task.TaskStatus != 5)
                     {
-                       
-                        
+
+
                         result.Message = "Cannot send update, You are no longer the owner";
                         return result;
                     }
@@ -666,8 +667,8 @@ namespace CrisesControl.Api.Application.Query
 
                     string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" update. : " + request.TaskActionReason;
 
-                  await _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone,
-                        NotifyKeyContact, 3, request.MessageMethod, request.MembersToNotify, sourceAction: SourceAction.TaskUpdate);
+                    await _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone,
+                          NotifyKeyContact, 3, request.MessageMethod, request.MembersToNotify, sourceAction: SourceAction.TaskUpdate);
 
                     await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, "Task Update: " + request.TaskActionReason, _currentUser.UserId, 8, _currentUser.TimeZone);
 
@@ -681,7 +682,7 @@ namespace CrisesControl.Api.Application.Query
             {
                 throw ex;
             }
-            
+
         }
 
         public async Task<TakeOwnershipResponse> TakeOwnership(TakeOwnershipRequest request)
@@ -694,16 +695,16 @@ namespace CrisesControl.Api.Application.Query
 
                 if (task != null)
                 {
-                   
+
                     if (task.TaskOwnerId == _currentUser.UserId)
                     {
-                        
+
                         result.Message = "Task already accepted";
                         return result;
                     }
                     else if (task.TaskStatus == 7)
                     {
-                       
+
                         result.Message = "Cannot take ownership, task is completed";
                         return result;
                     }
@@ -732,7 +733,7 @@ namespace CrisesControl.Api.Application.Query
                         await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, task_action, _currentUser.UserId, 9, _currentUser.TimeZone);
 
                         List<NotificationUserList> TaskPtcpntList = new List<NotificationUserList>();
-                        TaskPtcpntList.Add(new NotificationUserList(previousOwner,true ));
+                        TaskPtcpntList.Add(new NotificationUserList(previousOwner, true));
 
 
                         bool NotifyKeyContact = false;
@@ -741,10 +742,10 @@ namespace CrisesControl.Api.Application.Query
                         string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 50) + "\" is now owned by " + username + ".";
                         await _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
 
-                      }
+                    }
                     else if (task.DelayedComplete.Year < 2000 || new List<int> { 1, 4, 6, 7 }.Contains(task.TaskStatus))
                     {
-                       
+
                         result.Message = "Invalid request";
                         return result;
                     }
@@ -758,7 +759,7 @@ namespace CrisesControl.Api.Application.Query
             {
                 throw ex;
             }
-            
+
         }
 
         public async Task<GetIncidentTasksAuditResponse> GetIncidentTasksAudit(GetIncidentTasksAuditRequest request)
@@ -769,7 +770,7 @@ namespace CrisesControl.Api.Application.Query
                 var result = _mapper.Map<List<IncidentTaskAudit>>(TasksAudit);
                 var Incident = await _activeIncidentRepository.GetIncidentActivation(request.ActiveIncidentTaskID);
                 var response = new GetIncidentTasksAuditResponse();
-                if (result != null && Incident!=null)
+                if (result != null && Incident != null)
                 {
                     response.Data = result;
                     response.Incident = Incident;
@@ -792,7 +793,7 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                 var TaskList = await _activeIncidentRepository.get_unattended_tasks(request.OutUserCompanyId, request.OutLoginUserId, request.ActiveIncidentID);
-                
+
                 var result = _mapper.Map<List<FailedTaskList>>(TaskList);
                 var response = new UnattendedTaskResponse();
                 if (result != null)
@@ -819,7 +820,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var TaskList = await _activeIncidentRepository.ReassignTask(request.ActiveIncidentTaskID, request.ActionUsers, request.EscalationUsers,request.TaskActionReason,request.RemoveCurrentOwner, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
+                var TaskList = await _activeIncidentRepository.ReassignTask(request.ActiveIncidentTaskID, request.ActionUsers, request.EscalationUsers, request.TaskActionReason, request.RemoveCurrentOwner, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
 
                 var result = _mapper.Map<TaskActiveIncident>(TaskList);
                 var response = new ReassignTaskResponse();
@@ -847,19 +848,19 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var TaskList = await _activeIncidentRepository.NewAdHocTask(request.ActiveIncidentID,request.TaskTitle,request.TaskDescription, request.ActionUsers,request.ActionGroups,request.EscalationUsers,request.EscalationGroups,request.EscalationDuration,request.ExpectedCompletionTime, _currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
+                var TaskList = await _activeIncidentRepository.NewAdHocTask(request.ActiveIncidentID, request.TaskTitle, request.TaskDescription, request.ActionUsers, request.ActionGroups, request.EscalationUsers, request.EscalationGroups, request.EscalationDuration, request.ExpectedCompletionTime, _currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
 
                 var result = _mapper.Map<int>(TaskList);
                 var response = new NewAdHocTaskResponse();
-                if (result >0)
+                if (result > 0)
                 {
                     response.result = result;
-                   
+
                 }
                 else
                 {
                     response.result = result;
-                    
+
                 }
                 return response;
             }
@@ -899,7 +900,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-             var task= await _activeIncidentRepository.SaveActiveCheckListResponse(request.ActiveIncidentTaskID, request.CheckListResponse, _currentUser.UserId, _currentUser.CompanyId,_currentUser.TimeZone);
+                var task = await _activeIncidentRepository.SaveActiveCheckListResponse(request.ActiveIncidentTaskID, request.CheckListResponse, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
 
                 var result = _mapper.Map<bool>(task);
                 var response = new SaveActiveCheckListResponse();
@@ -923,12 +924,25 @@ namespace CrisesControl.Api.Application.Query
             }
         }
 
+        public async Task<GetUserTaskListResponse> GetUserTaskList(GetUserTaskListRequest request)
+        {
+            try
+            {
+                var response = await _activeIncidentRepository.incident_tasks_list(request.ActiveIncidentId, request.CurrentUserId, request.CompanyId);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public async Task<SaveActiveTaskAssetResponse> SaveActiveTaskAsset(SaveActiveTaskAssetRequest request)
         {
             try
             {
-                await _activeIncidentRepository.SaveActiveTaskAssets(request.ActiveIncidentTaskID, request.TaskAssets, _currentUser.CompanyId, _currentUser.UserId);
-                var TaskList = await _activeIncidentRepository.GetActiveTaskAsset(request.ActiveIncidentTaskID, _currentUser.CompanyId, _currentUser.UserId);
+                await _activeIncidentRepository.SaveActiveTaskAssets(request.ActiveIncidentTaskId, request.TaskAssets, _currentUser.CompanyId, _currentUser.UserId);
+                var TaskList = await _activeIncidentRepository.GetActiveTaskAsset(request.ActiveIncidentTaskId, _currentUser.CompanyId, _currentUser.UserId);
                 var result = _mapper.Map<List<TaskAssetList>>(TaskList);
                 var response = new SaveActiveTaskAssetResponse();
                 if (result != null)
@@ -955,10 +969,10 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var TaskAsset = await _activeIncidentRepository.GetActiveTaskAsset(request.ActiveTaskID, _currentUser.CompanyId, _currentUser.UserId);
+                var TaskAsset = await _activeIncidentRepository.GetActiveTaskAsset(request.ActiveTaskId, _currentUser.CompanyId, _currentUser.UserId);
                 var result = _mapper.Map<List<TaskAssetList>>(TaskAsset);
                 var response = new GetActiveTaskAssetResponse();
-                if (result!=null)
+                if (result != null)
                 {
                     response.Data = result;
                     response.Message = "Data loaded";
@@ -1009,17 +1023,17 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var TaskAttach = await _activeIncidentRepository.AddTaskAttachment(request.ActiveIncidentTaskID, request.AttachmentTitle, request.FileName, request.SourceFileName, request.FileSize, _currentUser.UserId,_currentUser.TimeZone);
+                var TaskAttach = await _activeIncidentRepository.AddTaskAttachment(request.ActiveIncidentTaskId, request.AttachmentTitle, request.FileName, request.SourceFileName, request.FileSize, _currentUser.UserId, _currentUser.TimeZone);
                 var result = _mapper.Map<bool>(TaskAttach);
                 var response = new AddAttachmentResponse();
                 if (result != null)
                 {
-                    response.result = result;
+                    response.Result = result;
                     response.Message = "Added";
                 }
                 else
                 {
-                    response.result = result;
+                    response.Result = result;
                     response.Message = "No record data.";
                 }
                 return response;
@@ -1029,5 +1043,6 @@ namespace CrisesControl.Api.Application.Query
                 throw ex;
             }
         }
+
     }
 }

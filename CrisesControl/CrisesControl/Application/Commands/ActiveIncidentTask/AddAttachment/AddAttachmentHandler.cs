@@ -1,20 +1,23 @@
-﻿using CrisesControl.Api.Application.Query;
+﻿using Ardalis.GuardClauses;
+using CrisesControl.Core.Incidents.Repositories;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.ActiveIncidentTask.AddAttachment
 {
     public class AddAttachmentHandler : IRequestHandler<AddAttachmentRequest, AddAttachmentResponse>
     {
-        private readonly IActiveIncidentQuery _activeIncidentQuery;
-        private readonly ILogger<AddAttachmentHandler> _logger;
-        public AddAttachmentHandler(IActiveIncidentQuery activeIncidentQuery, ILogger<AddAttachmentHandler> logger)
+        private readonly IActiveIncidentRepository _activeIncidentRepository;
+        public AddAttachmentHandler(IActiveIncidentRepository activeIncidentRepository)
         {
-            this._activeIncidentQuery = activeIncidentQuery;
-            this._logger = logger;
+            _activeIncidentRepository = activeIncidentRepository;
         }
-        public Task<AddAttachmentResponse> Handle(AddAttachmentRequest request, CancellationToken cancellationToken)
+
+        public async Task<AddAttachmentResponse> Handle(AddAttachmentRequest request, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            Guard.Against.Null(request, nameof(AddAttachmentRequest));
+            var response = new AddAttachmentResponse();
+            response.Result = await _activeIncidentRepository.AddTaskAttachment(request.ActiveIncidentTaskId, request.AttachmentTitle, request.FileName, request.SourceFileName, request.FileSize, request.UserId, request.TimeZoneId);
+            return response;
         }
     }
 }
