@@ -48,5 +48,6 @@ namespace CrisesControl.Core.Companies
         public string? CardHolderName { get; set; }
         public decimal? Vatrate { get; set; }
         public bool? OrderCustomer { get; set; }
+        public Company Company { get; set; }
     }
 }

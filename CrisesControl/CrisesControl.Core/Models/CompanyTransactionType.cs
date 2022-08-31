@@ -15,5 +15,6 @@ namespace CrisesControl.Core.Models
         public string? PaymentPeriod { get; set; }
         public DateTimeOffset NextRunDate { get; set; }
         public string? PaymentMethod { get; set; }
+        public TransactionType TransactionType { get; set; }
     }
 }
