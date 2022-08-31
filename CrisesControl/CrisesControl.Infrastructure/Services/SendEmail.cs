@@ -1722,81 +1722,6 @@ namespace CrisesControl.Api.Application.Helpers
             }
 
         }
-        public async Task SendAssetReviewAlert(int AssetID, int CompanyID)
-        {
-            try
-            {
-
-                string path = "ASSET_REVIEW_REMINDER";
-
-                string Subject = string.Empty;
-                string message = Convert.ToString(_DBC.ReadHtmlFile(path, "DB", CompanyID, out Subject));
-
-
-                string Portal = _DBC.LookupWithKey("PORTAL");
-                string hostname = _DBC.LookupWithKey("SMTPHOST");
-                string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
-
-                var CompanyInfo = await _context.Set<Company>().Where(C => C.CompanyId == CompanyID).FirstOrDefaultAsync();
-                string Website = _DBC.LookupWithKey("DOMAIN");
-
-                string CompanyLogo = Portal + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
-                if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
-                {
-                    CompanyLogo = _DBC.LookupWithKey("CCLOGO");
-                }
-                string assetname = string.Empty;
-
-                DateTimeOffset review_date = DateTimeOffset.Now;
-
-                string emailmessage = string.Empty;
-
-                var asset = (from A in _context.Set<Assets>().AsEnumerable()
-                             where A.CompanyId == CompanyID && A.AssetId == AssetID
-                             select new
-                             {
-                                 A,
-                                 AssetOwner = (from U in _context.Set<User>()
-                                               where U.UserId == A.AssetOwner && U.Status == 1
-                                               select new
-                                               {
-                                                   UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
-                                                   U.PrimaryEmail
-                                               }).FirstOrDefault()
-                             }).FirstOrDefault();
-
-                if (asset != null)
-                {
-                    assetname = asset.A.AssetTitle;
-                    review_date = (DateTimeOffset)asset.A.ReviewDate;
-                    emailmessage = "This is the reminder for you to review the following media asset.";
-                    if (asset.A.ReminderCount == 3)
-                    {
-                        emailmessage = "<span style='color:#ff0000'>This is the final reminder for you to review the following media asset.</span>";
-                    }
-
-                    if ((message != null) && (hostname != null) && (fromadd != null))
-                    {
-                        string messagebody = message;
-
-                        messagebody = messagebody.Replace("{COMPANY_NAME}", CompanyInfo.CompanyName);
-                        messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
-                        messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
-                        messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
-                        messagebody = messagebody.Replace("{PORTAL}", Portal);
-
-                        messagebody = messagebody.Replace("{ASSET_TITLE}", assetname);
-                        messagebody = messagebody.Replace("{ASSET_REVIEW_DATE}", review_date.ToString("dd-MMM-yy"));
-                        messagebody = messagebody.Replace("{REVIEW_MESSAGE}", emailmessage);
-
-                        string sendbody = messagebody;
-                        sendbody = sendbody.Replace("{RECIPIENT_NAME}", _DBC.UserName(asset.AssetOwner.UserName));
-                        sendbody = sendbody.Replace("{RECIPIENT_EMAIL}", asset.AssetOwner.PrimaryEmail);
-                        string[] toEmails = { asset.AssetOwner.PrimaryEmail };
-                        bool ismailsend = Email(toEmails, sendbody, fromadd, hostname, Subject);
-                    }
-                }
-
         public async Task ContractStartDaysExceeded(int companyId, double DaysExceeding)
         {
 
@@ -1820,21 +1745,21 @@ namespace CrisesControl.Api.Application.Helpers
                 }
             }
         }
-        public void WorldPayAgreementSubscribe(int CompanyID, string AgreementNo)
+        public void WorldPayAgreementSubscribe(int companyID, string agreementNo)
         {
             try
             {
 
                 //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "AgreementSubscribed.html";
                 string Subject = string.Empty;
-                string message = Convert.ToString(_DBC.ReadHtmlFile("AGREEMENT_SUBSCRIPTION", "DB", CompanyID, out Subject));
+                string message = Convert.ToString(_DBC.ReadHtmlFile("AGREEMENT_SUBSCRIPTION", "DB", companyID, out Subject));
 
                 if (!string.IsNullOrEmpty(message))
                 {
 
                     var company = (from C in _context.Set<Company>()
                                    join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
-                                   where C.CompanyId == CompanyID
+                                   where C.CompanyId == companyID
                                    select new { C, CP }).FirstOrDefault();
                     if (company != null)
                     {                    
@@ -1865,9 +1790,9 @@ namespace CrisesControl.Api.Application.Helpers
                                 var user_ids = billing_users.Split(',').Select(int.Parse).ToList();
                                 if (user_ids.Count > 0)
                                 {
-                                    var get_user = (from U in _context.Set<User>()
-                                                    where user_ids.Contains(U.UserId) && U.Status != 3
-                                                    select new
+                                    var get_user =  _context.Set<User>()
+                                                    .Where(U=> user_ids.Contains(U.UserId) && U.Status != 3)
+                                                    .Select(U=> new
                                                     {
                                                         U.PrimaryEmail
                                                     }).ToList();
@@ -1893,7 +1818,7 @@ namespace CrisesControl.Api.Application.Helpers
                             messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
 
                             messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
-                            messagebody = messagebody.Replace("{AGREEMENT_NUMBER}", AgreementNo);
+                            messagebody = messagebody.Replace("{AGREEMENT_NUMBER}", agreementNo);
                             messagebody = messagebody.Replace("{FREE_BALANCE}", _DBC.ToCurrency(company.CP.CreditBalance));
 
                             string[] toEmails = emaillist.ToArray();
@@ -1921,8 +1846,8 @@ namespace CrisesControl.Api.Application.Helpers
                 string Subject = string.Empty;
                 string message = Convert.ToString(_DBC.ReadHtmlFile(path, "DB", companyID, out Subject));
 
-              
-                var CompanyInfo = await _context.Set<Company>().Where(C=> C.CompanyId == companyID).FirstOrDefaultAsync();
+
+                var CompanyInfo = await _context.Set<Company>().Where(C => C.CompanyId == companyID).FirstOrDefaultAsync();
                 string Website = _DBC.LookupWithKey("DOMAIN");
                 string Portal = _DBC.LookupWithKey("PORTAL");
                 string hostname = _DBC.LookupWithKey("SMTPHOST");
@@ -1939,13 +1864,13 @@ namespace CrisesControl.Api.Application.Helpers
                 string emailmessage = string.Empty;
 
                 var asset = await _context.Set<Assets>()
-                             .Where(A=> A.CompanyId == companyID && A.AssetId == assetID)
-                             .Select(A=> new
+                             .Where(A => A.CompanyId == companyID && A.AssetId == assetID)
+                             .Select(A => new
                              {
                                  A,
-                                 AssetOwner =  _context.Set<User>()
-                                               .Where(U=> U.UserId == A.AssetOwner && U.Status == 1)
-                                               .Select(U=> new
+                                 AssetOwner = _context.Set<User>()
+                                               .Where(U => U.UserId == A.AssetOwner && U.Status == 1)
+                                               .Select(U => new
                                                {
                                                    UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
                                                    U.PrimaryEmail
@@ -1985,11 +1910,11 @@ namespace CrisesControl.Api.Application.Helpers
                 }
 
             }
+            }
             catch (Exception ex)
             {
-                throw ex;
+                throw ex; ;
             }
         }
-
     }
 }
