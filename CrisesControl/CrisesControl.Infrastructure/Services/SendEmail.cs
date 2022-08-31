@@ -1915,12 +1915,5 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-
-            }
-            catch (Exception ex)
-            {
-                throw ex; ;
-            }
-        }
     }
 }
