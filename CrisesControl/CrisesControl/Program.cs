@@ -181,7 +181,7 @@ app.Use(async (context, next) =>
         }
         else
         {
-            context.Response.StatusCode = 400;
+            context.Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
         }
     }
     else
