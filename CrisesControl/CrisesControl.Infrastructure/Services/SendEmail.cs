@@ -1722,6 +1722,120 @@ namespace CrisesControl.Api.Application.Helpers
             }
 
         }
+        public async Task ContractStartDaysExceeded(int companyId, double DaysExceeding)
+        {
+
+            var company = await _context.Set<Company>().Where(C=> C.CompanyId == companyId).FirstOrDefaultAsync();
+            if (company != null)
+            {
+
+
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
+
+                if ((hostname != null) && (fromadd != null))
+                {
+
+                    StringBuilder adminMsg = new StringBuilder();
+                    adminMsg.AppendLine("<h2>A company's contract start date has been changed while exceeding 30 days</h2>");
+                    adminMsg.AppendLine("<strong>Company Name: </strong>" + company.CompanyName + "</br>");
+                    adminMsg.AppendLine("<p>Days Exceeding: " + DaysExceeding + "</p>");
+                    string[] adminEmail = { _DBC.LookupWithKey("BILLING_EMAIL") };
+                    Email(adminEmail, adminMsg.ToString(), fromadd, hostname, company.CompanyName + ": Contract start date has been modified");
+                }
+            }
+        }
+        public void WorldPayAgreementSubscribe(int companyID, string agreementNo)
+        {
+            try
+            {
+
+                //string path = Convert.ToString(DBC.LookupWithKey("API_TEMPLATE_PATH")) + "AgreementSubscribed.html";
+                string Subject = string.Empty;
+                string message = Convert.ToString(_DBC.ReadHtmlFile("AGREEMENT_SUBSCRIPTION", "DB", companyID, out Subject));
+
+                if (!string.IsNullOrEmpty(message))
+                {
+
+                    var company = (from C in _context.Set<Company>()
+                                   join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                                   where C.CompanyId == companyID
+                                   select new { C, CP }).FirstOrDefault();
+                    if (company != null)
+                    {                    
+
+                        string Portal = _DBC.LookupWithKey("PORTAL");
+                        string hostname = _DBC.LookupWithKey("SMTPHOST");
+                        string fromadd = _DBC.LookupWithKey("ALERT_EMAILFROM");
+
+                        string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+                        if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                        {
+                            CompanyLogo = _DBC.LookupWithKey("CCLOGO");
+                        }
+
+                        if ((message != null) && (hostname != null) && (fromadd != null))
+                        {
+                            string messagebody = message;
+
+                            string billing_email = _DBC.LookupWithKey("BILLING_EMAIL");
+
+                            //Get company billing email list.
+                            string billing_users = _DBC.GetCompanyParameter("BILLING_USERS", company.C.CompanyId);
+
+                            List<string> emaillist = new List<string>();
+
+                            if (!string.IsNullOrEmpty(billing_users))
+                            {
+                                var user_ids = billing_users.Split(',').Select(int.Parse).ToList();
+                                if (user_ids.Count > 0)
+                                {
+                                    var get_user =  _context.Set<User>()
+                                                    .Where(U=> user_ids.Contains(U.UserId) && U.Status != 3)
+                                                    .Select(U=> new
+                                                    {
+                                                        U.PrimaryEmail
+                                                    }).ToList();
+                                    foreach (var bill_user in get_user)
+                                    {
+                                        emaillist.Add(bill_user.PrimaryEmail);
+                                    }
+                                }
+                            }
+
+                            decimal remaing_credit_limit = 0;
+                            if (company.CP.CreditLimit > 0)
+                            {
+                                remaing_credit_limit = company.CP.CreditLimit;
+                            }
+                            else
+                            {
+                                remaing_credit_limit = company.CP.CreditLimit + company.CP.CreditBalance;
+                            }
+
+                            messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                            messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+                            messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+
+                            messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                            messagebody = messagebody.Replace("{AGREEMENT_NUMBER}", agreementNo);
+                            messagebody = messagebody.Replace("{FREE_BALANCE}", _DBC.ToCurrency(company.CP.CreditBalance));
+
+                            string[] toEmails = emaillist.ToArray();
+                            string[] adm_email = { billing_email };
+                            Email(adm_email, messagebody, fromadd, hostname, Subject);
+                            Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        }
+                    }
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public async Task SendAssetReviewAlert(int assetID, int companyID)
         {
             try

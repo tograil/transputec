@@ -21,5 +21,6 @@ public class CompanyTransactionTypeConfiguration : IEntityTypeConfiguration<Comp
         builder.Property(e => e.TransactionRate).HasColumnType("decimal(18, 2)");
 
         builder.Property(e => e.TransactionTypeId).HasColumnName("TransactionTypeID");
+        builder.HasOne(e => e.TransactionType).WithMany().HasForeignKey(a=>a.TransactionTypeId);
     }
 }

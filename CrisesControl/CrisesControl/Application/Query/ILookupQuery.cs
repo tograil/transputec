@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpDept;
+﻿using CrisesControl.Api.Application.Commands.Lookup.AssetTypes;
+using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpDept;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpLoc;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpUser;
 using CrisesControl.Api.Application.Commands.Lookup.GetIcons;
@@ -19,5 +20,6 @@ namespace CrisesControl.Api.Application.Query
         Task<GetTempUserResponse> GetTempUser(GetTempUserRequest request);
         Task<GetTempDeptResponse> GetTempDept(GetTempDeptRequest request);
         Task<GetTempLocResponse> GetTempLoc(GetTempLocRequest request);
+        Task<AssetTypesResponse> AssetTypes();
     }
 }

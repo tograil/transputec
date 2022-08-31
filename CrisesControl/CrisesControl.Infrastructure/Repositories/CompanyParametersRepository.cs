@@ -1,10 +1,13 @@
-﻿using CrisesControl.Core.Companies;
+﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Messages.Repositories;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -22,9 +25,13 @@ namespace CrisesControl.Infrastructure.Repositories {
         private readonly CrisesControlContext _context;
         private readonly ILogger<CompanyParametersRepository> _logger;
         private readonly IMessageRepository _messageRepository;
-        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger)
+        private readonly DBCommon _DBC;
+        private readonly CommsHelper _CH;
+        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, DBCommon DBC, CommsHelper CH)
         {
             this._context = context;
+            _DBC = DBC;
+            _CH = CH;
         }
         public async Task<IEnumerable<CascadingPlanReturn>> GetCascading(int PlanID, string PlanType, int CompanyId, bool GetDetails = false)
         {
@@ -591,6 +598,37 @@ namespace CrisesControl.Infrastructure.Repositories {
                 throw ex;
             }
         }
+
+        public async Task<OTPResponse> SegregationOtp(int companyId, int currentUserId, string method)
+        {
+            OTPResponse result = new OTPResponse();
+            try
+            {
+                var reg_user = await (from U in _context.Set<User>() where U.UserId == currentUserId && U.CompanyId == companyId select U).FirstOrDefaultAsync();
+                if (reg_user != null)
+                {
+                    if (reg_user.RegisteredUser)
+                    {
+
+                        string OTPMessage = _DBC.LookupWithKey("SEGREGATION_CODE_MSG");
+
+
+                        result.Data =  _CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
+                    }
+                    else
+                    {
+                        result.ErrorId = 234;
+                        result.ErrorCode = "E234";
+                        result.Message = "You are not authorized to make this request";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+            return result;
+        }
+
         //public int AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
         //{
         //    try
