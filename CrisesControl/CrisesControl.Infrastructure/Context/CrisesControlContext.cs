@@ -31,7 +31,6 @@ using CrisesControl.Core.Academy;
 using CrisesControl.Core.Sop;
 using CrisesControl.Core.Payments;
 
-
 namespace CrisesControl.Infrastructure.Context
 {
     public class CrisesControlContext : DbContext
@@ -223,6 +222,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompaniesStats>().HasNoKey();
             modelBuilder.Entity<CompanyMessageTransactionStats>().HasNoKey();
             //modelBuilder.Entity<CompanyTranscationType>().HasNoKey();
+            modelBuilder.Entity<UpdateCompanyPaymentProfileModel>().HasNoKey();
+            modelBuilder.Entity<PackageItems>().HasNoKey();
+            modelBuilder.Entity<TransactionRates>().HasNoKey();
+            modelBuilder.Entity<CompanyPackage>().HasNoKey();
+            
+
+
             modelBuilder.Entity<ModuleLinks>().HasNoKey();
             
 
