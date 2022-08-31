@@ -2674,4 +2674,20 @@ public class UserRepository : IUserRepository
             throw new UserNotFoundException(companyId, userId);
         }
     }
+
+    public async Task<List<KeyHolderResponse>> GetKeyHolders(int OutUserCompanyId)
+    {
+        var roles = _DBC.CCRoles(true);
+        var kc = await (from U in _context.Set<User>()
+                  where U.CompanyId == OutUserCompanyId &&
+                  U.Status == 1 &&
+                  (roles.Contains(U.UserRole))
+                  select new KeyHolderResponse() { UserId = U.UserId, UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName } }).ToListAsync();
+
+        if (kc != null)
+        {
+            return kc;
+        }
+        return new List<KeyHolderResponse>();
+    }
 }

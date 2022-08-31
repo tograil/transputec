@@ -1,3 +1,4 @@
+using CrisesControl.Api.Application.Commands.Lookup.AssetTypes;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpDept;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpLoc;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpUser;
@@ -6,6 +7,7 @@ using CrisesControl.Api.Application.Commands.Lookup.GetImportTemplates;
 using CrisesControl.Api.Application.Commands.Lookup.GetTempDept;
 using CrisesControl.Api.Application.Commands.Lookup.GetTempLoc;
 using CrisesControl.Api.Application.Commands.Lookup.GetTempUser;
+using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,9 +20,11 @@ namespace CrisesControl.Api.Controllers
     public class LookupController : ControllerBase
     {
         private readonly IMediator _mediator;
-        public LookupController(IMediator mediator)
+        private readonly ILookupQuery _lookupQuery;
+        public LookupController(IMediator mediator, ILookupQuery lookupQuery)
         {
             this._mediator = mediator;
+            _lookupQuery = lookupQuery;
         }
 
 
@@ -116,6 +120,17 @@ namespace CrisesControl.Api.Controllers
 
             return Ok(result);
         }
-
+        /// <summary>
+        /// Get asset types list
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("AssetTypes")]
+        public async Task<IActionResult> AssetTypesResponse([FromRoute] AssetTypesRequest request)
+        {
+            var result = await _lookupQuery.AssetTypes();
+            return Ok(result);
+        }
     }
 }

@@ -21,9 +21,9 @@ namespace CrisesControl.Api.Application.Commands.Users.GetKeyHolders
         public async Task<GetKeyHoldersResponse> Handle(GetKeyHoldersRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(GetKeyHoldersRequest));
-
-            //var userId = await _userRepository.GetKeyHolders(request.ModuleId, request.UserId, request.XPos, request.YPos);
-            return new GetKeyHoldersResponse();
+            var response = new GetKeyHoldersResponse();
+            response.Data = await _userRepository.GetKeyHolders(request.UserId);
+            return response;
         }
     }
 }

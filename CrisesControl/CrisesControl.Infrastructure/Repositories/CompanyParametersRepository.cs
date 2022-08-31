@@ -604,36 +604,67 @@ namespace CrisesControl.Infrastructure.Repositories {
                 throw ex;
             }
         }
-        public async Task<string> SegregationOtp(int companyId, int currentUserId, string method)
+
+        public async Task<OTPResponse> SegregationOtp(int companyId, int currentUserId, string method)
         {
+            OTPResponse result = new OTPResponse();
             try
             {
-                var reg_user = await _context.Set<User>().Where(U=> U.UserId == currentUserId && U.CompanyId == companyId ).FirstOrDefaultAsync();
+                var reg_user = await (from U in _context.Set<User>() where U.UserId == currentUserId && U.CompanyId == companyId select U).FirstOrDefaultAsync();
                 if (reg_user != null)
                 {
                     if (reg_user.RegisteredUser)
                     {
 
-                        string OTPMessage = DBC.LookupWithKey("SEGREGATION_CODE_MSG");
+                        string OTPMessage = _DBC.LookupWithKey("SEGREGATION_CODE_MSG");
 
-                        CommsHelper commsHelper = new CommsHelper(DBC,_context,_httpContextAccessor,_MSG,_SDE);
 
-                        return commsHelper.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
+                        result.Data =  _CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
                     }
                     else
                     {
-
-                        return "you are not authorized to make this request";
+                        result.ErrorId = 234;
+                        result.ErrorCode = "E234";
+                        result.Message = "You are not authorized to make this request";
                     }
                 }
-                return string.Empty;
             }
             catch (Exception ex)
             {
-                throw ex;
             }
-           
+            return result;
         }
+
+        //public int AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
+        //{
+        //    try
+        //    {
+        //        var comp_param = (from CP in db.CompanyParameters where CP.CompanyId == CompanyId && CP.Name == Name select CP).Any();
+        //        if (!comp_param)
+        //        {
+        //            CompanyParameters NewCompanyParameters = new CompanyParameters()
+        //            {
+        //                CompanyId = CompanyId,
+        //                Name = Name,
+        //                Value = Value,
+        //                Status = 1,
+        //                CreatedBy = CurrentUserId,
+        //                UpdatedBy = CurrentUserId,
+        //                CreatedOn = DateTime.Now,
+        //                UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId)
+        //            };
+        //            db.CompanyParameters.Add(NewCompanyParameters);
+        //            db.SaveChanges(CurrentUserId, CompanyId);
+        //            return NewCompanyParameters.CompanyParametersId;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        catchException(ex);
+        //    }
+        //    return 0;
+        //}
+
 
     }
 }
