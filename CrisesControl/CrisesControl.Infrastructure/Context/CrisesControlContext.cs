@@ -223,6 +223,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompaniesStats>().HasNoKey();
             modelBuilder.Entity<CompanyMessageTransactionStats>().HasNoKey();
             //modelBuilder.Entity<CompanyTranscationType>().HasNoKey();
+            modelBuilder.Entity<UpdateCompanyPaymentProfileModel>().HasNoKey();
+            modelBuilder.Entity<PackageItems>().HasNoKey();
+            modelBuilder.Entity<TransactionRates>().HasNoKey();
+            modelBuilder.Entity<CompanyPackage>().HasNoKey();
+            
+
+
             modelBuilder.Entity<ModuleLinks>().HasNoKey();
             
 
