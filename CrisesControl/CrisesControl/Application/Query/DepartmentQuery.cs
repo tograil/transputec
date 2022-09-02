@@ -58,7 +58,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var departments = _departmentRepository.CheckForExistance(request.DepartmentId);
+                var departments =await _departmentRepository.CheckForExistance(request.DepartmentId);
                 var result = _mapper.Map<bool>(departments);
                 var response = new CheckDepartmentResponse();
                 if (result) { 
