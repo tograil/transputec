@@ -38,8 +38,8 @@ namespace CrisesControl.Api.Application.Query
            
             var RecordStart = _paging.PageNumber == 0 ? 0 : _paging.PageNumber;
             var RecordLength = _paging.PageSize == 0 ? int.MaxValue : _paging.PageSize;
-            var SearchString = (request.search != null) ? request.search.Value : string.Empty;
-             string OrderDir = request.order != null ? request.order.FirstOrDefault().Dir : "asc";
+            var SearchString = (request.Search != null) ? request.Search: string.Empty;
+             string OrderDir = request.OrderDir != null ? request.OrderDir : "asc";
             string OrderBy = _paging.OrderBy != string.Empty ? _paging.OrderBy: "AssetTitle";
             int AssetFilter = request.AssetFilter != null ? request.AssetFilter : 0;            
 

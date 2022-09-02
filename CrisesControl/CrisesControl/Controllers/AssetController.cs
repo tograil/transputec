@@ -27,9 +27,9 @@ namespace CrisesControl.Api.Controllers
 
         }
 
-        [HttpGet]
-        [Route("[action]/{AssetFilter:int}/{Draw:int}")]
-        public async Task<IActionResult> GetAllAssets([FromRoute] GetAllAssetsRequest request, CancellationToken cancellationToken)
+        [HttpGet ("GetAllAssets")]
+        
+        public async Task<IActionResult> GetAllAssets([FromQuery] GetAllAssetsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
