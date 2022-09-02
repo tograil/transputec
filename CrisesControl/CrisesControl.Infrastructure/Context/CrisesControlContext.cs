@@ -30,6 +30,7 @@ using CrisesControl.Core.Companies;
 using CrisesControl.Core.Academy;
 using CrisesControl.Core.Sop;
 using CrisesControl.Core.Payments;
+using CrisesControl.Core.Assets;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -236,7 +237,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyObject>().HasNoKey();
             modelBuilder.Entity<GroupUsers>().HasNoKey();
             modelBuilder.Entity<CompanyScimProfile>().HasNoKey();
-
+            modelBuilder.Entity<AssetLink>().HasNoKey();
+            modelBuilder.Entity<AssetsDetails>().HasNoKey();
             //modelBuilder.Entity<Location>().HasNoKey();
         }
 

@@ -10,10 +10,7 @@ namespace CrisesControl.Api.Application.Commands.Assets.UpdateAssets
         public string? AssetDescription { get; set; }
         public string? AssetType { get; set; }
         public string? AssetPath { get; set; }
-        public int CreatedBy { get; set; }
-        public DateTimeOffset CreatedOn { get; set; }
-        public int UpdatedBy { get; set; }
-        public DateTimeOffset UpdatedOn { get; set; }
+        public string FilePath { get; set; }
         public double AssetSize { get; set; }
         public int Status { get; set; }
         public int SourceObjectId { get; set; }

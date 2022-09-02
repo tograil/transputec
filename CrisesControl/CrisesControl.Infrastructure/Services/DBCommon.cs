@@ -442,18 +442,18 @@ namespace CrisesControl.Api.Application.Helpers
             return DateTime.Now;
         }
         //Todo: implement this based on the scheduler
-        public void DeleteScheduledJob(string jobName, string group)
+        public async Task DeleteScheduledJob(string jobName, string group)
         {
-            //try
-            //{
-            //    ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
-            //    IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
-            //    _scheduler.DeleteJob(new JobKey(JobName, Group));
-            //}
-            //catch (Exception ex)
-            //{
-            //    catchException(ex);
-            //}
+            try
+            {
+                ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+               await _scheduler.DeleteJob(new JobKey(jobName, group));
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         public string GetTimeZoneVal(int userId)

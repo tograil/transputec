@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrisesControl.Core.Assets
 {
-    public record Assets
+    public class Assets
     {
         [Key]
         public int AssetId { get; set; }

@@ -1,7 +1,9 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
+using CrisesControl.Api.Application.Query;
 using CrisesControl.Core.Assets;
 using CrisesControl.Core.Assets.Respositories;
+using FluentValidation;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Assets.UpdateAssets
@@ -9,24 +11,22 @@ namespace CrisesControl.Api.Application.Commands.Assets.UpdateAssets
     public class UpdateAssetsHandler:IRequestHandler<UpdateAssetsRequest, UpdateAssetsResponse>
     {
         private readonly UpdateAssetsValidator _assetValidator;
-        private readonly IAssetRepository _assetRepository;
-        private readonly IMapper _mapper;
+        private readonly IAssetQuery _assetQuery;
+        private readonly ILogger<UpdateAssetsHandler> _logger;
 
-        public UpdateAssetsHandler(UpdateAssetsValidator assetValidator, IAssetRepository assetRepository, IMapper mapper)
+        public UpdateAssetsHandler(UpdateAssetsValidator assetValidator, IAssetQuery assetRepository, ILogger<UpdateAssetsHandler> logger)
         {
             _assetValidator = assetValidator;
-            _assetRepository = assetRepository;
-            _mapper = mapper;
+            _assetQuery = assetRepository;
+            _logger = logger;
+           
         }
 
-        public async Task<UpdateAssetsResponse> Handle(UpdateAssetsRequest updateAssetsRequest, CancellationToken cancellationToken)
+        public async Task<UpdateAssetsResponse> Handle(UpdateAssetsRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(updateAssetsRequest, nameof(UpdateAssetsRequest));
-
-            Core.Assets.Assets value = _mapper.Map<UpdateAssetsRequest, Core.Assets.Assets>(updateAssetsRequest);
-            var assetId = await _assetRepository.UpdateAsset(value, cancellationToken);
-            var result = new UpdateAssetsResponse();
-            result.AssetId = assetId;
+            Guard.Against.Null(request, nameof(UpdateAssetsRequest));
+            await _assetValidator.ValidateAndThrowAsync(request, cancellationToken);
+            var result = await _assetQuery.UpdateAssets(request, cancellationToken); 
             return result;
         } 
     }

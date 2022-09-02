@@ -9,12 +9,12 @@ namespace CrisesControl.Api.Application.Commands.Departments.CheckDepartment
     public class CheckDepartmentHandler : IRequestHandler<CheckDepartmentRequest, CheckDepartmentResponse>
     {
         private readonly IDepartmentQuery _departmentQuery;
-        private readonly IMapper _mapper;
+        private readonly ILogger<CheckDepartmentHandler> _logger;
         private readonly CheckDepartmentValidator _departmentValidator;
-        public CheckDepartmentHandler(IMapper mapper, IDepartmentQuery departmentQuery, CheckDepartmentValidator departmentValidator)
+        public CheckDepartmentHandler(ILogger<CheckDepartmentHandler> logger, IDepartmentQuery departmentQuery, CheckDepartmentValidator departmentValidator)
         {
             this._departmentQuery = departmentQuery;
-            this._mapper = mapper;
+            this._logger = logger;
             this._departmentValidator = departmentValidator;
         }
         public async Task<CheckDepartmentResponse> Handle(CheckDepartmentRequest request, CancellationToken cancellationToken)
