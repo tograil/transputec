@@ -31,6 +31,7 @@ using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
 using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.Core.Import;
+using System.Net.Http;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -42,6 +43,7 @@ namespace CrisesControl.Api.Application.Helpers
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
         ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
+        bool isretry = false;
 
         public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
@@ -1484,6 +1486,135 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
             return "";
+        }
+        public async Task<DateTimeOffset> LookupLastUpdate(string Key)
+        {
+            try
+            {
+
+                var LKP = await _context.Set<SysParameter>()
+                           .Where(L=> L.Name == Key
+                           ).FirstOrDefaultAsync();
+                if (LKP != null)
+                {
+                    return LKP.UpdatedOn;
+                }
+                return new DateTimeOffset();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return new DateTimeOffset();
+            }
+        }
+        public async Task<DateTimeOffset> GetCompanyParameterLastUpdate(string Key, int CompanyId)
+        {
+            try
+            {
+
+                var LKP = await _context.Set<CompanyParameter>()
+                           .Where(L=> L.Name == Key && L.CompanyId == CompanyId).FirstOrDefaultAsync ();
+                if (LKP != null)
+                {
+                    return LKP.UpdatedOn;
+                }
+                return new DateTimeOffset();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return new DateTimeOffset();
+            }
+        }
+        public DateTime DbDate()
+        {
+            return new DateTime(1900, 01, 01, 0, 0, 0);
+        }
+
+        
+        public string RetrieveFormatedAddress(string lat, string lng)
+        {
+            try
+            {
+                string APIKey = LookupWithKey("GOOGLE_LEGACY_API_KEY");
+                string baseUri = "https://maps.googleapis.com/maps/api/" +
+                          "geocode/xml?latlng={0},{1}&sensor=false&key={2}";
+                string requestUri = string.Format(baseUri, lat, lng, APIKey);
+
+                HttpClient client = new HttpClient();
+                client.BaseAddress = new Uri(requestUri);
+
+                Task<string> result = client.GetStringAsync(new Uri(requestUri));
+
+                var xmlElm = XElement.Parse(result.Result);
+
+                var status = (from elm in xmlElm.Descendants()
+                              where elm.Name == "status"
+                              select elm).FirstOrDefault();
+
+                if (status.Value.ToLower() == "ok")
+                {
+
+                    var res = (from elm in xmlElm.Descendants()
+                               where elm.Name == "formatted_address"
+                               select elm).Skip(1).FirstOrDefault();
+
+                    if (res == null)
+                    {
+                        res = (from elm in xmlElm.Descendants()
+                               where elm.Name == "formatted_address"
+                               select elm).FirstOrDefault();
+                    }
+
+                    if (res.Value != null)
+                    {
+                        return res.Value.ToString();
+                    }
+                    else
+                    {
+                        if (!isretry)
+                        {
+                            string tryagain = "";
+                            int retrycount = 0;
+                            while (tryagain == "" && retrycount < 3)
+                            {
+                                tryagain = RetrieveFormatedAddress(lat, lng);
+                                isretry = true;
+                                retrycount++;
+                            }
+                        }
+                    }
+                }
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+        public async Task UpdateUserLocation(int userid, int companyid, string latitude, string longitude, string timeZoneId)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(latitude) && !string.IsNullOrEmpty(longitude) && latitude != "0" && longitude != "0")
+                {
+                    var updatelocation = _context.Set<User>().Where(user => user.UserId == userid).FirstOrDefault();
+                    if (updatelocation != null)
+                    {
+                        updatelocation.Lat = Left(latitude, 10).Replace(",", ".");
+                        updatelocation.Lng = Left(longitude, 10).Replace(",", ".");
+                        updatelocation.LastLocationUpdate = GetDateTimeOffset(DateTime.Now, timeZoneId);
+                        _context.Update(updatelocation);
+                       await  _context.SaveChangesAsync();
+                    }
+                }
+            }
+           
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }

@@ -37,6 +37,7 @@ using CrisesControl.Core.Lookup.Repositories;
 using CrisesControl.Core.FileService.Repositories;
 using CrisesControl.Core.CustomEventLog.Repositories;
 using CrisesControl.Core.Sop.Respositories;
+using CrisesControl.Core.App.Repositories;
 using CrisesControl.Core.CCWebSocket.Repositories;
 
 namespace CrisesControl.Infrastructure
@@ -114,6 +115,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<LookupRepository>().As<ILookupRepository>();
             builder.RegisterType<FileServiceRepository>().As<IFileServiceRepository>();
             builder.RegisterType<SopRepository>().As<ISopRepository>();
+            builder.RegisterType<AppRepository>().As<IAppRepository>();
             builder.RegisterType<CCWebSocketRepository>().As<ICCWebSocketRepository>();
         }
 
