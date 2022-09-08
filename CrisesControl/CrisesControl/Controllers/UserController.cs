@@ -35,6 +35,9 @@ using CrisesControl.Api.Application.Commands.Users.SaveDashboard;
 using CrisesControl.Api.Application.Commands.Users.AddDashlet;
 using CrisesControl.Api.Application.Commands.Users.GetUserSystemInfo;
 using CrisesControl.Api.Application.Commands.Users.GetKeyHolders;
+using CrisesControl.Api.Application.Commands.Users.ForgotPassword;
+using CrisesControl.Api.Application.Commands.Users.LinkResetPassword;
+using CrisesControl.Api.Application.Commands.Users.ResetPassword;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -335,5 +338,46 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+
+        /// <summary>
+        /// Forgot Password
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("[action]")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        /// <summary>
+        /// Link Reset Password
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("[action]")]
+        public async Task<IActionResult> LinkResetPassword([FromBody] LinkResetPasswordRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+        /// <summary>
+        /// Reset Password
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("[action]")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return Ok(result);
+        }
+
     }
 }

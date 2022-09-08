@@ -10,6 +10,9 @@ using CrisesControl.Api.Application.Commands.Users.MembershipList;
 using CrisesControl.Api.Application.ViewModels.User;
 using CrisesControl.Core.Users;
 using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
+using CrisesControl.Api.Application.Commands.Users.ResetPassword;
+using CrisesControl.Api.Application.Commands.Users.ForgotPassword;
+using CrisesControl.Api.Application.Commands.Users.LinkResetPassword;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -26,5 +29,8 @@ namespace CrisesControl.Api.Application.Query
         public Task<ValidateEmailResponse> ValidateLoginEmail(ValidateEmailRequest request);
         public Task<IEnumerable<GetUserCommsResponse>> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken);
         public Task<IEnumerable<GetAllOneUserDeviceListResponse>> GetAllOneUserDeviceList(GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken);
+        Task<ResetPasswordResponse> ResetPassword(ResetPasswordRequest request);
+        Task<ForgotPasswordResponse> ForgotPassword(ForgotPasswordRequest request);
+        Task<LinkResetPasswordResponse> LinkResetPassword(LinkResetPasswordRequest request);
     }
 }

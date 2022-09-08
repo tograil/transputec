@@ -15,6 +15,11 @@ using CrisesControl.Core.Users.Repositories;
 using FluentValidation;
 using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
 using CrisesControl.Api.Application.Commands.Users.GetAllUser;
+using CrisesControl.Api.Application.Commands.Users.ResetPassword;
+using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Api.Application.Commands.Users.ForgotPassword;
+using CrisesControl.Api.Application.Commands.Users.LinkResetPassword;
+using CrisesControl.SharedKernel.Utils;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -27,7 +32,8 @@ namespace CrisesControl.Api.Application.Query
         private readonly LoginValidator _loginValidator;
         private readonly ILogger<UserQuery> _logger;
         private readonly IPaging _paging;
-        public UserQuery(IUserRepository UserRepository, IMapper mapper, ILogger<UserQuery> logger, IPaging paging, GetAllUserValidator getUsersValidator, GetUserValidator getUserValidator, LoginValidator loginValidator)
+        private readonly ICurrentUser _currentUser;
+        public UserQuery(IUserRepository UserRepository, IMapper mapper, ILogger<UserQuery> logger, IPaging paging, GetAllUserValidator getUsersValidator, GetUserValidator getUserValidator, LoginValidator loginValidator, ICurrentUser currentUser)
         {
             _UserRepository = UserRepository;
             _mapper =  mapper;
@@ -36,6 +42,7 @@ namespace CrisesControl.Api.Application.Query
             _loginValidator = loginValidator;
             _logger = logger;
             _paging = paging;
+            _currentUser = currentUser;
         }
 
         public async Task<GetAllUserResponse> GetUsers(Commands.Users.GetAllUser.GetAllUserRequest request, CancellationToken cancellationToken)
@@ -139,6 +146,76 @@ namespace CrisesControl.Api.Application.Query
             var response = await _UserRepository.GetAllOneUserDeviceList(request.QueriedUserId, cancellationToken);
             var result = _mapper.Map<List<GetAllOneUserDeviceListResponse>>(response);
             return result;
+        }
+
+        public async Task<ResetPasswordResponse> ResetPassword(ResetPasswordRequest request)
+        {
+            try
+            {
+                var resetPassword = await _UserRepository.ResetPassword(_currentUser.CompanyId,_currentUser.UserId,request.OldPassword,request.NewPassword);
+                var result = _mapper.Map<string>(resetPassword);
+                var response = new ResetPasswordResponse();
+                if (!string.IsNullOrEmpty(result))
+                {
+                    response.ResetPassword = result;
+                }
+                else
+                {
+                    response.ResetPassword = "No data found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+         
+        }
+
+        public async Task<ForgotPasswordResponse> ForgotPassword(ForgotPasswordRequest request)
+        {
+            try
+            {
+                var forgotPassword = await _UserRepository.ForgotPassword(request.EmailId,request.Method.ToDbString(),request.CustomerId,request.OTPMessage,request.Return,_currentUser.CompanyId,_currentUser.TimeZone,request.Source);
+                var result = _mapper.Map<string>(forgotPassword);
+                var response = new ForgotPasswordResponse();
+                if (!string.IsNullOrEmpty(result))
+                {
+                    response.Message = result;
+                }
+                else
+                {
+                    response.Message = "No data found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<LinkResetPasswordResponse> LinkResetPassword(LinkResetPasswordRequest request)
+        {
+            try
+            {
+                var forgotPassword = await _UserRepository.LinkResetPassword(_currentUser.CompanyId, request.QueriedGuid,request.NewPassword,_currentUser.TimeZone);
+                var result = _mapper.Map<string>(forgotPassword);
+                var response = new LinkResetPasswordResponse();
+                if (!string.IsNullOrEmpty(result))
+                {
+                    response.Message = result;
+                }
+                else
+                {
+                    response.Message = "No data found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }

@@ -77,5 +77,9 @@ public interface IUserRepository
     void AddUserModuleItem(int userId, int moduleId, decimal xPos, decimal yPos, decimal width, decimal height, CancellationToken cancellationToken);
     Task<dynamic> AddDashlet(int moduleId, int userId, decimal xPos, decimal yPos);
     Task<List<KeyHolderResponse>> GetKeyHolders(int OutUserCompanyId);
+    Task<string> ForgotPassword(string email, string method, string customerId, string otpMessage, string returns, int companyID, string timeZoneId = "GMT Standard Time", string source = "WEB");
+    Task<dynamic> SendOTPByEmail(string emailId, string returns = "bool", string customerId = "", string otpMessage = "", string source = "WEB");
+    Task<string> LinkResetPassword(int companyID, string queriedGuid, string newPassword, string timeZoneId);
+    Task<string> ResetPassword(int companyID, int userID, string oldPassword, string newPassword);
 
 }

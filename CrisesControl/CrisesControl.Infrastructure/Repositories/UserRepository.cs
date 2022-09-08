@@ -15,6 +15,7 @@ using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
@@ -33,6 +34,8 @@ public class UserRepository : IUserRepository
     private readonly DBCommon _DBC;
     private readonly LocationRepository _locationRepository;
     private readonly GroupRepository _groupRepository;
+    private readonly Messaging _MSG;
+
 
     private int userId;
     private int companyId;
@@ -47,7 +50,8 @@ public class UserRepository : IUserRepository
         SendEmail SDE,
         DBCommon DBC,
         LocationRepository locationRepository,
-        GroupRepository groupRepository
+        GroupRepository groupRepository,
+         Messaging MSG
         )
     {
         _context = context;
@@ -59,6 +63,7 @@ public class UserRepository : IUserRepository
         _DBC = DBC;
         _locationRepository = locationRepository;
         _groupRepository = groupRepository;
+        _MSG = MSG;
     }
 
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
@@ -2690,4 +2695,329 @@ public class UserRepository : IUserRepository
         }
         return new List<KeyHolderResponse>();
     }
+    public async Task<string> ForgotPassword(string email, string method, string customerId,string otpMessage,string returns,int companyID,string timeZoneId= "GMT Standard Time", string source="WEB")
+    {
+        try
+        {
+            string newguid = Guid.NewGuid().ToString();
+            string Message = string.Empty;
+            if (method == MessageType.Email.ToDbString())
+            {
+                string Subject = string.Empty;
+                email = email.Trim().ToLower();
+                customerId = customerId.Trim().ToLower();
+
+                var UserInfo = await  _context.Set<User>().Include(C=>C.Company)
+                               .Where(U=> U.PrimaryEmail == email && U.Status == 1)
+                               .Select(U=> new
+                                {
+                                    TimeZondId = U.Company.StdTimeZone.ZoneLabel,
+                                    CompanyName = U.Company.CompanyName,
+                                    CompanyLogo = U.Company.CompanyLogoPath,
+                                    CustomerId = U.Company.CustomerId,
+                                    U
+                                }).FirstOrDefaultAsync();
+
+                if (UserInfo != null)
+                {
+                    string sso_tenenat_id = _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", UserInfo.U.CompanyId);
+
+                    if (!string.IsNullOrEmpty(sso_tenenat_id))
+                    {
+                        //ResultDTO.ErrorId = 226;
+                        //ResultDTO.ErrorCode = "E226";
+                        Message = "Single Sign-on enabled, please contact your domain administrator.";
+                        return Message;
+                    }
+
+
+                    //CustomerID validation
+                    if (UserInfo.CustomerId.ToLower() != customerId && source == "APP")
+                    {
+                        Message = "Invalid Customer Id";
+                        return Message;
+                    }
+
+                    //CustomerID validation
+                    if (UserInfo.CustomerId.ToLower() != customerId && source == "APP")
+                    {
+                        Message = "Invalid Customer Id";
+                        return Message;
+                    }
+
+                    UserInfo.U.UniqueGuiId = newguid;
+                   await _context.SaveChangesAsync();
+
+
+                    companyID = UserInfo.U.CompanyId;
+                    timeZoneId = UserInfo.TimeZondId;
+
+                    string hostname = string.Empty;
+                    string fromadd = string.Empty;
+                    string resetLink = string.Empty;
+                    string appresetLink = string.Empty;
+
+                 
+
+
+                    hostname = _DBC.LookupWithKey("SMTPHOST");
+                    fromadd = _DBC.LookupWithKey("EMAILFROM");
+                    resetLink = _DBC.LookupWithKey("RESETPASSWORDURL");
+                    appresetLink = _DBC.LookupWithKey("APPRESETPASSWORDURL");
+                    string Portal = _DBC.LookupWithKey("PORTAL");
+
+                    if (source == "APP")
+                        resetLink = appresetLink;
+
+                    resetLink = Portal + resetLink + newguid;
+
+                    string htmlContent = string.Empty;
+                    //string Templatepath = sysparms.Where(w => w.Name == "API_TEMPLATE_PATH").Select(s => s.Value).FirstOrDefault();
+
+                    htmlContent = Convert.ToString(_DBC.ReadHtmlFile("FORGOT_PASSWORD", "DB", companyID, out Subject));
+
+                    string CompanyLogo = Portal + "/uploads/" + UserInfo.U.CompanyId + "/companylogos/" + UserInfo.CompanyLogo;
+
+                    if (string.IsNullOrEmpty(UserInfo.CompanyLogo))
+                    {
+                        CompanyLogo = _DBC.LookupWithKey("CCLOGO");
+                    }
+
+                    if ((!string.IsNullOrEmpty(hostname)) && (!string.IsNullOrEmpty(fromadd)))
+                    {
+                        string messagebody = htmlContent;
+                        messagebody = messagebody.Replace("{RECIPIENT_NAME}", UserInfo.U.FirstName + " " + UserInfo.U.LastName);
+                        messagebody = messagebody.Replace("{COMPANY_NAME}", UserInfo.CompanyName);
+                        messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                        messagebody = messagebody.Replace("{RESET_LINK}", resetLink);
+                        messagebody = messagebody.Replace("{CC_WEBSITE}", _DBC.LookupWithKey("DOMAIN"));
+                        messagebody = messagebody.Replace("{PORTAL}", _DBC.LookupWithKey("PORTAL"));
+                        messagebody = messagebody.Replace("{SUPPORT_EMAIL}", _DBC.LookupWithKey("APP_SUPPORT_EMAIL"));
+                        messagebody = messagebody.Replace("{CC_LOGO}", _DBC.LookupWithKey("CCLOGO"));
+                        messagebody = messagebody.Replace("{CC_USER_SUPPORT_LINK}", _DBC.LookupWithKey("CC_USER_SUPPORT_LINK"));
+                        messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", email);
+                        messagebody = messagebody.Replace("{CUSTOMER_ID}", UserInfo.CustomerId);
+
+
+                        SendEmail sendEmail = new SendEmail(_context,_DBC);
+
+                        string[] toEmails = { email };
+
+                        bool ismailsend = sendEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
+
+                        if (ismailsend == false)
+                        {
+                           Message = "Email send failed! Please try again.";
+                        }
+                        else
+                        {
+                            Message = "An email has been sent to user for resetting the password.";
+                        }
+                    }
+                }
+                else
+                {
+                    Message = "An email has been sent to user for resetting the password.";
+                }
+            }
+            else
+            {
+                await SendOTPByEmail(email, returns, customerId, otpMessage, source);
+                Message = "OTP Pin has been sent to you email";
+            }
+            return Message;
+        }
+        catch (System.Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<dynamic> SendOTPByEmail(string emailId, string returns = "bool", string customerId = "", string otpMessage = "", string source = "WEB")
+    {
+        try
+        {
+            string message = string.Empty;
+            if (string.IsNullOrEmpty(otpMessage))
+            {
+                otpMessage = _DBC.LookupWithKey("VERIFICATION_CODE_MSG");
+            }
+            double code_expiry = 15D;
+            double.TryParse(_DBC.LookupWithKey("VERIFICATION_CODE_EXP_MIN"), out code_expiry);
+
+            otpMessage = otpMessage.Replace("{MINUTES}", code_expiry.ToString());
+
+            emailId = emailId.ToLower();
+
+            var user =  _context.Set<User>().Include(c=>c.Company)                    
+                        .Where(U=> U.PrimaryEmail == emailId && U.Status == 1)
+                        .Select(U => new
+                        {
+                            TimeZondId = U.Company.StdTimeZone.ZoneLabel,
+                            CompanyName = U.Company.CompanyName,
+                            CompanyLogo = U.Company.CompanyLogoPath,
+                            CustomerId= U.Company.CustomerId,
+                            U
+                        }).FirstOrDefault();
+
+            if (user != null)
+            {
+                string is_sso_enabled = _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", user.U.CompanyId);
+
+                if (!string.IsNullOrEmpty(is_sso_enabled))
+                {
+                    message = "Single Sign-on enabled, please contact your domain administrator.";
+                    return message;
+                }
+
+                //CustomerID validation
+                if (user.CustomerId != customerId && source == "APP")
+                {
+                   
+                    message = "Invalid Customer Id";
+                    return message;
+                }
+
+                CommsHelper CH = new CommsHelper(_DBC,_context,_httpContextAccessor,_MSG,_SDE);
+                string UserMobile = _DBC.FormatMobile(user.U.Isdcode, user.U.MobileNo);
+
+                string Code = CH.SendOTP(user.U.Isdcode, UserMobile, otpMessage);
+
+                if (!string.IsNullOrEmpty(Code))
+                {
+                    user.U.Otpcode = Code;
+                    user.U.Otpexpiry = DateTime.Now.AddMinutes(code_expiry);
+                    await _context.SaveChangesAsync();
+                    if (returns == "data")
+                    {
+                        return user;
+                    }
+                    return true;
+                }
+                else
+                {
+                    message = "Problem in sending Verification Code";
+                }
+            }
+            else
+            {
+                message = "Invalid request.  No record found.";
+            }
+            return message;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+    public async Task<string> LinkResetPassword(int companyID, string queriedGuid,string newPassword, string timeZoneId)
+    {
+      
+        try
+        {
+            string message = string.Empty;
+            var userdata = await  _context.Set<User>().Where(U=> U.UniqueGuiId == queriedGuid).FirstOrDefaultAsync();
+            if (userdata != null)
+            {
+                companyID = userdata.CompanyId;
+                var compdata = await _context.Set<Company>().Include(T=>T.StdTimeZone)
+                                .Where(C=> C.CompanyId == userdata.CompanyId)
+                                .Select(T=> new { TimeZondId = T.StdTimeZone.ZoneLabel }).FirstOrDefaultAsync();
+                if (compdata != null)
+                {
+                    timeZoneId = compdata.TimeZondId;
+                }
+
+                string PwdError =  string.Empty;
+                bool pwdTrue = ValidateUserPassword(userdata.UserId, newPassword, userdata.CompanyId, true, out PwdError);
+
+                if (pwdTrue)
+                {
+                    string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", userdata.CompanyId);
+
+                    if (CompExpirePwd == "true")
+                    {
+                        userdata.PasswordChangeDate = DateTimeOffset.Now;
+                    }
+                    userdata.Password = newPassword;
+                    userdata.FirstLogin = false;
+                    //userdata.TOKEN = Guid.NewGuid().ToString();
+                    userdata.UniqueGuiId = Guid.NewGuid().ToString();
+                    userdata.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    await _context.SaveChangesAsync();
+
+                    _DBC.RemoveUserDevice(userdata.UserId, true);
+                    message = "Reset password successful.";
+                }
+                else
+                {
+                    message = PwdError;
+                }
+                return message;
+            }
+            else
+            {
+                message = "Invalid query";
+            }
+            return message;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }   
+
+    public async Task<string> ResetPassword(int companyID, int userID, string oldPassword, string newPassword)
+    {
+        
+        try
+        {
+            string Message = string.Empty;
+            var Changepassword = await _context.Set<User>().SingleAsync(user => user.UserId == userID);
+            if (Changepassword != null)
+            {
+                if (oldPassword != _DBC.PWDencrypt(Changepassword.Password))
+                {
+                    Message = "Invalid old password.";
+                }
+                else
+                {
+                    string PwdError = string.Empty;
+                    bool pwdTrue = ValidateUserPassword(Changepassword.UserId, newPassword, companyID, true, out PwdError);
+
+                    if (pwdTrue)
+                    {
+                        string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", companyID);
+                        int DaysToExpire = Convert.ToInt16(_DBC.GetCompanyParameter("EXPIRE_PWD_IN_DAYS", companyID));
+                        if (CompExpirePwd == "true")
+                        {
+                            Changepassword.PasswordChangeDate = DateTime.Now.AddDays((double)DaysToExpire);
+                        }
+                        Changepassword.FirstLogin = false;
+                        Changepassword.Password = newPassword;
+                        await _context.SaveChangesAsync();
+
+                        _DBC.RemoveUserDevice(userID, true);
+
+                        Message = "Password reset successful";
+                    }
+                    else
+                    {
+                       Message = PwdError;
+                    }
+                }
+            }
+            else
+            {
+               Message = "Invalid login id or password.";
+            }
+            return Message;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
 }
