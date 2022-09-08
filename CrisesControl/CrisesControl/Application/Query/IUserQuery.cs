@@ -22,7 +22,7 @@ namespace CrisesControl.Api.Application.Query
         public Task<GetUserResponse> GetUser(GetUserRequest request, CancellationToken cancellationToken);
         public Task<LoginResponse> GetLoggedInUserInfo(LoginRequest request, CancellationToken cancellationToken);
         public Task<ActivateUserResponse> ReactivateUser(int queriedUserId, CancellationToken cancellationToken);
-        public Task<List<GetAllUserDevicesResponse>> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken);
+        public Task<GetAllUserDevicesResponse> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken);
 
         Task<MembershipResponse> MembershipList(MembershipRequest request);
 

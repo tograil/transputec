@@ -46,19 +46,18 @@ namespace CrisesControl.Api.Controllers
     public class UserController : Controller
     {
         private readonly IMediator _mediator;
-        private readonly IUserQuery _userQuery;
+        //private readonly IUserQuery _userQuery;
 
-        public UserController(IMediator mediator, IUserQuery userQuery)
+        public UserController(IMediator mediator)
         {
             _mediator = mediator;
-            _userQuery = userQuery;
         }
 
         [HttpPost]
         [Route("GetAllUser")]
         public async Task<IActionResult> GetAllUser([FromForm] GetAllUserRequest request, CancellationToken cancellationToken)
         {
-            var result = await _userQuery.GetUsers(request, cancellationToken);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 
@@ -66,7 +65,7 @@ namespace CrisesControl.Api.Controllers
         [Route("GetUser/{CompanyId:int}/{UserId:int}")]
         public async Task<IActionResult> GetUser([FromRoute] GetUserRequest request, CancellationToken cancellationToken)
         {
-            var result = await _userQuery.GetUser(request, cancellationToken);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpGet]
@@ -81,7 +80,7 @@ namespace CrisesControl.Api.Controllers
         [Route("GetLoggedinUserInfo")]
         public async Task<IActionResult> GetLoggedinUserInfo([FromForm] LoginRequest request, CancellationToken cancellationToken)
         {
-            var result = await _userQuery.GetLoggedInUserInfo(request, cancellationToken);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         
@@ -150,7 +149,7 @@ namespace CrisesControl.Api.Controllers
         [Route("GetAllUserDeviceList")]
         public async Task<IActionResult> GetAllUserDeviceList([FromBody] GetAllUserDevicesRequest request, CancellationToken cancellationToken)
         {
-            var result = await _userQuery.GetAllUserDeviceList(request, cancellationToken);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 
@@ -158,7 +157,7 @@ namespace CrisesControl.Api.Controllers
         [Route("GetUserComms")]
         public async Task<IActionResult> GetUserComms([FromBody] GetUserCommsRequest request, CancellationToken cancellationToken)
         {
-            var result = await _userQuery.GetUserComms(request, cancellationToken);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 
@@ -207,7 +206,7 @@ namespace CrisesControl.Api.Controllers
         [Route("GetAllOneUserDeviceList")]
         public async Task<IActionResult> GetAllOneUserDeviceList([FromBody] GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken)
         {
-            var result = await _userQuery.GetAllOneUserDeviceList(request, cancellationToken);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 

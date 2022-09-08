@@ -27,19 +27,19 @@ namespace CrisesControl.Api.Application.Query
     {
         private readonly IUserRepository _UserRepository;
         private readonly IMapper _mapper;
-        private readonly GetAllUserValidator _getUsersValidator;
-        private readonly GetUserValidator _getUserValidator;
-        private readonly LoginValidator _loginValidator;
+        //private readonly GetAllUserValidator _getUsersValidator;
+        //private readonly GetUserValidator _getUserValidator;
+        //private readonly LoginValidator _loginValidator;
         private readonly ILogger<UserQuery> _logger;
         private readonly IPaging _paging;
         private readonly ICurrentUser _currentUser;
-        public UserQuery(IUserRepository UserRepository, IMapper mapper, ILogger<UserQuery> logger, IPaging paging, GetAllUserValidator getUsersValidator, GetUserValidator getUserValidator, LoginValidator loginValidator, ICurrentUser currentUser)
+        public UserQuery(IUserRepository UserRepository, IMapper mapper, ILogger<UserQuery> logger, IPaging paging, ICurrentUser currentUser)
         {
             _UserRepository = UserRepository;
             _mapper =  mapper;
-            _getUsersValidator = getUsersValidator;
-            _getUserValidator = getUserValidator;
-            _loginValidator = loginValidator;
+            //_getUsersValidator = getUsersValidator;
+            //_getUserValidator = getUserValidator;
+            //_loginValidator = loginValidator;
             _logger = logger;
             _paging = paging;
             _currentUser = currentUser;
@@ -47,10 +47,7 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetAllUserResponse> GetUsers(Commands.Users.GetAllUser.GetAllUserRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(GetUserRequest));
-
-            await _getUsersValidator.ValidateAndThrowAsync(request, cancellationToken);
-
+           
             var mappedRequest = _mapper.Map<Core.Users.GetAllUserRequestList>(request);
             var users = await _UserRepository.GetAllUsers(mappedRequest);
             List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(users.ToList());
@@ -61,10 +58,6 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetUserResponse> GetUser(GetUserRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(GetUserRequest));
-
-            await _getUserValidator.ValidateAndThrowAsync(request, cancellationToken);
-
             var User = await _UserRepository.GetUser(request.CompanyId, request.UserId);
             GetUserResponse response = _mapper.Map<User, GetUserResponse>(User);
 
@@ -73,9 +66,7 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<LoginResponse> GetLoggedInUserInfo(LoginRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(LoginRequest));
-            await _loginValidator.ValidateAndThrowAsync(request, cancellationToken);
-
+           
             var loginRequest = _mapper.Map<LoginInfo>(request);
             var LoginInfo = await _UserRepository.GetLoggedInUserInfo(loginRequest, cancellationToken);
             var result = _mapper.Map<LoginResponse>(LoginInfo);
@@ -127,12 +118,14 @@ namespace CrisesControl.Api.Application.Query
             return result;
         }
 
-        public async Task<List<GetAllUserDevicesResponse>> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken)
+        public async Task<GetAllUserDevicesResponse> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken)
         {
             GetAllUserDeviceRequest requestMapped = _mapper.Map<GetAllUserDeviceRequest>(request);
             var getAllUserDevices = await _UserRepository.GetAllUserDeviceList(requestMapped, cancellationToken);
-            var result = _mapper.Map<List<GetAllUserDevicesResponse>>(getAllUserDevices);
-            return result;
+            var result = _mapper.Map<List<GetAllUserDevices>>(getAllUserDevices);
+            var response = new GetAllUserDevicesResponse();
+            response.Data = result;
+            return response;
         }
 
         public async Task<IEnumerable<GetUserCommsResponse>> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken)

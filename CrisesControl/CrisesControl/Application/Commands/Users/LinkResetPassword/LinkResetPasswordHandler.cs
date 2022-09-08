@@ -10,7 +10,7 @@ namespace CrisesControl.Api.Application.Commands.Users.LinkResetPassword
         private readonly IUserQuery _userQuery;
         private readonly ILogger<LinkResetPasswordHandler> _logger;
         private readonly LinkResetPasswordValidator _validationResetPassword;
-        public LinkResetPasswordHandler(IUserQuery userQuery, ILogger<LinkResetPasswordHandler> logger, LinkResetPasswordValidator validationReset)
+        public LinkResetPasswordHandler(IUserQuery userQuery,ILogger<LinkResetPasswordHandler> logger, LinkResetPasswordValidator validationReset)
         {
             this._logger = logger;
             this._userQuery = userQuery;
@@ -20,8 +20,9 @@ namespace CrisesControl.Api.Application.Commands.Users.LinkResetPassword
         {
             Guard.Against.Null(request, nameof(LinkResetPasswordRequest));
             await _validationResetPassword.ValidateAndThrowAsync(request, cancellationToken);
-            var result = await _userQuery.LinkResetPassword(request);
+             var result = await _userQuery.LinkResetPassword(request);
             return result;
+            return null;
         }
     }
 }
