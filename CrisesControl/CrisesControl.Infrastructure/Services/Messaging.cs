@@ -1560,49 +1560,48 @@ namespace CrisesControl.Infrastructure.Services
             return CallDetailId;
         }
 
-        //public void AddUserLocation(int UserID, int UserDeviceID, double Latitude, double Longitude, string LocationAddress,
-        //    DateTimeOffset UserDeviceTime, string TimeZoneId, int CompanyID)
-        //{
-        //    DBCommon DBC = new DBCommon();
-        //    try
-        //    {
-        //        if (Latitude != 0 && Longitude != 0)
-        //        {
-        //            UserLocation UL = new UserLocation
-        //            {
-        //                UserID = UserID,
-        //                UserDeviceID = UserDeviceID,
-        //                Latitude = Convert.ToDouble(DBC.Left(Latitude.ToString().Replace(",", "."), 15)),
-        //                Longitude = Convert.ToDouble(DBC.Left(Longitude.ToString().Replace(",", "."), 15)),
-        //                LocationAddress = LocationAddress,
-        //                CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-        //                CreatedOnGMT = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-        //                UserDeviceTime = UserDeviceTime != null ? UserDeviceTime : DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
-        //            };
-        //            ;
-        //            db.UserLocation.Add(UL);
-        //            db.SaveChanges();
+        public async Task AddUserLocation(int userID, int userDeviceID, double latitude, double longitude, string locationAddress,
+            DateTimeOffset userDeviceTime, string timeZoneId, int companyID)
+        {
+            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+            try
+            {
+                if (latitude != 0 && longitude != 0)
+                {
+                    UserLocation UL = new UserLocation
+                    {
+                        UserId = userID,
+                        UserDeviceId = userDeviceID,
+                        Lat = DBC.Left(latitude.ToString().Replace(",", "."), 15),
+                        Long = DBC.Left(longitude.ToString().Replace(",", "."), 15),
+                        LocationName = locationAddress,
+                        CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        CreatedOnGMT = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        UserDeviceTime = userDeviceTime != null ? userDeviceTime : DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                    };
+                    ;
+                   await db.AddAsync(UL);
+                   await db.SaveChangesAsync();
 
-        //            DBC.UpdateUserLocation(UserID, CompanyID, Latitude.ToString(), Longitude.ToString(), TimeZoneId);
-        //        }
+                  await  DBC.UpdateUserLocation(userID, companyID, latitude.ToString(), longitude.ToString(), TimeZoneId);
+                }
 
 
-        //        var track_me = (from TM in db.TrackMe
-        //                        where TM.UserDeviceID == UserDeviceID &&
-        //                        TM.TrackMeStopped.Value.Year < 2000
-        //                        select TM).ToList();
-        //        foreach (var tm in track_me)
-        //        {
-        //            tm.LastUpdate = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
-        //        }
-        //        db.SaveChanges();
+                var track_me = await db.Set<TrackMe>()
+                                .Where(TM=> TM.UserDeviceId == userDeviceID &&
+                                TM.TrackMeStopped.Value.Year < 2000).ToListAsync();
+                foreach (var tm in track_me)
+                {
+                    tm.LastUpdate = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                }
+                db.SaveChanges();
 
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        DBC.catchException(ex);
-        //    }
-        //}
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         //public dynamic GetMessageResponseList(int CompanyID, int CurrentUserID, string TimeZoneID, int ResponseID = 0, string MessageType = "ALL", int Status = 1)
         //{

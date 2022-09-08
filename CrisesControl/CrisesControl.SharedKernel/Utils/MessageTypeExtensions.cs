@@ -97,4 +97,15 @@ public static class MessageTypeExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(callStatus), callStatus, null)
         };
     }
+    public static string ToDeviceString(this DeviceType deviceType)
+    {
+        return deviceType switch
+        {
+            DeviceType.ANDROID => "Android",
+            DeviceType.APPLE_VERSION => "Apple Version",
+            DeviceType.BLACKBERRY => "Blackberry",
+            DeviceType.WINDOWS => "Windows",
+            _ => throw new ArgumentOutOfRangeException(nameof(deviceType), deviceType, null)
+        };
+    }
 }

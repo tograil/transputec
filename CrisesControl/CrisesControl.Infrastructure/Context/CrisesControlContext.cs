@@ -30,6 +30,7 @@ using CrisesControl.Core.Companies;
 using CrisesControl.Core.Academy;
 using CrisesControl.Core.Sop;
 using CrisesControl.Core.Payments;
+using CrisesControl.Core.App;
 using static CrisesControl.Infrastructure.Services.CommsLogsHelper;
 
 namespace CrisesControl.Infrastructure.Context
@@ -244,6 +245,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyObject>().HasNoKey();
             modelBuilder.Entity<GroupUsers>().HasNoKey();
             modelBuilder.Entity<CompanyScimProfile>().HasNoKey();
+            modelBuilder.Entity<AppLanguageList>().HasNoKey();
+            modelBuilder.Entity<AppHomeRatings>().HasNoKey();
+            modelBuilder.Entity<AppHomeReturn>().HasNoKey();
+            modelBuilder.Entity<AppIconURL>().HasNoKey();
+            modelBuilder.Entity<CompanyParam>().HasNoKey();
+            modelBuilder.Entity<LocationInfo>().HasNoKey();
+            modelBuilder.Entity<UsefulText>().HasNoKey();
 
             //modelBuilder.Entity<Location>().HasNoKey();
         }
