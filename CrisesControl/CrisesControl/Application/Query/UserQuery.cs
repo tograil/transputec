@@ -37,9 +37,6 @@ namespace CrisesControl.Api.Application.Query
         {
             _UserRepository = UserRepository;
             _mapper =  mapper;
-            //_getUsersValidator = getUsersValidator;
-            //_getUserValidator = getUserValidator;
-            //_loginValidator = loginValidator;
             _logger = logger;
             _paging = paging;
             _currentUser = currentUser;
