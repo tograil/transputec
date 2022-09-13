@@ -811,7 +811,7 @@ namespace CrisesControl.Infrastructure.Services
         }
         public static bool CreateCommsLogDumpSession(string entry)
         {
-            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
+            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
 
             try
             {
@@ -826,7 +826,7 @@ namespace CrisesControl.Infrastructure.Services
                     AutomaticRecoveryEnabled = true,
                     TopologyRecoveryEnabled = true,
                     NetworkRecoveryInterval = new TimeSpan(0, 0, 15),
-                    RequestedHeartbeat =TimeSpan.FromSeconds(RabbitMQHeartBeat),
+                    RequestedHeartbeat = TimeSpan.FromHours(RabbitMQHeartBeat),
                     UserName = RabbitMQUser,
                     Password = RabbitMQPassword,
                     VirtualHost = RabbitVirtualHost
@@ -862,7 +862,7 @@ namespace CrisesControl.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                throw ex;
+                
                 return false;
             }
         }

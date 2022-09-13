@@ -68,5 +68,7 @@ public class MessageDeviceConfiguration : IEntityTypeConfiguration<MessageDevice
         builder.Property(e => e.UserEmail)
             .HasMaxLength(150)
             .UseCollation("Latin1_General_BIN2");
+        builder.HasOne(x => x.MessageList)
+         .WithMany().HasForeignKey(x => x.MessageListId);
     }
 }

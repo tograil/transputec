@@ -7,7 +7,6 @@ namespace CrisesControl.Api.Application.Commands.Departments.UpdateSegregationLi
     {
         public int SourceId { get; set; }
         public int TargetId { get; set; }
-        public string Action { get; set; }
-        public GroupType LinkType { get; set; }
+         public GroupType LinkType { get; set; }
     }
 }
