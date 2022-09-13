@@ -34,6 +34,7 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
 
         [HttpGet]
+        [Route("{CompanyId:int}")]
         public async Task<IActionResult> Index([FromRoute] GetDepartmentsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -93,8 +94,8 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPut]
-        [Route("[action]")]
-        public async Task<IActionResult> UpdateSegregationLink([FromBody] UpdateSegregationLinkRequest request, CancellationToken cancellationToken)
+        [Route("[action]/{SourceId}/{TargetId}/{LinkType}")]
+        public async Task<IActionResult> UpdateSegregationLink([FromRoute] UpdateSegregationLinkRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
