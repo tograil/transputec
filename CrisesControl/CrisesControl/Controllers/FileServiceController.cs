@@ -19,8 +19,8 @@ namespace CrisesControl.Api.Controllers
             _mediator = mediator;
         }
         
-        [HttpPost]
-        [Route("UploadToAzure")]
+        [HttpGet]
+        [Route("[action]")]
         public async Task<IActionResult> UploadToAzure([FromRoute] UploadToAzureRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
