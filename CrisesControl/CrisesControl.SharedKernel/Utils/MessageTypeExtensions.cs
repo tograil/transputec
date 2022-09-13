@@ -68,4 +68,44 @@ public static class MessageTypeExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(groupType), groupType, null)
         };
     }
+
+    public static string ToSString(this SmsStatus smsStatus)
+    {
+        return smsStatus switch
+        {
+            SmsStatus.ACCEPTED => "ACCEPTED",
+            SmsStatus.DELIVERED => "DELIVERED",
+            SmsStatus.FAILED => "FAILED",
+            SmsStatus.REJECTED => "REJECTED",
+            SmsStatus.SENT => "SENT",
+            SmsStatus.UNDELIVERED => "UNDELIVERED",
+            
+            _ => throw new ArgumentOutOfRangeException(nameof(smsStatus), smsStatus, null)
+        };
+    }
+    public static string ToCString(this CallStatus callStatus)
+    {
+        return callStatus switch
+        {
+            CallStatus.NOANSWER => "NO-ANSWER",
+            CallStatus.NOTANSWERED => "NOT-ANSWERED",
+            CallStatus.FAILED => "FAILED",
+            CallStatus.COMPLETED => "COMPLETED",
+            CallStatus.CANCELED => "CANCELED",
+            CallStatus.BUSY => "BUSY",
+
+            _ => throw new ArgumentOutOfRangeException(nameof(callStatus), callStatus, null)
+        };
+    }
+    public static string ToDeviceString(this DeviceType deviceType)
+    {
+        return deviceType switch
+        {
+            DeviceType.ANDROID => "Android",
+            DeviceType.APPLE_VERSION => "Apple Version",
+            DeviceType.BLACKBERRY => "Blackberry",
+            DeviceType.WINDOWS => "Windows",
+            _ => throw new ArgumentOutOfRangeException(nameof(deviceType), deviceType, null)
+        };
+    }
 }

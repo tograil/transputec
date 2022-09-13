@@ -29,6 +29,7 @@
     <PackageReference Include="MediatR" Version="10.0.1" />
     <PackageReference Include="MediatR.Extensions.Autofac.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="MongoDB.Bson" Version="2.15.0" />
+    <PackageReference Include="Twilio" Version="5.75.2" />
   </ItemGroup>
 
   <ItemGroup>
