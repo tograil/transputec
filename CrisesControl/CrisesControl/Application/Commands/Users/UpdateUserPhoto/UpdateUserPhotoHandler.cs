@@ -14,15 +14,15 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateUserPhoto
     {
         private readonly UpdateUserPhotoValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mappper;
+        private readonly ILogger<UpdateUserPhotoHandler> _logger;
         private readonly ICurrentUser _currentUser;
 
 
-        public UpdateUserPhotoHandler(UpdateUserPhotoValidator userValidator, IUserRepository userService, IMapper mapper, ICurrentUser currentUser)
+        public UpdateUserPhotoHandler(UpdateUserPhotoValidator userValidator, IUserRepository userService, ILogger<UpdateUserPhotoHandler> logger, ICurrentUser currentUser)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mappper = mapper;
+            _logger = logger;
             _currentUser = currentUser;
         }
 
@@ -30,7 +30,10 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateUserPhoto
         {
             Guard.Against.Null(request, nameof(UpdateUserPhotoRequest));
 
-            User value = _mappper.Map<UpdateUserPhotoRequest,User>(request);
+            User value = new User();
+
+            value.UserPhoto = request.UserPhoto;
+          //_mappper.Map<UpdateUserPhotoRequest,User>(request);
             if (CheckDuplicate(value))
             {
                 var user = await _userRepository.UpdateUserPhoto(value, request.UserPhoto, cancellationToken);

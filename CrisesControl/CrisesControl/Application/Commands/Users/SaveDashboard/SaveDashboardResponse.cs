@@ -2,5 +2,6 @@
 {
     public class SaveDashboardResponse
     {
+        public bool Dashboard { get; set; }
     }
 }

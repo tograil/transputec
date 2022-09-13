@@ -22,7 +22,7 @@ namespace CrisesControl.Api.Application.Commands.Users.LinkResetPassword
             await _validationResetPassword.ValidateAndThrowAsync(request, cancellationToken);
              var result = await _userQuery.LinkResetPassword(request);
             return result;
-            return null;
+           
         }
     }
 }

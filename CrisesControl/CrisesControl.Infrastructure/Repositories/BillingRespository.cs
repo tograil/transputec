@@ -861,7 +861,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     transaction.PaymentMethod = paymentMethod;
 
                 _context.Set<CompanyTranscationType>().Add(transaction);
-                _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
                 CTTId = transaction.CompanyTranscationTypeId;
             }
             else

@@ -46,7 +46,7 @@ namespace CrisesControl.Api.Controllers
     public class UserController : Controller
     {
         private readonly IMediator _mediator;
-        //private readonly IUserQuery _userQuery;
+       
 
         public UserController(IMediator mediator)
         {
@@ -83,7 +83,7 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        
+
 
         [HttpPost]
         [Route("AddUser")]

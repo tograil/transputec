@@ -14,15 +14,15 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateUserPhone
     {
         private readonly UpdateUserPhoneValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mappper;
+        private readonly ILogger<UpdateUserPhoneHandler> _logger;
         private readonly ICurrentUser _currentUser;
 
 
-        public UpdateUserPhoneHandler(UpdateUserPhoneValidator userValidator, IUserRepository userService, IMapper mapper, ICurrentUser currentUser)
+        public UpdateUserPhoneHandler(UpdateUserPhoneValidator userValidator, IUserRepository userService, ILogger<UpdateUserPhoneHandler> logger, ICurrentUser currentUser)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mappper = mapper;
+            _logger = logger;
             _currentUser = currentUser;
         }
 
@@ -30,7 +30,11 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateUserPhone
         {
             Guard.Against.Null(request, nameof(UpdateUserPhoneRequest));
 
-            User value = _mappper.Map<UpdateUserPhoneRequest,User>(request);
+            User value= new User()
+            {
+                MobileNo=request.MobileNo,
+                Isdcode=request.MobileISDCode
+            };
             if (CheckDuplicate(value))
             {
                 var user = await _userRepository.UpdateUserPhone(value, request.MobileNo, request.MobileISDCode, cancellationToken);

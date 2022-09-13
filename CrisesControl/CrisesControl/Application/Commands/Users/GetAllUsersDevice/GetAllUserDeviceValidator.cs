@@ -7,8 +7,8 @@ namespace CrisesControl.Api.Application.Commands.Users.GetAllUsersDevice
     {
         public GetAllUserDeviceValidator()
         {
-            RuleFor(x => x.OutUserCompanyId).GreaterThan(0);
-            RuleFor(x => x.UserID).GreaterThan(0);
+            RuleFor(x => x.DeviceRequest.OutUserCompanyId).GreaterThan(0);
+            RuleFor(x => x.DeviceRequest.UserID).GreaterThan(0);
         }
     }
 }

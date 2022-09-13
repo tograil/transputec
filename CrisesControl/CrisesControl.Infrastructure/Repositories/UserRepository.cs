@@ -7,11 +7,15 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Billing;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Exceptions.NotFound;
+using CrisesControl.Core.Groups.Repositories;
 using CrisesControl.Core.Locations;
+using CrisesControl.Core.Locations.Services;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Register;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
@@ -30,11 +34,12 @@ public class UserRepository : IUserRepository
     private readonly CrisesControlContext _context;
     private readonly string timeZoneId = "GMT Standard Time";
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly SendEmail _SDE;
-    private readonly DBCommon _DBC;
-    private readonly LocationRepository _locationRepository;
-    private readonly GroupRepository _groupRepository;
-    private readonly Messaging _MSG;
+    private  SendEmail _SDE;
+    private  DBCommon _DBC;
+    private readonly ILocationRepository _locationRepository;
+    private readonly IGroupRepository _groupRepository;
+    private Messaging _MSG;
+    private UsageHelper _usage;
 
 
     private int userId;
@@ -47,23 +52,22 @@ public class UserRepository : IUserRepository
         CrisesControlContext context,
         IHttpContextAccessor httpContextAccessor,
         ILogger<UserRepository> logger,
-        SendEmail SDE,
-        DBCommon DBC,
-        LocationRepository locationRepository,
-        GroupRepository groupRepository,
-         Messaging MSG
+        ILocationRepository locationRepository,
+        IGroupRepository groupRepository
+        
         )
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
         companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-        _logger = logger;
-        _SDE = SDE;
-        _DBC = DBC;
+        _logger = logger;        
+        _DBC = new DBCommon(_context,_httpContextAccessor);
+        _SDE = new SendEmail(_context,_DBC);
         _locationRepository = locationRepository;
         _groupRepository = groupRepository;
-        _MSG = MSG;
+        _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+        _usage = new UsageHelper(_context);
     }
 
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
@@ -707,14 +711,15 @@ public class UserRepository : IUserRepository
             if (userRecord != null)
             {
                 userRecord.Status = 1;
+                _context.Update(userRecord);
                 await _context.SaveChangesAsync(cancellationToken);
-                var ActivatedUser = _context.Set<User>().Where(u => u.UserId == queriedUserId).Select(u => new
+                var ActivatedUser = await _context.Set<User>().Where(u => u.UserId == queriedUserId).Select(u => new
                 {
                     UserId = u.UserId,
                     UserName = new UserFullName { Firstname = u.FirstName, Lastname = u.LastName },
                     UserEmail = u.PrimaryEmail,
                     CompanyName = GetCompanyName(u.CompanyId)
-                }).FirstOrDefault();
+                }).FirstOrDefaultAsync();
                 if (ActivatedUser != null)
                 {
                     return userRecord;
@@ -1633,7 +1638,7 @@ public class UserRepository : IUserRepository
             throw ex;
         }
     }
-    private bool ValidateUserPassword(int userId, string newPassword, int companyId, bool saveHistory, out string pwdError)
+    private async Task<bool> ValidateUserPassword(int userId, string newPassword, int companyId, bool saveHistory, string pwdError)
     {
         pwdError = string.Empty;
         bool pwdNotUsed = true;
@@ -1641,7 +1646,7 @@ public class UserRepository : IUserRepository
         int lastNPwdCheck = Convert.ToInt16(_DBC.GetCompanyParameter("LAST_PASSWORD_CHECK", companyId));
         try
         {
-            var pwdHistory = _context.Set<PasswordChangeHistory>().Where(t => t.UserId == userId).ToList();
+            var pwdHistory =await  _context.Set<PasswordChangeHistory>().Where(t => t.UserId == userId).ToListAsync();
             var lastXPwd = (from LP in pwdHistory select LP).OrderByDescending(o => o.Id).Take(lastNPwdCheck);
 
             foreach (var pwd in lastXPwd)
@@ -2930,7 +2935,7 @@ public class UserRepository : IUserRepository
                 }
 
                 string PwdError =  string.Empty;
-                bool pwdTrue = ValidateUserPassword(userdata.UserId, newPassword, userdata.CompanyId, true, out PwdError);
+                bool pwdTrue = await ValidateUserPassword(userdata.UserId, newPassword, userdata.CompanyId, true,  PwdError);
 
                 if (pwdTrue)
                 {
@@ -2984,7 +2989,7 @@ public class UserRepository : IUserRepository
                 else
                 {
                     string PwdError = string.Empty;
-                    bool pwdTrue = ValidateUserPassword(Changepassword.UserId, newPassword, companyID, true, out PwdError);
+                    bool pwdTrue = await ValidateUserPassword(Changepassword.UserId, newPassword, companyID, true,PwdError);
 
                     if (pwdTrue)
                     {
@@ -3013,6 +3018,230 @@ public class UserRepository : IUserRepository
                Message = "Invalid login id or password.";
             }
             return Message;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<dynamic> SendPasswordOTP(int userID, string action, string password, string oldPassword, string otpCode = "", string Return = "bool",
+           string otpMessage = "", string source = "RESET", string method = "TEXT", string timeZoneId = "GMT Standard Time")
+    {
+        try
+        {
+            string Message = string.Empty;
+            if (string.IsNullOrEmpty(otpMessage))
+            {
+                otpMessage = _DBC.LookupWithKey("VERIFICATION_CODE_MSG");
+            }
+
+            double code_expiry = 15D;
+            double.TryParse(_DBC.LookupWithKey("VERIFICATION_CODE_EXP_MIN"), out code_expiry);
+            otpMessage = otpMessage.Replace("{MINUTES}", code_expiry.ToString());
+
+            var user = await _context.Set<User>()
+                        .Where(U=> U.UserId == userID)
+                        .FirstOrDefaultAsync();
+            if (user != null)
+            {
+
+                //AccountHelper AH = new AccountHelper();
+                CommsHelper CH = new CommsHelper(_DBC,_context,_httpContextAccessor,_MSG,_SDE);
+
+                if (action.ToUpper() == "CONFIRM")
+                {
+                    if (oldPassword.Trim() == user.Password.Trim())
+                    {
+                        string PwdError = string.Empty;
+                        bool pwdTrue =await ValidateUserPassword(user.UserId, password.Trim(), user.CompanyId, false, PwdError);
+                        if (!pwdTrue)
+                        {
+                            Message = PwdError;
+                            return Message;
+                        }
+
+                        string UserMobile = _DBC.FormatMobile(user.Isdcode, user.MobileNo);
+
+                        string Code = CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method);
+
+                        if (!string.IsNullOrEmpty(Code))
+                        {
+                            user.Otpcode = Code;
+                            user.Otpexpiry = DateTime.Now.AddMinutes(code_expiry);
+                            await _context.SaveChangesAsync();
+                            if (Return == "data")
+                            {
+                                var rtrn = await _context.Set<User>()
+                                            .Where(U=> U.UserId == userID)
+                                            .Select(U=> new { U.UserId, U.Isdcode, U.MobileNo }).FirstOrDefaultAsync();
+                                return rtrn;
+                            }
+                            return true;
+                        }
+                        else
+                        {
+                           Message = "Problem in sending Verification Code";
+                        }
+                    }
+                    else
+                    {
+                       Message = "Old Password do not match";
+                    }
+                }
+                else if (action.ToUpper() == "OTPCHECK" || action.ToUpper() == "VERIFYCODE")
+                {
+                    string UserMobile = _DBC.FormatMobile(user.Isdcode, user.MobileNo);
+
+                    if (user.Otpexpiry <= DateTime.Now)
+                    {
+                        Message = "OTP Expired";
+                    }
+                    else
+                    {
+                        string PwdError = string.Empty;
+                        bool pwdTrue = false;
+
+                        if (action.ToUpper() == "OTPCHECK")
+                        {
+                            pwdTrue = await ValidateUserPassword(user.UserId, password.Trim(), user.CompanyId, true,  PwdError);
+                        }
+                        else
+                        {
+                            pwdTrue = true;
+                        }
+
+                        if (pwdTrue)
+                        {
+                            CommsStatus otpcheck = CH.TwilioVerifyCheck(UserMobile, otpCode);
+
+                            if (otpcheck.CurrentAction.ToUpper() == "APPROVED")
+                            {
+                                if (action.ToUpper() == "OTPCHECK")
+                                {
+                                    user.Otpcode = "USED";
+                                    user.Otpexpiry = DateTime.Now.AddMinutes(-10);
+
+                                    if (action.ToUpper() == "OTPCHECK")
+                                    {
+                                        string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", user.CompanyId);
+
+                                        if (CompExpirePwd == "true")
+                                        {
+                                            user.PasswordChangeDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                                        }
+                                        user.Password = password.Trim();
+                                        user.FirstLogin = false;
+                                    }
+                                    user.UniqueGuiId = Guid.NewGuid().ToString();
+                                    await _context.SaveChangesAsync();
+                                }
+
+                                if (Return == "data")
+                                {
+                                    var rtrn = await _context.Set<User>()
+                                                .Where(U=> U.UserId == userID)
+                                                .Select(U=> new { U.UserId, U.Isdcode, U.MobileNo, U.UniqueGuiId }).FirstOrDefaultAsync();
+                                    return rtrn;
+                                }
+                                return true;
+                            }
+                            else
+                            {
+                               Message = "OTP not matched";
+                            }
+                        }
+                        else
+                        {
+                            Message = PwdError;
+                        }
+                    }
+                }
+                else if (action.ToUpper() == "OTPRESEND")
+                {
+                    string UserMobile = _DBC.FormatMobile(user.Isdcode, user.MobileNo);
+                    CH.GCompanyId = user.CompanyId;
+                    CH.GUserId = user.UserId;
+                    CH.GTimezoneId = timeZoneId;
+
+                    string Code = CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method, user.PrimaryEmail);
+
+                    if (!string.IsNullOrEmpty(Code))
+                    {
+                        user.Otpcode = Code;
+                        user.Otpexpiry = DateTime.Now.AddMinutes(code_expiry);
+                        await _context.SaveChangesAsync();
+                        if (Return == "data")
+                        {
+                            var rtrn = await _context.Set<User>()
+                                        .Where(U=> U.UserId == userID)
+                                        .Select(U=> new { U.UserId, U.Isdcode, U.MobileNo }).FirstOrDefaultAsync();
+                            return rtrn;
+                        }
+                        return true;
+                    }
+                    else
+                    {
+                        Message = "Problem in sending OTP";
+                    }
+                }
+            }
+            else
+            {
+              Message = "Invalid request.  No record found.";
+            }
+            return Message;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<BillingSummaryModel> GetUserCount(int companyId, int currentUserId)
+    {
+        try
+        {
+            BillingHelper _billing = new BillingHelper(_context);
+            int AdminCount = 0, KeyHolderCount = 0, StaffCount = 0, PendingUserCount = 0, ActiveUserCount = 0;
+
+            await _billing.GetCompanyUserCount(companyId, currentUserId,  AdminCount,  KeyHolderCount,  StaffCount,  ActiveUserCount,  PendingUserCount);
+
+            BillingSummaryModel BillInfo = new BillingSummaryModel();
+            BillInfo.AdminCount = AdminCount;
+            BillInfo.KeyHolderCount = KeyHolderCount;
+            BillInfo.StaffCount = StaffCount;
+            BillInfo.PendingUserCount = PendingUserCount;
+            BillInfo.ActiveUserCount = ActiveUserCount;
+
+            return BillInfo;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<LicenseCheckResult> CheckUserLicense(string sessionId, List<UserRoles> userList, int companyId, int currentUserId)
+    {
+        try
+        {
+           
+            LicenseCheckResult Rslt = null;
+            if (!string.IsNullOrEmpty(sessionId))
+            {
+                var import_users = await  _context.Set<ImportDump>().Where(IM=> IM.SessionId == sessionId).Select(IM=> new { IM.UserId, IM.Email, IM.UserRole }).Distinct().ToListAsync();
+
+                List<UserRoles> UR = new List<UserRoles>();
+                foreach (var IU in import_users)
+                {
+                    UR.Add(new UserRoles { UserId = IU.UserId, UserRole = IU.UserRole });
+                }
+                Rslt =await _usage.GetUserLicenseInfo(companyId, UR);
+            }
+            else
+            {
+                Rslt = await _usage.GetUserLicenseInfo(companyId, userList);
+            }
+
+            return Rslt;
         }
         catch (Exception ex)
         {

@@ -16,7 +16,7 @@ namespace CrisesControl.Core.Departments.Repositories
         bool CheckDuplicate(Department department);
         Task<bool> CheckForExistance(int departmentId);
         Task<bool> UpdateSegregationLink(int SourceID, int TargetID,  GroupType LinkType, int CompanyId);
-        Task<List<GroupLink>> SegregationLinks(int TargetID, string MemberShipType, string LinkType, int CurrentUserId, int OutUserCompanyId);
+        Task<List<GroupLink>> SegregationLinks(int targetID, string memberShipType, string linkType, int currentUserId, int outUserCompanyId);
         Task<int> DepartmentStatus(int CompanyID);
         Task CreateSegregtionLink(int sourceID, int targetID, GroupType LinkType, int companyId);
 

@@ -9,13 +9,13 @@ namespace CrisesControl.Api.Application.Commands.Users.OffDutySetting
     {
         private readonly OffDutySettingValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly ILogger<OffDutySettingHandler> _logger;
 
-        public OffDutySettingHandler(OffDutySettingValidator userValidator, IUserRepository userService, IMapper mapper)
+        public OffDutySettingHandler(OffDutySettingValidator userValidator, IUserRepository userService, ILogger<OffDutySettingHandler> logger)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<OffDutySettingResponse> Handle(OffDutySettingRequest request, CancellationToken cancellationToken)

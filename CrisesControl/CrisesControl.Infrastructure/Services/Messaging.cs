@@ -190,7 +190,7 @@ namespace CrisesControl.Infrastructure.Services
                 if (assetId > 0)
                     await CreateMessageAttachment(tblMessage.MessageId, assetId, companyId, currentUserId, TimeZoneId);
 
-                _DBC.MessageProcessLog(tblMessage.MessageId, "MESSAGE_CREATED");
+               await _DBC.MessageProcessLog(tblMessage.MessageId, "MESSAGE_CREATED");
 
                 return tblMessage.MessageId;
             }
@@ -1861,21 +1861,20 @@ namespace CrisesControl.Infrastructure.Services
         ////    }
         ////}
 
-        //public dynamic GetUserMovements(int UserID)
-        //{
-        //    DBCommon DBC = new DBCommon();
-        //    try
-        //    {
-        //        var loclist = (from UL in db.UserLocation where UL.UserID == UserID select UL)
-        //            .OrderByDescending(o => o.CreatedOn).Take(15).ToList();
-        //        return loclist;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        DBC.catchException(ex);
-        //        return null;
-        //    }
-        //}
+        public async Task<List<UserLocation>> GetUserMovements(int UserID)
+        {
+           
+            try
+            {
+                var loclist = await  db.Set<UserLocation>().Where(UL=> UL.UserId == UserID)
+                    .OrderByDescending(o => o).Take(15).ToListAsync();
+                return loclist;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         //public int GetCallbackOption(string AckMethod)
         //{

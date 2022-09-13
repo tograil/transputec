@@ -228,7 +228,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<TransactionRates>().HasNoKey();
             modelBuilder.Entity<CompanyPackage>().HasNoKey();
             
-
+           
 
             modelBuilder.Entity<ModuleLinks>().HasNoKey();
             
@@ -239,7 +239,9 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyScimProfile>().HasNoKey();
             modelBuilder.Entity<AssetLink>().HasNoKey();
             modelBuilder.Entity<AssetsDetails>().HasNoKey();
-            //modelBuilder.Entity<Location>().HasNoKey();
+            modelBuilder.Entity<BillingStats>().HasNoKey();
+            modelBuilder.Entity<UserRoles>().HasNoKey();
+            modelBuilder.Entity<LicenseCheckResult>().HasNoKey();
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())

@@ -13,6 +13,8 @@ using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
 using CrisesControl.Api.Application.Commands.Users.ResetPassword;
 using CrisesControl.Api.Application.Commands.Users.ForgotPassword;
 using CrisesControl.Api.Application.Commands.Users.LinkResetPassword;
+using CrisesControl.Api.Application.Commands.Users.GetUserId;
+using CrisesControl.Api.Application.Commands.Users.GetUserGroups;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -27,10 +29,12 @@ namespace CrisesControl.Api.Application.Query
         Task<MembershipResponse> MembershipList(MembershipRequest request);
 
         public Task<ValidateEmailResponse> ValidateLoginEmail(ValidateEmailRequest request);
-        public Task<IEnumerable<GetUserCommsResponse>> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken);
-        public Task<IEnumerable<GetAllOneUserDeviceListResponse>> GetAllOneUserDeviceList(GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken);
+        public Task<GetUserCommsResponse> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken);
+        Task<GetAllOneUserDeviceListResponse> GetAllOneUserDeviceList(GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken);
         Task<ResetPasswordResponse> ResetPassword(ResetPasswordRequest request);
         Task<ForgotPasswordResponse> ForgotPassword(ForgotPasswordRequest request);
         Task<LinkResetPasswordResponse> LinkResetPassword(LinkResetPasswordRequest request);
+        Task<GetUserIdResponse> GetUserId(GetUserIdRequest request);
+        Task<GetUserGroupsResponse> GetUserGroups(GetUserGroupsRequest request);
     }
 }

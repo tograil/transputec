@@ -1,4 +1,6 @@
-﻿namespace CrisesControl.Core.Models
+﻿using System;
+
+namespace CrisesControl.Core.Models
 {
     public partial class UserLocation
     {
@@ -16,5 +18,6 @@
         public bool ReceiveOnly { get; set; }
         public string FirstName { get; set; } = null!;
         public string? LastName { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
     }
 }

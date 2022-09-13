@@ -2,5 +2,7 @@
 {
     public class TrackUserDeviceResponse
     {
+        public bool TrackedDevice { get; set; }
+        public string Message { get; set; }
     }
 }

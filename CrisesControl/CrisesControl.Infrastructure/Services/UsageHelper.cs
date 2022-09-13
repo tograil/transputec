@@ -3,6 +3,7 @@ using CrisesControl.Core.Companies;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Payments;
 using CrisesControl.Core.Sop.Respositories;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -764,6 +765,93 @@ namespace CrisesControl.Infrastructure.Services
                 throw ex;
             }
             return false;
+        }
+        public async Task<LicenseCheckResult> GetUserLicenseInfo(int companyId, List<UserRoles> userList)
+        {
+            LicenseCheckResult Rslt = new LicenseCheckResult();
+            try
+            {
+                int UserLimit = 0;
+                int AdminUserLimit = 0;
+                double UserRate = 0;
+                double AdminUserRate = 0;
+
+                var comp_pp =await  _context.Set<CompanyPaymentProfile>().Include(x=>x.Company)
+                                   .Where(CPP=> CPP.CompanyId == companyId)
+                                   .Select(CPP=> new { CPP.PaymentPeriod, CPP.Company.CompanyProfile, CPP.Company.OnTrial }).FirstOrDefaultAsync();
+
+                int.TryParse(await DBC.GetPackageItem("USER_LIMIT", companyId), out UserLimit);
+                int.TryParse(await DBC.GetPackageItem("ADMIN_USER_LIMIT", companyId), out AdminUserLimit);
+                double.TryParse(await DBC.GetPackageItem("USER_RATE", companyId), out UserRate);
+                double.TryParse(await DBC.GetPackageItem("ADMIN_USER_RATE", companyId), out AdminUserRate);
+
+                int _keyholder_count = 0;
+                int _staff_count = 0;
+                int new_keyholder_count = 0;
+                int new_staff_count = 0;
+
+                var roles = DBC.CCRoles(true);
+
+                List<int> UserIds = new List<int>();
+                foreach (UserRoles ur in userList)
+                {
+                    UserIds.Add(ur.UserId);
+                    if (string.IsNullOrEmpty(ur.UserRole))
+                        ur.UserRole = "USER";
+
+                    if (roles.Contains(ur.UserRole.ToUpper()))
+                    {
+                        _keyholder_count++;
+                    }
+                    else
+                    {
+                        _staff_count++;
+                    }
+                }
+
+                var users = await  _context.Set<User>().Where(U=> U.CompanyId == companyId && U.Status != 3).ToListAsync();
+
+                int total_existing_kh =  users.Where(TK=> (roles.Contains(TK.UserRole.ToUpper()))).Count();
+                int total_existing_staff = users.Where(TK=> TK.UserRole.ToUpper() == "USER").Count();
+
+                int keyholders =  users
+                                  .Where(KH=> (roles.Contains(KH.UserRole.ToUpper())) &&
+                                  !UserIds.Contains(KH.UserId)).Count();
+
+                int staff = (from KH in users where KH.UserRole.ToUpper() == "USER" && !UserIds.Contains(KH.UserId) select KH).Count();
+
+                new_staff_count = _staff_count + staff;
+                new_keyholder_count = _keyholder_count + keyholders;
+
+                int extra_keyholder = new_keyholder_count - Math.Max(total_existing_kh, AdminUserLimit);
+                int extra_staff = new_staff_count - Math.Max(total_existing_staff, UserLimit);
+
+                if ((extra_keyholder > 0) || extra_staff > 0)
+                {
+                    Rslt.ConfirmAction = true;
+                }
+                else
+                {
+                    Rslt.ConfirmAction = false;
+                }
+
+                Rslt.PerKeyholderCost = AdminUserRate;
+                Rslt.PerStaffCost = UserRate;
+                Rslt.StaffLimit = UserLimit;
+                Rslt.KeyholderLimit = AdminUserLimit;
+                Rslt.ExtraKeyholders = extra_keyholder;
+                Rslt.ExtraStaff = extra_staff;
+                Rslt.Duration = comp_pp.PaymentPeriod;
+                Rslt.CompanyProfile = comp_pp.CompanyProfile;
+                Rslt.OnTrial = comp_pp.OnTrial;
+
+            }
+            catch (Exception ex)
+            {
+               
+                Rslt.ConfirmAction = false;
+            }
+            return Rslt;
         }
 
 
