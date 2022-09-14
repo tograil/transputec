@@ -1998,7 +1998,7 @@ public class UserRepository : IUserRepository
         try
         {
 
-            string TimeZoneId = _DBC.GetTimeZoneVal(userId);
+            string TimeZoneId =await _DBC.GetTimeZoneVal(userId);
             var user = await _context.Set<User>().Where(t => t.UserId == userId && t.Status == 1).FirstOrDefaultAsync();
 
             if (request.OffDutyAction.ToUpper() == "END" || request.OffDutyAction.ToUpper() == "CHANGE" || request.OffDutyAction.ToUpper() == "CHECK")
