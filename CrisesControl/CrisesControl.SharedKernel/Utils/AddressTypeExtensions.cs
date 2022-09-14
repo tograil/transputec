@@ -9,7 +9,7 @@ namespace CrisesControl.SharedKernel.Utils
 {
     public static class  AddressTypeExtensions
     {
-        public static string ToDbString(this AddressType addressType)
+        public static string ToAdString(this AddressType addressType)
         {
             return addressType switch
             {

@@ -256,6 +256,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyParam>().HasNoKey();
             modelBuilder.Entity<LocationInfo>().HasNoKey();
             modelBuilder.Entity<UsefulText>().HasNoKey();
+            modelBuilder.Entity<AuditHelp>().HasNoKey();
+            modelBuilder.Entity<AuditList>().HasNoKey();
+            modelBuilder.Entity<AdminCompanyStats>().HasNoKey();
+            modelBuilder.Entity<ErrorLogReturn>().HasNoKey();
+            modelBuilder.Entity<TwilioLogModel>().HasNoKey();
+            modelBuilder.Entity<TwilioLogToClear>().HasNoKey();
+            modelBuilder.Entity<TwilioPriceByNumber>().HasNoKey();
 
             //modelBuilder.Entity<Location>().HasNoKey();
         }
