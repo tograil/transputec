@@ -1,8 +1,10 @@
 ﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Billing;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -159,6 +161,38 @@ namespace CrisesControl.Infrastructure.Services
 
             }
             return returndt;
+        }
+        public async Task GetCompanyUserCount(int outUserCompanyId, int userID, int adminCount,int keyHolderCount, int staffCount, int activeUserCount, int pendingUserCount)
+        {
+
+            List<BillingStats> result = await GetBillingStats(outUserCompanyId, userID);
+            var roles = DBC.CCRoles();
+
+            adminCount = result.Where(w => roles.Contains(w.PropertyName.ToUpper())).Sum(su => su.TotalCount);
+            keyHolderCount = result.Where(w => w.PropertyName.ToUpper() == "KEYHOLDER").Select(s => s.TotalCount).FirstOrDefault();
+            staffCount = result.Where(w => w.PropertyName.ToUpper() == "USER").Select(s => s.TotalCount).FirstOrDefault();
+            pendingUserCount = result.Where(w => w.PropertyName == "PENDING_USER").Select(s => s.TotalCount).FirstOrDefault();
+            activeUserCount = result.Where(w => w.PropertyName == "ACTIVE_USER").Select(s => s.TotalCount).FirstOrDefault();
+        }
+
+        public async Task<List<BillingStats>> GetBillingStats(int companyID, int userID)
+        {
+            try
+            {
+
+                
+                    var pCompanyID = new SqlParameter("@CompanyID", companyID);
+                    var pUserID = new SqlParameter("@UserID", userID);
+
+                    var result = await _context.Set<BillingStats>().FromSqlRaw("exec Pro_Get_Billing_Stats @CompanyID, @UserID", pCompanyID, pUserID).ToListAsync();
+
+                    return result;
+                
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }

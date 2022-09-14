@@ -17,7 +17,7 @@ public class ApiModule : Module
         builder.RegisterAssemblyTypes(ThisAssembly)
             .AsClosedTypesOf(typeof(AbstractValidator<>));
 
-
+        builder.RegisterAutoMapper(ThisAssembly);
         builder.RegisterMediatR(ThisAssembly, typeof(AuditLogBehaviour<,>));
 
         builder.RegisterType<CompanyQuery>().As<ICompanyQuery>();

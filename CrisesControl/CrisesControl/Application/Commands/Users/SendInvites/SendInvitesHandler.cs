@@ -11,13 +11,13 @@ namespace CrisesControl.Api.Application.Commands.Users.SendInvites
     {
         private readonly SendInvitesValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly ILogger<SendInvitesHandler> _logger;
 
-        public SendInvitesHandler(SendInvitesValidator userValidator, IUserRepository userService, IMapper mapper)
+        public SendInvitesHandler(SendInvitesValidator userValidator, IUserRepository userService, ILogger<SendInvitesHandler> logger)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<SendInvitesResponse> Handle(SendInvitesRequest request, CancellationToken cancellationToken)

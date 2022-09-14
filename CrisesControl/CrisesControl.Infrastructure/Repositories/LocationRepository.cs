@@ -81,26 +81,26 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             return _context.Set<Location>().Where(t => t.LocationId.Equals(locationId)).Any();
         }
-        public async Task<bool> DeleteLocation(int LocationId, int CompanyId, int UserId, string TimeZoneId = "GMT Standard Time")
+        public async Task<bool> DeleteLocation(int locationId, int companyId, int userId, string timeZoneId = "GMT Standard Time")
         {
           
             try
             {
                 var Locationdata = await  _context.Set<Location>()
-                                    .Where(Locationval=> Locationval.CompanyId == CompanyId && Locationval.LocationId == LocationId
+                                    .Where(Locationval=> Locationval.CompanyId == companyId && Locationval.LocationId == locationId
                                     ).FirstOrDefaultAsync();
 
                 if (Locationdata != null)
                 {
                     Locationdata.Status = 3;
                     Locationdata.LocationName = "DEL_" + Locationdata.LocationName;
-                    Locationdata.UpdatedBy = UserId;
-                    Locationdata.UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneId, DateTime.Now);
+                    Locationdata.UpdatedBy = userId;
+                    Locationdata.UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(timeZoneId, DateTime.Now);
                     _context.Update(Locationdata);
                    await _context.SaveChangesAsync();
 
-                    var pLocationId = new SqlParameter("@LocationId", LocationId);
-                    var DelOBjs = _context.Set<ObjectRelation>().FromSqlRaw("exec Pro_Get_Objects @LocationId", pLocationId).ToListAsync();
+                    var pLocationId = new SqlParameter("@LocationId", locationId);
+                    var DelOBjs =await  _context.Set<ObjectRelation>().FromSqlRaw("exec Pro_Get_Objects @LocationId", pLocationId).ToListAsync();
                     _context.RemoveRange(DelOBjs);
                     await _context.SaveChangesAsync();
                     return true;
@@ -115,16 +115,16 @@ namespace CrisesControl.Infrastructure.Repositories
             }
 
         }
-        public async Task<List<GroupLink>> SegregationLinks(int TargetID,string MemberShipType,string LinkType,int CurrentUserId, int OutUserCompanyId)
+        public async Task<List<GroupLink>> SegregationLinks(int targetID, string memberShipType, string linkType,int currentUserId, int outUserCompanyId)
         {
             try
             {
 
-                var pLocationID = new SqlParameter("@LocationID",TargetID);
-                var pMemberShipType = new SqlParameter("@MemberShipType", MemberShipType);
-                var pLinkType = new SqlParameter("@LinkType", LinkType);
-                var pUserID = new SqlParameter("@UserID", CurrentUserId);
-                var pCompanyID = new SqlParameter("@CompanyID", OutUserCompanyId);
+                var pLocationID = new SqlParameter("@LocationID",targetID);
+                var pMemberShipType = new SqlParameter("@MemberShipType", memberShipType);
+                var pLinkType = new SqlParameter("@LinkType", linkType);
+                var pUserID = new SqlParameter("@UserID", currentUserId);
+                var pCompanyID = new SqlParameter("@CompanyID", outUserCompanyId);
 
                 var result = await _context.Set<GroupLink>().FromSqlRaw("exec Pro_Get_Location_Links @LocationID, @LinkType, @MemberShipType, @UserID, @CompanyID",
                     pLocationID, pLinkType, pMemberShipType, pUserID, pCompanyID).ToListAsync();
@@ -136,31 +136,31 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<bool> UpdateSegregationLink(int SourceID, int TargetID, string Action, GroupType LinkType, int CompanyId)
+        public async Task<bool> UpdateSegregationLink(int sourceID, int targetID, GroupType linkType, int companyId)
         {
             try
             {
-                if (LinkType.ToGrString() == GroupType.GROUP.ToGrString())
+                if (linkType.ToGrString() == GroupType.GROUP.ToGrString())
                 {
-                    var item = await _context.Set<SegGroupLocationLink>().Where(I=> I.LocationId == SourceID && I.GroupId == TargetID).FirstOrDefaultAsync();
-                    if (Action.ToUpper() == "ADD" || item == null)
+                    var item = await _context.Set<SegGroupLocationLink>().Where(I => I.LocationId == sourceID && I.GroupId == targetID).FirstOrDefaultAsync();
+                    if (item == null)
                     {
-                       await  CreateSegregtionLink(SourceID, TargetID, LinkType, CompanyId);
+                        await CreateSegregtionLink(sourceID, targetID, linkType, companyId);
                     }
-                    else if (Action.ToUpper() == "REMOVE" || item != null)
+                    else if (item != null)
                     {
                         _context.Remove(item);
-                       await  _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync();
                     }
                 }
-                else if (LinkType.ToGrString() == GroupType.INCIDENT.ToGrString())
+                else if (linkType.ToGrString() == GroupType.INCIDENT.ToGrString())
                 {
-                    var item = await _context.Set<SegGroupLocationLink>().Where(I => I.LocationId == SourceID && I.GroupId == TargetID).FirstOrDefaultAsync();
-                    if (Action.ToUpper() == "ADD" || item == null)
+                    var item = await _context.Set<SegGroupLocationLink>().Where(I => I.LocationId == sourceID && I.GroupId == targetID).FirstOrDefaultAsync();
+                    if ( item == null)
                     {
-                        await CreateSegregtionLink(SourceID, TargetID, LinkType, CompanyId);
+                        await CreateSegregtionLink(sourceID, targetID, linkType, companyId);
                     }
-                    else if (Action.ToUpper() == "REMOVE" || item != null)
+                    else if ( item != null)
                     {
                         _context.Remove(item);
                         await _context.SaveChangesAsync();

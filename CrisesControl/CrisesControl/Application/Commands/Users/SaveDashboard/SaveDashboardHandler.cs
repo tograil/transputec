@@ -1,6 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
 using CrisesControl.Core.Users.Repositories;
+using FluentValidation;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Users.SaveDashboard
@@ -21,9 +22,11 @@ namespace CrisesControl.Api.Application.Commands.Users.SaveDashboard
         public async Task<SaveDashboardResponse> Handle(SaveDashboardRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(SaveDashboardRequest));
-
-            var userId = await _userRepository.SaveDashboard(request.ModuleItems, request.ModulePage, request.UserID, cancellationToken);
-            return new SaveDashboardResponse();
+            await _userValidator.ValidateAndThrowAsync(request, cancellationToken);
+            var dashboard = await _userRepository.SaveDashboard(request.ModuleItems, request.ModulePage, request.UserID, cancellationToken);
+            var response= new SaveDashboardResponse();
+            response.Dashboard = dashboard;
+            return response;
         }
     }
 }

@@ -1495,7 +1495,7 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex)
             {
                 throw ex;
-            }
+            } 
             return "";
         }
         public async Task<DateTimeOffset> LookupLastUpdate(string Key)
@@ -1776,6 +1776,56 @@ namespace CrisesControl.Api.Application.Helpers
         public string LogWrite(string str, string strType = "I")
         {
             return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
+        }
+
+        public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
+        {
+            var devices = await _context.Set<UserDevice>().Where(UD=> UD.UserId == userID).ToListAsync();
+            if (devices!=null) { 
+            foreach (var device in devices)
+            {
+                if (device.DeviceType.ToUpper().Contains("ANDROID") || device.DeviceType.ToUpper().Contains("WINDOWS"))
+                   await AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
+               
+            }
+                return true;
+            }
+            return false;
+        }
+
+        public async Task AddTrackingDevice(int companyID, int userDeviceID, string deviceAddress, string deviceType, int messageListID = 0)
+        {
+            try
+            {
+                MessageDevice MessageDev = new MessageDevice();
+                MessageDev.CompanyId = companyID;
+                MessageDev.MessageId = 0;
+                MessageDev.MessageListId = messageListID;
+                MessageDev.UserDeviceId = userDeviceID;
+                MessageDev.Method = "PUSH";
+                MessageDev.AttributeId = 0;
+                MessageDev.MessageText = "Track Device";
+                MessageDev.Priority = 100;
+                MessageDev.Attempt = 0;
+                MessageDev.Status = "PENDING";
+                MessageDev.SirenOn = false;
+                MessageDev.OverrideSilent = false;
+                MessageDev.CreatedOn = GetDateTimeOffset(DateTime.Now);
+                MessageDev.UpdatedOn = GetDateTimeOffset(DateTime.Now);
+                MessageDev.CreatedBy = 0;
+                MessageDev.UpdatedBy = 0;
+                MessageDev.DateSent = System.Data.SqlTypes.SqlDateTime.MinValue.Value;
+                MessageDev.DateDelivered = System.Data.SqlTypes.SqlDateTime.MinValue.Value;
+                MessageDev.DeviceAddress = deviceAddress;
+                MessageDev.DeviceType = deviceType;
+                await _context.AddAsync(MessageDev);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
         }
 
     }
