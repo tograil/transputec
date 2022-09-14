@@ -30,6 +30,8 @@ using CrisesControl.Core.Companies;
 using CrisesControl.Core.Academy;
 using CrisesControl.Core.Sop;
 using CrisesControl.Core.Payments;
+using CrisesControl.Core.App;
+using static CrisesControl.Infrastructure.Services.CommsLogsHelper;
 using CrisesControl.Core.Assets;
 
 namespace CrisesControl.Infrastructure.Context
@@ -222,6 +224,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<RegisteredUser>().HasNoKey();
             modelBuilder.Entity<CompaniesStats>().HasNoKey();
             modelBuilder.Entity<CompanyMessageTransactionStats>().HasNoKey();
+            modelBuilder.Entity<CMMultiPart>().HasNoKey();
+            modelBuilder.Entity<CMResult>().HasNoKey();
+            modelBuilder.Entity<CMSMSResponse>().HasNoKey();
+            modelBuilder.Entity<TwilioBatch>().HasNoKey();
+            modelBuilder.Entity<TwilioRequest>().HasNoKey();
+            modelBuilder.Entity<TwilioPriceByNumber>().HasNoKey();
+            modelBuilder.Entity<TwilioLogToClear>().HasNoKey();
             //modelBuilder.Entity<CompanyTranscationType>().HasNoKey();
             modelBuilder.Entity<UpdateCompanyPaymentProfileModel>().HasNoKey();
             modelBuilder.Entity<PackageItems>().HasNoKey();
@@ -237,6 +246,15 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyObject>().HasNoKey();
             modelBuilder.Entity<GroupUsers>().HasNoKey();
             modelBuilder.Entity<CompanyScimProfile>().HasNoKey();
+            modelBuilder.Entity<AppLanguageList>().HasNoKey();
+            modelBuilder.Entity<AppHomeRatings>().HasNoKey();
+            modelBuilder.Entity<AppHomeReturn>().HasNoKey();
+            modelBuilder.Entity<AppIconURL>().HasNoKey();
+            modelBuilder.Entity<CompanyParam>().HasNoKey();
+            modelBuilder.Entity<LocationInfo>().HasNoKey();
+            modelBuilder.Entity<UsefulText>().HasNoKey();
+
+            //modelBuilder.Entity<Location>().HasNoKey();
             modelBuilder.Entity<AssetLink>().HasNoKey();
             modelBuilder.Entity<AssetsDetails>().HasNoKey();
             modelBuilder.Entity<BillingStats>().HasNoKey();

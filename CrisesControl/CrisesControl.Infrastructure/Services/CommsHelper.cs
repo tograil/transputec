@@ -600,7 +600,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public dynamic InitComms(string API_CLASS, string APIClass = "", string clientId = "", string clientSecret = "")
+        public dynamic InitComms(string API_CLASS, string APIClass = "", string clientId = "", string clientSecret = "", string dataCenter = "dublin")
         {
             try
             {
