@@ -33,6 +33,9 @@ using CrisesControl.Core.Payments;
 using CrisesControl.Core.App;
 using static CrisesControl.Infrastructure.Services.CommsLogsHelper;
 
+using CrisesControl.Core.CCWebSocket;
+using CrisesControl.Infrastructure.Services;
+
 namespace CrisesControl.Infrastructure.Context
 {
     public class CrisesControlContext : DbContext
@@ -235,8 +238,9 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<PackageItems>().HasNoKey();
             modelBuilder.Entity<TransactionRates>().HasNoKey();
             modelBuilder.Entity<CompanyPackage>().HasNoKey();
-            
-
+            modelBuilder.Entity<SocketList>().HasNoKey();
+            modelBuilder.Entity<SocketClientList>().HasNoKey();
+            modelBuilder.Entity<MessageCountResponse>().HasNoKey();
 
             modelBuilder.Entity<ModuleLinks>().HasNoKey();
             

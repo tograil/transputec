@@ -966,9 +966,7 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 throw ex;
             }
-        }
-
-        
+        }    
         public string Getconfig(string key, string defaultVal = "")
         {
             try
@@ -1474,6 +1472,7 @@ namespace CrisesControl.Api.Application.Helpers
             rtn.ResultID = resultId;
             return rtn;
         }
+
         public string PhoneNumber(PhoneNumber strPhoneNumber)
         {
             try

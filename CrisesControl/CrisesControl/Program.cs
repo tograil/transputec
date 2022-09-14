@@ -19,6 +19,9 @@ using CrisesControl.Core.AuditLog.Services;
 using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Infrastructure.Services;
 using GrpcAuditLogClient;
+using System.Net.WebSockets;
+using CrisesControl.Infrastructure.Repositories;
+using CrisesControl.Core.CCWebSocket.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -156,6 +159,36 @@ app.UseSwaggerUI(setupAction => {
     setupAction.SwaggerEndpoint(builder.Configuration.GetSection("AppName")
                .Value + "/swagger/v1/swagger.json", "CC Core API V1");
 });
+var wsOptions = new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(120) };
+app.UseWebSockets(wsOptions);
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/ws")
+    {
+        if (context.WebSockets.IsWebSocketRequest)
+        {
+            WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
+
+            try
+            {
+                var handler = app.Services.GetRequiredService<ICCWebSocketRepository>();
+                await handler.ProcessWebsocketSession(context, webSocket);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        else
+        {
+            context.Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
+        }
+    }
+    else
+    {
+        await next();
+    }
+});
 //// Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment()) {
 //    app.UseSwagger();
@@ -179,5 +212,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 
 app.Run();
