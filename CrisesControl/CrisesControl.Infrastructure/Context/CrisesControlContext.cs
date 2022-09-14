@@ -32,6 +32,7 @@ using CrisesControl.Core.Sop;
 using CrisesControl.Core.Payments;
 using CrisesControl.Core.App;
 using static CrisesControl.Infrastructure.Services.CommsLogsHelper;
+using CrisesControl.Core.Assets;
 
 using CrisesControl.Core.CCWebSocket;
 using CrisesControl.Infrastructure.Services;
@@ -264,6 +265,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<TwilioLogToClear>().HasNoKey();
             modelBuilder.Entity<TwilioPriceByNumber>().HasNoKey();
 
+            modelBuilder.Entity<AssetLink>().HasNoKey();
+            modelBuilder.Entity<AssetsDetails>().HasNoKey();
             //modelBuilder.Entity<Location>().HasNoKey();
         }
 
