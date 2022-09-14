@@ -31,6 +31,7 @@
     <PackageReference Include="MediatR.Extensions.Autofac.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.2.0" />
     <PackageReference Include="MongoDB.Bson" Version="2.15.0" />
+    <PackageReference Include="Twilio" Version="5.75.2" />
     <PackageReference Include="SuperSocket.WebSocket" Version="1.6.6.1" />
   </ItemGroup>
 

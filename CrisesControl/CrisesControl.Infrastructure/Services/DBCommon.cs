@@ -32,6 +32,7 @@ using Location = CrisesControl.Core.Locations.Location;
 using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.Core.Import;
 using System.Net.Http;
+using Newtonsoft.Json;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -1280,7 +1281,7 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task<int> SegregationWarning(int companyId, int userID, int incidentId)
+        public async Task<int> SegregationWarning(int  companyId, int userID, int incidentId)
         {
             var pIncidentId = new SqlParameter("@IncidentID", incidentId);
             var pUserID = new SqlParameter("@UserID", userID);
@@ -1616,5 +1617,46 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
+        public void ModelInputLog(string controllerName, string methodName, int userID, int companyID, dynamic data)
+        {
+            try
+            {
+              
+                    string json = JsonConvert.SerializeObject(data);
+
+                    var pControllerName = new SqlParameter("@ControllerName", controllerName);
+                    var pMethodName = new SqlParameter("@MethodName", methodName);
+                    var pUserID = new SqlParameter("@UserID", userID);
+                    var pCompanyID = new SqlParameter("@CompanyID", companyID);
+                    var pData = new SqlParameter("@Data", json);
+
+                    _context.Database.ExecuteSqlRaw("Pro_Log_Model_Data @ControllerName, @MethodName, @UserID, @CompanyID, @Data",
+                    pControllerName, pMethodName, pUserID, pCompanyID, pData);
+            
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public DateTimeOffset ToNullIfTooEarlyForDb(DateTimeOffset date, bool ConvertUTC = false)
+        {
+            DateTimeOffset retDate = (date.Year >= 1990) ? date : DateTime.Now;
+            if (!ConvertUTC)
+            {
+                return retDate;
+            }
+            else
+            {
+                //retDate = GetLocalTimeScheduler("GMT Standard Time", retDate);
+                retDate = GetDateTimeOffset(retDate.LocalDateTime);
+            }
+            return retDate;
+        }
+        public string LogWrite(string str, string strType = "I")
+        {
+            return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
+        }
+
     }
 }

@@ -31,6 +31,7 @@ using CrisesControl.Core.Academy;
 using CrisesControl.Core.Sop;
 using CrisesControl.Core.Payments;
 using CrisesControl.Core.App;
+using static CrisesControl.Infrastructure.Services.CommsLogsHelper;
 
 using CrisesControl.Core.CCWebSocket;
 using CrisesControl.Infrastructure.Services;
@@ -225,6 +226,13 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<RegisteredUser>().HasNoKey();
             modelBuilder.Entity<CompaniesStats>().HasNoKey();
             modelBuilder.Entity<CompanyMessageTransactionStats>().HasNoKey();
+            modelBuilder.Entity<CMMultiPart>().HasNoKey();
+            modelBuilder.Entity<CMResult>().HasNoKey();
+            modelBuilder.Entity<CMSMSResponse>().HasNoKey();
+            modelBuilder.Entity<TwilioBatch>().HasNoKey();
+            modelBuilder.Entity<TwilioRequest>().HasNoKey();
+            modelBuilder.Entity<TwilioPriceByNumber>().HasNoKey();
+            modelBuilder.Entity<TwilioLogToClear>().HasNoKey();
             //modelBuilder.Entity<CompanyTranscationType>().HasNoKey();
             modelBuilder.Entity<UpdateCompanyPaymentProfileModel>().HasNoKey();
             modelBuilder.Entity<PackageItems>().HasNoKey();

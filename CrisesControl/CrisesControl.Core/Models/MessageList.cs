@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.Core.Users;
+using System;
 
 namespace CrisesControl.Core.Models
 {
@@ -32,5 +33,6 @@ namespace CrisesControl.Core.Models
         public bool Email { get; set; }
         public Message Message { get; set; }
         public ActiveMessageResponse ActiveMessageResponse { get; set; }
+        public User User { get; set; }
     }
 }

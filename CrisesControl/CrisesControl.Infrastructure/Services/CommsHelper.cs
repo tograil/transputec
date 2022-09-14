@@ -17,7 +17,7 @@ namespace CrisesControl.Infrastructure.Services
     {
         private readonly DBCommon _DBC;
         private readonly CrisesControlContext _context;
-        private readonly HttpContextAccessor _httpContextAccessor;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly Messaging _MSG;
         private readonly SendEmail _SDE;
 
@@ -25,7 +25,7 @@ namespace CrisesControl.Infrastructure.Services
         public int GUserId;
         public string GTimezoneId = "GMT Standard Time";
 
-        public CommsHelper(DBCommon DBC, CrisesControlContext context, HttpContextAccessor httpContextAccessor, Messaging MSG, SendEmail SDE)
+        public CommsHelper(DBCommon DBC, CrisesControlContext context, IHttpContextAccessor httpContextAccessor, Messaging MSG, SendEmail SDE)
         {
             _DBC = DBC;
             _context = context;
@@ -600,7 +600,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public dynamic InitComms(string API_CLASS, string APIClass = "", string clientId = "", string clientSecret = "")
+        public dynamic InitComms(string API_CLASS, string APIClass = "", string clientId = "", string clientSecret = "", string dataCenter = "dublin")
         {
             try
             {
