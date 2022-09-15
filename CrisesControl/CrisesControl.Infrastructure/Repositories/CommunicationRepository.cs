@@ -585,7 +585,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var conf = await  _context.Set<ConferenceCallLogHeader>().Where(C=> C.CloudConfId == conferenceId).FirstOrDefaultAsync();
                 if (conf != null)
                 {
-                    CommsHelper CH = new CommsHelper(DBC,_context,_httpContextAccessor,_MSG,_SDE);
+                    CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
                     bool SendInDirect = DBC.IsTrue(DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
                     string DataCenter = DBC.GetCompanyParameter("TWILIO_EDGE_LOCATION", conf.CompanyId);
 
@@ -675,7 +675,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         }
 
                         //Create Instenace of the Comms Api choosen by customer
-                        CommsHelper CMH = new CommsHelper(DBC, _context, _httpContextAccessor, _MSG, _SDE);
+                        CommsHelper CMH = new CommsHelper( _context, _httpContextAccessor);
                         dynamic CommsAPI = CMH.InitComms(CONF_API, dataCenter: DataCenter);
                         CommsAPI.IsConf = confHead.Record;
                         CommsAPI.ConfRoom = confHead.ConfRoomName;
@@ -979,7 +979,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
                 
-                CommsHelper CH = new CommsHelper(DBC, _context, _httpContextAccessor, _MSG, _SDE);
+                CommsHelper CH = new CommsHelper(_context, _httpContextAccessor);
 
                 dynamic CommsAPI = CH.InitComms("TWILIO", "", ip.ClientId, ip.Secret, ip.DataCenter);
 
@@ -1014,7 +1014,7 @@ namespace CrisesControl.Infrastructure.Repositories {
         {
             try
             {
-                CommsHelper CH = new CommsHelper(DBC, _context, _httpContextAccessor, _MSG, _SDE);
+                CommsHelper CH = new CommsHelper(_context, _httpContextAccessor);
 
                 CommsStatus callrslt = new CommsStatus();
 
@@ -1262,7 +1262,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
 
-                CommsHelper CH = new CommsHelper(DBC,_context,_httpContextAccessor,_MSG,_SDE);
+                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
                 dynamic CommsAPI = CH.InitComms("TWILIO", "", ip.ClientId, ip.Secret, ip.DataCenter);
                 CommsAPI.SendInDirect = false;
                 var result = CommsAPI.EndConferenceCall(ip.Sid);

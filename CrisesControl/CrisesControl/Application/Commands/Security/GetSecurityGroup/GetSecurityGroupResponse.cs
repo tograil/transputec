@@ -1,9 +1,10 @@
 ﻿using CrisesControl.Core.Models;
+using CrisesControl.Core.Security;
 
 namespace CrisesControl.Api.Application.Commands.Security.GetSecurityGroup
 {
     public class GetSecurityGroupResponse
     {
-        public SecurityGroup Data { get; set; }
+        public SecurityGroups Data { get; set; }
     }
 }

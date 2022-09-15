@@ -10,14 +10,14 @@ namespace CrisesControl.Core.Security
 {
     public interface ISecurityRepository
     {
-        Task<IEnumerable<CompanySecurityGroup>> GetCompanySecurityGroup(int CompanyID);
-        Task<SecurityGroup> GetSecurityGroup(int CompanyID, int SecurityGroupId);
-        Task<List<SecurityAllObjects>> GetAllSecurityObjects(int CompanyID);
-        Task<bool> CheckMenuAccessAssociation(int SecurityGroupID, int CompanyID);
-        Task CreateGroupSecurityObject(int SecurityGroupID, int[] SecurityAdminObjectList);
-        Task<int> CreateSecurityGroup(int CompanyId, string Name, string Description, string UserRole, int Status, int CreatedUpdatedBy, string TimeZoneId = "GMT Standard Time");
-        Task<bool> DeleteSecurityGroup(int CompanyID, int SecurityGroupId, int CurrentUserId, string TimeZoneId);
-        Task<int> UpdateSecurityGroup(int CompanyID, int SecurityGroupId, string GroupName, string GroupDescription, int Status, string UserRole, int[] GroupSecurityObjects, int CurrentUserId, string TimeZoneId);
-        Task<int> AddSecurityGroup(int CompanyID, string GroupName, string GroupDescription, int Status, string UserRole, int[] GroupSecurityObjects, int CurrentUserId, string TimeZoneId);
+        Task<IEnumerable<CompanySecurityGroup>> GetCompanySecurityGroup(int companyID);
+        Task<SecurityGroups> GetSecurityGroup(int companyID, int securityGroupId);
+        Task<List<SecurityAllObjects>> GetAllSecurityObjects(int companyID);
+        Task<bool> CheckMenuAccessAssociation(int securityGroupID, int companyID);
+        Task CreateGroupSecurityObject(int securityGroupID, int[] securityAdminObjectList);
+        Task<int> CreateSecurityGroup(int companyId, string name, string description, string userRole, int status, int createdUpdatedBy, string timeZoneId = "GMT Standard Time");
+        Task<bool> DeleteSecurityGroup(int companyID, int securityGroupId, int currentUserId, string timeZoneId);
+        Task<int> UpdateSecurityGroup(int companyID, int securityGroupId, string groupName, string groupDescription, int status, string userRole, int[] groupSecurityObjects, int currentUserId, string timeZoneId);
+        Task<int> AddSecurityGroup(int companyID, string groupName, string groupDescription, int status, string userRole, int[] groupSecurityObjects, int currentUserId, string timeZoneId);
     }
 }
