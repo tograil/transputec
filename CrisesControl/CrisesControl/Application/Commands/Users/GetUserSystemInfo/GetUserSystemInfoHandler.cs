@@ -9,13 +9,13 @@ namespace CrisesControl.Api.Application.Commands.Users.GetUserSystemInfo
     {
         private readonly GetUserSystemInfoValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly ILogger<GetUserSystemInfoHandler> _logger;
 
-        public GetUserSystemInfoHandler(GetUserSystemInfoValidator userValidator, IUserRepository userService, IMapper mapper)
+        public GetUserSystemInfoHandler(GetUserSystemInfoValidator userValidator, IUserRepository userService, ILogger<GetUserSystemInfoHandler> logger)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<GetUserSystemInfoResponse> Handle(GetUserSystemInfoRequest request, CancellationToken cancellationToken)

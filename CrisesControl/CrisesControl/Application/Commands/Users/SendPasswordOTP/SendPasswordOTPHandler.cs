@@ -1,6 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
 using CrisesControl.Core.Users.Repositories;
+using FluentValidation;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Users.SendPasswordOTP
@@ -9,21 +10,23 @@ namespace CrisesControl.Api.Application.Commands.Users.SendPasswordOTP
     {
         private readonly SendPasswordOTPValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly ILogger<SendPasswordOTPHandler> _logger;
 
-        public SendPasswordOTPHandler(SendPasswordOTPValidator userValidator, IUserRepository userService, IMapper mapper)
+        public SendPasswordOTPHandler(SendPasswordOTPValidator userValidator, IUserRepository userService, ILogger<SendPasswordOTPHandler> logger)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<SendPasswordOTPResponse> Handle(SendPasswordOTPRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(SendPasswordOTPRequest));
-
-            //var userId = await _userRepository.SendPasswordOTP(request.ModuleItems, request.ModulePage, request.UserID, cancellationToken);
-            return new SendPasswordOTPResponse();
+            await _userValidator.ValidateAndThrowAsync(request,cancellationToken);
+            var PasswordOtp = await _userRepository.SendPasswordOTP(request.UserID,request.Action,request.Password,request.OldPassword,request.OTPCode,request.Return,request.OTPMessage,request.Source,request.Method);
+            var response= new SendPasswordOTPResponse();
+            response.Message = PasswordOtp;
+            return response;
         }
     }
 }

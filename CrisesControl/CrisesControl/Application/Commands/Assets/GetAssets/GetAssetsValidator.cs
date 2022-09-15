@@ -6,8 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Assets.GetAssets
     {
         public GetAssetsValidator()
         {
-            RuleFor(x => x.CompanyId)
-                .GreaterThan(0);
+          
         }
     }
 }

@@ -39,11 +39,16 @@ namespace CrisesControl.Infrastructure.Repositories
 
         public async Task<int> DeleteDepartment(int departmentId, CancellationToken token)
         {
-            await _context.AddAsync(departmentId, token);
+            var Department = await CheckForExistance(departmentId);
+            if (Department) {
+                var department = await _context.Set<Department>().Where(d => d.DepartmentId == departmentId).FirstOrDefaultAsync();
+                _context.Remove(department);
 
-            await _context.SaveChangesAsync(token);
+                await _context.SaveChangesAsync(token);
 
-            return departmentId;
+                return departmentId;
+            }
+            return 0;
         }
 
         public async Task<IEnumerable<Department>> GetAllDepartments(int companyId)
@@ -81,9 +86,9 @@ namespace CrisesControl.Infrastructure.Repositories
             return _context.Set<Department>().Where(t => t.DepartmentName.Equals(department.DepartmentName) && t.CompanyId == department.CompanyId).Any();
         }
 
-        public bool CheckForExistance(int DepartmentId)
+        public async Task<bool> CheckForExistance(int departmentId)
         {
-            return _context.Set<Department>().Where(t => t.DepartmentId.Equals(DepartmentId)).Any();
+            return await _context.Set<Department>().Where(t => t.DepartmentId.Equals(departmentId)).AnyAsync();
         }
         public async Task<int> DepartmentStatus(int CompanyID)
         {
@@ -91,10 +96,11 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 var pCompanyId = new SqlParameter("@CompanyId", CompanyID);
 
-                var result = await  _context.Set<Result>().FromSqlRaw("exec Pro_Get_Department_Status @CompanyID", pCompanyId).FirstOrDefaultAsync();
+                var result =  _context.Set<Result>().FromSqlRaw("exec Pro_Get_Department_Status @CompanyID", pCompanyId).AsEnumerable();
+               var id= result.FirstOrDefault().ResultID;
                 if (result != null)
                 {
-                    return result.ResultID;
+                    return id;
                 }
                 return 0;
             }
@@ -105,16 +111,16 @@ namespace CrisesControl.Infrastructure.Repositories
            
         }
 
-        public async Task<List<GroupLink>> SegregationLinks(int TargetID, string MemberShipType,string LinkType,int CurrentUserId, int OutUserCompanyId)
+        public async Task<List<GroupLink>> SegregationLinks(int targetID, string memberShipType,string linkType,int currentUserId, int outUserCompanyId)
         {
             try
             {
 
-                var pDepartmentID = new SqlParameter("@DepartmentID",TargetID);
-                var pMemberShipType = new SqlParameter("@MemberShipType", MemberShipType);
-                var pLinkType = new SqlParameter("@LinkType", LinkType);
-                var pUserID = new SqlParameter("@UserID", CurrentUserId);
-                var pCompanyID = new SqlParameter("@CompanyID", OutUserCompanyId);
+                var pDepartmentID = new SqlParameter("@DepartmentID",targetID);
+                var pMemberShipType = new SqlParameter("@MemberShipType", memberShipType);
+                var pLinkType = new SqlParameter("@LinkType", linkType);
+                var pUserID = new SqlParameter("@UserID", currentUserId);
+                var pCompanyID = new SqlParameter("@CompanyID", outUserCompanyId);
 
                 var result = await _context.Set<GroupLink>().FromSqlRaw("exec Pro_Get_Department_Links @DepartmentID, @LinkType, @MemberShipType, @UserID, @CompanyID",
                     pDepartmentID, pLinkType, pMemberShipType, pUserID, pCompanyID).ToListAsync();
@@ -127,18 +133,19 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> UpdateSegregationLink(int SourceID, int TargetID, string Action, GroupType LinkType,  int CompanyId)
+        public async Task<bool> UpdateSegregationLink(int SourceID, int TargetID,  GroupType LinkType,  int CompanyId)
         {
             try
             {
                 if (LinkType.ToGrString().ToUpper() == GroupType.GROUP.ToGrString().ToUpper())
                 {
-                    var item = await _context.Set<SegGroupDepartmentLink>().Where(I=> I.DepartmentId == SourceID && I.GroupId == TargetID).FirstOrDefaultAsync();
-                    if (Action.ToUpper() == "ADD" && item == null)
+                    var item = await  _context.Set<SegGroupDepartmentLink>().Where(I=> I.DepartmentId == SourceID && I.GroupId == TargetID).FirstOrDefaultAsync();
+
+                    if ( item == null)
                     {
                        await CreateSegregtionLink(SourceID, TargetID, LinkType, CompanyId);
                     }
-                    else if (Action.ToUpper() == "REMOVE" && item != null)
+                    else if ( item != null)
                     {
                         _context.Remove(item);
                        await _context.SaveChangesAsync();
@@ -148,11 +155,11 @@ namespace CrisesControl.Infrastructure.Repositories
                 else if (LinkType.ToGrString().ToUpper() == GroupType.INCIDENT.ToGrString().ToUpper())
                 {
                     var item = await _context.Set<SegGroupDepartmentLink>().Where(I=> I.DepartmentId == SourceID && I.GroupId == TargetID).FirstOrDefaultAsync();
-                    if (Action.ToUpper() == "ADD" && item == null)
+                    if ( item == null)
                     {
                       await  CreateSegregtionLink(SourceID, TargetID, LinkType, CompanyId);
                     }
-                    else if (Action.ToUpper() == "REMOVE" && item != null)
+                    else if (item != null)
                     {
                         _context.Remove(item);
                         await _context.SaveChangesAsync();

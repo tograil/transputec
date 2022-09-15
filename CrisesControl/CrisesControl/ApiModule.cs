@@ -17,7 +17,7 @@ public class ApiModule : Module
         builder.RegisterAssemblyTypes(ThisAssembly)
             .AsClosedTypesOf(typeof(AbstractValidator<>));
 
-
+        builder.RegisterAutoMapper(ThisAssembly);
         builder.RegisterMediatR(ThisAssembly, typeof(AuditLogBehaviour<,>));
 
         builder.RegisterType<CompanyQuery>().As<ICompanyQuery>();
@@ -53,5 +53,7 @@ public class ApiModule : Module
         builder.RegisterType<LookupQuery>().As<ILookupQuery>();
         builder.RegisterType<Mapper>().As<IMapper>();
         builder.RegisterType<SopQuery>().As<ISopQuery>();
+        builder.RegisterType<AppQuery>().As<IAppQuery>();
+        builder.RegisterType<WebSocketQuery>().As<ICCWebSocketQuery>();
     }
 }

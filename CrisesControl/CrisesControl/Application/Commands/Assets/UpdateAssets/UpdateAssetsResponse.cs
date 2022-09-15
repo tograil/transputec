@@ -3,5 +3,6 @@
     public class UpdateAssetsResponse
     {
         public int AssetId { get; set; }
+        public string Message { get; set; }
     }
 }

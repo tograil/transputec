@@ -31,6 +31,9 @@ using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
 using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.Core.Import;
+using System.Net.Http;
+using System.Data;
+using Newtonsoft.Json;
 
 namespace CrisesControl.Api.Application.Helpers
 {
@@ -42,6 +45,8 @@ namespace CrisesControl.Api.Application.Helpers
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
         ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
+        bool isretry = false;
+        public delegate void UpdateHandler(object sender, UpdateEventArgs e);
 
         public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
@@ -49,6 +54,14 @@ namespace CrisesControl.Api.Application.Helpers
             _httpContextAccessor = httpContextAccessor;
             userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+        }
+        public class UpdateEventArgs : EventArgs
+        {
+            public UpdateEventArgs(string _Msg)
+            {
+                Message = _Msg;
+            }
+            public string Message { get; }
         }
 
         public StringBuilder ReadHtmlFile(string fileCode, string source, int companyId, out string subject, string provider = "AWSSES")
@@ -268,9 +281,9 @@ namespace CrisesControl.Api.Application.Helpers
             return sBuilder.ToString();
         }
 
-        public string ToCurrency(decimal Amount, int points = 2)
+        public string ToCurrency(decimal amount, int points = 2)
         {
-            return "&pound;" + Amount.ToString("n" + points);
+            return "&pound;" + amount.ToString("n" + points);
         }
 
         public DateTimeOffset GetDateTimeOffset(DateTime crTime, string timeZoneId = "GMT Standard Time")
@@ -442,31 +455,31 @@ namespace CrisesControl.Api.Application.Helpers
             return DateTime.Now;
         }
         //Todo: implement this based on the scheduler
-        public void DeleteScheduledJob(string jobName, string group)
+        public async Task DeleteScheduledJob(string jobName, string group)
         {
-            //try
-            //{
-            //    ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
-            //    IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
-            //    _scheduler.DeleteJob(new JobKey(JobName, Group));
-            //}
-            //catch (Exception ex)
-            //{
-            //    catchException(ex);
-            //}
+            try
+            {
+                ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+               await _scheduler.DeleteJob(new JobKey(jobName, group));
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
-        public string GetTimeZoneVal(int userId)
+        public async Task<string> GetTimeZoneVal(int userId)
         {
             try
             {
                 string tmpZoneVal = "GMT Standard Time";
-                var userInfo = _context.Set<User>().Include(C=>C.Company)                               
+                var userInfo = await  _context.Set<User>().Include(c=>c.Company)
                                 .Where(U=> U.UserId == userId)
                                 .Select(T=> new
                                 {
                                     UserTimezone = T.Company.StdTimeZone.ZoneLabel
-                                }).FirstOrDefault();
+                                }).FirstOrDefaultAsync();
                 if (userInfo != null)
                 {
                     tmpZoneVal = userInfo.UserTimezone;
@@ -963,8 +976,7 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 throw ex;
             }
-        }
-
+        }    
         public string Getconfig(string key, string defaultVal = "")
         {
             try
@@ -1240,7 +1252,7 @@ namespace CrisesControl.Api.Application.Helpers
                                                               .StartAt(DateCheck.ToUniversalTime())
                                                               .ForJob(jobDetail)
                                                               .Build();
-                  await  _scheduler.ScheduleJob(jobDetail, trigger);
+                  await   _scheduler.ScheduleJob(jobDetail, trigger);
                 }
                 else
                 {
@@ -1279,7 +1291,7 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task<int> SegregationWarning(int companyId, int userID, int incidentId)
+        public async Task<int> SegregationWarning(int  companyId, int userID, int incidentId)
         {
             var pIncidentId = new SqlParameter("@IncidentID", incidentId);
             var pUserID = new SqlParameter("@UserID", userID);
@@ -1470,6 +1482,7 @@ namespace CrisesControl.Api.Application.Helpers
             rtn.ResultID = resultId;
             return rtn;
         }
+
         public string PhoneNumber(PhoneNumber strPhoneNumber)
         {
             try
@@ -1482,8 +1495,338 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex)
             {
                 throw ex;
-            }
+            } 
             return "";
         }
+        public async Task<DateTimeOffset> LookupLastUpdate(string Key)
+        {
+            try
+            {
+
+                var LKP = await _context.Set<SysParameter>()
+                           .Where(L=> L.Name == Key
+                           ).FirstOrDefaultAsync();
+                if (LKP != null)
+                {
+                    return LKP.UpdatedOn;
+                }
+                return new DateTimeOffset();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return new DateTimeOffset();
+            }
+        }
+        public async Task<DateTimeOffset> GetCompanyParameterLastUpdate(string Key, int CompanyId)
+        {
+            try
+            {
+
+                var LKP = await _context.Set<CompanyParameter>()
+                           .Where(L=> L.Name == Key && L.CompanyId == CompanyId).FirstOrDefaultAsync ();
+                if (LKP != null)
+                {
+                    return LKP.UpdatedOn;
+                }
+                return new DateTimeOffset();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return new DateTimeOffset();
+            }
+        }
+        public DateTime DbDate()
+        {
+            return new DateTime(1900, 01, 01, 0, 0, 0);
+        }
+
+        
+        public string RetrieveFormatedAddress(string lat, string lng)
+        {
+            try
+            {
+                string APIKey = LookupWithKey("GOOGLE_LEGACY_API_KEY");
+                string baseUri = "https://maps.googleapis.com/maps/api/" +
+                          "geocode/xml?latlng={0},{1}&sensor=false&key={2}";
+                string requestUri = string.Format(baseUri, lat, lng, APIKey);
+
+                HttpClient client = new HttpClient();
+                client.BaseAddress = new Uri(requestUri);
+
+                Task<string> result = client.GetStringAsync(new Uri(requestUri));
+
+                var xmlElm = XElement.Parse(result.Result);
+
+                var status = (from elm in xmlElm.Descendants()
+                              where elm.Name == "status"
+                              select elm).FirstOrDefault();
+
+                if (status.Value.ToLower() == "ok")
+                {
+
+                    var res = (from elm in xmlElm.Descendants()
+                               where elm.Name == "formatted_address"
+                               select elm).Skip(1).FirstOrDefault();
+
+                    if (res == null)
+                    {
+                        res = (from elm in xmlElm.Descendants()
+                               where elm.Name == "formatted_address"
+                               select elm).FirstOrDefault();
+                    }
+
+                    if (res.Value != null)
+                    {
+                        return res.Value.ToString();
+                    }
+                    else
+                    {
+                        if (!isretry)
+                        {
+                            string tryagain = "";
+                            int retrycount = 0;
+                            while (tryagain == "" && retrycount < 3)
+                            {
+                                tryagain = RetrieveFormatedAddress(lat, lng);
+                                isretry = true;
+                                retrycount++;
+                            }
+                        }
+                    }
+                }
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+        public async Task UpdateUserLocation(int userid, int companyid, string latitude, string longitude, string timeZoneId)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(latitude) && !string.IsNullOrEmpty(longitude) && latitude != "0" && longitude != "0")
+                {
+                    var updatelocation = _context.Set<User>().Where(user => user.UserId == userid).FirstOrDefault();
+                    if (updatelocation != null)
+                    {
+                        updatelocation.Lat = Left(latitude, 10).Replace(",", ".");
+                        updatelocation.Lng = Left(longitude, 10).Replace(",", ".");
+                        updatelocation.LastLocationUpdate = GetDateTimeOffset(DateTime.Now, timeZoneId);
+                        _context.Update(updatelocation);
+                       await  _context.SaveChangesAsync();
+                    }
+                }
+            }
+           
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public string ToCSVHighPerformance(DataTable dataTable, bool includeHeaderAsFirstRow = true, string separator = ",")
+        {
+            //DataTable dataTable = new DataTable();
+            StringBuilder csvRows = new StringBuilder();
+            string row = "";
+            int columns;
+            try
+            {
+                //dataTable.Load(dataReader);
+                columns = dataTable.Columns.Count;
+                //Create Header
+                if (includeHeaderAsFirstRow)
+                {
+                    for (int index = 0; index < columns; index++)
+                    {
+                        row += (dataTable.Columns[index]);
+                        if (index < columns - 1)
+                            row += (separator);
+                    }
+                    row += (Environment.NewLine);
+                }
+                csvRows.Append(row);
+
+                //Create Rows
+                for (int rowIndex = 0; rowIndex < dataTable.Rows.Count; rowIndex++)
+                {
+                    row = "";
+                    //Row
+                    for (int index = 0; index < columns; index++)
+                    {
+                        string value = dataTable.Rows[rowIndex][index].ToString();
+
+                        //If type of field is string
+                        if (dataTable.Rows[rowIndex][index] is string)
+                        {
+                            //If double quotes are used in value, ensure each are replaced by double quotes.
+                            if (value.IndexOf("\"") >= 0)
+                                value = value.Replace("\"", "\"\"");
+
+                            //If separtor are is in value, ensure it is put in double quotes.
+                            if (value.IndexOf(separator) >= 0)
+                                value = "\"" + value + "\"";
+
+                            //If string contain new line character
+                            while (value.Contains("\r"))
+                            {
+                                value = value.Replace("\r", "");
+                            }
+                            while (value.Contains("\n"))
+                            {
+                                value = value.Replace("\n", "");
+                            }
+                        }
+                        row += value;
+                        if (index < columns - 1)
+                            row += separator;
+                    }
+                    dataTable.Rows[rowIndex][columns - 1].ToString().ToString().Replace(separator, " ");
+                    row += Environment.NewLine;
+                    csvRows.Append(row);
+                }
+                dataTable.Dispose();
+                return csvRows.ToString();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            
+        }
+        public void ModelInputLog(string controllerName, string methodName, int userID, int companyID, dynamic data)
+        {
+            try
+            {
+             
+                    string json = JsonConvert.SerializeObject(data);
+
+                    var pControllerName = new SqlParameter("@ControllerName", controllerName);
+                    var pMethodName = new SqlParameter("@MethodName", methodName);
+                    var pUserID = new SqlParameter("@UserID", userID);
+                    var pCompanyID = new SqlParameter("@CompanyID", companyID);
+                    var pData = new SqlParameter("@Data", json);
+
+                    _context.Database.ExecuteSqlRawAsync("Pro_Log_Model_Data @ControllerName, @MethodName, @UserID, @CompanyID, @Data",
+                    pControllerName, pMethodName, pUserID, pCompanyID, pData);
+             
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public DateTimeOffset ToNullIfTooEarlyForDb(DateTimeOffset date, bool convertUTC = false)
+        {
+            DateTimeOffset retDate = (date.Year >= 1990) ? date : DateTime.Now;
+            if (!convertUTC)
+            {
+                return retDate;
+            }
+            else
+            {
+                //retDate = GetLocalTimeScheduler("GMT Standard Time", retDate);
+                retDate = GetDateTimeOffset(retDate.LocalDateTime);
+            }
+            return retDate;
+        }
+        public string LogWrite(string str, string strType = "I")
+        {
+            return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
+        }
+        public void ModelInputLog(string controllerName, string methodName, int userID, int companyID, dynamic data)
+        {
+            try
+            {
+              
+                    string json = JsonConvert.SerializeObject(data);
+
+                    var pControllerName = new SqlParameter("@ControllerName", controllerName);
+                    var pMethodName = new SqlParameter("@MethodName", methodName);
+                    var pUserID = new SqlParameter("@UserID", userID);
+                    var pCompanyID = new SqlParameter("@CompanyID", companyID);
+                    var pData = new SqlParameter("@Data", json);
+
+                    _context.Database.ExecuteSqlRaw("Pro_Log_Model_Data @ControllerName, @MethodName, @UserID, @CompanyID, @Data",
+                    pControllerName, pMethodName, pUserID, pCompanyID, pData);
+            
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public DateTimeOffset ToNullIfTooEarlyForDb(DateTimeOffset date, bool ConvertUTC = false)
+        {
+            DateTimeOffset retDate = (date.Year >= 1990) ? date : DateTime.Now;
+            if (!ConvertUTC)
+            {
+                return retDate;
+            }
+            else
+            {
+                //retDate = GetLocalTimeScheduler("GMT Standard Time", retDate);
+                retDate = GetDateTimeOffset(retDate.LocalDateTime);
+            }
+            return retDate;
+        }
+        public string LogWrite(string str, string strType = "I")
+        {
+            return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
+        }
+
+        public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
+        {
+            var devices = await _context.Set<UserDevice>().Where(UD=> UD.UserId == userID).ToListAsync();
+            if (devices!=null) { 
+            foreach (var device in devices)
+            {
+                if (device.DeviceType.ToUpper().Contains("ANDROID") || device.DeviceType.ToUpper().Contains("WINDOWS"))
+                   await AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
+               
+            }
+                return true;
+            }
+            return false;
+        }
+
+        public async Task AddTrackingDevice(int companyID, int userDeviceID, string deviceAddress, string deviceType, int messageListID = 0)
+        {
+            try
+            {
+                MessageDevice MessageDev = new MessageDevice();
+                MessageDev.CompanyId = companyID;
+                MessageDev.MessageId = 0;
+                MessageDev.MessageListId = messageListID;
+                MessageDev.UserDeviceId = userDeviceID;
+                MessageDev.Method = "PUSH";
+                MessageDev.AttributeId = 0;
+                MessageDev.MessageText = "Track Device";
+                MessageDev.Priority = 100;
+                MessageDev.Attempt = 0;
+                MessageDev.Status = "PENDING";
+                MessageDev.SirenOn = false;
+                MessageDev.OverrideSilent = false;
+                MessageDev.CreatedOn = GetDateTimeOffset(DateTime.Now);
+                MessageDev.UpdatedOn = GetDateTimeOffset(DateTime.Now);
+                MessageDev.CreatedBy = 0;
+                MessageDev.UpdatedBy = 0;
+                MessageDev.DateSent = System.Data.SqlTypes.SqlDateTime.MinValue.Value;
+                MessageDev.DateDelivered = System.Data.SqlTypes.SqlDateTime.MinValue.Value;
+                MessageDev.DeviceAddress = deviceAddress;
+                MessageDev.DeviceType = deviceType;
+                await _context.AddAsync(MessageDev);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+
     }
 }

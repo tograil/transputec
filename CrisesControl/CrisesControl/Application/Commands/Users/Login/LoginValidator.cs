@@ -24,9 +24,7 @@ namespace CrisesControl.Api.Application.Commands.Users.Login
             RuleFor(x => x.IPAddress)
                 .MaximumLength(50)
                 .NotNull();
-            RuleFor(x => x.DeviceType)
-                .MaximumLength(100)
-                .NotNull();
+           
             //RuleFor(x => x.ExtraInfo)
             //    .MaximumLength(250);
             //RuleFor(x => x.Latitude)

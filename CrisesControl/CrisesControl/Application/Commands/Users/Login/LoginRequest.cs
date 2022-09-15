@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using CrisesControl.Core.Models;
+using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Users.Login
 {

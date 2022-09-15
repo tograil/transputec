@@ -13,39 +13,48 @@ namespace CrisesControl.Api.Application.Query
     public class LocationQuery: ILocationQuery
     {
         private readonly ILocationRepository _locationRepository;
-        private readonly IMapper _mapper;
-        private readonly GetLocationValidator _getLocationValidator;
-        private readonly GetLocationsValidator _getLocationsValidator;
+      
+      
+       
         private readonly ICurrentUser _currentUser;
-        public LocationQuery(ILocationRepository locationRepository, IMapper mapper, GetLocationValidator getLocationValidator, GetLocationsValidator getLocationsValidator, ICurrentUser currentUser)
+        public LocationQuery(ILocationRepository locationRepository, ICurrentUser currentUser)
         {
             _locationRepository = locationRepository;
-            _mapper = mapper;
-            _getLocationValidator = getLocationValidator;
-            _getLocationsValidator = getLocationsValidator;
+            
             _currentUser = currentUser;
         }
 
         public async Task<GetLocationsResponse> GetLocations(GetLocationsRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(GetLocationRequest));
-            await _getLocationsValidator.ValidateAndThrowAsync(request, cancellationToken);
+           
 
             var locations = await _locationRepository.GetAllLocations(request.CompanyId);
-            List<GetLocationResponse> response = _mapper.Map<List<Location>, List<GetLocationResponse>>(locations.ToList());
+            //List<GetLocationResponse> response = _mapper.Map<List<Location>, List<GetLocationResponse>>(locations.ToList());
             var result = new GetLocationsResponse();
-            result.Data = response;
+            result.Data = locations.ToList();
             return result;
         }
 
         public async Task<GetLocationResponse> GetLocation(GetLocationRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(GetLocationRequest));
-            await _getLocationValidator.ValidateAndThrowAsync(request, cancellationToken);
 
+            var response = new GetLocationResponse();
             var location = await _locationRepository.GetLocationById(request.LocationId);
-            GetLocationResponse response = _mapper.Map<Location, GetLocationResponse>(location);
+            if (location != null) {
 
+                response.CompanyId = location.CompanyId;
+                response.Desc = location.Desc;
+                response.CreatedBy = location.CreatedBy;
+                response.Lat = location.Lat;
+                response.CreatedOn = location.CreatedOn;
+                response.LocationName = location.LocationName;
+                response.Long = location.Long;
+                response.PostCode = location.PostCode;
+                response.Status = location.Status;
+                response.UpdatedBy = location.UpdatedBy;
+                response.UpdatedOn = location.UpdatedOn;
+                response.LocationId = location.LocationId;
+             }
             return response;
         }
 
@@ -54,9 +63,9 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                 var location = await _locationRepository.DeleteLocation(request.LocationId,_currentUser.CompanyId,_currentUser.UserId);
-                var result = _mapper.Map<bool>(location);
+                //var result = _mapper.Map<bool>(location);
                 var response = new DeleteLocationResponse();
-                if (result)
+                if (location)
                 {
                     response.Message = "Deleted";
                     response.Result = true;

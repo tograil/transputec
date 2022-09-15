@@ -66,7 +66,7 @@ public class LocationController : Controller
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpDelete]
-    [Route("[action]")]
+    [Route("[action]/{LocationId:int}")]
     public async Task<IActionResult> DeleteLocation([FromRoute] DeleteLocationRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
@@ -94,7 +94,7 @@ public class LocationController : Controller
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPut]
-    [Route("[action]/{TargetID}/{SourceID}/{LinkType}/{Action}")]
+    [Route("[action]/{TargetID}/{SourceID}/{LinkType}")]
     public async Task<IActionResult> UpdateSegregationLink([FromRoute] UpdateSegregationLinkRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);

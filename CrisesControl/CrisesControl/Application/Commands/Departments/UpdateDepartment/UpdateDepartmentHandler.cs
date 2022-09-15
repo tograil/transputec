@@ -1,5 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
+using CrisesControl.Api.Application.Commands.Departments.UpdateSegregationLink;
+using CrisesControl.Api.Application.Query;
 using CrisesControl.Api.Application.ViewModels.Company;
 using CrisesControl.Core.Departments;
 using CrisesControl.Core.Departments.Repositories;
@@ -11,24 +13,21 @@ namespace CrisesControl.Api.Application.Commands.Departments.UpdateDepartment
     public class UpdateDepartmentHandler: IRequestHandler<UpdateDepartmentRequest, UpdateDepartmentResponse>
     {
         private readonly UpdateDepartmentValidator _departmentValidator;
-        private readonly IDepartmentRepository _departmentRepository;
-        private readonly IMapper _mappper;
+        private readonly IDepartmentQuery _departmentQuery;
+        private readonly ILogger<UpdateDepartmentHandler> _logger;
 
-        public UpdateDepartmentHandler(UpdateDepartmentValidator departmentValidator, IDepartmentRepository departmentService, IMapper mapper)
+        public UpdateDepartmentHandler(UpdateDepartmentValidator departmentValidator, IDepartmentQuery departmentQuery, ILogger<UpdateDepartmentHandler> logger)
         {
             _departmentValidator = departmentValidator;
-            _departmentRepository = departmentService;
-            _mappper = mapper;
+            _departmentQuery = departmentQuery;
+            _logger = logger;
         }
 
         public async Task<UpdateDepartmentResponse> Handle(UpdateDepartmentRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(UpdateDepartmentRequest));
-
-            Department value = _mappper.Map<UpdateDepartmentRequest,Department>(request);
-            var departmentId = await _departmentRepository.UpdateDepartment(value, cancellationToken);
-            var result = new UpdateDepartmentResponse();
-            result.DepartmentId = departmentId;   
+            await _departmentValidator.ValidateAndThrowAsync(request, cancellationToken);
+            var result = await _departmentQuery.UpdateDepartment(request, cancellationToken);
             return result;
           
         }

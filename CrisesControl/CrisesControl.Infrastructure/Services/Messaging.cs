@@ -36,11 +36,15 @@ namespace CrisesControl.Infrastructure.Services
         public string MessageSourceAction = "";
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly DBCommon _DBC;
+        private readonly Messaging _MSG;
+        private readonly SendEmail _SDE;
         public Messaging(CrisesControlContext _db, IHttpContextAccessor httpContextAccessor, DBCommon DBC)
         {
             db = _db;
             _httpContextAccessor = httpContextAccessor;
             _DBC = DBC;
+            _MSG = new Messaging(db,_httpContextAccessor,DBC);
+            _SDE = new SendEmail(db,DBC);
         }
  
 
@@ -190,7 +194,7 @@ namespace CrisesControl.Infrastructure.Services
                 if (assetId > 0)
                     await CreateMessageAttachment(tblMessage.MessageId, assetId, companyId, currentUserId, TimeZoneId);
 
-                _DBC.MessageProcessLog(tblMessage.MessageId, "MESSAGE_CREATED");
+               await _DBC.MessageProcessLog(tblMessage.MessageId, "MESSAGE_CREATED");
 
                 return tblMessage.MessageId;
             }
@@ -1556,49 +1560,48 @@ namespace CrisesControl.Infrastructure.Services
             return CallDetailId;
         }
 
-        //public void AddUserLocation(int UserID, int UserDeviceID, double Latitude, double Longitude, string LocationAddress,
-        //    DateTimeOffset UserDeviceTime, string TimeZoneId, int CompanyID)
-        //{
-        //    DBCommon DBC = new DBCommon();
-        //    try
-        //    {
-        //        if (Latitude != 0 && Longitude != 0)
-        //        {
-        //            UserLocation UL = new UserLocation
-        //            {
-        //                UserID = UserID,
-        //                UserDeviceID = UserDeviceID,
-        //                Latitude = Convert.ToDouble(DBC.Left(Latitude.ToString().Replace(",", "."), 15)),
-        //                Longitude = Convert.ToDouble(DBC.Left(Longitude.ToString().Replace(",", "."), 15)),
-        //                LocationAddress = LocationAddress,
-        //                CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-        //                CreatedOnGMT = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-        //                UserDeviceTime = UserDeviceTime != null ? UserDeviceTime : DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
-        //            };
-        //            ;
-        //            db.UserLocation.Add(UL);
-        //            db.SaveChanges();
+        public async Task AddUserLocation(int userID, int userDeviceID, double latitude, double longitude, string locationAddress,
+            DateTimeOffset userDeviceTime, string timeZoneId, int companyID)
+        {
+            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+            try
+            {
+                if (latitude != 0 && longitude != 0)
+                {
+                    UserLocation UL = new UserLocation
+                    {
+                        UserId = userID,
+                        UserDeviceId = userDeviceID,
+                        Lat = DBC.Left(latitude.ToString().Replace(",", "."), 15),
+                        Long = DBC.Left(longitude.ToString().Replace(",", "."), 15),
+                        LocationName = locationAddress,
+                        CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        CreatedOnGMT = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        UserDeviceTime = userDeviceTime != null ? userDeviceTime : DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                    };
+                    ;
+                   await db.AddAsync(UL);
+                   await db.SaveChangesAsync();
 
-        //            DBC.UpdateUserLocation(UserID, CompanyID, Latitude.ToString(), Longitude.ToString(), TimeZoneId);
-        //        }
+                  await  DBC.UpdateUserLocation(userID, companyID, latitude.ToString(), longitude.ToString(), TimeZoneId);
+                }
 
 
-        //        var track_me = (from TM in db.TrackMe
-        //                        where TM.UserDeviceID == UserDeviceID &&
-        //                        TM.TrackMeStopped.Value.Year < 2000
-        //                        select TM).ToList();
-        //        foreach (var tm in track_me)
-        //        {
-        //            tm.LastUpdate = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
-        //        }
-        //        db.SaveChanges();
+                var track_me = await db.Set<TrackMe>()
+                                .Where(TM=> TM.UserDeviceId == userDeviceID &&
+                                TM.TrackMeStopped.Value.Year < 2000).ToListAsync();
+                foreach (var tm in track_me)
+                {
+                    tm.LastUpdate = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                }
+                db.SaveChanges();
 
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        DBC.catchException(ex);
-        //    }
-        //}
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         //public dynamic GetMessageResponseList(int CompanyID, int CurrentUserID, string TimeZoneID, int ResponseID = 0, string MessageType = "ALL", int Status = 1)
         //{
@@ -1861,21 +1864,20 @@ namespace CrisesControl.Infrastructure.Services
         ////    }
         ////}
 
-        //public dynamic GetUserMovements(int UserID)
-        //{
-        //    DBCommon DBC = new DBCommon();
-        //    try
-        //    {
-        //        var loclist = (from UL in db.UserLocation where UL.UserID == UserID select UL)
-        //            .OrderByDescending(o => o.CreatedOn).Take(15).ToList();
-        //        return loclist;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        DBC.catchException(ex);
-        //        return null;
-        //    }
-        //}
+        public async Task<List<UserLocation>> GetUserMovements(int UserID)
+        {
+           
+            try
+            {
+                var loclist = await  db.Set<UserLocation>().Where(UL=> UL.UserId == UserID)
+                    .OrderByDescending(o => o).Take(15).ToListAsync();
+                return loclist;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         //public int GetCallbackOption(string AckMethod)
         //{
@@ -1970,33 +1972,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        //public AcknowledgeReturn AcknowledgeMessage(int UserID, int MessageID, int MessageListID, string Latitude, string Longitude, string AckMethod, int ResponseID, string TimeZoneId)
-        //{
-        //    DBCommon DBC = new DBCommon();
-        //    try
-        //    {
-        //        DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
-        //        var pUserID = new SqlParameter("@UserID", UserID);
-        //        var pMessageID = new SqlParameter("@MessageID", MessageID);
-        //        var pMessageListID = new SqlParameter("@MessageListID", MessageListID);
-        //        var pLatitude = new SqlParameter("@Latitude", DBC.Left(Latitude, 15));
-        //        var pLongitude = new SqlParameter("@Longitude", DBC.Left(Longitude, 15));
-        //        var pMode = new SqlParameter("@Mode", AckMethod);
-        //        var pTimestamp = new SqlParameter("@Timestamp", dtNow);
-        //        var pResponseID = new SqlParameter("@ResponseID", ResponseID);
-
-
-        //        var MessageData = db.Database.SqlQuery<AcknowledgeReturn>("Pro_Message_Acknowledge @UserID, @MessageID, @MessageListID, @Latitude, @Longitude, @Mode, @Timestamp, @ResponseID",
-        //            pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode, pTimestamp, pResponseID).FirstOrDefault();
-
-        //        return MessageData;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        DBC.catchException(ex);
-        //        return null;
-        //    }
-        //}
+        
 
         public async  Task<bool> CalculateMessageCost(int companyId, int messageId, string MessageText)
         {
@@ -2122,7 +2098,37 @@ namespace CrisesControl.Infrastructure.Services
             {
             }
         }
+        public AcknowledgeReturn AcknowledgeMessage(int userID, int messageID, int messageListID, string latitude, string longitude, string ackMethod, int ResponseID, string timeZoneId)
+        {
+            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+            try
+            {
+                DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                var pUserID = new SqlParameter("@UserID", userID);
+                var pMessageID = new SqlParameter("@MessageID", messageID);
+                var pMessageListID = new SqlParameter("@MessageListID", messageListID);
+                var pLatitude = new SqlParameter("@Latitude", DBC.Left(latitude, 15));
+                var pLongitude = new SqlParameter("@Longitude", DBC.Left(longitude, 15));
+                var pMode = new SqlParameter("@Mode", ackMethod);
+                var pTimestamp = new SqlParameter("@Timestamp", dtNow);
+                var pResponseID = new SqlParameter("@ResponseID", ResponseID);
 
+
+                var MessageData = db.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID, @MessageID, @MessageListID, @Latitude, @Longitude, @Mode, @Timestamp, @ResponseID",
+                    pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode, pTimestamp, pResponseID).FirstOrDefault();
+
+                Task.Factory.StartNew(() => {
+                   // CCWebSocketHelper.SendMessageCountToUsersByMessage(MessageID);
+                });
+
+                return MessageData;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                return null;
+            }
+        }
 
         #region Social Integration
         public void SocialPosting(int messageId, List<string> socialHandle, int companyId)
@@ -2245,6 +2251,103 @@ namespace CrisesControl.Infrastructure.Services
         }
 
         #endregion Social Integration
+
+        public void DownloadRecording(string recordingSid, int companyId, string recordingUrl)
+        {
+         
+            try
+            {
+                int RetryCount = 2;
+                string ServerUploadFolder = _httpContextAccessor.HttpContext.GetServerVariable("../../tmp/");
+                string hostingEnv = _DBC.Getconfig("HostingEnvironment");
+                string AzureAPIShare = _DBC.Getconfig("AzureAPIShare");
+
+                string RecordingPath = _DBC.LookupWithKey("RECORDINGS_PATH");
+                int.TryParse(_DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT"), out RetryCount);
+                string SavePath = @RecordingPath + companyId + "\\";
+
+                _DBC.connectUNCPath();
+
+                FileHandler FH = new FileHandler(db,_httpContextAccessor);
+
+                if (FH.FileExists(recordingSid + ".mp3", AzureAPIShare, SavePath))
+                {
+                    return;
+                }
+
+                if (hostingEnv != "AZURE")
+                {
+                    if (!Directory.Exists(SavePath))
+                        Directory.CreateDirectory(SavePath);
+                }
+
+                try
+                {
+                    WebClient Client = new WebClient();
+                    bool confdownloaded = false;
+                    bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                    string RoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+
+                    for (int i = 0; i < RetryCount; i++)
+                    {
+                        try
+                        {
+                            if (SendInDirect)
+                            {
+                                recordingUrl = RoutingApi + "Communication/DownloadRecording?FileName=" + recordingSid;
+                            }
+                            else
+                            {
+                                recordingUrl += ".mp3";
+                            }
+                            Client.DownloadFile(recordingUrl, @ServerUploadFolder + recordingSid + ".mp3");
+                            confdownloaded = true;
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                              confdownloaded = false;
+                        }
+                    }
+                    if (confdownloaded)
+                    {
+                        if (File.Exists(@ServerUploadFolder + recordingSid + ".mp3"))
+                        {
+                            using (FileStream filestream = File.OpenRead(@ServerUploadFolder + recordingSid + ".mp3"))
+                            {
+                                if (hostingEnv == "AZURE")
+                                {
+                                    var result = FH.UploadToAzure(AzureAPIShare, SavePath, recordingSid + ".mp3", filestream).Result;
+                                    if (FH.FileExists(recordingSid + ".mp3", AzureAPIShare, SavePath))
+                                    {
+                                        CommsHelper CH = new CommsHelper(_DBC, db, _httpContextAccessor, _MSG, _SDE);
+                                        CH.DeleteRecording(recordingSid);
+                                    }
+                                }
+                                else
+                                {
+                                    File.Copy(@ServerUploadFolder + recordingSid + ".mp3", SavePath + recordingSid + ".mp3");
+
+                                    if (File.Exists(SavePath + recordingSid + ".mp3"))
+                                    {
+                                        CommsHelper CH = new CommsHelper(_DBC, db, _httpContextAccessor, _MSG, _SDE);
+                                        CH.DeleteRecording(recordingSid);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+            catch (WebException ex)
+            {
+                throw new WebException();
+            }
+        }
 
     }
 }

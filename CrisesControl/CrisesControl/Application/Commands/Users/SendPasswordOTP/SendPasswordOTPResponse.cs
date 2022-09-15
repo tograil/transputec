@@ -2,5 +2,6 @@
 {
     public class SendPasswordOTPResponse
     {
+        public string Message { get; set; }
     }
 }

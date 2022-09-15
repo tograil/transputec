@@ -4,8 +4,8 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:17815",
-      "sslPort": 44325
+      "applicationUrl": "http://localhost:58934/",
+      "sslPort": 44317
     }
   },
   "profiles": {
@@ -49,7 +49,6 @@
     },
     "IIS Express Denish": {
       "commandName": "IISExpress",
-      "launchBrowser": false,
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Denish"

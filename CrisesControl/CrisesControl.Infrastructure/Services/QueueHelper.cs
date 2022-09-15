@@ -809,5 +809,63 @@ namespace CrisesControl.Infrastructure.Services
                 return false;
             }
         }
+        public static bool CreateCommsLogDumpSession(string entry)
+        {
+            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+
+            try
+            {
+                string RabbitMQUser = DBC.LookupWithKey("RABBITMQ_USER");
+                string RabbitMQPassword = DBC.LookupWithKey("RABBITMQ_PASSWORD");
+                ushort RabbitMQHeartBeat = Convert.ToUInt16(DBC.LookupWithKey("RABBIT_HEARTBEAT_CHECK"));
+
+                var rabbithosts = RabbitHosts(out RabbitVirtualHost);
+
+                var factory = new ConnectionFactory()
+                {
+                    AutomaticRecoveryEnabled = true,
+                    TopologyRecoveryEnabled = true,
+                    NetworkRecoveryInterval = new TimeSpan(0, 0, 15),
+                    RequestedHeartbeat = TimeSpan.FromHours(RabbitMQHeartBeat),
+                    UserName = RabbitMQUser,
+                    Password = RabbitMQPassword,
+                    VirtualHost = RabbitVirtualHost
+                };
+
+                using (var connection = factory.CreateConnection(rabbithosts))
+                using (var model = connection.CreateModel())
+                {
+                    string exchange_name = DBC.LookupWithKey("RABBITMQ_QUEUE_EXCHANGE");
+                    model.ExchangeDeclare(exchange: exchange_name, type: "direct", durable: true, autoDelete: false);
+
+                    IBasicProperties properties = model.CreateBasicProperties();
+                    properties.Persistent = true;
+                    properties.DeliveryMode = 2;
+
+                    string routingKey = "comms_log_dump_sessions";
+                    try
+                    {
+                        model.QueueDeclare(queue: routingKey, durable: true, exclusive: false, autoDelete: false);
+                        model.QueueBind(queue: routingKey, exchange: exchange_name, routingKey: routingKey);
+
+                        var body = Encoding.UTF8.GetBytes(entry);
+
+                        model.BasicPublish(exchange: exchange_name, routingKey: routingKey, basicProperties: properties, body: body);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
+
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                
+                return false;
+            }
+        }
     }
+
 }

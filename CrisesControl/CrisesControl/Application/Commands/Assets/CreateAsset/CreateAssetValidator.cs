@@ -6,7 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Assets.CreateAsset
     {
         public CreateAssetValidator()
         {
-            RuleFor(x => x.AssetId).GreaterThan(0);
+            
             RuleFor(x => x.CompanyId).GreaterThan(0);
         }
     }
