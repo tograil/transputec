@@ -616,10 +616,11 @@ namespace CrisesControl.Infrastructure.Repositories {
                     if (reg_user.RegisteredUser)
                     {
 
-                        string OTPMessage = _DBC.LookupWithKey("SEGREGATION_CODE_MSG");
+                        string OTPMessage = DBC.LookupWithKey("SEGREGATION_CODE_MSG");
 
+                        CommsHelper CH = new CommsHelper(DBC, _context, _httpContextAccessor, _MSG, _SDE);
 
-                        result.Data =  _CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
+                        result.Data =  CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
                     }
                     else
                     {
@@ -633,6 +634,11 @@ namespace CrisesControl.Infrastructure.Repositories {
             {
             }
             return result;
+        }
+
+        Task<string> ICompanyParametersRepository.SegregationOtp(int companyId, int currentUserId, string method)
+        {
+            throw new NotImplementedException();
         }
 
         //public int AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)

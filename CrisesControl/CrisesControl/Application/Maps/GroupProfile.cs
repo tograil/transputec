@@ -12,6 +12,8 @@ namespace CrisesControl.Api.Application.Maps
         {
             CreateMap<Group, GetGroupResponse>();
 
+            CreateMap<GroupDetail, GetGroupResponse>();
+
 
             CreateMap<CreateGroupRequest, Group>()
                 .ForMember(x => x.CreatedOn, m => m.MapFrom(x => DateTimeOffset.Now))

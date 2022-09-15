@@ -4,6 +4,7 @@ using CrisesControl.Core.Groups.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Locations;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
@@ -19,7 +20,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Groups = CrisesControl.Core.Groups.Group;
-
 namespace CrisesControl.Infrastructure.Repositories
 {
     public class GroupRepository: IGroupRepository
@@ -57,15 +57,49 @@ namespace CrisesControl.Infrastructure.Repositories
             return groupId;
         }
 
-        public async Task<IEnumerable<Groups>> GetAllGroups(int companyId)
+        public async Task<GroupDetail> GetGroup(int companyId, int groupId)
         {
-            return await _context.Set<Groups>().AsNoTracking().Where(t => t.CompanyId == companyId).ToListAsync();
+            try
+            {
+                var groupInfo = await (from D in _context.Set<Groups>()
+                                 //join UC in _context.Set<User>() on D.CreatedBy equals UC.UserId
+                                 //join UU in _context.Set<User>() on D.UpdatedBy equals UU.UserId
+                                 where D.CompanyId == companyId && D.GroupId == groupId
+
+                                 select new GroupDetail()
+                                 {
+                                     GroupId = D.GroupId,
+                                     GroupName = D.GroupName,
+                                     Status = D.Status,
+                                     CompanyId = D.CompanyId,
+                                     //CreatedByName = new UserFullName { Firstname = UC.FirstName, Lastname = UC.LastName },
+                                     //UpdatedByName = new UserFullName { Firstname = UU.FirstName, Lastname = UU.LastName },
+                                     CreatedOn = D.CreatedOn,
+                                     UpdatedOn = D.UpdatedOn
+                                 }).FirstOrDefaultAsync();
+                return groupInfo;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
 
-        public async Task<Groups> GetGroup(int companyId, int groupId)
+        public async Task<List<GroupDetail>> GetAllGroups(int companyId, int userId = 0, int incidentId = 0, bool filterVirtual = false)
         {
-            return await _context.Set<Groups>().AsNoTracking().Where(t => t.CompanyId == companyId && t.GroupId == groupId).FirstOrDefaultAsync();
+            var pCompanyID = new SqlParameter("@CompanyID", companyId);
+            var pUserID = new SqlParameter("@UserID", userId);
+            var pFilterVirtual = new SqlParameter("@FilterVirtual", filterVirtual ? filterVirtual : false);
+            var pIncidentId = new SqlParameter("@IncidentId", incidentId);
+
+            var groupList =  _context.Set<GroupDetail>().FromSqlRaw("EXEC Pro_Get_Group_List @CompanyID, @UserID, @FilterVirtual, @IncidentId",
+                pCompanyID, pUserID, pFilterVirtual, pIncidentId).AsEnumerable();
+            List<GroupDetail> response =  groupList.Select(t=> new GroupDetail() { 
+                CreatedByName = new UserFullName { Firstname = t.FirstName, Lastname = t.LastName },
+                UpdatedByName = new UserFullName { Firstname = t.FirstName, Lastname = t.LastName }, 
+                }).ToList();
+            return response;
         }
 
         public async Task<int> UpdateGroup(Groups group, CancellationToken token)
@@ -96,15 +130,13 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             return _context.Set<Groups>().Where(t=>t.GroupId.Equals(groupId)).Any();
         }
-        public async Task<List<GroupLink>> SegregationLinks(int TargetID, MemberShipType MemberShipType,string LinkType)
+        public async Task<List<GroupLink>> SegregationLinks(int targetId, MemberShipType memberShipType,string linkType)
         {
             try
             {
-                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-                var pGroupID = new SqlParameter("@GroupID", TargetID);
-                var pMemberShipType = new SqlParameter("@MemberShipType", MemberShipType.ToMemString());
-                var pLinkType = new SqlParameter("@LinkType", LinkType);
+                var pGroupID = new SqlParameter("@GroupID", targetId);
+                var pMemberShipType = new SqlParameter("@MemberShipType", memberShipType.ToMemString());
+                var pLinkType = new SqlParameter("@LinkType", linkType);
                 var pUserID = new SqlParameter("@UserID", UserID);
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
 
@@ -118,14 +150,14 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<bool> DuplicateGroup(string strGroupName, int intcompanyid, int intGroupId)
+        public async Task<bool> DuplicateGroup(string strGroupName, int intcompanyid, int intGroupId, string strMode)
         {
             try
             {
-                if (intGroupId == 0)
+                if (strMode == "Add")
                 {
                     var Dept = await _context.Set<Groups>()
-                                .Where(Depval=> Depval.GroupName == strGroupName && Depval.CompanyId == intcompanyid
+                                .Where(Depval => Depval.GroupName == strGroupName && Depval.CompanyId == intcompanyid
                                 ).FirstOrDefaultAsync();
 
                     if (Dept != null)
@@ -133,7 +165,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         return true;
                     }
                 }
-                else 
+                else if (strMode == "Update")
                 {
                     var Dept = await _context.Set<Groups>()
                                 .Where(Depval => Depval.GroupName == strGroupName && Depval.CompanyId == intcompanyid && (Depval.GroupId) != intGroupId
