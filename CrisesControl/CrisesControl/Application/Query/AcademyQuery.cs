@@ -16,14 +16,14 @@ namespace CrisesControl.Api.Application.Query
         private readonly IAcademyRepository _academyRepository;
         private readonly ILogger<AcademyQuery> _logger;
         private readonly ICurrentUser _currentUser;
-        private readonly IMapper _mapper;
+        //private readonly IMapper _mapper;
         private readonly IPaging _paging;
-        public AcademyQuery(IAcademyRepository academyRepository, ILogger<AcademyQuery> logger, ICurrentUser currentUser, IMapper mapper, IPaging paging)
+        public AcademyQuery(IAcademyRepository academyRepository, ILogger<AcademyQuery> logger, ICurrentUser currentUser, /*IMapper mapper,*/ IPaging paging)
         {
             this._academyRepository = academyRepository;
             this._logger = logger;
             this._currentUser = currentUser;
-            this._mapper = mapper;
+           // this._mapper = mapper;
             this._paging = paging;
         }
         public async Task<GetToursStepsResponse> GetToursSteps(GetToursStepsRequest request)
@@ -32,16 +32,16 @@ namespace CrisesControl.Api.Application.Query
             {
 
                 var tourSteps = await _academyRepository.GetToursSteps();
-                var result = _mapper.Map<List<TourStep>>(tourSteps);
+               // var result = _mapper.Map<List<TourStep>>(tourSteps);
                 var response = new GetToursStepsResponse();
-                if (result != null)
+                if (tourSteps != null)
                 {
-                    response.Data = result;
+                    response.Data = tourSteps;
                     response.Message = "Data Loaded";
                 }
                 else
                 {
-                    response.Data = result;
+                    response.Data = null;
                     response.Message = "No record found.";
                 }
 
@@ -60,16 +60,16 @@ namespace CrisesControl.Api.Application.Query
             {
 
                 var videos = await _academyRepository.GetVideos(_currentUser.UserId);
-                var result = _mapper.Map<List<AcademyVideos>>(videos);
+                //var result = _mapper.Map<List<AcademyVideos>>(videos);
                 var response = new GetUserVideosResponse();
-                if (result != null)
+                if (videos != null)
                 {
-                    response.Data = result;
+                    response.Data = videos;
                     response.Message = "Data Loaded";
                 }
                 else
                 {
-                    response.Data = result;
+                    response.Data = null;
                     response.Message = "No record found.";
                 }
 
@@ -88,16 +88,16 @@ namespace CrisesControl.Api.Application.Query
             {
 
                 var videos = await _academyRepository.GetVideos(0);
-                var result = _mapper.Map<List<AcademyVideos>>(videos);
+               // var result = _mapper.Map<List<AcademyVideos>>(videos);
                 var response = new GetVideosResponse();
-                if (result != null)
+                if (videos != null)
                 {
-                    response.Data = result;
+                    response.Data = videos;
                     response.Message = "Data Loaded";
                 }
                 else
                 {
-                    response.Data = result;
+                    response.Data = null;
                     response.Message = "No record found.";
                 }
 
@@ -116,16 +116,16 @@ namespace CrisesControl.Api.Application.Query
             {
 
                 var tourId= await _academyRepository.SaveTourLog(_currentUser.UserId,request.TourName,request.StepKey,_currentUser.TimeZone);
-                var result = _mapper.Map<int>(tourId);
+               // var result = _mapper.Map<int>(tourId);
                 var response = new SaveTourLogResponse();
-                if (result>0)
+                if (tourId > 0)
                 {
-                    response.TourLogId = result;
+                    response.TourLogId = tourId;
                     response.Message = "Tour Log Added";
                 }
                 else
                 {
-                    response.TourLogId = result;
+                    response.TourLogId = tourId;
                     response.Message = "No Tour Log Added.";
                 }
 

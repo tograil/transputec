@@ -24,7 +24,17 @@ namespace CrisesControl.Api.Application.Commands.Groups.CreateGroup
         {
             Guard.Against.Null(request, nameof(CreateGroupRequest));
 
-            Group value = _mapper.Map<CreateGroupRequest, Group>(request);
+            //Group value = _mapper.Map<CreateGroupRequest, Group>(request);
+            var value = new Group()
+            {
+                CompanyId = request.CompanyId,
+                GroupName = request.GroupName,
+                CreatedOn = DateTime.UtcNow,
+                UpdatedOn = DateTime.UtcNow,
+                CreatedBy = request.CreatedBy,
+                UpdatedBy = request.UpdatedBy,
+                Status = request.Status
+            };
             if (!CheckDuplicate(value))
             {
                 var groupId = await _groupRepository.CreateGroup(value, cancellationToken);

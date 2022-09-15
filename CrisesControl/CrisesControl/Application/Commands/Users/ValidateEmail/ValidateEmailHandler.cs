@@ -10,13 +10,15 @@ namespace CrisesControl.Api.Application.Commands.Users.ValidateEmail
     {
         private readonly ValidateEmailValidator _userValidator;
         private readonly IUserQuery _userQuery;
-        private readonly IMapper _mapper;
+        //private readonly IMapper _mapper;
+        private readonly ILogger<ValidateEmailHandler> _logger;
 
-        public ValidateEmailHandler(ValidateEmailValidator userValidator, IUserQuery userQuery, IMapper mapper)
+        public ValidateEmailHandler(ValidateEmailValidator userValidator, IUserQuery userQuery, ILogger<ValidateEmailHandler> logger)
         {
             _userValidator = userValidator;
             _userQuery = userQuery;
-            _mapper = mapper;
+            _logger = logger;
+            
         }
 
         public async Task<ValidateEmailResponse> Handle(ValidateEmailRequest request, CancellationToken cancellationToken)

@@ -15,8 +15,8 @@ namespace CrisesControl.Core.Locations.Services
         Task<int> DeleteLocation(int locationId, CancellationToken cancellationToken);
         bool CheckDuplicate(Location location);
         bool CheckForExisting(int locationId);
-        Task<bool> DeleteLocation(int LocationId, int CompanyId, int UserId, string TimeZoneId = "GMT Standard Time");
-        Task<List<GroupLink>> SegregationLinks(int TargetID, string MemberShipType, string LinkType, int CurrentUserId, int OutUserCompanyId);
-        Task<bool> UpdateSegregationLink(int SourceID, int TargetID, string Action, GroupType LinkType, int CompanyId);
+        Task<bool> DeleteLocation(int locationId, int companyId, int userId, string timeZoneId = "GMT Standard Time");
+        Task<List<GroupLink>> SegregationLinks(int targetID, string memberShipType, string linkType, int currentUserId, int outUserCompanyId);
+        Task<bool> UpdateSegregationLink(int sourceID, int targetID, GroupType linkType, int companyId);
     }
 }

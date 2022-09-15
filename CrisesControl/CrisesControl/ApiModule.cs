@@ -54,6 +54,7 @@ public class ApiModule : Module
         builder.RegisterType<Mapper>().As<IMapper>();
         builder.RegisterType<SopQuery>().As<ISopQuery>();
         builder.RegisterType<AppQuery>().As<IAppQuery>();
+        builder.RegisterType<WebSocketQuery>().As<ICCWebSocketQuery>();
 
         builder.RegisterAutoMapper(true, typeof(MainCoreModule).Assembly, typeof(ApiModule).Assembly);
     }

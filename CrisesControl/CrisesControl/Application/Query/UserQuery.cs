@@ -15,71 +15,172 @@ using CrisesControl.Core.Users.Repositories;
 using FluentValidation;
 using CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList;
 using CrisesControl.Api.Application.Commands.Users.GetAllUser;
+using CrisesControl.Api.Application.Commands.Users.ResetPassword;
+using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Api.Application.Commands.Users.ForgotPassword;
+using CrisesControl.Api.Application.Commands.Users.LinkResetPassword;
+using CrisesControl.SharedKernel.Utils;
+using CrisesControl.Api.Application.Commands.Users.GetUserId;
+using CrisesControl.Api.Application.Commands.Users.GetUserGroups;
 
 namespace CrisesControl.Api.Application.Query
 {
     public class UserQuery : IUserQuery
     {
         private readonly IUserRepository _UserRepository;
-        private readonly IMapper _mapper;
-        private readonly GetAllUserValidator _getUsersValidator;
-        private readonly GetUserValidator _getUserValidator;
-        private readonly LoginValidator _loginValidator;
+       // private readonly IMapper _mapper;
         private readonly ILogger<UserQuery> _logger;
         private readonly IPaging _paging;
-        public UserQuery(IUserRepository UserRepository, IMapper mapper, ILogger<UserQuery> logger, IPaging paging, GetAllUserValidator getUsersValidator, GetUserValidator getUserValidator, LoginValidator loginValidator)
+        private readonly ICurrentUser _currentUser;
+        public UserQuery(IUserRepository UserRepository, /*IMapper mapper,*/ ILogger<UserQuery> logger, IPaging paging, ICurrentUser currentUser)
         {
             _UserRepository = UserRepository;
-            _mapper =  mapper;
-            _getUsersValidator = getUsersValidator;
-            _getUserValidator = getUserValidator;
-            _loginValidator = loginValidator;
+           // _mapper =  mapper;
             _logger = logger;
             _paging = paging;
+            _currentUser = currentUser;
         }
 
         public async Task<GetAllUserResponse> GetUsers(Commands.Users.GetAllUser.GetAllUserRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(GetUserRequest));
-
-            await _getUsersValidator.ValidateAndThrowAsync(request, cancellationToken);
-
-            var mappedRequest = _mapper.Map<Core.Users.GetAllUserRequestList>(request);
-            var users = await _UserRepository.GetAllUsers(mappedRequest);
-            List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(users.ToList());
-            var result = new GetAllUserResponse();
-            result.Data = response;
-            return result;
+           
+           // var mappedRequest = _mapper.Map<Core.Users.GetAllUserRequestList>(request);
+            var users = await _UserRepository.GetAllUsers(request.GetAllUserRequestList);
+            //List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(users.ToList());
+            var response = new GetAllUserResponse();
+            response.Data = users.ToList();
+            return response;
         }
 
         public async Task<GetUserResponse> GetUser(GetUserRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(GetUserRequest));
-
-            await _getUserValidator.ValidateAndThrowAsync(request, cancellationToken);
-
             var User = await _UserRepository.GetUser(request.CompanyId, request.UserId);
-            GetUserResponse response = _mapper.Map<User, GetUserResponse>(User);
+            var response = new GetUserResponse();    //_mapper.Map<User, GetUserResponse>(User);
+            response.ActiveOffDuty = User.ActiveOffDuty;
+            response.CompanyId = User.CompanyId;
+            response.CreatedBy = User.CreatedBy;
+            response.CreatedOn = User.CreatedOn;
+            response.DepartmentId = User.DepartmentId;
+            response.ExpirePassword = User.ExpirePassword ?? true;
+            response.FirstLogin = User.FirstLogin;
+            response.FirstName = User.FirstName;
+            response.ISDCode = User.Isdcode;
+            response.Landline = User.Landline;
+            response.LastLocationUpdate = User.LastLocationUpdate;
+            response.LastName = User.LastName;
+            response.Lat = User.Lat;
+            response.LLISDCode = User.Llisdcode;
+            response.Lng = User.Lng;
+            response.MobileNo = User.MobileNo;
+            response.OTPCode = User.Otpcode;
+            response.OTPExpiry = User.Otpexpiry;
+            response.Password = User.Password;
+            response.PasswordChangeDate = User.PasswordChangeDate;
+            response.PrimaryEmail = User.PrimaryEmail;
+            response.RegisteredUser = User.RegisteredUser;
+            response.SecondaryEmail = User.SecondaryEmail;
+            response.SMSTrigger = User.Smstrigger;
+            response.Status = User.Status;
+            response.TimezoneId = User.TimezoneId;
+            response.TrackingEndTime = User.TrackingEndTime;
+            response.TrackingStartTime = User.TrackingStartTime;
+            response.UniqueGuiID = User.UniqueGuiId;
+            response.UpdatedBy = User.UpdatedBy;
+            response.UpdatedOn = User.UpdatedOn;
+            response.UserHash = User.UserHash;
+            response.UserId = User.UserId;
+            response.UserLanguage = User.UserLanguage;
+            response.UserPhoto = User.UserPhoto;
+            response.UserRole = User.UserRole;
 
             return response;
         }
 
         public async Task<LoginResponse> GetLoggedInUserInfo(LoginRequest request, CancellationToken cancellationToken)
         {
-            Guard.Against.Null(request, nameof(LoginRequest));
-            await _loginValidator.ValidateAndThrowAsync(request, cancellationToken);
 
-            var loginRequest = _mapper.Map<LoginInfo>(request);
-            var LoginInfo = await _UserRepository.GetLoggedInUserInfo(loginRequest, cancellationToken);
-            var result = _mapper.Map<LoginResponse>(LoginInfo);
-            return result;
+            LoginInfo loginInfo = new LoginInfo();
+            loginInfo.DeviceType = request.DeviceType;
+            loginInfo.IPAddress = request.IPAddress;
+            loginInfo.Language = request.Language;
+            var User = await _UserRepository.GetLoggedInUserInfo(loginInfo, cancellationToken);
+            // var result = _mapper.Map<LoginResponse>(LoginInfo);
+            var response = new LoginResponse();
+            response.ActiveOffDuty = User.ActiveOffDuty;
+            response.CompanyId = User.CompanyId;
+            response.CustomerId = User.CustomerId;
+            response.FirstLogin = User.FirstLogin;
+            response.First_Name = User.First_Name;
+            response.UserMobileISD = User.UserMobileISD;
+            response.Message = User.Message;
+            response.PortalTimeZone = User.PortalTimeZone;
+            response.Last_Name = User.Last_Name;
+            response.SecItems = User.SecItems;
+            response.MobileNo = User.MobileNo;
+            response.UserPassword = User.UserPassword;
+            response.Primary_Email = User.Primary_Email;
+            response.UniqueGuiId = User.UniqueGuiId;
+            response.UniqueKey = User.UniqueKey;
+            response.Status = User.Status;
+            response.TimeZoneId = User.TimeZoneId;
+            response.UserMobileISD = User.UserMobileISD;
+            response.UserId = User.UserId;
+            response.UserLanguage = User.UserLanguage;
+            response.UserPhoto = User.UserPhoto;
+            response.UserRole = User.UserRole;
+            response.CompanyName = User.CompanyName;
+            response.CompanyLogo = User.CompanyLogo;
+            response.AnniversaryDate = User.AnniversaryDate;
+            response.Activation = User.Activation;
+            response.CompanyPlanId = User.CompanyPlanId;
+            response.CompanyProfile = User.CompanyProfile;
+            response.CompanyStatus = User.CompanyStatus;
+            response.ErrorId = User.ErrorId;
+            return response;
         }
 
         public async Task<ActivateUserResponse> ReactivateUser(int queriedUserId, CancellationToken cancellationToken)
         {
-            var reactivate = await _UserRepository.ReactivateUser(queriedUserId, cancellationToken);
-            var result = _mapper.Map<ActivateUserResponse>(reactivate);
-            return result;
+            var User = await _UserRepository.ReactivateUser(queriedUserId, cancellationToken);
+            // var result = _mapper.Map<ActivateUserResponse>(reactivate);
+            var response = new ActivateUserResponse();
+            response.ActiveOffDuty = User.ActiveOffDuty;
+            response.CompanyId = User.CompanyId;
+            response.CreatedBy = User.CreatedBy;
+            response.CreatedOn = User.CreatedOn;
+            response.DepartmentId = User.DepartmentId;
+            response.ExpirePassword = User.ExpirePassword ?? true;
+            response.FirstLogin = User.FirstLogin;
+            response.FirstName = User.FirstName;
+            response.ISDCode = User.Isdcode;
+            response.Landline = User.Landline;
+            response.LastLocationUpdate = User.LastLocationUpdate;
+            response.LastName = User.LastName;
+            response.Lat = User.Lat;
+            response.LLISDCode = User.Llisdcode;
+            response.Lng = User.Lng;
+            response.MobileNo = User.MobileNo;
+            response.OTPCode = User.Otpcode;
+            response.OTPExpiry = User.Otpexpiry;
+            response.Password = User.Password;
+            response.PasswordChangeDate = User.PasswordChangeDate;
+            response.PrimaryEmail = User.PrimaryEmail;
+            response.RegisteredUser = User.RegisteredUser;
+            response.SecondaryEmail = User.SecondaryEmail;
+            response.SMSTrigger = User.Smstrigger;
+            response.Status = User.Status;
+            response.TimezoneId = User.TimezoneId;
+            response.TrackingEndTime = User.TrackingEndTime;
+            response.TrackingStartTime = User.TrackingStartTime;
+            response.UniqueGuiID = User.UniqueGuiId;
+            response.UpdatedBy = User.UpdatedBy;
+            response.UpdatedOn = User.UpdatedOn;
+            response.UserHash = User.UserHash;
+            response.UserId = User.UserId;
+            response.UserLanguage = User.UserLanguage;
+            response.UserPhoto = User.UserPhoto;
+            response.UserRole = User.UserRole;
+            return response;
         }
 
         public async Task<MembershipResponse> MembershipList(MembershipRequest request)
@@ -115,30 +216,174 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<ValidateEmailResponse> ValidateLoginEmail(ValidateEmailRequest request)
         {
-            var validateEmail = _UserRepository.ValidateLoginEmail(request.UserEmail);
-            var result = _mapper.Map<ValidateEmailResponse>(validateEmail.Result);
-            return result;
+            var validateEmail =await _UserRepository.ValidateLoginEmail(request.UserEmail);
+            //var result = _mapper.Map<ValidateEmailResponse>(validateEmail.Result);
+            var response = new ValidateEmailResponse();
+            response.SSOEnabled = validateEmail.SSOEnabled;
+            response.SSOIssuer = validateEmail.SSOIssuer;
+            response.SSOSecret = validateEmail.SSOSecret;
+            response.SSOType = validateEmail.SSOType;
+            
+            return response;
         }
 
-        public async Task<List<GetAllUserDevicesResponse>> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken)
+        public async Task<GetAllUserDevicesResponse> GetAllUserDeviceList(GetAllUserDevicesRequest request, CancellationToken cancellationToken)
         {
-            GetAllUserDeviceRequest requestMapped = _mapper.Map<GetAllUserDeviceRequest>(request);
-            var getAllUserDevices = await _UserRepository.GetAllUserDeviceList(requestMapped, cancellationToken);
-            var result = _mapper.Map<List<GetAllUserDevicesResponse>>(getAllUserDevices);
-            return result;
+            //GetAllUserDeviceRequest requestMapped = _mapper.Map<GetAllUserDeviceRequest>(request);
+            var getAllUserDevices = await _UserRepository.GetAllUserDeviceList(request.DeviceRequest, cancellationToken);
+           // var result = _mapper.Map<List<GetAllUserDevices>>(getAllUserDevices);
+            var response = new GetAllUserDevicesResponse();
+            response.Data = getAllUserDevices;
+            return response;
         }
 
-        public async Task<IEnumerable<GetUserCommsResponse>> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken)
+        public async Task<GetUserCommsResponse> GetUserComms(GetUserCommsRequest request, CancellationToken cancellationToken)
         {
-            var response = await _UserRepository.GetUserComms(request.CommsUserId, cancellationToken);
-            var result = _mapper.Map<List<UserComm>, List<GetUserCommsResponse>>(response);
-            return result;
+            var result = await _UserRepository.GetUserComms(request.CommsUserId, cancellationToken);
+            //var result = _mapper.Map<List<UserComm>, List<GetUserCommsResponse>>(response);
+            var response = new GetUserCommsResponse();
+            response.MessageType = result.FirstOrDefault().MessageType;
+            response.MethodId = result.FirstOrDefault().MethodId;
+            return response;
         }
-        public async Task<IEnumerable<GetAllOneUserDeviceListResponse>> GetAllOneUserDeviceList(GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken)
+        public async Task<GetAllOneUserDeviceListResponse> GetAllOneUserDeviceList(GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken)
         {
-            var response = await _UserRepository.GetAllOneUserDeviceList(request.QueriedUserId, cancellationToken);
-            var result = _mapper.Map<List<GetAllOneUserDeviceListResponse>>(response);
-            return result;
+            var userDeviceLists = await _UserRepository.GetAllOneUserDeviceList(request.QueriedUserId, cancellationToken);
+            //var result = _mapper.Map<List<GetAllOneUserDeviceListResponse>>(response);
+            var response = new GetAllOneUserDeviceListResponse();
+            response.CompanyId = userDeviceLists.FirstOrDefault().CompanyID;
+            response.DeviceID = userDeviceLists.FirstOrDefault().DeviceId;
+            response.DeviceModel = userDeviceLists.FirstOrDefault().DeviceModel;
+            response.DeviceOS = userDeviceLists.FirstOrDefault().DeviceOs;
+            response.DeviceSerial = userDeviceLists.FirstOrDefault().DeviceSerial;
+            response.DeviceType = userDeviceLists.FirstOrDefault().DeviceType;
+            response.ExtraInfo = userDeviceLists.FirstOrDefault().ExtraInfo;
+            response.LastLoginFrom = userDeviceLists.FirstOrDefault().LastLoginFrom;
+            response.OverrideSilent = userDeviceLists.FirstOrDefault().OverrideSilent;
+            response.SirenON = userDeviceLists.FirstOrDefault().SirenOn;
+            response.Status = userDeviceLists.FirstOrDefault().Status;
+            response.UserDeviceID = userDeviceLists.FirstOrDefault().UserDeviceID;
+            response.UserID = userDeviceLists.FirstOrDefault().UserId;
+            response.UserName = userDeviceLists.FirstOrDefault().UserName;
+            return response;
+        }
+
+        public async Task<ResetPasswordResponse> ResetPassword(ResetPasswordRequest request)
+        {
+            try
+            {
+                var resetPassword = await _UserRepository.ResetPassword(_currentUser.CompanyId,_currentUser.UserId,request.OldPassword,request.NewPassword);
+                //var result = _mapper.Map<string>(resetPassword);
+                var response = new ResetPasswordResponse();
+                if (!string.IsNullOrEmpty(resetPassword))
+                {
+                    response.ResetPassword = resetPassword;
+                }
+                else
+                {
+                    response.ResetPassword = "No data found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+         
+        }
+
+
+        public async Task<ForgotPasswordResponse> ForgotPassword(ForgotPasswordRequest request)
+        {
+            try
+            {
+                var forgotPassword = await _UserRepository.ForgotPassword(request.EmailId,request.Method.ToDbString(),request.CustomerId,request.OTPMessage,request.Return,_currentUser.CompanyId,_currentUser.TimeZone,request.Source);
+               // var result = _mapper.Map<string>(forgotPassword);
+                var response = new ForgotPasswordResponse();
+                if (!string.IsNullOrEmpty(forgotPassword))
+                {
+                    response.Message = forgotPassword;
+                }
+                else
+                {
+                    response.Message = "No data found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<LinkResetPasswordResponse> LinkResetPassword(LinkResetPasswordRequest request)
+        {
+            try
+            {
+                var forgotPassword = await _UserRepository.LinkResetPassword(_currentUser.CompanyId, request.QueriedGuid,request.NewPassword,_currentUser.TimeZone);
+                //var result = _mapper.Map<string>(forgotPassword);
+                var response = new LinkResetPasswordResponse();
+                if (!string.IsNullOrEmpty(forgotPassword))
+                {
+                    response.Message = forgotPassword;
+                }
+                else
+                {
+                    response.Message = "No data found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task<GetUserIdResponse> GetUserId(GetUserIdRequest request)
+        {
+            try
+            {
+                var userId = await _UserRepository.GetUserId(request.CompanyId,request.EmailAddress);
+                // var result = _mapper.Map<string>(forgotPassword);
+                var response = new GetUserIdResponse();
+                if (userId != null)
+                {
+                    response.User = userId;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Message = "No data found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetUserGroupsResponse> GetUserGroups(GetUserGroupsRequest request)
+        {
+            try
+            {
+                var userId = await _UserRepository.GetUserGroups(request.UserId);
+                // var result = _mapper.Map<string>(forgotPassword);
+                var response = new GetUserGroupsResponse();
+                if (userId != null)
+                {
+                    response.UserGroups = userId;
+                    response.Message = "Data Loaded";
+                }
+                else
+                {
+                    response.Message = "No data found.";
+                }
+                return response;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }

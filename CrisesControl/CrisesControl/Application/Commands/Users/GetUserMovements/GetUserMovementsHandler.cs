@@ -1,6 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
-using CrisesControl.Core.Users.Repositories;
+using CrisesControl.Infrastructure.Services;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Users.GetUserMovements
@@ -8,22 +8,25 @@ namespace CrisesControl.Api.Application.Commands.Users.GetUserMovements
     public class GetUserMovementsHandler : IRequestHandler<GetUserMovementsRequest, GetUserMovementsResponse>
     {
         private readonly GetUserMovementsValidator _userValidator;
-        private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly CrisesControl.Infrastructure.Services.Messaging _MSG;
+        private readonly ILogger<GetUserMovementsHandler> _logger;
 
-        public GetUserMovementsHandler(GetUserMovementsValidator userValidator, IUserRepository userService, IMapper mapper)
+        public GetUserMovementsHandler(GetUserMovementsValidator userValidator, CrisesControl.Infrastructure.Services.Messaging MSG, ILogger<GetUserMovementsHandler> logger)
         {
             _userValidator = userValidator;
-            _userRepository = userService;
-            _mapper = mapper;
+            _MSG = MSG;
+            _logger = logger;
         }
 
         public async Task<GetUserMovementsResponse> Handle(GetUserMovementsRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(GetUserMovementsRequest));
 
-            //var userId = await _userRepository.GetUserMovements(request.ModuleId, request.UserId, request.XPos, request.YPos);
-            return new GetUserMovementsResponse();
+            var userLocations = await _MSG.GetUserMovements(request.UserId);
+
+            var response= new GetUserMovementsResponse();
+            response.Locations = userLocations;
+            return response;
         }
     }
 }

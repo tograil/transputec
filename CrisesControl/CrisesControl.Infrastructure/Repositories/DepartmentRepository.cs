@@ -111,16 +111,16 @@ namespace CrisesControl.Infrastructure.Repositories
            
         }
 
-        public async Task<List<GroupLink>> SegregationLinks(int TargetID, string MemberShipType,string LinkType,int CurrentUserId, int OutUserCompanyId)
+        public async Task<List<GroupLink>> SegregationLinks(int targetID, string memberShipType,string linkType,int currentUserId, int outUserCompanyId)
         {
             try
             {
 
-                var pDepartmentID = new SqlParameter("@DepartmentID",TargetID);
-                var pMemberShipType = new SqlParameter("@MemberShipType", MemberShipType);
-                var pLinkType = new SqlParameter("@LinkType", LinkType);
-                var pUserID = new SqlParameter("@UserID", CurrentUserId);
-                var pCompanyID = new SqlParameter("@CompanyID", OutUserCompanyId);
+                var pDepartmentID = new SqlParameter("@DepartmentID",targetID);
+                var pMemberShipType = new SqlParameter("@MemberShipType", memberShipType);
+                var pLinkType = new SqlParameter("@LinkType", linkType);
+                var pUserID = new SqlParameter("@UserID", currentUserId);
+                var pCompanyID = new SqlParameter("@CompanyID", outUserCompanyId);
 
                 var result = await _context.Set<GroupLink>().FromSqlRaw("exec Pro_Get_Department_Links @DepartmentID, @LinkType, @MemberShipType, @UserID, @CompanyID",
                     pDepartmentID, pLinkType, pMemberShipType, pUserID, pCompanyID).ToListAsync();

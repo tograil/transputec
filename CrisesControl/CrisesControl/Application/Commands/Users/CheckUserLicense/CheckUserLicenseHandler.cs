@@ -9,20 +9,20 @@ namespace CrisesControl.Api.Application.Commands.Users.CheckUserLicense
     {
         private readonly CheckUserLicenseValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly ILogger<CheckUserLicenseHandler> _logger;
 
-        public CheckUserLicenseHandler(CheckUserLicenseValidator userValidator, IUserRepository userService, IMapper mapper)
+        public CheckUserLicenseHandler(CheckUserLicenseValidator userValidator, IUserRepository userService, ILogger<CheckUserLicenseHandler> logger)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<CheckUserLicenseResponse> Handle(CheckUserLicenseRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(CheckUserLicenseRequest));
             //var mappedRequest = _mapper.Map<BulkActionModel>(request);
-            //var result = await _userRepository.CheckUserLicense(mappedRequest, cancellationToken);
+            var result = await _userRepository.CheckUserLicense(request.SessionId,request.UserList,request.CompanyId, request.UserId);
             return new CheckUserLicenseResponse();
         }
     }
