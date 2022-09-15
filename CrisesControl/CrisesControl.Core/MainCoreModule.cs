@@ -9,12 +9,7 @@ namespace CrisesControl.Core
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterMediatR(ThisAssembly);
-
-            builder.RegisterAssemblyTypes(ThisAssembly)
-                .AsClosedTypesOf(typeof(AbstractValidator<>));
-
-            builder.RegisterAutoMapper(ThisAssembly);
+           
         }
     }
 }
