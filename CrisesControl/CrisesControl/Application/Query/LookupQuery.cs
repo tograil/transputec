@@ -3,11 +3,13 @@ using CrisesControl.Api.Application.Commands.Lookup.AssetTypes;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpDept;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpLoc;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpUser;
+using CrisesControl.Api.Application.Commands.Lookup.GetCountry;
 using CrisesControl.Api.Application.Commands.Lookup.GetIcons;
 using CrisesControl.Api.Application.Commands.Lookup.GetImportTemplates;
 using CrisesControl.Api.Application.Commands.Lookup.GetTempDept;
 using CrisesControl.Api.Application.Commands.Lookup.GetTempLoc;
 using CrisesControl.Api.Application.Commands.Lookup.GetTempUser;
+using CrisesControl.Api.Application.Commands.Lookup.GetTimezone;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Lookup.Repositories;
@@ -246,6 +248,36 @@ namespace CrisesControl.Api.Application.Query
                 return response;
             }
             catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetTimezoneResponse> GetTimezone()
+        {
+            try
+            {
+                var timeZone = await _lookupRepository.GetTimeZone();
+                var response = new GetTimezoneResponse();
+                response.Data = timeZone;
+                return response;
+            } 
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<GetCountryResponse> GetCountry()
+        {
+            try
+            {
+                var countries = await _lookupRepository.GetCountries();
+                var response = new GetCountryResponse();
+                response.Data = countries;
+                return response;
+            }
+            catch(Exception ex)
             {
                 throw ex;
             }

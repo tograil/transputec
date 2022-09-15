@@ -120,6 +120,7 @@ namespace CrisesControl.Infrastructure.Context
             //modelBuilder.Entity<Assets>().HasNoKey();
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
             modelBuilder.Entity<GroupLink>().HasNoKey();
+            modelBuilder.Entity<GroupDetail>().HasNoKey();
 
             modelBuilder.Entity<JsonResults>().HasNoKey();
             modelBuilder.Entity<DeliverySummary>().HasNoKey();

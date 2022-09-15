@@ -2,11 +2,13 @@
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpDept;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpLoc;
 using CrisesControl.Api.Application.Commands.Lookup.GetAllTmpUser;
+using CrisesControl.Api.Application.Commands.Lookup.GetCountry;
 using CrisesControl.Api.Application.Commands.Lookup.GetIcons;
 using CrisesControl.Api.Application.Commands.Lookup.GetImportTemplates;
 using CrisesControl.Api.Application.Commands.Lookup.GetTempDept;
 using CrisesControl.Api.Application.Commands.Lookup.GetTempLoc;
 using CrisesControl.Api.Application.Commands.Lookup.GetTempUser;
+using CrisesControl.Api.Application.Commands.Lookup.GetTimezone;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -21,5 +23,7 @@ namespace CrisesControl.Api.Application.Query
         Task<GetTempDeptResponse> GetTempDept(GetTempDeptRequest request);
         Task<GetTempLocResponse> GetTempLoc(GetTempLocRequest request);
         Task<AssetTypesResponse> AssetTypes();
+        Task<GetTimezoneResponse> GetTimezone();
+        Task<GetCountryResponse> GetCountry();
     }
 }
