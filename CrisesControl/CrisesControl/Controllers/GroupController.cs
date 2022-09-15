@@ -25,7 +25,12 @@ namespace CrisesControl.Api.Controllers
             _mediator = mediator;
             _groupQuery = groupQuery;
         }
-
+        /// <summary>
+        /// Get all groups list
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("{CompanyId:int}/{UserId:int}/{IncidentId:int}")]
         public async Task<IActionResult> GetAllGroup([FromRoute] GetAllGroupRequest request, CancellationToken cancellationToken)
@@ -33,7 +38,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-
+        /// <summary>
+        /// Get group details
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("{CompanyId:int}/{GroupId:int}")]
         public async Task<IActionResult> GetGroup([FromRoute] GetGroupRequest request, CancellationToken cancellationToken)
@@ -41,7 +51,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-
+        /// <summary>
+        /// Create new group
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("[action]")]
         public async Task<IActionResult> CreateGroup([FromBody] CreateGroupRequest request, CancellationToken cancellationToken)
@@ -49,7 +64,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-
+        /// <summary>
+        /// Update group
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpPut]
         [Route("[action]")]
         public async Task<IActionResult> UpdateGroup([FromBody] UpdateGroupRequest request, CancellationToken cancellationToken)
@@ -57,6 +77,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        /// <summary>
+        /// Return segregationlinks based on type
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("SegregationLinks/{TargetID}/{LinkType}/{MemberShipType}")]
         public async Task<IActionResult> SegregationLinks([FromRoute] SegregationLinksRequest request, CancellationToken cancellationToken)
@@ -64,6 +90,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        /// <summary>
+        /// Check the existance of group
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("CheckGroup/{CompanyId}/{GroupName}/{GroupId}")]
         public async Task<IActionResult> CheckGroup([FromRoute] CheckGroupRequest request, CancellationToken cancellationToken)
@@ -71,7 +103,12 @@ namespace CrisesControl.Api.Controllers
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-
+        /// <summary>
+        /// Create group segregation link
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("GroupUpdateSegregationLink")]
         public async Task<IActionResult> GroupUpdateSegregationLink([FromBody] GroupUpdateSegregationLinkRequest request, CancellationToken cancellationToken)
