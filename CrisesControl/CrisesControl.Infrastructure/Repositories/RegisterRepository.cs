@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -39,47 +40,39 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly ILogger<RegisterRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IIncidentRepository _incidentRepository;
-
-        private readonly ICompanyRepository _companyRepository;
-        private readonly ISenderEmailService _senderEmail;
-        private readonly IAdminRepository _ADM;
-        private readonly IUserRepository _UH;
         private readonly DBCommon _DBC;
-        private readonly IBillingRepository _BH;
         private readonly SendEmail _SDE;
+        private readonly BillingHelper _billingHelper;
 
         private int UserID;
         private int CompanyId;
-        public RegisterRepository(ILogger<RegisterRepository> logger, ISenderEmailService senderEmail,  
-            CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IIncidentRepository incidentRepository,
-            ICompanyRepository companyRepository, DBCommon DBC, IAdminRepository ADM, IUserRepository UH,
-            IBillingRepository BH, SendEmail SDE)
+        public RegisterRepository(  
+            CrisesControlContext context, IHttpContextAccessor httpContextAccessor,
+            ILogger<RegisterRepository> logger
+            
+            )
         {
-          this._logger = logger;
+            this._logger = logger;
           this._context = context;
           this._httpContextAccessor = httpContextAccessor;
-          this._senderEmail=senderEmail;
-          this._incidentRepository=incidentRepository;
-            this._companyRepository = companyRepository;
-            _DBC = DBC;
-            _ADM = ADM;
-            _UH = UH;
-            _BH = BH;
-            _SDE = SDE;
+           _DBC = new DBCommon(_context,_httpContextAccessor);
+            _billingHelper = new BillingHelper(_context);
+           //_BH = BH;
+            _SDE = new SendEmail(_context,_DBC);
         }
         public async Task<List<Registration>> GetAllRegistrations()
         {
-            return await _context.Set<Registration>().ToListAsync();
+           var registrations=  await _context.Set<Registration>().ToListAsync();
+            return registrations;
         }
-            public async Task<bool> CheckCustomer(string CustomerId)
+       public async Task<bool> CheckCustomer(string customerId)
         {
             try
             {
-                CustomerId = CustomerId.Trim().ToLower();
+                customerId = customerId.Trim().ToLower();
                 var Customer = await _context.Set<Company>()
                                      .Include(c=>c.StdTimeZone)
-                                     .Where(C => C.CustomerId == CustomerId)
+                                     .Where(C => C.CustomerId == customerId)
                                      .AnyAsync();
                 return Customer;
             }
@@ -96,18 +89,18 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 CommsStatus textrslt = new CommsStatus();
                 string TwilioRoutingApi = string.Empty;
-                string FromNumber = await LookupWithKey(KeyType.TWILIOFROMNUMBER.ToDbKeyString());
+                string FromNumber = _DBC.LookupWithKey(KeyType.TWILIOFROMNUMBER.ToDbKeyString());
 
-                bool SendInDirect = IsTrue(await LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
+                bool SendInDirect = _DBC.IsTrue( _DBC.LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
 
-                TwilioRoutingApi = await LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
+                TwilioRoutingApi = _DBC.LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
 
                 var Confs = await  _context.Set<SysParameter>().Where(L=> L.Name ==KeyType.USEMESSAGINGCOPILOT.ToDbKeyString() || L.Name == KeyType.MESSAGINGCOPILOTSID.ToDbKeyString()).ToListAsync();
 
                 bool USE_MESSAGING_COPILOT = Convert.ToBoolean(Confs.Where(w => w.Name == "USE_MESSAGING_COPILOT").Select(s => s.Value).FirstOrDefault());
                 string MESSAGING_COPILOT_SID =Confs.Where(w => w.Name == "MESSAGING_COPILOT_SID").Select(s => s.Value).FirstOrDefault().ToString();
 
-                dynamic CommsAPI = this.InitComms("TWILIO");
+                dynamic CommsAPI = _DBC.InitComms("TWILIO");
                 CommsAPI.USE_MESSAGING_COPILOT = USE_MESSAGING_COPILOT;
                 CommsAPI.MESSAGING_COPILOT_SID = MESSAGING_COPILOT_SID;
                 CommsAPI.SendInDirect = SendInDirect;
@@ -148,12 +141,12 @@ namespace CrisesControl.Infrastructure.Repositories
             try
             {
 
-                string validation_method = await LookupWithKey(KeyType.PHONEVALIDATIONMETHOD.ToDbKeyString());
-                bool SendInDirect = IsTrue(await LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
-                string TwilioRoutingApi = await LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
+                string validation_method = _DBC.LookupWithKey(KeyType.PHONEVALIDATIONMETHOD.ToDbKeyString());
+                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
+                string TwilioRoutingApi =  _DBC.LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
 
                 if (string.IsNullOrEmpty(message))
-                    message = await LookupWithKey(KeyType.PHONEVALIDATIONMSG.ToDbKeyString());
+                    message = _DBC.LookupWithKey(KeyType.PHONEVALIDATIONMSG.ToDbKeyString());
 
                 message = message.Replace("{OTP}", code).Replace("{CODE}", code);
 
@@ -182,12 +175,12 @@ namespace CrisesControl.Infrastructure.Repositories
             try
             {
 
-                string FromNumber =await LookupWithKey("TWILIO_FROM_NUMBER");
-                string MsgXML = await LookupWithKey("TWILIO_PHONE_VALIDATION_XML");
+                string FromNumber = _DBC.LookupWithKey("TWILIO_FROM_NUMBER");
+                string MsgXML = _DBC.LookupWithKey("TWILIO_PHONE_VALIDATION_XML");
                 // TODO: still going to investigate this
                // MsgXML = MsgXML + "?Body=" + _httpContextAccessor.HttpContext.Server.UrlEncode(message);
 
-                dynamic CommsAPI = this.InitComms("TWILIO");
+                dynamic CommsAPI = _DBC.InitComms("TWILIO");
                 CommsAPI.IsConf = false;
                 CommsAPI.SendInDirect = sendInDirect;
                 CommsAPI.TwilioRoutingApi = twilioRoutingApi;
@@ -202,77 +195,44 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        private bool IsTrue(string boolVal, bool Default = true)
-        {
-            if (boolVal == true.ToString())
-            {
-                return true;
-            }
-            else if (boolVal == false.ToString())
-            {
-                return false;
-            }
-            else
-            {
-                return Default;
-            }
-        }
-        private async Task<string> LookupWithKey(string key, string Default = "")
-        {
-            try
-            {
-                var LKP = await _context.Set<SysParameter>()
-                           .Where(L=> L.Name == key
-                           ).FirstOrDefaultAsync();
-                if (LKP != null)
-                {
-                    Default = LKP.Value;
-                }
-                return Default;
-            }
-            catch (Exception ex)
-            {
-                return Default;
-            }
-        }
-        public async Task<dynamic> InitComms(string API_CLASS, string APIClass = "", string clientId = "", string clientSecret = "")
-        {
+        //public async Task<dynamic> InitComms(string API_CLASS, string APIClass = "", string clientId = "", string clientSecret = "")
+        //{
             
-            try
-            {
+        //    try
+        //    {
 
-                int RetryCount = 2;
-                int.TryParse(await LookupWithKey(API_CLASS + KeyType.MESSAGERETRYCOUNT.ToDbKeyString()), out RetryCount);
+        //        int RetryCount = 2;
+        //        int.TryParse( _DBC.LookupWithKey(API_CLASS + KeyType.MESSAGERETRYCOUNT.ToDbKeyString()), out RetryCount);
 
-                if (string.IsNullOrEmpty(APIClass))
-                    APIClass =await LookupWithKey(API_CLASS + KeyType.APICLASS.ToDbKeyString());
+        //        if (string.IsNullOrEmpty(APIClass))
+        //            APIClass = _DBC.LookupWithKey(API_CLASS + KeyType.APICLASS.ToDbKeyString());
 
-                if (string.IsNullOrEmpty(clientId))
-                    clientId = await LookupWithKey(API_CLASS + KeyType._CLIENTID.ToDbKeyString());
+        //        if (string.IsNullOrEmpty(clientId))
+        //            clientId = _DBC.LookupWithKey(API_CLASS + KeyType._CLIENTID.ToDbKeyString());
 
-                if (string.IsNullOrEmpty(clientSecret))
-                    clientSecret = await LookupWithKey(API_CLASS + KeyType.CLIENTSECRET.ToDbKeyString());
+        //        if (string.IsNullOrEmpty(clientSecret))
+        //            clientSecret = _DBC.LookupWithKey(API_CLASS + KeyType.CLIENTSECRET.ToDbKeyString());
 
-                string[] TmpClass = APIClass.Trim().Split('|');
+        //        string[] TmpClass = APIClass.Trim().Split('|');
 
-                string binPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "bin");
+        //        string binPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "bin");
 
-                Assembly assembly = Assembly.LoadFrom(binPath + "\\" + TmpClass[0]);
-                Type type = assembly.GetType(TmpClass[1]);
-                dynamic CommsAPI = Activator.CreateInstance(type);
+        //        Assembly assembly = Assembly.LoadFrom(binPath + "\\" + TmpClass[0]);
+        //        Type type = assembly.GetType(TmpClass[1]);
+        //        dynamic CommsAPI = Activator.CreateInstance(type);
 
-                CommsAPI.ClientId = clientId;
-                CommsAPI.Secret = clientSecret;
-                CommsAPI.RetryCount = RetryCount;
+        //        CommsAPI.ClientId = clientId;
+        //        CommsAPI.Secret = clientSecret;
+        //        CommsAPI.RetryCount = RetryCount;
 
-                return CommsAPI;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-                return null;
-            }
-        }
+        //        return CommsAPI;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw ex;
+        //        return null;
+        //    }
+        //}
 
         public async Task<User> ValidateUserEmail(string uniqueId, int companyId)
         {
@@ -404,22 +364,22 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 
                 string Subject = string.Empty;
-                string message = Convert.ToString( ReadHtmlFile("NEW_ACCOUNT_CONFIRMED", "DB", CompanyId,  out Subject));
+                string message = Convert.ToString(_DBC.ReadHtmlFile("NEW_ACCOUNT_CONFIRMED", "DB", CompanyId,  out Subject));
 
                 var CompanyInfo =await  _context.Set<Company>().Where(C=> C.CompanyId == CompanyId ).FirstOrDefaultAsync();
-                string Website = await LookupWithKey("DOMAIN");
-                string Portal = await LookupWithKey("PORTAL");
-                string ValdiateURL = await LookupWithKey("EMAIL_VALIDATE_URL");
-                string hostname =await LookupWithKey("SMTPHOST");
-                string fromadd = await LookupWithKey("EMAILFROM");
-                string sso_login = await _companyRepository.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
+                string Website = _DBC.LookupWithKey("DOMAIN");
+                string Portal = _DBC.LookupWithKey("PORTAL");
+                string ValdiateURL = _DBC.LookupWithKey("EMAIL_VALIDATE_URL");
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
+                string sso_login = _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
 
                 string Verifylink = Portal + ValdiateURL + CompanyId + "/" + guid;
                 string CompanyLogo = Portal + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
 
                 if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
                 {
-                    CompanyLogo = await LookupWithKey("CCLOGO");
+                    CompanyLogo = _DBC.LookupWithKey("CCLOGO");
                 }
 
                 if (!string.IsNullOrEmpty(sso_login))
@@ -439,16 +399,16 @@ namespace CrisesControl.Infrastructure.Repositories
                     messagebody = messagebody.Replace("{PORTAL}", Portal);
                     messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
 
-                    messagebody = messagebody.Replace("{TWITTER_LINK}", await LookupWithKey("CC_TWITTER_PAGE"));
-                    messagebody = messagebody.Replace("{TWITTER_ICON}", await LookupWithKey("CC_TWITTER_ICON"));
-                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", await LookupWithKey("CC_FB_PAGE"));
-                    messagebody = messagebody.Replace("{FACEBOOK_ICON}", await LookupWithKey("CC_FB_ICON"));
-                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", await LookupWithKey("CC_LINKEDIN_PAGE"));
-                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", await LookupWithKey("CC_LINKEDIN_ICON"));
+                    messagebody = messagebody.Replace("{TWITTER_LINK}", _DBC.LookupWithKey("CC_TWITTER_PAGE"));
+                    messagebody = messagebody.Replace("{TWITTER_ICON}", _DBC.LookupWithKey("CC_TWITTER_ICON"));
+                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", _DBC.LookupWithKey("CC_FB_PAGE"));
+                    messagebody = messagebody.Replace("{FACEBOOK_ICON}", _DBC.LookupWithKey("CC_FB_ICON"));
+                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", _DBC.LookupWithKey("CC_LINKEDIN_PAGE"));
+                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", _DBC.LookupWithKey("CC_LINKEDIN_ICON"));
 
                     string[] toEmails = { emailId };
 
-                    bool ismailsend =await _senderEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                    bool ismailsend = _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
             }
             catch (Exception ex)
@@ -532,13 +492,13 @@ namespace CrisesControl.Infrastructure.Repositories
 
 
                 var Company = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyId).FirstOrDefaultAsync();
-                string Website = sysparms.Where(w => w.Name == "DOMAIN").Select(s => s.Value).FirstOrDefault();
-                string Portal = sysparms.Where(w => w.Name == "PORTAL").Select(s => s.Value).FirstOrDefault();
-                string AdminPortal = sysparms.Where(w => w.Name == "ADMIN_SITE_URL").Select(s => s.Value).FirstOrDefault();
-                string hostname = sysparms.Where(w => w.Name == "SMTPHOST").Select(s => s.Value).FirstOrDefault();
-                string fromadd = sysparms.Where(w => w.Name == "EMAILFROM").Select(s => s.Value).FirstOrDefault();
+                string Website = _DBC.LookupWithKey("DOMAIN");
+                string Portal = _DBC.LookupWithKey("PORTAL");
+                string AdminPortal = _DBC.LookupWithKey("ADMIN_SITE_URL");
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
 
-                string message = Convert.ToString( ReadHtmlFile(template, "DB", CompanyId,  out Subject));
+                string message = Convert.ToString( _DBC.ReadHtmlFile(template, "DB", CompanyId,  out Subject));
 
                 if ((hostname != null) && (fromadd != null))
                 {
@@ -553,9 +513,9 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     adminMsg.AppendLine("<p style=\"color:#ff0000;font-size:18px\"><strong><a href=\"" + AdminPortal + "\">Click here to login to admin portal to view company details</a></p>");
 
-                    string[] AdminEmail = (await LookupWithKey("BILLING_EMAIL")).Split(',');
+                    string[] AdminEmail = (_DBC.LookupWithKey("BILLING_EMAIL")).Split(',');
 
-                    await _senderEmail.Email(AdminEmail, adminMsg.ToString(), fromadd, hostname, "Crises Control: " + Company.CompanyName + " requsted for an upgrade");
+                    _SDE.Email(AdminEmail, adminMsg.ToString(), fromadd, hostname, "Crises Control: " + Company.CompanyName + " requsted for an upgrade");
 
 
                     return true;
@@ -818,7 +778,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     messagebody = messagebody.Replace("{LINKEDIN_ICON}", sysparms.Where(w => w.Name == "CC_LINKEDIN_ICON").Select(s => s.Value).FirstOrDefault());
 
                     string[] toEmails = { emailId };
-                    bool ismailsend = await _senderEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                    bool ismailsend = _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
             }
             catch (Exception ex)
@@ -851,19 +811,19 @@ namespace CrisesControl.Infrastructure.Repositories
                 string message = Convert.ToString(ReadHtmlFile("SEND_CREDENTIAL", "DB", CompanyId, out Subject));
 
                 var CompanyInfo = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyId).FirstOrDefaultAsync();
-                string Website =await LookupWithKey("DOMAIN");
-                string Portal = await LookupWithKey("PORTAL");
-                string ValdiateURL = await LookupWithKey("EMAIL_VALIDATE_URL");
-                string hostname = await LookupWithKey("SMTPHOST");
-                string fromadd = await LookupWithKey("EMAILFROM");
-                string sso_login = await _companyRepository.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
+                string Website =_DBC.LookupWithKey("DOMAIN");
+                string Portal = _DBC.LookupWithKey("PORTAL");
+                string ValdiateURL = _DBC.LookupWithKey("EMAIL_VALIDATE_URL");
+                string hostname = _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = _DBC.LookupWithKey("EMAILFROM");
+                string sso_login = _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
 
                 string Verifylink = Portal + ValdiateURL + CompanyId + "/" + guid;
                 string CompanyLogo = Portal + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
 
                 if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
                 {
-                    CompanyLogo = await LookupWithKey("CCLOGO");
+                    CompanyLogo = _DBC.LookupWithKey("CCLOGO");
                 }
 
                 if (!string.IsNullOrEmpty(sso_login))
@@ -885,7 +845,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     string[] toEmails = { emailId };
 
-                    bool ismailsend = await _senderEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                    bool ismailsend = _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
             }
             catch (Exception ex)
@@ -905,7 +865,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                var result = await _context.Set<Sectors>().FromSqlRaw("Pro_Get_IndustrySector").ToListAsync();
+                var result = await _context.Set<Sectors>().FromSqlRaw("exec Pro_Get_IndustrySector").ToListAsync();
                 return result;
             }
             catch (Exception ex)
@@ -918,9 +878,9 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                var packageInfo = await (from PP in _context.Set<PackagePlan>()
-                                         where PP.Status == 1
-                                         select new PackageModel()
+                var packageInfo = await  _context.Set<PackagePlan>()
+                                         .Where(PP=> PP.Status == 1)
+                                         .Select(PP => new PackageModel()
                                          {
                                              PackagePlanId = PP.PackagePlanId,
                                              PackageName = PP.PlanName,
@@ -1037,7 +997,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     IP.Storage = 0;
                     IP.DRCR = "CR";
 
-                    await _ADM.AddTransaction(IP, UserID, companyId, timeZoneId);
+                   await  _billingHelper.AddTransaction(IP, UserID, companyId, timeZoneId);
                 }
             }
         }
@@ -1143,7 +1103,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         {
 
                             string UniqueId = Guid.NewGuid().ToString();
-                            int NewUserId = await _UH.CreateUsers(CompanyID, true, reg.FirstName, reg.Email, reg.Password, 1, 0,
+                            int NewUserId =  await CreateUsers(CompanyID, true, reg.FirstName, reg.Email, reg.Password, 1, 0,
                                 "GMT Standard Time", reg.LastName, reg.MobileNo, "SUPERADMIN", "", reg.MobileIsd, "", "", "",
                                 UniqueId, "", "", "", true, "en");
 
@@ -1186,7 +1146,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                                             where TT.TransactionCode == "LICENSEFEE"
                                                             select TT).FirstOrDefault();
 
-                                        int id = await _BH.UpdateCompanyTranscationType(CompanyID, NewUserId, TimeZoneId, transac_type.TransactionTypeId, transac_type.Rate, 0, "MONTHLY", NextRun);
+                                        int id = await UpdateCompanyTranscationType(CompanyID, NewUserId, TimeZoneId, transac_type.TransactionTypeId, transac_type.Rate, 0, "MONTHLY", NextRun);
 
                                         _context.Set<Registration>().Remove(reg);
                                         _context.SaveChanges();
@@ -1271,6 +1231,259 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 return null;
             }
+        }
+        private  async Task<int> CreateUsers(int companyId, bool registeredUser, string firstName, string primaryEmail, string password,
+      int status, int createdUpdatedBy, string timeZoneId, string lastName = "", string mobileNo = "", string userRole = "",
+      string userPhoto = "no-photo.jpg", string isdCode = "", string llIsdCode = "", string landLine = "", string secondaryEmail = "",
+      string uniqueGuiD = "", string lat = "", string lng = "", string token = "", bool expirePassword = true, string userLanguage = "en",
+      bool smsTrigger = false, bool firstLogin = true, int departmentId = 0)
+        {
+            try
+            {
+
+                bool check_Email = await DuplicateEmail(primaryEmail);
+                if (check_Email)
+                    return 0;
+
+                User NewUsers = new User();
+
+                NewUsers.CompanyId = companyId;
+                NewUsers.RegisteredUser = registeredUser;
+                NewUsers.FirstName = firstName;
+
+                if (!string.IsNullOrEmpty(lastName))
+                    NewUsers.LastName = lastName;
+
+                if (!string.IsNullOrEmpty(isdCode))
+                {
+                    NewUsers.Isdcode = _DBC.Left(isdCode, 1) != "+" ? "+" + isdCode : isdCode;
+                }
+
+                if (!string.IsNullOrEmpty(mobileNo))
+                    NewUsers.MobileNo = _DBC.FixMobileZero(mobileNo);
+
+                if (!string.IsNullOrEmpty(llIsdCode))
+                    NewUsers.Llisdcode = _DBC.Left(llIsdCode, 1) != "+" ? "+" + llIsdCode : llIsdCode;
+
+                if (!string.IsNullOrEmpty(landLine))
+                    NewUsers.Landline = _DBC.FixMobileZero(landLine);
+
+                NewUsers.PrimaryEmail = primaryEmail.ToLower();
+                NewUsers.UserHash = _DBC.PWDencrypt(primaryEmail.ToLower());
+
+                if (!string.IsNullOrEmpty(secondaryEmail))
+                    NewUsers.SecondaryEmail = secondaryEmail;
+
+                NewUsers.Password = password;
+
+                if (!string.IsNullOrEmpty(uniqueGuiD))
+                    NewUsers.UniqueGuiId = uniqueGuiD;
+                else
+                    NewUsers.UniqueGuiId = Guid.NewGuid().ToString();
+
+                NewUsers.Status = status;
+
+                if (!string.IsNullOrEmpty(userPhoto))
+                    NewUsers.UserPhoto = userPhoto;
+
+                if (!string.IsNullOrEmpty(userRole))
+                {
+                    NewUsers.UserRole = userRole.ToUpper().Replace("STAFF", "USER");
+                }
+                else
+                {
+                    NewUsers.UserRole = "USER";
+                }
+
+                if (!string.IsNullOrEmpty(lat))
+                    NewUsers.Lat = _DBC.Left(lat, 15);
+
+                if (!string.IsNullOrEmpty(lng))
+                    NewUsers.Lng = _DBC.Left(lng, 15);
+
+                string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", companyId);
+
+                if (CompExpirePwd == "true")
+                {
+                    NewUsers.ExpirePassword = expirePassword;
+                }
+                else
+                {
+                    NewUsers.ExpirePassword = false;
+                }
+
+                NewUsers.UserLanguage = userLanguage;
+                NewUsers.PasswordChangeDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                NewUsers.FirstLogin = firstLogin;
+
+                NewUsers.CreatedBy = createdUpdatedBy;
+                NewUsers.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                NewUsers.UpdatedBy = createdUpdatedBy;
+                NewUsers.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                NewUsers.TrackingStartTime = SqlDateTime.MinValue.Value;
+                NewUsers.TrackingEndTime = SqlDateTime.MinValue.Value;
+                NewUsers.LastLocationUpdate = SqlDateTime.MinValue.Value;
+                NewUsers.DepartmentId = departmentId;
+                NewUsers.Otpexpiry = SqlDateTime.MinValue.Value;
+
+                var roles = _DBC.CCRoles(true);
+                NewUsers.Smstrigger = (roles.Contains(NewUsers.UserRole.ToUpper()) ? smsTrigger : false);
+
+                await _context.Set<User>().AddAsync(NewUsers);
+                await _context.SaveChangesAsync();
+
+                if (createdUpdatedBy <= 0)
+                {
+                    var usr = await _context.Set<User>().Where(t => t.UserId == NewUsers.UserId).FirstOrDefaultAsync();
+                    usr.CreatedBy = NewUsers.UserId;
+                    usr.UpdatedBy = NewUsers.UserId;
+                    await _context.SaveChangesAsync();
+                }
+
+                await AddPwdChangeHistory(NewUsers.UserId, password, timeZoneId);
+
+                await CreateUserSearch(NewUsers.UserId, firstName, lastName, isdCode, mobileNo, primaryEmail, companyId);
+
+                await CreateSMSTriggerRight(CompanyId, NewUsers.UserId, NewUsers.UserRole, smsTrigger, NewUsers.Isdcode, NewUsers.MobileNo);
+
+                return NewUsers.UserId;
+            }
+            catch (Exception ex)
+            {
+                throw new UserNotFoundException(CompanyId, UserID);
+            }
+            return 0;
+        }
+        private async Task<int> AddPwdChangeHistory(int userId, string newPassword, string timeZoneId)
+        {
+
+            var ph = new PasswordChangeHistory
+            {
+                UserId = userId,
+                LastPassword = newPassword,
+                ChangedDateTime = DateTime.Now.GetDateTimeOffset(timeZoneId)
+            };
+
+            _context.Add(ph);
+            _context.SaveChanges();
+            return ph.Id;
+
+        }
+        public async Task CreateSMSTriggerRight(int CompanyId, int UserId, string UserRole, bool SMSTrigger, string ISDCode, string MobileNo, bool Self = false)
+        {
+            try
+            {
+                var roles = Roles.CcRoles(true); ;
+                var checkusr = await _context.Set<SmsTriggerUser>().FirstOrDefaultAsync(STU => STU.CompanyId == CompanyId && STU.UserId == UserId);
+                if (checkusr != null)
+                {
+
+                    if (roles.Contains(UserRole.ToUpper()))
+                    {
+                        checkusr.PhoneNumber = ISDCode + MobileNo;
+                    }
+                    else
+                    {
+                        SMSTrigger = false;
+                    }
+
+                    if (!SMSTrigger)
+                        _context.Remove(checkusr);
+
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    if (roles.Contains(UserRole.ToUpper()) && SMSTrigger == true)
+                    {
+                        SmsTriggerUser STU = new SmsTriggerUser();
+                        STU.CompanyId = CompanyId;
+                        STU.UserId = UserId;
+                        STU.PhoneNumber = ISDCode + MobileNo;
+                        STU.Status = 1;
+                        await _context.AddAsync(STU);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        private async Task CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
+                   string primaryEmail, int companyId)
+        {
+            var searchString = firstName + " " + lastName + "|" + primaryEmail + "|" + isdCode + mobileNo;
+
+            var comp = await _context.Set<Company>().Include(std => std.StdTimeZone).Include(pk => pk.PackagePlan).FirstOrDefaultAsync(x => x.CompanyId == companyId);
+            if (comp != null)
+            {
+                var memberUser = _context.Set<MemberUser>().FromSqlRaw(" exec Pro_Create_User_Search {0}, {1}, {2}",
+                    userId, searchString, comp.UniqueKey!).FirstOrDefault();
+            }
+        }
+        private async Task<bool> DuplicateEmail(string email)
+        {
+            return await _context.Set<User>().Where(t => t.PrimaryEmail == email).AnyAsync();
+        }
+        private  async Task<int> UpdateCompanyTranscationType(int companyId, int currntUserId, string timeZoneId, int transactionTypeId, decimal transactionRate,
+           int compnayTranscationTypeId = 0, string paymentPeriod = "MONTHLY", DateTimeOffset? nextRunDate = null, string paymentMethod = "INVOICE")
+        {
+            int CTTId = 0;
+            if (compnayTranscationTypeId == 0)
+            {
+                CompanyTranscationType transaction = new CompanyTranscationType();
+                if (transactionTypeId > 0)
+                    transaction.TransactionTypeID = transactionTypeId;
+                transaction.TransactionRate = transactionRate;
+                transaction.CompanyId = companyId;
+                transaction.PaymentPeriod = paymentPeriod;
+                if (nextRunDate.HasValue)
+                {
+                    transaction.NextRunDate = (DateTimeOffset)nextRunDate;
+                }
+                else
+                {
+                    transaction.NextRunDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                }
+                transaction.CreatedBy = currntUserId;
+                transaction.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                transaction.UpdatedBy = currntUserId;
+                transaction.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+
+                if (!string.IsNullOrEmpty(paymentMethod) && paymentMethod != "UNKNOWN")
+                    transaction.PaymentMethod = paymentMethod;
+
+                _context.Set<CompanyTranscationType>().Add(transaction);
+                await _context.SaveChangesAsync();
+                CTTId = transaction.CompanyTranscationTypeId;
+            }
+            else
+            {
+                var newCompanyTranscationType = await (from CTT in _context.Set<CompanyTranscationType>()
+                                                       where CTT.CompanyTranscationTypeId == compnayTranscationTypeId && CTT.CompanyId == companyId
+                                                       select CTT).FirstOrDefaultAsync();
+                if (newCompanyTranscationType != null)
+                {
+                    if (transactionTypeId > 0)
+                        newCompanyTranscationType.TransactionTypeID = transactionTypeId;
+
+                    newCompanyTranscationType.TransactionRate = transactionRate;
+                    newCompanyTranscationType.PaymentPeriod = paymentPeriod;
+                    newCompanyTranscationType.PaymentMethod = paymentMethod;
+
+                    if (nextRunDate.HasValue)
+                    {
+                        newCompanyTranscationType.NextRunDate = (DateTimeOffset)nextRunDate;
+                    }
+                    newCompanyTranscationType.UpdatedBy = currntUserId;
+                    newCompanyTranscationType.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    await _context.SaveChangesAsync();
+                    CTTId = newCompanyTranscationType.CompanyTranscationTypeId;
+                }
+            }
+            return CTTId;
         }
     }
     

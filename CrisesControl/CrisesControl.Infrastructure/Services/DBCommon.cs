@@ -1736,49 +1736,8 @@ namespace CrisesControl.Api.Application.Helpers
         public string LogWrite(string str, string strType = "I")
         {
             return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
-        }
-        public void ModelInputLog(string controllerName, string methodName, int userID, int companyID, dynamic data)
-        {
-            try
-            {
-              
-                    string json = JsonConvert.SerializeObject(data);
-
-                    var pControllerName = new SqlParameter("@ControllerName", controllerName);
-                    var pMethodName = new SqlParameter("@MethodName", methodName);
-                    var pUserID = new SqlParameter("@UserID", userID);
-                    var pCompanyID = new SqlParameter("@CompanyID", companyID);
-                    var pData = new SqlParameter("@Data", json);
-
-                    _context.Database.ExecuteSqlRaw("Pro_Log_Model_Data @ControllerName, @MethodName, @UserID, @CompanyID, @Data",
-                    pControllerName, pMethodName, pUserID, pCompanyID, pData);
-            
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-        public DateTimeOffset ToNullIfTooEarlyForDb(DateTimeOffset date, bool ConvertUTC = false)
-        {
-            DateTimeOffset retDate = (date.Year >= 1990) ? date : DateTime.Now;
-            if (!ConvertUTC)
-            {
-                return retDate;
-            }
-            else
-            {
-                //retDate = GetLocalTimeScheduler("GMT Standard Time", retDate);
-                retDate = GetDateTimeOffset(retDate.LocalDateTime);
-            }
-            return retDate;
-        }
-        public string LogWrite(string str, string strType = "I")
-        {
-            return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
-        }
-
-        public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
+        }   
+       public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
         {
             var devices = await _context.Set<UserDevice>().Where(UD=> UD.UserId == userID).ToListAsync();
             if (devices!=null) { 

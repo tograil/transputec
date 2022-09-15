@@ -83,7 +83,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (MsgRslt != null)
                 {
 
-                    string TimeZoneId = DBC.GetTimeZoneVal(MsgRslt.U.UserId);
+                    string TimeZoneId =await DBC.GetTimeZoneVal(MsgRslt.U.UserId);
                     int dlvStatus = 0;
                     int MaxAttempt = Convert.ToInt32(DBC.GetCompanyParameter("PHONE_MAX_ATTEMPT", MsgRslt.U.CompanyId));
 
@@ -128,7 +128,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     DateTimeOffset utcNow = DateTimeOffset.UtcNow;
                     DateTimeOffset dateCreated = MsgRslt.ML.DateSent.UtcDateTime;
                     DateTimeOffset endCallTime = utcNow.AddSeconds(duration);
-                    CLH.CreateCommsLog(callSid, "PHONE", callStatus, from, to, "outbound-api", 0, "self", "USD", 1, "", duration, dateCreated, utcNow, utcNow, endCallTime, CommsProvider: operato);
+                    CLH.CreateCommsLogAsync(callSid, "PHONE", callStatus, from, to, "outbound-api", 0, "self", "USD", 1, "", duration, dateCreated, utcNow, utcNow, endCallTime, CommsProvider: operato);
 
                     if (operato.ToUpper() == "TWILIO")
                         CLH.DownloadAndCreateTwilioLog(callSid, "PHONE");
@@ -187,7 +187,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (MsgRslt != null)
                 {
 
-                    string TimeZoneId = DBC.GetTimeZoneVal(MsgRslt.U.UserId);
+                    string TimeZoneId =await  DBC.GetTimeZoneVal(MsgRslt.U.UserId);
                     int dlvStatus = 0;
                     int MaxAttempt = Convert.ToInt32(DBC.GetCompanyParameter("PHONE_MAX_ATTEMPT", MsgRslt.U.CompanyId));
 
@@ -234,7 +234,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     //DateTimeOffset endTime = CallTimestamp;
                     DateTimeOffset startTime = endTime.AddSeconds(Duration * -1);
 
-                    CLH.CreateCommsLog(callSId, "PHONE", callStatus, From, To, "outbound-api", 0, "self", "USD", 1, "", Duration, dateCreated, utcNow,
+                   await CLH.CreateCommsLogAsync(callSId, "PHONE", callStatus, From, To, "outbound-api", 0, "self", "USD", 1, "", Duration, dateCreated, utcNow,
                         startTime, endTime, CommsProvider: Operator);
 
                     
@@ -271,7 +271,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (MsgRslt != null)
                 {
 
-                    string TimeZoneId = DBC.GetTimeZoneVal(MsgRslt.U.UserId);
+                    string TimeZoneId =await DBC.GetTimeZoneVal(MsgRslt.U.UserId);
                     int dlvStatus = 0;
 
                     DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
@@ -313,7 +313,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     CommsLogsHelper CLH = new CommsLogsHelper(_context,_httpContextAccessor);
                     DateTimeOffset utcNow = DateTimeOffset.UtcNow;
                     DateTimeOffset dateCreated = MsgRslt.ML.DateSent.UtcDateTime;
-                    CLH.CreateCommsLog(messageSid, "TEXT", smsStatus, from, to, "outbound-api", 0, "self", "USD", 1, body, 0, dateCreated, utcNow, utcNow, utcNow, CommsProvider: operato);
+                    CLH.CreateCommsLogAsync(messageSid, "TEXT", smsStatus, from, to, "outbound-api", 0, "self", "USD", 1, body, 0, dateCreated, utcNow, utcNow, utcNow, CommsProvider: operato);
 
                     if (operato == "CM")
                     {
@@ -385,7 +385,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (MsgRslt != null)
                 {
 
-                    string TimeZoneId = DBC.GetTimeZoneVal(MsgRslt.U.UserId);
+                    string TimeZoneId =await DBC.GetTimeZoneVal(MsgRslt.U.UserId);
 
                     //DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
@@ -437,7 +437,7 @@ namespace CrisesControl.Infrastructure.Repositories {
 
                 if (MsgRslt != null)
                 {
-                    string TimeZoneId = DBC.GetTimeZoneVal(MsgRslt.MessageList.User.UserId);
+                    string TimeZoneId =await  DBC.GetTimeZoneVal(MsgRslt.MessageList.User.UserId);
 
                     DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                     MsgRslt.MessageList.DateDelivered = dtNow;
@@ -476,7 +476,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     if (getConf != null)
                     {
 
-                        string TimeZoneId = DBC.GetTimeZoneVal(getConf.CD.UserId);
+                        string TimeZoneId =await DBC.GetTimeZoneVal(getConf.CD.UserId);
                         DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                         int userconfcount =await  _context.Set<ConferenceCallLogDetail>().Where(w => w.UserId == getConf.CD.UserId && w.ConferenceCallId == getConf.CH.ConferenceCallId).CountAsync();
@@ -540,7 +540,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                                    .Where(CH=> CH.CloudConfId == conferenceSid).FirstOrDefaultAsync();
                     if (getConf != null)
                     {
-                        string TimeZoneId = DBC.GetTimeZoneVal(getConf.CreatedBy);
+                        string TimeZoneId =await DBC.GetTimeZoneVal(getConf.CreatedBy);
                         DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                         getConf.CloudConfId = conferenceSid;
@@ -748,7 +748,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (getConf != null)
                 {
 
-                    string TimeZoneId = DBC.GetTimeZoneVal(getConf.CreatedBy);
+                    string TimeZoneId =await DBC.GetTimeZoneVal(getConf.CreatedBy);
                     DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                     if (recordingStatus == "completed")

@@ -32,8 +32,8 @@ namespace CrisesControl.Core.CompanyParameters.Repositories
         Task<bool> SaveParameter(int parameterID, string parameterName, string parameterValue, int currentUserID, int companyID, string timeZoneId);
         Task<int> AddCompanyParameter(string name, string value, int companyId, int currentUserId, string timeZoneId);
         Task SetSSOParameters(int companyId);
-        Task<string> SegregationOtp(int companyId, int currentUserId, string method);
-
+        Task<OTPResponse> SegregationOtp(int companyId, int currentUserId, string method);
+    
 
     }
 }

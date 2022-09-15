@@ -498,14 +498,14 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void ProcessRecLog(RecordingResource item, string session)
+        public async void ProcessRecLog(RecordingResource item, string session)
         {
             try
             {
                 decimal Price = item.Price == null ? 0M : Convert.ToDecimal(item.Price);
                 int Duration = item.Duration == null ? 0 : Convert.ToInt32(item.Duration);
 
-                CreateCommsLogAsync(item.Sid, "RECORDING", "COMPLETED", item.ConferenceSid, item.Source.ToString(), "outbound", Price, "", "USD", 0, "",
+               await CreateCommsLogAsync(item.Sid, "RECORDING", "COMPLETED", item.ConferenceSid, item.Source.ToString(), "outbound", Price, "", "USD", 0, "",
                     Duration, (DateTimeOffset)item.DateCreated, (DateTimeOffset)item.DateUpdated, (DateTimeOffset)item.DateCreated, (DateTimeOffset)item.DateCreated, CommsProvider: "TWILIO");
             }
             catch (Exception ex)
@@ -514,13 +514,13 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public class TwilioLogModel
-        {
-            public string LogType { get; set; }
-            public List<CallResource> Calls { get; set; }
-            public List<MessageResource> Texts { get; set; }
-            public List<RecordingResource> Recordings { get; set; }
-        }
+        //public class TwilioLogModel
+        //{
+        //    public string LogType { get; set; }
+        //    public List<CallResource> Calls { get; set; }
+        //    public List<MessageResource> Texts { get; set; }
+        //    public List<RecordingResource> Recordings { get; set; }
+        //}
 
         public bool SendLogDumpToApi(string LogType, List<CallResource> Calls, List<MessageResource> Texts, List<RecordingResource> Recs)
         {

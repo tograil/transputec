@@ -213,11 +213,11 @@ namespace CrisesControl.Api.Application.Query {
         public async Task<SegregationOtpResponse> SegregationOtp(SegregationOtpRequest request)
         {
             var otp = await _companyParametersRepository.SegregationOtp(_currentUser.CompanyId,_currentUser.UserId,request.Method);
-            var result  = _mapper.Map<string>(otp);
+            var result  = _mapper.Map<OTPResponse>(otp);
             var response = new SegregationOtpResponse();
-            if (!string.IsNullOrEmpty(otp))
+            if (otp!=null)
             {
-                response.Message = result;
+                response.Data = result;
             }
             else
             {

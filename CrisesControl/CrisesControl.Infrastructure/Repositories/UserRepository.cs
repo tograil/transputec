@@ -920,8 +920,8 @@ public class UserRepository : IUserRepository
                     STU.UserId = UserId;
                     STU.PhoneNumber = ISDCode + MobileNo;
                     STU.Status = 1;
-                    _context.AddAsync(STU);
-                    _context.SaveChangesAsync();
+                    await _context.AddAsync(STU);
+                   await  _context.SaveChangesAsync();
                 }
             }
         }

@@ -6,14 +6,11 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Core.Communication
 {
-    public class TwilioLogToClear
-    {
-        public string Sid { get; set; }
-        public string MethodName { get; set; }
-    }
+    //public class TwilioLogToClear
+    //{
+    //    public string Sid { get; set; }
+    //    public string MethodName { get; set; }
+    //}
 
-    public class TwilioPriceByNumber
-    {
-        public decimal Price { get; set; }
-    }
+
 }

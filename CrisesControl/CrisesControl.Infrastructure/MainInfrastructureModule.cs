@@ -67,7 +67,9 @@ namespace CrisesControl.Infrastructure
 
         private void RegisterCommonDependencies(ContainerBuilder builder)
         {
+            builder.RegisterAutoMapper(ThisAssembly);
 
+            builder.RegisterType<MemoryCache>().As<IMemoryCache>().SingleInstance();
             builder.RegisterType<CompanyRepository>().As<ICompanyRepository>();
             builder.RegisterType<RegisterCompanyRepository>().As<IRegisterCompanyRepository>();
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
