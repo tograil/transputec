@@ -4,6 +4,7 @@ using AutoMapper.Contrib.Autofac.DependencyInjection;
 using CrisesControl.Api.Application.Behaviours;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Application.Query;
+using CrisesControl.Core;
 using FluentValidation;
 using MediatR.Extensions.Autofac.DependencyInjection;
 using MediatR.Pipeline;
@@ -14,11 +15,10 @@ public class ApiModule : Module
 {
     protected override void Load(ContainerBuilder builder)
     {
+        builder.RegisterMediatR(ThisAssembly);
+
         builder.RegisterAssemblyTypes(ThisAssembly)
             .AsClosedTypesOf(typeof(AbstractValidator<>));
-
-        builder.RegisterAutoMapper(ThisAssembly);
-        builder.RegisterMediatR(ThisAssembly, typeof(AuditLogBehaviour<,>));
 
         builder.RegisterType<CompanyQuery>().As<ICompanyQuery>();
         builder.RegisterType<BillingQuery>().As<IBillingQuery>();
@@ -55,5 +55,7 @@ public class ApiModule : Module
         builder.RegisterType<SopQuery>().As<ISopQuery>();
         builder.RegisterType<AppQuery>().As<IAppQuery>();
         builder.RegisterType<WebSocketQuery>().As<ICCWebSocketQuery>();
+
+        builder.RegisterAutoMapper(true, typeof(MainCoreModule).Assembly, typeof(ApiModule).Assembly);
     }
 }

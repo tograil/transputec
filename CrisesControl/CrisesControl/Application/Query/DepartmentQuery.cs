@@ -48,10 +48,9 @@ namespace CrisesControl.Api.Application.Query
 
 
             var department = await _departmentRepository.GetDepartment(request.CompanyId, request.DepartmentId);
-            var result  = _mapper.Map<Department>(department);
-            var response = new GetDepartmentResponse();
-            response.Data = result;
-            return response;
+            var result  = _mapper.Map<GetDepartmentResponse>(department);
+            
+            return result;
         }
 
         public async Task<CheckDepartmentResponse> CheckDepartment(CheckDepartmentRequest request)
