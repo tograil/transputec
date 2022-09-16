@@ -514,14 +514,6 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        //public class TwilioLogModel
-        //{
-        //    public string LogType { get; set; }
-        //    public List<CallResource> Calls { get; set; }
-        //    public List<MessageResource> Texts { get; set; }
-        //    public List<RecordingResource> Recordings { get; set; }
-        //}
-
         public bool SendLogDumpToApi(string LogType, List<CallResource> Calls, List<MessageResource> Texts, List<RecordingResource> Recs)
         {
             try
@@ -1490,6 +1482,66 @@ namespace CrisesControl.Infrastructure.Services
                 throw ex;
             }
             return null;
+        }
+
+        public async void CreateCommsLog(string sid, string commType, string status, string from, string to, string direction, decimal price, string answeredBy, string priceUnit,
+            int numSegments, string body, int duration, DateTimeOffset dateCreated, DateTimeOffset dateUpdated, DateTimeOffset startTime, DateTimeOffset endTime,
+            string errorCode = "", string errorMessage = "", string commsProvider = "")
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(sid))
+                {
+                    var checksid = await (from L in db.Set<CommsLog>() where L.Sid == sid select L).FirstOrDefaultAsync();
+                    if (checksid != null)
+                    {
+                        checksid.DateCreated = DBC.ToNullIfTooEarlyForDb(dateCreated);
+                        checksid.Price = price;
+                        checksid.Status = status;
+                        checksid.Duration = duration;
+                        checksid.DateUpdated = DBC.ToNullIfTooEarlyForDb(dateUpdated);
+                        checksid.EndTime = endTime != null ? DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
+                        checksid.CommType = commType;
+                        checksid.NumSegments = numSegments;
+                        checksid.Body = body;
+                        checksid.DateSent = startTime != null ? DBC.ToNullIfTooEarlyForDb(startTime) : dateUpdated;
+                        checksid.StartTime = endTime != null ? DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
+                        checksid.ErrorCode = !string.IsNullOrEmpty(errorCode) ? errorCode : "";
+                        checksid.ErrorMessage = !string.IsNullOrEmpty(errorMessage) ? errorMessage : "";
+                        db.SaveChanges();
+                    }
+                    else
+                    {
+                        CommsLog CL = new CommsLog();
+                        CL.Sid = sid;
+                        CL.DateCreated = DBC.ToNullIfTooEarlyForDb(dateCreated);
+                        CL.DateUpdated = DBC.ToNullIfTooEarlyForDb(dateUpdated);
+                        CL.DateSent = DBC.ToNullIfTooEarlyForDb(startTime);
+                        CL.Body = body;
+                        CL.NumSegments = numSegments;
+                        CL.ToFormatted = to;
+                        CL.FromFormatted = from;
+                        CL.Status = status;
+                        CL.StartTime = startTime != null ? DBC.ToNullIfTooEarlyForDb(startTime) : dateUpdated;
+                        CL.EndTime = endTime != null ? DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
+                        CL.Duration = duration;
+                        CL.Price = price;
+                        CL.PriceUnit = priceUnit;
+                        CL.Direction = direction;
+                        CL.AnsweredBy = answeredBy;
+                        CL.ErrorCode = !string.IsNullOrEmpty(errorCode) ? errorCode : "";
+                        CL.ErrorMessage = !string.IsNullOrEmpty(errorMessage) ? errorMessage : "";
+                        CL.CommType = commType;
+                        CL.CommsProvider = commsProvider;
+                        await db.Set<CommsLog>().AddAsync(CL);
+                        await db.SaveChangesAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }

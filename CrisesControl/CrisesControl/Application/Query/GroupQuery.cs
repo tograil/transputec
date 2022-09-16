@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Groups.CheckGroup;
+using CrisesControl.Api.Application.Commands.Groups.GetAllGroup;
 using CrisesControl.Api.Application.Commands.Groups.GetGroup;
-using CrisesControl.Api.Application.Commands.Groups.GetGroups;
 using CrisesControl.Api.Application.Commands.Groups.SegregationLinks;
 using CrisesControl.Core.Groups;
 using CrisesControl.Core.Groups.Repositories;
@@ -20,12 +20,11 @@ namespace CrisesControl.Api.Application.Query
             _logger = logger;   
         }
 
-        public async Task<GetGroupsResponse> GetGroups(GetGroupsRequest request, CancellationToken cancellationToken)
+        public async Task<GetAllGroupResponse> GetAllGroup(GetAllGroupRequest request, CancellationToken cancellationToken)
         {
-            var groups = await _groupRepository.GetAllGroups(request.CompanyId);
-            List<GetGroupResponse> response = _mapper.Map<List<GetGroupResponse>>(groups.ToList());
-            var result = new GetGroupsResponse();
-            result.Data = response;
+            var groups = await _groupRepository.GetAllGroups(request.CompanyId, request.UserId, request.IncidentId);
+            var result = new GetAllGroupResponse();
+            result.Data = groups;
             return result;
         }
 
@@ -48,12 +47,12 @@ namespace CrisesControl.Api.Application.Query
         }
         public async Task<CheckGroupResponse> CheckGroup(CheckGroupRequest request)
         {
-            var groups = await _groupRepository.DuplicateGroup(request.GroupName, request.CompanyId, request.GroupId);
+            var groups = await _groupRepository.DuplicateGroup(request.GroupName, request.CompanyId, request.GroupId, "Add");
             var result = _mapper.Map<bool>(groups);
             var response = new CheckGroupResponse();
             if (result)
             {
-                response.Message= "Duplicate Deprtment.";
+                response.Message= "Duplicate Group.";
             }
             else
             {

@@ -2,7 +2,7 @@
 
 namespace CrisesControl.Api.Application.Commands.Groups.GetGroup
 {
-    public class GetGroupValidator: AbstractValidator<GetGroupRequest>
+    public class GetGroupValidator : AbstractValidator<GetGroupRequest>
     {
         public GetGroupValidator()
         {

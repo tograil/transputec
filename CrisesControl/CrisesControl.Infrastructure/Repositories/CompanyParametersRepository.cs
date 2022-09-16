@@ -635,6 +635,11 @@ namespace CrisesControl.Infrastructure.Repositories {
             return result;
         }
 
+        Task<string> ICompanyParametersRepository.SegregationOtp(int companyId, int currentUserId, string method)
+        {
+            throw new NotImplementedException();
+        }
+
         //public int AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
         //{
         //    try

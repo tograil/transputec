@@ -1,8 +1,12 @@
 ﻿using CrisesControl.Core.Users;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace CrisesControl.Api.Application.Commands.Groups.GetGroup
+namespace CrisesControl.Core.Groups
 {
-    public class GetGroupResponse
+    public record GroupDetail
     {
         public int GroupId { get; set; }
         public string GroupName { get; set; }
@@ -11,12 +15,16 @@ namespace CrisesControl.Api.Application.Commands.Groups.GetGroup
         public int UserCount { get; set; }
         public int ActiveUserCount { get; set; }
         public List<User> UserList { get; set; }
+        [NotMapped]
         public UserFullName CreatedByName { get; set; }
+        [NotMapped]
         public UserFullName UpdatedByName { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public int CompanyId { get; set; }
+        [NotMapped]
         public DateTimeOffset CreatedOn { get; set; }
+        [NotMapped]
         public DateTimeOffset UpdatedOn { get; set; }
     }
 }
