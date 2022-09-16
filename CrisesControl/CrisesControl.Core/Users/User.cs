@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Core.Companies;
 using CrisesControl.Core.Models;
 using System;
+using System.Collections.Generic;
 
 namespace CrisesControl.Core.Users
 {
@@ -46,5 +47,6 @@ namespace CrisesControl.Core.Users
         public UserComm UserComm { get; set; }
 
         public Company Company { get; set; }
+       
     }
 }

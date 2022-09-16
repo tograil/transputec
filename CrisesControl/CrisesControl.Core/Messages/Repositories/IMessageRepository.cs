@@ -63,7 +63,7 @@ public interface IMessageRepository
     object GetConfUser(int objectId, string objectType);
     Task<PingInfoReturn> GetPingInfo(int messageId, int userId, int companyId);
     dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId);
-    List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId);
+    Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId);
     Task<int> PingMessages(PingMessageQuery pingMessage);
     dynamic ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId);
     Task<dynamic> ResendFailure(int messageId, string commsMethod);

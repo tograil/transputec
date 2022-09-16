@@ -18,5 +18,6 @@ public class AdhocMessageNotificationListConfiguration : IEntityTypeConfiguratio
 
         builder.HasIndex(e => e.SourceObjectPrimaryId, "IDX_SourceObjectPrimaryId")
                 .HasFillFactor(100);
+        builder.HasOne(e => e.Department).WithMany().HasForeignKey(e => e.SourceObjectPrimaryId);
     }
 }

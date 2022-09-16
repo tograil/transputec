@@ -68,8 +68,18 @@ namespace CrisesControl.Api.Application.Query {
 
         public async Task<GetRepliesResponse> GetReplies(GetRepliesRequest request)
         {
-            var result = await _messageRepository.GetReplies(request.MessageId);
-            var response =  _mapper.Map<GetRepliesResponse>(result);
+            var replies = await _messageRepository.GetReplies(request.MessageId);
+            var result =  _mapper.Map<List<MessageDetails>>(replies);
+            var response = new GetRepliesResponse();
+            if (result != null) {
+            response.data = result;
+                response.Message = "Data loaded";
+                     }
+            else
+            {
+                response.data = null;
+                response.Message = "No data found";
+            }
             return response;
         }
 

@@ -32,6 +32,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
+using Group = CrisesControl.Core.Groups.Group;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -544,7 +545,7 @@ public class MessageRepository : IMessageRepository
                 AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
         }
     }
-    public async void AddTrackingDevice(int companyID, int userDeviceID, string deviceAddress, string deviceType, int messageListID = 0)
+    public async Task AddTrackingDevice(int companyID, int userDeviceID, string deviceAddress, string deviceType, int messageListID = 0)
     {
         const string messageText = "Track Device";
         try
@@ -853,7 +854,7 @@ public class MessageRepository : IMessageRepository
             var pUserID = new SqlParameter("@UserID", UserID);
             var pSource = new SqlParameter("@Source", source);
 
-            var result = _context.Set<MessageDetails>().FromSqlRaw("Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
+            var result = _context.Set<MessageDetails>().FromSqlRaw("exec Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
                 pParentID, pCompanyID, pUserID, pSource).AsEnumerable();
 
             var replies = result.Select(c =>
@@ -1115,14 +1116,77 @@ public class MessageRepository : IMessageRepository
         }
 
     }
+    /* -- ================================================
+-- Template generated from Template Explorer using:
+-- Create Procedure (New Menu).SQL
+--
+-- Use the Specify Values for Template Parameters 
+-- command (Ctrl-Shift-M) to fill in the parameter 
+-- values below.
+--
+-- This block of comments will not be included in
+-- the definition of the procedure.
+-- ================================================
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Confidence Selomo>
+-- Create date: <16/09/2022,,>
+-- Description:	<SP to Ping Notification List,,>
+-- =============================================
+CREATE PROCEDURE Pro_Get_Ping_Notification_List 
+	-- Add the parameters for the stored procedure here
+	@CompanyID int, 
+	@MessageID int 
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+		SELECT
+		ObjectMappingId = INL.ObjectMappingId,
+		SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
+		ObjectLabel = L.Location_Name,
+		ObjectType ='LOCATION'
+		from  AdhocMessageNotificationList INL
+		INNER JOIN ObjectRelation ORL on  (INL.ObjectMappingId = ORL.ObjectMappingId)
+		AND
+		 (INL.SourceObjectPrimaryId= ORL.SourceObjectPrimaryId )
+		INNER JOIN ObjectMapping OP on ORL.ObjectMappingId=OP.ObjectMappingId
+		Inner JOIN Objects O on  OP.TargetObjectID=O.ObjectID
+		INNER JOIN [dbo].[Location] L on INL.SourceObjectPrimaryId = L.LocationId
+		WHERE INL.CompanyId = 7 
+		AND ORL.ObjectMappingId = 9 
+		AND INL.MessageId = @MessageID
+		UNION
+		SELECT                                                              
+		ObjectMappingId = INL.ObjectMappingId,
+		SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
+		ObjectLabel = D.GroupName,
+		ObjectType = 'GROUP'
+		FROM  AdhocMessageNotificationList INL
+		INNER JOIN  ObjectRelation ORL on  (INL.ObjectMappingId = ORL.ObjectMappingId)
+		AND (INL.SourceObjectPrimaryId= ORL.SourceObjectPrimaryId )
+		INNER JOIN [dbo].[Group] D on INL.SourceObjectPrimaryId = D.GroupId
+		Where INL.CompanyId = @CompanyID AND ORL.ObjectMappingId = 10 AND
+		INL.MessageId = @MessageID
+                                                               
+                                                              
+END
+GO
+     * 
+     */
 
     public async Task<PingInfoReturn> GetPingInfo(int messageId, int userId, int companyId)
     {
         try
         {
-            var pingifo = await (from M in _context.Set<Message>()
-                                 where M.MessageId == messageId
-                                 select new PingInfoReturn
+            var pingifo = await  _context.Set<Message>()
+                                 .Where(M=> M.MessageId == messageId)
+                                 .Select(M=> new PingInfoReturn
                                  {
                                      MessageText = M.MessageText,
                                      AssetId = M.AssetId,
@@ -1135,62 +1199,40 @@ public class MessageRepository : IMessageRepository
                                  }).FirstOrDefaultAsync();
             if (pingifo != null)
             {
-                pingifo.PingNotificationList = await (from INL in _context.Set<AdhocMessageNotificationList>()
-                                                      join ORL in _context.Set<ObjectRelation>() on new { INL.ObjectMappingId, INL.SourceObjectPrimaryId }
-                                                      equals new { ORL.ObjectMappingId, ORL.SourceObjectPrimaryId }
-                                                      join L in _context.Set<Location>() on INL.SourceObjectPrimaryId equals L.LocationId
-                                                      where INL.CompanyId == CompanyID && ORL.ObjectMappingId == 9 &&
-                                                      INL.MessageId == messageId
-                                                      select new IIncNotificationLst
-                                                      {
-                                                          ObjectMappingId = INL.ObjectMappingId,
-                                                          SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
-                                                          ObjectLabel = L.LocationName,
-                                                          ObjectType = "LOCATION"
-                                                      }).Union((from INL in _context.Set<AdhocMessageNotificationList>()
-                                                                join ORL in _context.Set<ObjectRelation>() on new { INL.ObjectMappingId, INL.SourceObjectPrimaryId }
-                                                                equals new { ORL.ObjectMappingId, ORL.SourceObjectPrimaryId }
-                                                                join D in _context.Set<Group>() on INL.SourceObjectPrimaryId equals D.GroupId
-                                                                where INL.CompanyId == CompanyID && ORL.ObjectMappingId == 10 &&
-                                                                INL.MessageId == messageId
-                                                                select new IIncNotificationLst
-                                                                {
-                                                                    ObjectMappingId = INL.ObjectMappingId,
-                                                                    SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
-                                                                    ObjectLabel = D.GroupName,
-                                                                    ObjectType = "GROUP"
-                                                                })
-                               ).ToListAsync();
-                pingifo.AckOptions = await (from MM in _context.Set<ActiveMessageResponse>()
-                                            where MM.MessageId == messageId
-                                            select new AckOption
+                var pCompanyId = new SqlParameter("@CompanyID", companyId);
+                var pMessageId = new SqlParameter("@MessageID", messageId);
+                pingifo.PingNotificationList = await _context.Set<IIncNotificationLst>().FromSqlRaw("Exec Pro_Get_Ping_Notification_List @CompanyID,@MessageID", pCompanyId, pMessageId) .ToListAsync();
+                pingifo.AckOptions = await _context.Set<ActiveMessageResponse>()
+                                            .Where(MM=> MM.MessageId == messageId)
+                                            .Select(MM => new AckOption
                                             {
                                                 ResponseId = MM.ResponseId,
                                                 ResponseLabel = MM.ResponseLabel,
                                                 ResponseCode = MM.ResponseCode
                                             }).ToListAsync();
-                pingifo.MessageMethod = await (from MM in _context.Set<MessageMethod>()
-                                               join MT in _context.Set<CommsMethod>() on MM.MethodId equals MT.CommsMethodId
-                                               where MM.MessageId == messageId
-                                               select new CommsMethods { MethodId = MM.MethodId, MethodName = MT.MethodName }).ToListAsync();
-                pingifo.UsersToNotify = await (from UN in _context.Set<UsersToNotify>()
-                                               join U in _context.Set<User>() on UN.UserId equals U.UserId
-                                               where UN.MessageId == messageId
-                                               select new IIncKeyConResponse
+                pingifo.MessageMethod = await  _context.Set<MessageMethod>().Include(MT=>MT.CommsMethod)                                               
+                                               .Where(MM=> MM.MessageId == messageId)
+                                               .Select(MM=> new CommsMethods 
+                                               { 
+                                                   MethodId = MM.MethodId, 
+                                                   MethodName = MM.CommsMethod.MethodName 
+                                               }).ToListAsync();
+                pingifo.UsersToNotify = await  _context.Set<UsersToNotify>().Include(U=>U.User)
+                                               .Where(UN=> UN.MessageId == messageId)
+                                               .Select(U=> new IIncKeyConResponse
                                                {
-                                                   FirstName = U.FirstName,
-                                                   LastName = U.LastName,
+                                                   FirstName = U.User.FirstName,
+                                                   LastName = U.User.LastName,
                                                    UserId = U.UserId
                                                }).ToListAsync();
-                pingifo.DepartmentToNotify = await (from INL in _context.Set<AdhocMessageNotificationList>()
-                                                    join D in _context.Set<Department>() on INL.SourceObjectPrimaryId equals D.DepartmentId
-                                                    where INL.CompanyId == CompanyID && INL.ObjectMappingId == 100 &&
-                                                    INL.MessageId == messageId
-                                                    select new IIncNotificationLst
+                pingifo.DepartmentToNotify = await  _context.Set<AdhocMessageNotificationList>().Include(d => d.Department)                                                    
+                                                    .Where(INL=> INL.CompanyId == CompanyID && INL.ObjectMappingId == 100 &&
+                                                    INL.MessageId == messageId)
+                                                    .Select(INL=> new IIncNotificationLst
                                                     {
                                                         ObjectMappingId = 100,
                                                         SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
-                                                        ObjectLabel = D.DepartmentName,
+                                                        ObjectLabel = INL.Department.DepartmentName,
                                                         ObjectType = "DEPARTMENT"
                                                     }).ToListAsync();
 
@@ -1204,7 +1246,7 @@ public class MessageRepository : IMessageRepository
         }
     }
 
-    public List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId)
+    public async Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId)
     {
         try
         {

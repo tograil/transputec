@@ -157,7 +157,7 @@ namespace CrisesControl.Infrastructure.Services
                     Task.Factory.StartNew(() => _MSG.SocialPosting(tblmessageid, SocialHandle, CompanyId));
 
                 //QueueHelper.MessageListQueue(tblmessageid);
-                QueueConsumer.CreateMessageList(tblmessageid);
+                await QueueConsumer.CreateMessageList(tblmessageid);
                 IsFundAvailable = QueueConsumer.IsFundAvailable;
             }
             catch (Exception ex)
