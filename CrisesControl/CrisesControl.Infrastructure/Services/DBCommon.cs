@@ -29,6 +29,7 @@ using CrisesControl.Core.Locations;
 using System.Net;
 using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
+using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.Core.Import;
 using System.Net.Http;
@@ -140,9 +141,9 @@ namespace CrisesControl.Api.Application.Helpers
                     return Globals[key];
                 }
 
-                var LKP = (from L in _context.Set<SysParameter>()
-                           where L.Name == key
-                           select L).FirstOrDefault();
+                var LKP =  _context.Set<SysParameter>()
+                           .Where(L=> L.Name == key
+                          ).FirstOrDefault();
                 if (LKP != null)
                 {
                     Default = LKP.Value;

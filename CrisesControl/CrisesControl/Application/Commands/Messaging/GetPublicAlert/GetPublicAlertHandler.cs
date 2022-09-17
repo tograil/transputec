@@ -22,7 +22,7 @@ namespace CrisesControl.Api.Application.Commands.Messaging.GetPublicAlert
         public async Task<GetPublicAlertResponse> Handle(GetPublicAlertRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(GetPublicAlertRequest));
-            var publicAlerts = _messageRepository.GetPublicAlert(_currentUser.CompanyId, _currentUser.UserId);
+            var publicAlerts = await _messageRepository.GetPublicAlert(_currentUser.CompanyId, _currentUser.UserId);
             var result = _mapper.Map<List<PublicAlertRtn>>(publicAlerts);
             var response = new GetPublicAlertResponse();
             response.Data = result;

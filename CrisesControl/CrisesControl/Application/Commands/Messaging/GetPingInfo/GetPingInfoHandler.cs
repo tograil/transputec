@@ -22,7 +22,8 @@ namespace CrisesControl.Api.Application.Commands.Messaging.GetPingInfo
         {
             Guard.Against.Null(request, nameof(GetPingInfoRequest));
             var result = await _messageRepository.GetPingInfo(request.MessageId, _currentUser.UserId, _currentUser.CompanyId);
-            var response = _mapper.Map<GetPingInfoResponse>(result);
+            var response = new GetPingInfoResponse();
+            response.Data = result;
             return response;
         }
     }

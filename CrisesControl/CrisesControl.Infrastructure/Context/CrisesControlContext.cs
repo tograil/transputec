@@ -275,6 +275,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<LicenseCheckResult>().HasNoKey();
             modelBuilder.Entity<SecurityGroups>().HasNoKey();
             modelBuilder.Entity<IIncNotificationLst>().HasNoKey();
+            //modelBuilder.Entity<MessageMethod>().HasNoKey();
             
         }
 

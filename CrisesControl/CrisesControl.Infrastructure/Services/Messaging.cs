@@ -20,7 +20,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using MessageMethod = CrisesControl.Core.Models.MessageMethod;
+using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 
 namespace CrisesControl.Infrastructure.Services
 {
@@ -113,14 +113,14 @@ namespace CrisesControl.Infrastructure.Services
                     MessageSourceAction = MessageSourceAction
                 };
                 await db.AddAsync(tblMessage);
-                db.SaveChanges();
+                await db.SaveChangesAsync();
 
                 if (multiResponse)
                     await SaveActiveMessageResponse(tblMessage.MessageId, ackOptions, incidentActivationId);
 
                 //Add TrackMe Users in Notification.
                 if (incidentActivationId > 0)
-                    AddTrackMeUsers(incidentActivationId, tblMessage.MessageId, companyId);
+                  await   AddTrackMeUsers(incidentActivationId, tblMessage.MessageId, companyId);
 
 
                 if (messageMethod != null && CascadePlanID <= 0)
@@ -132,7 +132,7 @@ namespace CrisesControl.Infrastructure.Services
                     else
                     {
 
-                        var commsmethod = await  db.Set<MessageMethod>()
+                        var commsmethod = await  db.Set<CrisesControl.Core.Messages.MessageMethod>()
                                            .Where(MM=> MM.ActiveIncidentId == incidentActivationId).Select(MM=>MM.MethodId).Distinct().ToArrayAsync();
                         if (commsmethod != null)
                         {
@@ -184,7 +184,7 @@ namespace CrisesControl.Infrastructure.Services
                 tblMessage.Phone = PhoneUsed;
                 tblMessage.Email = EmailUsed;
                 tblMessage.Push = PushUsed;
-                db.SaveChanges();
+                db.SaveChangesAsync();
 
                 //Process message attachments
                 if (mediaAttachments != null)
@@ -1919,20 +1919,20 @@ namespace CrisesControl.Infrastructure.Services
             return (distance < range ? true : false);
         }
 
-        public void AddTrackMeUsers(int incidentActivationId, int messageId, int companyId)
+        public async Task AddTrackMeUsers(int incidentActivationId, int messageId, int companyId)
         {
             try
             {
                 //get list of track me users
                 var pCompanyId = new SqlParameter("@CompanyID", companyId);
 
-                var track_me_list = db.Set<TrackMeUsers>().FromSqlRaw("exec Get_Track_Me_Users @CompanyID", pCompanyId).ToList();
+                var track_me_list = await  db.Set<TrackMeUsers>().FromSqlRaw("exec Get_Track_Me_Users @CompanyID", pCompanyId).ToListAsync();
 
                 //get the list of all the location of the incident
-                var loc_list = (from IL in db.Set<IncidentLocation>()
+                var loc_list = await (from IL in db.Set<IncidentLocation>()
                                 join ILL in db.Set<IncidentLocationLibrary>() on IL.LibLocationId equals ILL.LocationId
                                 where IL.IncidentActivationId == incidentActivationId
-                                select ILL).ToList();
+                                select ILL).ToListAsync();
 
                 double DistanceToAlert = 100;
 
