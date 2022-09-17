@@ -1737,8 +1737,9 @@ namespace CrisesControl.Api.Application.Helpers
         public string LogWrite(string str, string strType = "I")
         {
             return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
-        }   
-       public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
+        }
+
+        public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
         {
             var devices = await _context.Set<UserDevice>().Where(UD=> UD.UserId == userID).ToListAsync();
             if (devices!=null) { 

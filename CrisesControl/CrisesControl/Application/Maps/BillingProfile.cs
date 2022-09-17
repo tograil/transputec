@@ -13,7 +13,7 @@ namespace CrisesControl.Api.Application.Maps {
             CreateMap<BillingSummaryModel, GetBillingSummaryResponse>();
             CreateMap<GetBillingSummaryResponse, BillingSummaryModel>();
             CreateMap<GetCompanyInvoicesReturn, GetAllInvoicesResponse>();
-           //CreateMap<List<CompanyInvoices>, List<AllInvoices>>();
+            CreateMap<CompanyInvoices, AllInvoices>();
         }
     }
 }
