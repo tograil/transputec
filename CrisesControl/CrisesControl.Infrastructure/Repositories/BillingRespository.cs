@@ -31,12 +31,12 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly int companyId;
 
-        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, UsageHelper usage, DBCommon DBC) {
+        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor) {
             _context = context;
-            _mapper = mapper;
-            _usage = usage;
-            _DBC = DBC;
+            _mapper = mapper;            
             _httpContextAccessor = httpContextAccessor;
+            _DBC = new DBCommon(_context,_httpContextAccessor);
+            _usage = new UsageHelper(_context);
             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         }
 
@@ -183,21 +183,21 @@ namespace CrisesControl.Infrastructure.Repositories
             return new List<InvoiceSchReturn>();
         }
 
-        public async Task<List<OrderListReturn>> GetOrder(int orderId, int companyId, string customerId, int originalOrderId)
+        public async Task<List<OrderListReturn>> GetOrders(int orderId, int companyId)
         {
             try
             {
                 var pOrderId = new SqlParameter("@OrderId", orderId);
-                var pOriginalOrderId = new SqlParameter("@OriginalOrderId", originalOrderId);
+               
                 var pCompanyId = new SqlParameter("@CompanyId", companyId);
-                var pCustomerId = new SqlParameter("@CustomerId", customerId);
+               
 
-                var result = await _context.Set<OrderListReturn>().FromSqlRaw("EXEC Billing_Get_Order @OrderId, @OriginalOrderId, @CompanyId, @CustomerId",
-                    pOrderId, pOriginalOrderId, pCompanyId, pCustomerId).ToListAsync();
+                var result = await _context.Set<OrderListReturn>().FromSqlRaw("EXEC Billing_Get_Order @OrderId, @CompanyId",
+                    pOrderId, pCompanyId).ToListAsync();
 
                 if (result != null)
                 {
-                    if (orderId > 0 || originalOrderId > 0)
+                    if (orderId > 0 )
                     {
                         var newresult = result.FirstOrDefault();
                         newresult.Modules = await GetProducts(newresult.OrderID, companyId);
@@ -421,7 +421,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             return orderId;
         }
-        public async Task<dynamic> GetOrder(int OrderId, int CompanyId)
+        private async Task<dynamic> GetOrder(int OrderId, int CompanyId)
         {
             try
             {

@@ -252,7 +252,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<CompanyParam>().HasNoKey();
             modelBuilder.Entity<LocationInfo>().HasNoKey();
             modelBuilder.Entity<UsefulText>().HasNoKey();
-
+            modelBuilder.Entity<InvoiceSchReturn>().HasNoKey();
+            modelBuilder.Entity<OrderListReturn>().HasNoKey();
             //modelBuilder.Entity<Location>().HasNoKey();
         }
 

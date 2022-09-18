@@ -8,6 +8,7 @@ public class SysParameterConfiguration : IEntityTypeConfiguration<SysParameter>
 {
     public void Configure(EntityTypeBuilder<SysParameter> builder)
     {
+        builder.ToTable("SysParameters");
         builder.HasKey(e => e.SysParametersId)
             .HasName("PK_dbo.SysParameters");
 
