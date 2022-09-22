@@ -39,7 +39,7 @@ namespace CC.Authority.Implementation.Scim
                 throw new HttpResponseException(HttpStatusCode.BadRequest);
             }
 
-            var existingGroups = _authContext.Groups.Where(g => g.GroupName == group.DisplayName).ToList();
+            var existingGroups = _authContext.Groups.Where(g => g.GroupName == group.DisplayName && g.CompanyId == _currentUser.CompanyId).ToList();
             if
             (existingGroups.Any(existingGroup => string.Equals(existingGroup.GroupName, group.DisplayName, StringComparison.Ordinal)))
             {
@@ -91,7 +91,7 @@ namespace CC.Authority.Implementation.Scim
                 throw new ArgumentException(SystemForCrossDomainIdentityManagementServiceResources.ExceptionInvalidParameters);
             }
 
-            var results = _authContext.Groups.Select(group => new Core2Group
+            var results = _authContext.Groups.Where(w=>w.Status < 3 && w.CompanyId == _currentUser.CompanyId).Select(group => new Core2Group
             {
                 DisplayName = group.GroupName,
                 Identifier = group.GroupId.ToString(),
@@ -160,7 +160,7 @@ namespace CC.Authority.Implementation.Scim
 
             var id = int.Parse(resourceIdentifier?.Identifier);
 
-            var group = _authContext.Groups.FirstOrDefault(g => g.GroupId == id);
+            var group = _authContext.Groups.FirstOrDefault(g => g.GroupId == id && g.CompanyId == _currentUser.CompanyId);
 
             if (group is null)
             {
@@ -193,7 +193,7 @@ namespace CC.Authority.Implementation.Scim
 
             string identifier = parameters.ResourceIdentifier.Identifier;
 
-            var group = _authContext.Groups.FirstOrDefault(g => g.GroupId.ToString() == identifier);
+            var group = _authContext.Groups.FirstOrDefault(g => g.GroupId.ToString() == identifier && g.CompanyId == _currentUser.CompanyId);
 
             if (group is not null)
             {
@@ -249,7 +249,7 @@ namespace CC.Authority.Implementation.Scim
 
             string identifier = patch.ResourceIdentifier.Identifier;
 
-            var group = _authContext.Groups.FirstOrDefault(g => g.GroupId.ToString() == identifier);
+            var group = _authContext.Groups.FirstOrDefault(g => g.GroupId.ToString() == identifier && g.CompanyId == _currentUser.CompanyId);
 
             if (group is not null)
             {

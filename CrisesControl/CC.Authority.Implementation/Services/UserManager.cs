@@ -66,7 +66,7 @@ namespace CC.Authority.Implementation.Services
             return (true, resultStruct);
         }
 
-        public async Task<UserResponse> GetUser(int id)
+        public async Task<UserResponse?> GetUser(string id)
         {
             var getUserUri = new Uri(_baseUri, $"{_appPath}{GetUserPath}{id}");
 
@@ -74,9 +74,12 @@ namespace CC.Authority.Implementation.Services
 
             var result = await response.Content.ReadAsStringAsync();
 
-            var resultData = JsonConvert.DeserializeObject<UserResponse>(result);
+            if(result == "-1") {
+                return null;
+            } else {
+                return JsonConvert.DeserializeObject<UserResponse>(result);
+            }
 
-            return resultData;
         }
 
         public async Task<UserResponse> UpdateUser(UserInput userInput)

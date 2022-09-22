@@ -6,27 +6,20 @@ using CC.Authority.Api;
 using CC.Authority.Api.Config;
 using CC.Authority.Implementation;
 using CC.Authority.Implementation.Data;
+using CC.Authority.Implementation.Identity;
 using CC.Authority.Implementation.Models;
-using CC.Authority.Implementation.Scim;
-using CC.Authority.SCIM.Service;
 using CC.Authority.SCIM.Service.Monitor;
 using CrisesControl.Infrastructure.Identity;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SpaServices.AngularCli;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.SqlClient.AlwaysEncrypted.AzureKeyVaultProvider;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Identity.Client;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
-using Microsoft.SCIM.WebHostSample.Provider;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 
@@ -36,8 +29,7 @@ var monitoringBehavior = new ConsoleMonitor();
 
 builder.Services.AddSingleton(typeof(IMonitor), monitoringBehavior);
 
-builder.Services.AddSpaStaticFiles(configuration =>
-{
+builder.Services.AddSpaStaticFiles(configuration => {
     configuration.RootPath = "ClientApp/dist";
 });
 
@@ -55,6 +47,10 @@ builder.Services.Configure<IdentityOptions>(options => {
     options.ClaimsIdentity.RoleClaimType = OpenIddictConstants.Claims.Role;
     // configure more options if necessary...
 });
+
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<OpenIddictContext>();
+
 
 var serverCredentials = builder.Configuration
     .GetSection(ServerCredentialsOptions.ServerCredentials)
@@ -74,22 +70,34 @@ builder.Services.AddOpenIddict()
         options
             .AllowClientCredentialsFlow()
             .AllowAuthorizationCodeFlow()
+            .AllowRefreshTokenFlow()
             .AllowPasswordFlow();
+
+        options.UseReferenceAccessTokens().
+                UseReferenceRefreshTokens();
+
+        //options.UseDataProtection();
+
+        options.RegisterScopes(OpenIddictConstants.Permissions.Scopes.Email,
+            OpenIddictConstants.Permissions.Scopes.Profile,
+            OpenIddictConstants.Permissions.Scopes.Roles,
+            OpenIddictConstants.Scopes.OfflineAccess);
 
         options
             .SetTokenEndpointUris("/connect/token", "/user/token")
-            .SetAuthorizationEndpointUris("/connect/authorize");
+            .SetAuthorizationEndpointUris("/connect/authorize")
+            .SetIntrospectionEndpointUris("/connect/introspect");
 
-        // Encryption and signing of tokens
-        options
-            .AddEphemeralEncryptionKey()
-            .AddEphemeralSigningKey();
+        // Encryption and signing of tokens (for development)
+        //options
+        //    .AddEphemeralEncryptionKey()
+        //    .AddEphemeralSigningKey();
 
-        options.AddEncryptionKey(new SymmetricSecurityKey(
-            Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
+        options.AddEncryptionCertificate(serverCredentials.EncryptionKeyThumbprint);
+        options.AddSigningCertificate(serverCredentials.SigningKeyThumbprint);
 
         // Register scopes (permissions)
-        options.RegisterScopes("api");
+        //options.RegisterScopes("api");
 
         // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
         options
@@ -97,17 +105,23 @@ builder.Services.AddOpenIddict()
             .EnableTokenEndpointPassthrough()
             .DisableTransportSecurityRequirement();
 
-        options.SetAccessTokenLifetime(TimeSpan.FromDays(300));
+        options.SetAccessTokenLifetime(TimeSpan.FromDays(serverCredentials.TokenExpiryInDays));
+        options.SetAuthorizationCodeLifetime(TimeSpan.FromDays(serverCredentials.TokenExpiryInDays));
+        options.SetRefreshTokenLifetime(TimeSpan.FromDays(serverCredentials.TokenExpiryInDays));
 
     }).AddValidation(options => {
         // Note: the validation handler uses OpenID Connect discovery
         // to retrieve the address of the introspection endpoint.
         options.SetIssuer(serverCredentials.OpendIddictEndpoint);
-        options.AddAudiences("api");
+        options.EnableTokenEntryValidation();
+        options.EnableAuthorizationEntryValidation();
 
+        //options.AddAudiences("api");
 
-        options.AddEncryptionKey(new SymmetricSecurityKey(
-            Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
+        options.AddEncryptionCertificate(serverCredentials.EncryptionKeyThumbprint);
+
+        //options.AddEncryptionKey(new SymmetricSecurityKey(
+        //    Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
 
         // Register the System.Net.Http integration.
         options.UseSystemNetHttp();
@@ -118,7 +132,8 @@ builder.Services.AddOpenIddict()
 
 builder.Services.AddIdentityCore<User>()
     .AddUserStore<UserStore>()
-    .AddUserManager<CrisesControlUserManager>();
+    .AddUserManager<CrisesControlUserManager>()
+    .AddSignInManager<CrisesControlSignInManager>();
 
 /*builder.Services.AddControllers().AddNewtonsoftJson(opt =>
 {
@@ -140,7 +155,7 @@ builder.Services.AddSwaggerGen(c => {
         Flows = new OpenApiOAuthFlows {
             Password = new OpenApiOAuthFlow {
                 Scopes = new Dictionary<string, string> {
-                    ["api"] = "api scope description"
+                    ["offline_access"] = "api scope description"
                 },
                 TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
             },
@@ -159,7 +174,7 @@ builder.Services.AddSwaggerGen(c => {
                         Reference = new OpenApiReference
                             { Type = ReferenceType.SecurityScheme, Id = "oauth2" },
                     },
-                    new[] { "api" }
+                    new[] { "offline_access" }
                 }
         }
     );
@@ -208,7 +223,20 @@ void ConfigureMvcNewtonsoftJsonOptions(MvcNewtonsoftJsonOptions options) => opti
 
 //builder.Services.AddAuthentication(ConfigureAuthenticationOptions).AddJwtBearer(ConfigureJwtBearerOptons);
 builder.Services.AddControllers().AddNewtonsoftJson(ConfigureMvcNewtonsoftJsonOptions);
+
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+
+//builder.Services.AddAuthentication(cfg =>
+//{
+//    cfg.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//    cfg.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//})
+//       .AddJwtBearer(cfg => {
+//           cfg.RequireHttpsMetadata = false;
+//           cfg.SaveToken = true;
+//       });
+
+
 builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
@@ -230,8 +258,7 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
-if (!app.Environment.IsDevelopment())
-{
+if (!app.Environment.IsDevelopment()) {
     app.UseSpaStaticFiles();
 }
 
@@ -251,17 +278,37 @@ await using (var scope = app.Services.CreateAsyncScope()) {
     var context2 = scope.ServiceProvider.GetService<CrisesControlAuthContext>();
     context2.Database.Migrate();
 
-    var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
-
-    if (await manager.FindByNameAsync("api") is null) {
-        await manager.CreateAsync(new OpenIddictScopeDescriptor {
-            Name = "api",
-            Resources =
-            {
-                "api"
+    var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+    var existingClientApp = manager.FindByClientIdAsync(serverCredentials.ClientId).GetAwaiter().GetResult();
+    if (existingClientApp == null) {
+        manager.CreateAsync(new OpenIddictApplicationDescriptor {
+            ClientId = serverCredentials.ClientId,
+            ClientSecret = serverCredentials.ClientSecret,
+            DisplayName = "Default client application",
+            Permissions = {
+                OpenIddictConstants.Permissions.Endpoints.Authorization,
+                OpenIddictConstants.Permissions.Endpoints.Token,
+                OpenIddictConstants.Permissions.GrantTypes.Password,
+                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+                OpenIddictConstants.Permissions.Scopes.Email,
+                OpenIddictConstants.Permissions.Scopes.Profile,
+                OpenIddictConstants.Permissions.Scopes.Roles
             }
-        });
+        }).GetAwaiter().GetResult();
     }
+
+    //var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
+
+    //if (await manager.FindByNameAsync("api") is null) {
+    //    await manager.CreateAsync(new OpenIddictScopeDescriptor {
+    //        Name = "api",
+    //        Resources =
+    //        {
+    //            "api"
+    //        }
+    //    });
+    //}
 }
 
 if (app.Environment.IsDevelopment()) {
@@ -269,7 +316,7 @@ if (app.Environment.IsDevelopment()) {
         // To learn more about options for serving an Angular SPA from ASP.NET Core,
         // see https://go.microsoft.com/fwlink/?linkid=864501
 
-    spa.Options.SourcePath = "ClientApp";
+        spa.Options.SourcePath = "ClientApp";
 
         if (app.Environment.IsDevelopment()) {
             spa.UseAngularCliServer(npmScript: "start");
