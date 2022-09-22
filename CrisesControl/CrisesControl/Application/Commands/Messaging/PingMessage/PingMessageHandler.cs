@@ -45,8 +45,9 @@ namespace CrisesControl.Api.Application.Commands.Messaging.PingMessage
             pingMessage.Priority = request.Priority;
             pingMessage.UsersToNotify = request.UsersToNotify;
             pingMessage.MultiResponse = request.MultiResponse;
-           var result = await _messageRepository.PingMessages(pingMessage);
-            response.PingId = result;
+            var result = await _messageRepository.PingMessages(pingMessage);
+            response.MessageId = result;
+            response.Message = "success";
             return response;
         }
     }

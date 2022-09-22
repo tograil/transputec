@@ -11,8 +11,8 @@ namespace CrisesControl.Api.Application.Commands.Messaging.SaveMessageResponse
         public string SafetyAckAction { get; set; }
         public string MessageType { get; set; }
         public int Status { get; set; }
-        public int CurrentUserId { get; set; }
-        public int CompanyId { get; set; }
-        public string TimeZoneId { get; set; }
+        //public int CurrentUserId { get; set; }
+        //public int CompanyId { get; set; }
+        //public string TimeZoneId { get; set; }
     }
 }

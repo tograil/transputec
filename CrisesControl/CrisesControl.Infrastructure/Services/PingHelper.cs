@@ -208,7 +208,7 @@ namespace CrisesControl.Infrastructure.Services
                 try
                 {
 
-                    _context.Database.ExecuteSqlRaw("EXEC DELETE FROM PublicAlertMessageListDump WHERE SessionId='" + sessionId + "'");
+                    _context.Database.ExecuteSqlRaw("DELETE FROM PublicAlertMessageListDump WHERE SessionId='" + sessionId + "'");
 
                     _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
 

@@ -34,7 +34,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<AuditingInterceptor>();
 
 builder.Services.AddDbContext<CrisesControlContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlDatabase")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("CrisesControlDatabase")), ServiceLifetime.Transient);
 
 builder.Services.Configure<JobsMongoSettings>(
     builder.Configuration.GetSection("JobsMongoSettings"));

@@ -804,10 +804,9 @@ namespace CrisesControl.Infrastructure.Services
             {
                 string ConServiceEnable = _DBC.GetCompanyParameter("CONCIERGE_SERVICE", companyId);
 
-                var phone_method = (from CM in db.Set<CompanyComm>()
-                                    join CO in db.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
-                                    where CM.CompanyId == companyId && CO.MethodCode == "PHONE" && CM.Status == 1 && CM.ServiceStatus == true
-                                    select CO).FirstOrDefault();
+                var phone_method = await db.Set<CompanyComm>().Include(CO=>CO.CommsMethod)
+                                    .Where(CM=> CM.CompanyId == companyId && CM.CommsMethod.MethodCode == "PHONE" && CM.Status == 1 && CM.ServiceStatus == true
+                                    ).FirstOrDefaultAsync();
 
                 if (ConServiceEnable == "true" && phone_method != null)
                 {
@@ -815,7 +814,7 @@ namespace CrisesControl.Infrastructure.Services
                     if (userList.Count > 0)
                     {
                         
-                        var result = StartConferenceNew(companyId, currentUserId, userList, timeZoneId, objectId, 0);
+                        var result = await StartConferenceNew(companyId, currentUserId, userList, timeZoneId, objectId, 0);
                         return true;
 
                     }

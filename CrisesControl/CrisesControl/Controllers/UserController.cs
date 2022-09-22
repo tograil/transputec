@@ -53,9 +53,8 @@ namespace CrisesControl.Api.Controllers
             _mediator = mediator;
         }
 
-        [HttpPost]
-        [Route("GetAllUser")]
-        public async Task<IActionResult> GetAllUser([FromForm] GetAllUserRequest request, CancellationToken cancellationToken)
+        [HttpGet ("action")]
+        public async Task<IActionResult> GetAllUser([FromQuery] GetAllUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

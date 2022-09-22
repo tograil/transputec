@@ -60,7 +60,7 @@ public interface IMessageRepository
     Task<List<MessageGroupObject>> GetMessageGroupList(int messageID);
     Task<dynamic> ConverToMp3();
     object GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId);
-    object GetConfUser(int objectId, string objectType);
+    Task<dynamic> GetConfUser(int objectId, string objectType);
     Task<PingInfoReturn> GetPingInfo(int messageId, int userId, int companyId);
     dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId);
     Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId);

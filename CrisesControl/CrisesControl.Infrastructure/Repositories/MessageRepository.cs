@@ -1084,28 +1084,28 @@ public class MessageRepository : IMessageRepository
         }
     }
 
-    public object GetConfUser(int objectId, string objectType)
+    public async Task<dynamic> GetConfUser(int objectId, string objectType)
     {
         CommonDTO ResultDTO = new CommonDTO();
         try
         {
             if (objectType.ToUpper() == "INCIDENT")
             {
-                var rcpnt_list = (from ML in _context.Set<MessageList>()
+                var rcpnt_list = await  (from ML in _context.Set<MessageList>()
                                   join M in _context.Set<Message>() on ML.MessageId equals M.MessageId
                                   join U in _context.Set<User>() on ML.RecepientUserId equals U.UserId
                                   where M.IncidentActivationId == objectId && U.Status == 1 && M.MessageType == "Incident"
-                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToList();
+                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToListAsync();
 
                 return rcpnt_list;
             }
             else if (objectType.ToUpper() == "PING")
             {
-                var rcpnt_list = (from ML in _context.Set<MessageList>()
+                var rcpnt_list = await (from ML in _context.Set<MessageList>()
                                   join M in _context.Set<Message>() on ML.MessageId equals M.MessageId
                                   join U in _context.Set<User>() on ML.RecepientUserId equals U.UserId
                                   where M.MessageId == objectId && U.Status == 1 && M.MessageType == "Ping"
-                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToList();
+                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToListAsync();
                 return rcpnt_list;
             }
             return ResultDTO;

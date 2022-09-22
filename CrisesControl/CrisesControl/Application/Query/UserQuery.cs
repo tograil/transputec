@@ -43,9 +43,21 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetAllUserResponse> GetUsers(Commands.Users.GetAllUser.GetAllUserRequest request, CancellationToken cancellationToken)
         {
-           
-           // var mappedRequest = _mapper.Map<Core.Users.GetAllUserRequestList>(request);
-            var users = await _UserRepository.GetAllUsers(request.GetAllUserRequestList);
+
+            // var mappedRequest = _mapper.Map<Core.Users.GetAllUserRequestList>(request);
+            GetAllUserRequestList getAllUser = new GetAllUserRequestList();
+            getAllUser.ActiveOnly = request.ActiveOnly;
+            getAllUser.CompanyKey = request.CompanyKey;
+            getAllUser.Filters = request.Filters;
+            getAllUser.KeyHolderOnly = request.KeyHolderOnly;
+            getAllUser.OrderBy = _paging.OrderBy;
+            getAllUser.OrderDir = request.OrderDir;
+            getAllUser.RecordLength = _paging.PageSize;
+            getAllUser.RecordStart = _paging.PageNumber;
+            getAllUser.SearchString = request.SearchString;
+            getAllUser.SkipDeleted = request.SkipDeleted;
+            getAllUser.SkipInActive = request.SkipInActive;
+            var users = await _UserRepository.GetAllUsers(getAllUser);
             //List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(users.ToList());
             var response = new GetAllUserResponse();
             response.Data = users.ToList();

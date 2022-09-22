@@ -208,8 +208,8 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetConfUser")]
-        public async Task<IActionResult> GetConfUser([FromBody] GetConfUserRequest request, CancellationToken cancellationToken)
+        [Route("[action]/{ObjectType}/{ObjectId}")]
+        public async Task<IActionResult> GetConfUser([FromRoute] GetConfUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
@@ -260,7 +260,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPost]
-        [Route("StartConference")]
+        [Route("[action]")]
         public async Task<IActionResult> StartConference([FromBody] StartConferenceRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -338,7 +338,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetPublicAlertTemplate/{CompanyId}/{UserId}/{MessageId}")]
+        [Route("GetPublicAlertTemplate/{MessageId}")]
         public async Task<IActionResult> GetPublicAlertTemplate([FromRoute] GetPublicAlertTemplateRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

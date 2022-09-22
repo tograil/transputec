@@ -278,6 +278,7 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<IIncNotificationLst>().HasNoKey();
             modelBuilder.Entity<Results>().HasNoKey();
             modelBuilder.Entity<PublicAlertRtn>().HasNoKey();
+            modelBuilder.Entity<ConferenceUser>().HasNoKey();
             //modelBuilder.Entity<MessageMethod>().HasNoKey();
 
         }

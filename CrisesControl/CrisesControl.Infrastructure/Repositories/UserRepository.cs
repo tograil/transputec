@@ -995,7 +995,7 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            var RegUserInfo = await _context.Set<User>().Include(uc => uc.UserComm).Include(usg => usg.UserSecurityGroup).Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
+            var RegUserInfo = await _context.Set<User>().Include(usg => usg.UserSecurityGroup).Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
 
             if (RegUserInfo != null)
             {

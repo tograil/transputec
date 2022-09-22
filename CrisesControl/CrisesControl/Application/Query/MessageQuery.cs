@@ -6,6 +6,8 @@ using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
 using CrisesControl.Api.Application.Commands.Messaging.GetReplies;
+using CrisesControl.Api.Application.Commands.Messaging.StartConference;
+using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Repositories;
@@ -16,11 +18,13 @@ namespace CrisesControl.Api.Application.Query {
         private readonly IMessageRepository _messageRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<MessageQuery> _logger;
+        private readonly ICurrentUser _currentUser;
 
-        public MessageQuery(IMessageRepository messageRepository, IMapper mapper, ILogger<MessageQuery> logger) {
+        public MessageQuery(IMessageRepository messageRepository, IMapper mapper, ILogger<MessageQuery> logger, ICurrentUser currentUser) {
             _mapper = mapper;
             _messageRepository = messageRepository;
             _logger = logger;
+            _currentUser = currentUser;
         }
 
         public async Task<GetNotificationsCountResponse> GetNotificationsCount(GetNotificationsCountRequest request) {
@@ -91,6 +95,24 @@ namespace CrisesControl.Api.Application.Query {
             result.data = response;
             result.Message = "Data Loaded Successfully";
             return result;
+        }
+
+        public async Task<StartConferenceResponse> StartConference(StartConferenceRequest request)
+        {
+            var conference = await _messageRepository.StartConference(request.UserList, request.ObjectID, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone); ;
+            var result = _mapper.Map<bool>(conference);
+            var response = new StartConferenceResponse();
+            if (result != null)
+            {
+                response.Status = result;
+                response.Message = "Conference service is enabled";
+            }
+            else
+            {
+                response.Status = false;
+                response.Message = "Conference service not enabled";
+            }
+            return response;
         }
     }
 }

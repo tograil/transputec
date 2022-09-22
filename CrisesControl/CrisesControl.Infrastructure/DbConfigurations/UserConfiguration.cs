@@ -105,8 +105,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(e => e.UserPhoto).HasMaxLength(70);
 
         builder.Property(e => e.UserRole).HasMaxLength(10);
-        builder.HasOne(e => e.UserComm)
-            .WithMany().HasForeignKey(x => x.UserId);
+        //builder.HasOne(e => e.UserComm)
+        //    .WithMany().HasForeignKey(x => x.UserId);
 
         builder.HasOne(e => e.UserSecurityGroup)
                .WithMany().HasForeignKey(x => x.UserId);

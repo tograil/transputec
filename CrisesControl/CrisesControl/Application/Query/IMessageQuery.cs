@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails;
+﻿using CrisesControl.Api.Application.Commands.Messaging.StartConference;
+using CrisesControl.Api.Application.Commands.Messaging.GetMessageDetails;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageGroupList;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
@@ -15,5 +16,6 @@ namespace CrisesControl.Api.Application.Query {
         public Task<GetMessageDetailsResponse> GetMessageDetails(GetMessageDetailsRequest request);
         public Task<GetRepliesResponse> GetReplies(GetRepliesRequest request);
         Task<GetMessageGroupListResponse> GetMessageGroupList(GetMessageGroupListRequest request);
+        Task<StartConferenceResponse> StartConference(StartConferenceRequest request);
     }
 }
