@@ -970,8 +970,10 @@ namespace CrisesControl.Api.Application.Helpers
                 var pQueueName = new SqlParameter("@QueueName", queueName);
                 var pAdditionalInfo = new SqlParameter("@AdditionalInfo", additionalInfo);
 
-                await _context.Set<Result>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
-                     pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).FirstOrDefaultAsync();
+                var result = _context.Set<CrisesControl.Core.Messages.Results>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
+                      pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).AsEnumerable();
+
+                result.FirstOrDefault();
             }
             catch (Exception ex)
             {

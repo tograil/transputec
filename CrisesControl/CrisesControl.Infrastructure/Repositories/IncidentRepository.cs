@@ -43,6 +43,8 @@ public class IncidentRepository : IIncidentRepository
     private readonly Messaging _MSG;
     private readonly DBCommon _DBC;
     private readonly SendEmail _SDE;
+    private readonly QueueConsumer queueConsumer;
+    private readonly QueueHelper _queueHelper;
     public bool IsSOS = false;
     public string Latitude = "0";
     public string Longtude = "0";
@@ -51,18 +53,20 @@ public class IncidentRepository : IIncidentRepository
     public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository,
         ICompanyParametersRepository companyParamentersRepository, IMessageService service,
         ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor,
-        Messaging MSG, DBCommon DBC, SendEmail SDE, IActiveIncidentTaskService activeIncidentTaskService)
+         IActiveIncidentTaskService activeIncidentTaskService)
     {
         _context = context;
         _companyParamentersRepository = companyParamentersRepository;
         _service = service;
         _logger = logger;
         _activeIncidentRepository = activeIncidentRepository;
-        _httpContextAccessor = httpContextAccessor;
-        _MSG = MSG;
-        _DBC = DBC;
-        _SDE = SDE;
+        _httpContextAccessor = httpContextAccessor;        
+        _DBC = new DBCommon(_context,_httpContextAccessor);
+        _SDE = new SendEmail(_context,_DBC);
+        _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+        queueConsumer = new QueueConsumer(_context,_httpContextAccessor);
         _activeIncidentTaskService = activeIncidentTaskService;
+        _queueHelper = new QueueHelper(_context);
     }
 
     public async Task<bool> CheckDuplicate(int companyId, string incidentName, int incidentId)
@@ -1184,10 +1188,10 @@ public class IncidentRepository : IIncidentRepository
 
                     IsFundAvailable = await _MSG.CalculateMessageCost(CompanyId, tblmessageid, MsgText);
 
-                    Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Ping", 1, CascadePlanID));
+                    Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Ping", 1, CascadePlanID));
 
                     //QueueHelper.MessageDevicePublish(tblmessageid, 1);
-                    QueueConsumer.CreateCascadingJobs(CascadePlanID, tblmessageid, 0, CompanyId, TimeZoneId);
+                    queueConsumer.CreateCascadingJobs(CascadePlanID, tblmessageid, 0, CompanyId, TimeZoneId);
                 }
                 catch (Exception ex)
                 {
@@ -2312,10 +2316,10 @@ public class IncidentRepository : IIncidentRepository
 
                     IsFundAvailable =await MSG.CalculateMessageCost(CompanyId, tblmessageid, tblIncidenActivation.IncidentDescription);
 
-                    await Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, verifyInci.CascadePlanId));
+                    await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, verifyInci.CascadePlanId));
 
                     //QueueHelper.MessageDevicePublish(tblmessageid, 1);
-                    QueueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
+                    queueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
 
                 }
                 catch (Exception ex)

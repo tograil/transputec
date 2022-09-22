@@ -276,8 +276,10 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<LicenseCheckResult>().HasNoKey();
             modelBuilder.Entity<SecurityGroups>().HasNoKey();
             modelBuilder.Entity<IIncNotificationLst>().HasNoKey();
+            modelBuilder.Entity<Results>().HasNoKey();
+            modelBuilder.Entity<PublicAlertRtn>().HasNoKey();
             //modelBuilder.Entity<MessageMethod>().HasNoKey();
-            
+
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())

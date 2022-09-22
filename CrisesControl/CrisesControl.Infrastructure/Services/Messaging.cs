@@ -61,7 +61,7 @@ namespace CrisesControl.Infrastructure.Services
                           };
 
                 db.AddRange(ins);
-                db.SaveChanges();
+                db.SaveChangesAsync();
 
             }
             catch (Exception ex)
@@ -306,7 +306,7 @@ namespace CrisesControl.Infrastructure.Services
                             if (msg != null)
                             {
                                 msg.AttachmentCount = Count;
-                                db.SaveChanges();
+                                await db.SaveChangesAsync();
                             }
                         }
                     }
@@ -340,7 +340,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 try
                 {
-                    var asset =await db.Set<Assets>().Where(A=> A.AssetId == assetId).FirstOrDefaultAsync();
+                    var asset =await db.Set<CrisesControl.Core.Assets.Assets>().Where(A=> A.AssetId == assetId).FirstOrDefaultAsync();
                     if (asset != null)
                     {
                         FileHandler FH = new FileHandler(db, _httpContextAccessor);
@@ -2002,7 +2002,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         if (price.I.SMSCount > 0 && price.P.ChannelType == "SMS")
                         {
-                            TotalPrice += Math.Max((price.P.BasePrice * SMSSegment * cpp.TextUplift), cpp.MinimumTextRate);
+                            TotalPrice += Math.Max((price.P.BasePrice  * SMSSegment * cpp.TextUplift), cpp.MinimumTextRate);
                             ShouldCheckCost = true;
                         }
 

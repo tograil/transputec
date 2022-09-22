@@ -7,6 +7,7 @@ using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using ExcelDataReader;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -22,15 +23,21 @@ namespace CrisesControl.Infrastructure.Services
     public class PingHelper
     {
         private readonly CrisesControlContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly Messaging _MSG;
         private readonly DBCommon _DBC;
+        private readonly QueueConsumer queue;
+        private readonly QueueHelper _queueHelper;
 
         public bool IsFundAvailable = true;
-        public PingHelper(CrisesControlContext context, Messaging MSG, DBCommon DBC)
+        public PingHelper(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
-            _MSG = MSG;
-            _DBC = DBC;
+            _httpContextAccessor = httpContextAccessor;
+            _DBC = new DBCommon(_context,_httpContextAccessor);
+            _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+            queue = new QueueConsumer(_context, _httpContextAccessor);
+            _queueHelper = new QueueHelper(_context);
         }
 
         public List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId)
@@ -157,8 +164,8 @@ namespace CrisesControl.Infrastructure.Services
                     Task.Factory.StartNew(() => _MSG.SocialPosting(tblmessageid, SocialHandle, CompanyId));
 
                 //QueueHelper.MessageListQueue(tblmessageid);
-                await QueueConsumer.CreateMessageList(tblmessageid);
-                IsFundAvailable = QueueConsumer.IsFundAvailable;
+                await queue.CreateMessageList(tblmessageid);
+                IsFundAvailable = queue.IsFundAvailable;
             }
             catch (Exception ex)
             {
@@ -339,10 +346,10 @@ namespace CrisesControl.Infrastructure.Services
             CommonDTO ResultDTO = new CommonDTO();
             try
             {
-                var deviceList = QueueHelper.GetFailedDeviceQueue(messageId, commsMethod, 0);
+                var deviceList = _queueHelper.GetFailedDeviceQueue(messageId, commsMethod, 0);
                 if (deviceList.Count > 0)
                 {
-                    bool queued = await QueueHelper.RequeueMessage(messageId, commsMethod, deviceList);
+                    bool queued = await _queueHelper.RequeueMessage(messageId, commsMethod, deviceList);
                     if (queued)
                     {
                         ResultDTO.ErrorId = 205;
@@ -404,11 +411,11 @@ namespace CrisesControl.Infrastructure.Services
                             //Create Message List for Ping
                             _MSG.SavePublicAlertMessageList(sessionId, PublicAlertID, tblmessageid, dtnow, TextAdded, EmailAdded, PhoneAdded);
 
-                            var rabbithosts = QueueHelper.RabbitHosts();
-                            Task.Factory.StartNew(() => QueueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "EMAIL")).ContinueWith(t => {
+                            var rabbithosts = _queueHelper.RabbitHosts();
+                            await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "EMAIL")).ContinueWith(t => {
                                 t.Dispose();
                             });
-                            Task.Factory.StartNew(() => QueueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "TEXT")).ContinueWith(t => {
+                           await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "TEXT")).ContinueWith(t => {
                                 t.Dispose();
                             });
                             _context.Database.ExecuteSqlRaw("EXEC UPDATE PublicAlert SET Executed=1 WHERE PublicAlertID=" + PublicAlertID);
@@ -508,8 +515,8 @@ namespace CrisesControl.Infrastructure.Services
                     }
                     _context.SaveChanges();
 
-                    int queuecount = await QueueConsumer.CreateMessageList(tblmessageid, replyTo);
-                    IsFundAvailable = QueueConsumer.IsFundAvailable;
+                    int queuecount = await queue.CreateMessageList(tblmessageid, replyTo);
+                    IsFundAvailable = queue.IsFundAvailable;
 
                     Result = _DBC.Return(0, IsFundAvailable == true ? null : "E219", true, "SUCCESS", tblmessageid, queuecount);
 

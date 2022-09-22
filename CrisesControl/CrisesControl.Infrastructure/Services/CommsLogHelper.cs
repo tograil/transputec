@@ -39,12 +39,14 @@ namespace CrisesControl.Infrastructure.Services
         private bool SendInDirect = false;
         public event UpdateHandler EntityUpdate;
         private string CM_CLIENTID = string.Empty;
+        private readonly QueueHelper _queueHelper;
 
         public CommsLogsHelper(CrisesControlContext db, IHttpContextAccessor httpContextAccessor)
         {
             this.db = db;
             this._httpContextAccessor = httpContextAccessor;
             this.DBC = new DBCommon(db,_httpContextAccessor);
+            _queueHelper = new QueueHelper(db);
         }
 
         public CommsLogsHelper()
@@ -563,7 +565,7 @@ namespace CrisesControl.Infrastructure.Services
         {
             try
             {
-                QueueHelper.CreateCommsLogDumpSession(SessionId);
+                _queueHelper.CreateCommsLogDumpSession(SessionId);
             }
             catch (Exception ex)
             {

@@ -16,30 +16,37 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Infrastructure.Services
 {
-    public static class QueueHelper
+    public  class QueueHelper
     {
         static string ServiceHost = string.Empty;
         public static string RabbitVirtualHost = "/";
         public static CrisesControlContext db;
-        private static IHttpContextAccessor _httpContextAccessor;
-        private static Messaging _MSG;
-        public static void MessageDeviceQueue(int MessageID, string MessageType, int Priority, int CascadePlanID = 0)
+        private static IHttpContextAccessor _httpContextAccessor = new HttpContextAccessor();
+        private static DBCommon _DBC;
+        private static Messaging _MSG ;
+        public QueueHelper(CrisesControlContext _db)
         {
-            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+            db = _db;
+            _DBC = new DBCommon(db, _httpContextAccessor);
+            _MSG = new Messaging(db, _httpContextAccessor, _DBC);
+        }
+        public  void MessageDeviceQueue(int MessageID, string MessageType, int Priority, int CascadePlanID = 0)
+        {
+           
             try
             {
                
                     var pMessageId = new SqlParameter("@MessageID", MessageID);
                     var pMessageType = new SqlParameter("@MessageType", MessageType);
                     var pPriority = new SqlParameter("@Priority", Priority);
-                    db.Database.GetCommandTimeout();
+                    //db.Database.GetCommandTimeout();
 
                     string sp_name = "Pro_Create_Message_Queue ";
 
                     if (CascadePlanID > 0)
                         sp_name = "Pro_Create_Message_Queue_Cascading ";
 
-                     DBC.LocalException(MessageID.ToString(), sp_name, Priority.ToString());
+                    // _DBC.LocalException(MessageID.ToString(), sp_name, Priority.ToString());
 
                     var List = db.Database.ExecuteSqlRaw(sp_name + " @MessageID, @MessageType, @Priority", pMessageId, pMessageType, pPriority);
 
@@ -52,9 +59,9 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public static void MessageDevicePublish(int MessageID, int Priority, string Method = "")
+        public  void MessageDevicePublish(int MessageID, int Priority, string Method = "")
         {
-            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
+          
             try
             {
                 var rabbithosts = RabbitHosts(out RabbitVirtualHost);
@@ -131,19 +138,19 @@ namespace CrisesControl.Infrastructure.Services
                 throw ex;
             }
         }
-        public static async Task<bool> PublishMessageQueue(int MessageID, List<string> RabbitHost, string Method,
+        public  async Task<bool> PublishMessageQueue(int MessageID, List<string> RabbitHost, string Method,
             List<MessageQueueItem> devicelist = null, int Priority = 1)
         {
-            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
+           
 
             try
             {
                 await  _MSG.CreateProcessQueue(MessageID, "", Method, "CONFIRM", 99);
 
-                string RabbitMQUser = DBC.LookupWithKey("RABBITMQ_USER");
-                string RabbitMQPassword = DBC.LookupWithKey("RABBITMQ_PASSWORD");
+                string RabbitMQUser = _DBC.LookupWithKey("RABBITMQ_USER");
+                string RabbitMQPassword = _DBC.LookupWithKey("RABBITMQ_PASSWORD");
 
-                ushort RabbitMQHeartBeat = Convert.ToUInt16(DBC.LookupWithKey("RABBIT_HEARTBEAT_CHECK"));
+                ushort RabbitMQHeartBeat = Convert.ToUInt16(_DBC.LookupWithKey("RABBIT_HEARTBEAT_CHECK"));
                 var factory = new ConnectionFactory()
                 {
                     AutomaticRecoveryEnabled = true,
@@ -158,7 +165,7 @@ namespace CrisesControl.Infrastructure.Services
                 using (var connection = factory.CreateConnection(RabbitHost))
                 using (var model = connection.CreateModel())
                 {
-                    string exchange_name = DBC.LookupWithKey("RABBITMQ_QUEUE_EXCHANGE");
+                    string exchange_name = _DBC.LookupWithKey("RABBITMQ_QUEUE_EXCHANGE");
                     model.ExchangeDeclare(exchange: exchange_name, type: "direct", durable: true, autoDelete: false);
 
                     IBasicProperties properties = model.CreateBasicProperties();
@@ -202,11 +209,11 @@ namespace CrisesControl.Infrastructure.Services
                         
                             int MinItemInQueue = 200;
 
-                            bool.TryParse(DBC.LookupWithKey("COMMS_DEBUG_MODE"), out CommsDebug);
-                            SendInDirect = DBC.IsTrue(DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                            bool.TryParse(_DBC.LookupWithKey("COMMS_DEBUG_MODE"), out CommsDebug);
+                            SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
-                            MAXMSGATTEMPT = Convert.ToInt32(DBC.LookupWithKey("MAXMSGATTEMPT"));
-                            double MaxQueueNumber = Convert.ToDouble(DBC.LookupWithKey("RABBIT_QUEUE_SIZE"));
+                            MAXMSGATTEMPT = Convert.ToInt32(_DBC.LookupWithKey("MAXMSGATTEMPT"));
+                            double MaxQueueNumber = Convert.ToDouble(_DBC.LookupWithKey("RABBIT_QUEUE_SIZE"));
                             int DeviceCount = device_list.Count;
 
 
@@ -228,7 +235,7 @@ namespace CrisesControl.Infrastructure.Services
 
                             //DBC.CreateLog("ERROR", "qUEUE sIZE" + QueueSize);
 
-                            TwilioRoutingApi = DBC.LookupWithKey("TWILIO_ROUTING_API");
+                            TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                             if (Method.ToUpper() == "EMAIL")
                             {
@@ -300,14 +307,14 @@ namespace CrisesControl.Infrastructure.Services
 
                             if (!OneTimeParams)
                             {
-                                SIMULATION_TEXT = DBC.GetCompanyParameter("INCIDENT_SIMULATION_TEXT", item.CompanyId);
-                                PHONE_SIMULATION_MESSAGE = DBC.GetCompanyParameter("INCIDENT_SIMULATION_PHONE", item.CompanyId);
+                                SIMULATION_TEXT = _DBC.GetCompanyParameter("INCIDENT_SIMULATION_TEXT", item.CompanyId);
+                                PHONE_SIMULATION_MESSAGE = _DBC.GetCompanyParameter("INCIDENT_SIMULATION_PHONE", item.CompanyId);
 
 
                                 if (Method.ToUpper() == "EMAIL")
                                 {
-                                    OneClickAck = DBC.GetCompanyParameter("ONE_CLICK_EMAIL_ACKNOWLEDGE", item.CompanyId);
-                                    EmailProvider = DBC.GetCompanyParameter("EMAIL_PROVIDER", item.CompanyId);
+                                    OneClickAck = _DBC.GetCompanyParameter("ONE_CLICK_EMAIL_ACKNOWLEDGE", item.CompanyId);
+                                    EmailProvider = _DBC.GetCompanyParameter("EMAIL_PROVIDER", item.CompanyId);
                                     emailitem.OneClickAcknowledge = OneClickAck;
                                     emailitem.EmailProvider = EmailProvider;
 
@@ -316,44 +323,44 @@ namespace CrisesControl.Infrastructure.Services
                                 {
                                     if (Method.ToUpper() == "PHONE")
                                     {
-                                        string VOICE_API = DBC.GetCompanyParameter("VOICE_API", item.CompanyId);
+                                        string VOICE_API = _DBC.GetCompanyParameter("VOICE_API", item.CompanyId);
                                         if (VOICE_API == "UNIFONIC")
                                         {
-                                            VoiceClientId = DBC.GetCompanyParameter(VOICE_API + "_PHONE_CLIENTID", item.CompanyId);
+                                            VoiceClientId = _DBC.GetCompanyParameter(VOICE_API + "_PHONE_CLIENTID", item.CompanyId);
                                         }
                                         else
                                         {
-                                            VoiceClientId = DBC.LookupWithKey(VOICE_API + "_CLIENTID");
+                                            VoiceClientId = _DBC.LookupWithKey(VOICE_API + "_CLIENTID");
                                         }
 
-                                        VoiceClientSecret = DBC.LookupWithKey(VOICE_API + "_CLIENT_SECRET");
-                                        FromNumber = DBC.LookupWithKey(VOICE_API + "_FROM_NUMBER");
-                                        CallBackUrl = DBC.LookupWithKey(VOICE_API + "_CALLBACK_URL");
-                                        VoiceAPIClass = DBC.LookupWithKey(VOICE_API + "_API_CLASS");
-                                        MessageXML = DBC.LookupWithKey(VOICE_API + "_MESSAGE_XML_URL");
-                                        RetryNumberList = DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", item.CompanyId, FromNumber);
+                                        VoiceClientSecret = _DBC.LookupWithKey(VOICE_API + "_CLIENT_SECRET");
+                                        FromNumber = _DBC.LookupWithKey(VOICE_API + "_FROM_NUMBER");
+                                        CallBackUrl = _DBC.LookupWithKey(VOICE_API + "_CALLBACK_URL");
+                                        VoiceAPIClass = _DBC.LookupWithKey(VOICE_API + "_API_CLASS");
+                                        MessageXML = _DBC.LookupWithKey(VOICE_API + "_MESSAGE_XML_URL");
+                                        RetryNumberList = _DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", item.CompanyId, FromNumber);
                                         FromNumberList = RetryNumberList.Split(',').ToList();
                                         phoneitem.VoiceAPI = VOICE_API;
                                     }
 
                                     if (Method.ToUpper() == "TEXT")
                                     {
-                                        string SMS_API = DBC.GetCompanyParameter("SMS_API", item.CompanyId);
-                                        string MESSAGING_COPILOT_SID = DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", item.CompanyId);
+                                        string SMS_API = _DBC.GetCompanyParameter("SMS_API", item.CompanyId);
+                                        string MESSAGING_COPILOT_SID = _DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", item.CompanyId);
                                         if (SMS_API == "UNIFONIC")
                                         {
-                                            SMSClientId = DBC.GetCompanyParameter(SMS_API + "_CLIENTID", item.CompanyId);
-                                            SMSClientSecret = DBC.GetCompanyParameter(SMS_API + "_CLIENT_SECRET", item.CompanyId);
+                                            SMSClientId = _DBC.GetCompanyParameter(SMS_API + "_CLIENTID", item.CompanyId);
+                                            SMSClientSecret = _DBC.GetCompanyParameter(SMS_API + "_CLIENT_SECRET", item.CompanyId);
                                         }
                                         else
                                         {
-                                            SMSClientId = DBC.LookupWithKey(SMS_API + "_CLIENTID");
-                                            SMSClientSecret = DBC.LookupWithKey(SMS_API + "_CLIENT_SECRET");
+                                            SMSClientId = _DBC.LookupWithKey(SMS_API + "_CLIENTID");
+                                            SMSClientSecret = _DBC.LookupWithKey(SMS_API + "_CLIENT_SECRET");
                                         }
 
-                                        SMSAPIClass = DBC.LookupWithKey(SMS_API + "_API_CLASS");
-                                        TextMessageXML = DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
-                                        FromNumber = DBC.LookupWithKey(SMS_API + "_FROM_NUMBER");
+                                        SMSAPIClass = _DBC.LookupWithKey(SMS_API + "_API_CLASS");
+                                        TextMessageXML = _DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
+                                        FromNumber = _DBC.LookupWithKey(SMS_API + "_FROM_NUMBER");
                                         textitem.SMSAPI = SMS_API;
                                         textitem.CoPilotID = MESSAGING_COPILOT_SID;
                                     }
@@ -369,35 +376,35 @@ namespace CrisesControl.Infrastructure.Services
 
                                 if (Method.ToUpper() == "TEXT" || Method.ToUpper() == "WHATSAPP")
                                 {
-                                    SEND_ORIGINAL_TEXT = Convert.ToBoolean(DBC.GetCompanyParameter("SEND_ORIGINAL_TEXT", item.CompanyId));
-                                    ReplyToNumber = DBC.GetCompanyParameter("REPLY_TO_NUMBER", item.CompanyId);
+                                    SEND_ORIGINAL_TEXT = Convert.ToBoolean(_DBC.GetCompanyParameter("SEND_ORIGINAL_TEXT", item.CompanyId));
+                                    ReplyToNumber = _DBC.GetCompanyParameter("REPLY_TO_NUMBER", item.CompanyId);
 
-                                    GENERIC_TEXT = DBC.GetCompanyParameter("MESSAGE_TEXT_GENERIC", item.CompanyId);
+                                    GENERIC_TEXT = _DBC.GetCompanyParameter("MESSAGE_TEXT_GENERIC", item.CompanyId);
 
                                     if (Method.ToUpper() == "WHATSAPP")
                                     {
-                                        AllowPingAckByWA = Convert.ToBoolean(DBC.GetCompanyParameter("SEND_ORIGINAL_WATEXT", item.CompanyId)); ;
-                                        AllowIncidentAckbByWA = Convert.ToBoolean(DBC.GetCompanyParameter("SEND_ORIGINAL_WATEXT", item.CompanyId)); ;
-                                        IncludeSenderInWA = Convert.ToBoolean(DBC.GetCompanyParameter("SEND_ORIGINAL_WATEXT", item.CompanyId)); ;
+                                        AllowPingAckByWA = Convert.ToBoolean(_DBC.GetCompanyParameter("SEND_ORIGINAL_WATEXT", item.CompanyId)); ;
+                                        AllowIncidentAckbByWA = Convert.ToBoolean(_DBC.GetCompanyParameter("SEND_ORIGINAL_WATEXT", item.CompanyId)); ;
+                                        IncludeSenderInWA = Convert.ToBoolean(_DBC.GetCompanyParameter("SEND_ORIGINAL_WATEXT", item.CompanyId)); ;
                                         waitem.AllowIncidentAckbByWA = AllowIncidentAckbByWA; waitem.AllowPingAckByWA = AllowPingAckByWA;
                                         waitem.IncludeSenderInWA = IncludeSenderInWA;
                                     }
                                     else
                                     {
-                                        ALLOW_ACKNOWLEDGE_PING = Convert.ToBoolean(DBC.GetCompanyParameter("ALLOW_PING_ACK_BY_TEXT", item.CompanyId));
-                                        ALLOW_ACKNOWLEDGE_INCIDENT = Convert.ToBoolean(DBC.GetCompanyParameter("ALLOW_INCI_ACK_BY_TEXT", item.CompanyId));
-                                        INCLUDE_SENDER_IN_SMS = Convert.ToBoolean(DBC.GetCompanyParameter("INC_SENDER_IN_SMS", item.CompanyId));
+                                        ALLOW_ACKNOWLEDGE_PING = Convert.ToBoolean(_DBC.GetCompanyParameter("ALLOW_PING_ACK_BY_TEXT", item.CompanyId));
+                                        ALLOW_ACKNOWLEDGE_INCIDENT = Convert.ToBoolean(_DBC.GetCompanyParameter("ALLOW_INCI_ACK_BY_TEXT", item.CompanyId));
+                                        INCLUDE_SENDER_IN_SMS = Convert.ToBoolean(_DBC.GetCompanyParameter("INC_SENDER_IN_SMS", item.CompanyId));
                                         textitem.SendOriginalText = SEND_ORIGINAL_TEXT; textitem.AllowPingAckByText = ALLOW_ACKNOWLEDGE_PING;
                                         textitem.AllowIncidentAckbByText = ALLOW_ACKNOWLEDGE_INCIDENT; textitem.IncludeSenderInText = INCLUDE_SENDER_IN_SMS;
                                         textitem.GenericText = GENERIC_TEXT; textitem.ReplyToNumber = ReplyToNumber;
                                     }
                                 }
-                                newAckOption = await DBC.GetAckOptions(MessageID);
+                                newAckOption = await _DBC.GetAckOptions(MessageID);
                                 OneTimeParams = true;
                             }
                             else if (Method.ToUpper() == "PUSH")
                             {
-                                int.TryParse(DBC.GetCompanyParameter("TRACKING_DURATION", item.CompanyId), out TrackingDuration);
+                                int.TryParse(_DBC.GetCompanyParameter("TRACKING_DURATION", item.CompanyId), out TrackingDuration);
                                 pushitem.TrackingDuration = TrackingDuration;
                             }
 
@@ -434,7 +441,7 @@ namespace CrisesControl.Infrastructure.Services
                             }
                             else if (Method.ToUpper() == "PHONE")
                             {
-                                phoneitem.FromNumber = DBC.GetValueByIndex(FromNumberList, item.Attempt);
+                                phoneitem.FromNumber = _DBC.GetValueByIndex(FromNumberList, item.Attempt);
                                 message = ParamsHelper.MergePhoneParams(phoneitem, item);
                             }
                             else if (Method.ToUpper() == "TEXT")
@@ -508,7 +515,7 @@ namespace CrisesControl.Infrastructure.Services
                                     throw ex;
                                 }
 
-                                DBC.MessageProcessLog(MessageID, "MESSAGE_QUEUE_PUBLISHING", Method, routingKey, "Count: " + QueueItemCount);
+                                _DBC.MessageProcessLog(MessageID, "MESSAGE_QUEUE_PUBLISHING", Method, routingKey, "Count: " + QueueItemCount);
 
                                 QueueItemCount = 0;
                             }
@@ -530,7 +537,7 @@ namespace CrisesControl.Infrastructure.Services
                                 throw ex;
                             }
                         }
-                        DBC.MessageProcessLog(MessageID, "MESSAGE_QUEUE_PUBLISHED", Method, "", "Total published: " + PublishCount);
+                        _DBC.MessageProcessLog(MessageID, "MESSAGE_QUEUE_PUBLISHED", Method, "", "Total published: " + PublishCount);
                     }
                 }
                 return true;
@@ -544,18 +551,18 @@ namespace CrisesControl.Infrastructure.Services
                 return false;
             }
         }
-        public static List<string> RabbitHosts(out string VirtualHost)
+        public  List<string> RabbitHosts(out string VirtualHost)
         {
-            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
-            string RabbitHost = DBC.LookupWithKey("RABBITMQ_HOST");
-            VirtualHost = DBC.LookupWithKey("RABBITMQ_VIRTUAL_HOST");
+          
+            string RabbitHost = _DBC.LookupWithKey("RABBITMQ_HOST");
+            VirtualHost = _DBC.LookupWithKey("RABBITMQ_VIRTUAL_HOST");
 
             List<string> hostlist = RabbitHost.Split(',').ToList();
             return hostlist;
         }
-        public static List<MessageQueueItem> GetDeviceQueue(int MessageID, string Method, int MessageDeviceId = 0, int Priority = 1)
+        public  List<MessageQueueItem> GetDeviceQueue(int MessageID, string Method, int MessageDeviceId = 0, int Priority = 1)
         {
-            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
+            
             try
             {
                 
@@ -566,7 +573,7 @@ namespace CrisesControl.Infrastructure.Services
 
 
                     db.Database.GetCommandTimeout();
-                    var List = db.Set<MessageQueueItem>().FromSqlRaw("Pro_Get_Message_Device_Queue @MessageID,@Method,@MessageDeviceID,@Priority",
+                    var List = db.Set<MessageQueueItem>().FromSqlRaw("exec Pro_Get_Message_Device_Queue @MessageID,@Method,@MessageDeviceID,@Priority",
                         pMessageId, pMethod, pMessageDeviceId, pPriority).ToList().Select(c => {
                             c.SenderName = c.SenderFirstName + " " + c.SenderLastName;
                             if (c.Method.ToUpper() == "EMAIL")
@@ -587,7 +594,7 @@ namespace CrisesControl.Infrastructure.Services
             return new List<MessageQueueItem>();
         }
 
-        public static List<MessageQueueItem> GetFailedDeviceQueue(int messageId, string method, int messageDeviceId = 0)
+        public  List<MessageQueueItem> GetFailedDeviceQueue(int messageId, string method, int messageDeviceId = 0)
         {
             try
             {
@@ -606,23 +613,23 @@ namespace CrisesControl.Infrastructure.Services
             return new List<MessageQueueItem>();
         }
 
-        public static List<string> RabbitHosts()
+        public  List<string> RabbitHosts()
         {
-            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
-            string rabbitHost = DBC.LookupWithKey("RABBITMQ_HOST");
+           
+            string rabbitHost = _DBC.LookupWithKey("RABBITMQ_HOST");
             List<string> hostlist = rabbitHost.Split(',').ToList();
             return hostlist;
         }
 
-        public async static Task<bool> RequeueMessage(int messageId, string method, List<MessageQueueItem> devicelist)
+        public async  Task<bool> RequeueMessage(int messageId, string method, List<MessageQueueItem> devicelist)
         {
             var rabbithosts = RabbitHosts();
             return await PublishMessageQueue(messageId, rabbithosts, method, devicelist);
         }
 
-        public static List<MessageQueueItem> GetPublicAlertDeviceQueue(int messageId, string method)
+        public  List<MessageQueueItem> GetPublicAlertDeviceQueue(int messageId, string method)
         {
-            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+   
             try
             {
                 var pMessageId = new SqlParameter("@MessageID", messageId);
@@ -642,16 +649,15 @@ namespace CrisesControl.Infrastructure.Services
 
         }
 
-        public async static Task<bool> PublishPublicAlertQueue(int messageId, List<string> rabbitHost, string method)
+        public async  Task<bool> PublishPublicAlertQueue(int messageId, List<string> rabbitHost, string method)
         {
-            DBCommon DBC = new DBCommon(db, _httpContextAccessor);
-            Messaging MSG = new Messaging(db,_httpContextAccessor,DBC);
+     
 
             try
             {
 
-                string RabbitMQUser = DBC.LookupWithKey("RABBITMQ_USER");
-                string RabbitMQPassword = DBC.LookupWithKey("RABBITMQ_PASSWORD");
+                string RabbitMQUser = _DBC.LookupWithKey("RABBITMQ_USER");
+                string RabbitMQPassword = _DBC.LookupWithKey("RABBITMQ_PASSWORD");
 
                 // DBC.CreateLog("INFO", "Step 3" + RabbitMQUser + RabbitMQPassword);
 
@@ -696,12 +702,12 @@ namespace CrisesControl.Infrastructure.Services
                         var emailitem = new EmailMessage();
                         var textitem = new TextMessage();
 
-                        bool.TryParse(DBC.LookupWithKey("COMMS_DEBUG_MODE"), out CommsDebug);
-                        SendInDirect = DBC.IsTrue(DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                        bool.TryParse(_DBC.LookupWithKey("COMMS_DEBUG_MODE"), out CommsDebug);
+                        SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
-                        MAXMSGATTEMPT = Convert.ToInt32(DBC.LookupWithKey("MAXMSGATTEMPT"));
+                        MAXMSGATTEMPT = Convert.ToInt32(_DBC.LookupWithKey("MAXMSGATTEMPT"));
 
-                        TwilioRoutingApi = DBC.LookupWithKey("TWILIO_ROUTING_API");
+                        TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                         emailitem = ParamsHelper.GetEmailParams();
                         textitem = ParamsHelper.GetTextParams();
@@ -727,8 +733,8 @@ namespace CrisesControl.Infrastructure.Services
 
                                 if (item.Method.ToUpper() == "EMAIL")
                                 {
-                                    OneClickAck = DBC.GetCompanyParameter("ONE_CLICK_EMAIL_ACKNOWLEDGE", item.CompanyId);
-                                    EmailProvider = DBC.GetCompanyParameter("EMAIL_PROVIDER", item.CompanyId);
+                                    OneClickAck = _DBC.GetCompanyParameter("ONE_CLICK_EMAIL_ACKNOWLEDGE", item.CompanyId);
+                                    EmailProvider = _DBC.GetCompanyParameter("EMAIL_PROVIDER", item.CompanyId);
                                     emailitem.OneClickAcknowledge = OneClickAck;
                                     emailitem.EmailProvider = EmailProvider;
 
@@ -738,13 +744,13 @@ namespace CrisesControl.Infrastructure.Services
 
                                     if (method.ToUpper() == "TEXT")
                                     {
-                                        string SMS_API = DBC.GetCompanyParameter("SMS_API", item.CompanyId);
-                                        string MESSAGING_COPILOT_SID = DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", item.CompanyId);
-                                        SMSClientId = DBC.LookupWithKey(SMS_API + "_CLIENTID");
-                                        SMSClientSecret = DBC.LookupWithKey(SMS_API + "_CLIENT_SECRET");
-                                        SMSAPIClass = DBC.LookupWithKey(SMS_API + "_API_CLASS");
-                                        TextMessageXML = DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
-                                        FromNumber = DBC.LookupWithKey(SMS_API + "_FROM_NUMBER");
+                                        string SMS_API = _DBC.GetCompanyParameter("SMS_API", item.CompanyId);
+                                        string MESSAGING_COPILOT_SID = _DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", item.CompanyId);
+                                        SMSClientId = _DBC.LookupWithKey(SMS_API + "_CLIENTID");
+                                        SMSClientSecret = _DBC.LookupWithKey(SMS_API + "_CLIENT_SECRET");
+                                        SMSAPIClass = _DBC.LookupWithKey(SMS_API + "_API_CLASS");
+                                        TextMessageXML = _DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
+                                        FromNumber = _DBC.LookupWithKey(SMS_API + "_FROM_NUMBER");
                                         textitem.SMSAPI = SMS_API;
                                         textitem.CoPilotID = MESSAGING_COPILOT_SID;
                                     }
@@ -756,14 +762,14 @@ namespace CrisesControl.Infrastructure.Services
 
                                 if (method.ToUpper() == "TEXT" || method.ToUpper() == "WHATSAPP")
                                 {
-                                    INCLUDE_SENDER_IN_SMS = Convert.ToBoolean(DBC.GetCompanyParameter("INC_SENDER_IN_SMS", item.CompanyId));
+                                    INCLUDE_SENDER_IN_SMS = Convert.ToBoolean(_DBC.GetCompanyParameter("INC_SENDER_IN_SMS", item.CompanyId));
                                     textitem.SendOriginalText = true; textitem.AllowPingAckByText = true;
                                     textitem.AllowIncidentAckbByText = true; textitem.IncludeSenderInText = INCLUDE_SENDER_IN_SMS;
                                     textitem.GenericText = "";
 
                                     //DBC.CreateLog("INFO", "Step 11");
                                 }
-                                newAckOption = await DBC.GetAckOptions(messageId);
+                                newAckOption = await _DBC.GetAckOptions(messageId);
                                 OneTimeParams = true;
                             }
 
@@ -791,7 +797,7 @@ namespace CrisesControl.Infrastructure.Services
                                 model.QueueBind(queue: routingKey, exchange: exchange_name, routingKey: routingKey);
 
                                 RoutingKeys.Add(routingKey);
-                                DBC.MessageProcessLog(messageId, "MESSAGE_QUEUE_PUBLISHING", "PUBLIC", routingKey, "Count: " + device_list.Count);
+                                _DBC.MessageProcessLog(messageId, "MESSAGE_QUEUE_PUBLISHING", "PUBLIC", routingKey, "Count: " + device_list.Count);
                             }
 
                             model.BasicPublish(exchange: exchange_name, routingKey: routingKey, basicProperties: properties, body: body);
@@ -803,21 +809,21 @@ namespace CrisesControl.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                await MSG.CreateProcessQueue(messageId, "", "PUBLIC", "REQUEUE", 999);
+                await _MSG.CreateProcessQueue(messageId, "", "PUBLIC", "REQUEUE", 999);
                 //MessageHelpers.Common CMN = new MessageHelpers.Common();
                 //CMN.NotifyRabbitServiceFailure(ex, "Critical!!: " + "PUBLIC" + MessageID + " Queue was not published, please check the system immediatly", false);
                 return false;
             }
         }
-        public static bool CreateCommsLogDumpSession(string entry)
+        public  bool CreateCommsLogDumpSession(string entry)
         {
-            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+           
 
             try
             {
-                string RabbitMQUser = DBC.LookupWithKey("RABBITMQ_USER");
-                string RabbitMQPassword = DBC.LookupWithKey("RABBITMQ_PASSWORD");
-                ushort RabbitMQHeartBeat = Convert.ToUInt16(DBC.LookupWithKey("RABBIT_HEARTBEAT_CHECK"));
+                string RabbitMQUser = _DBC.LookupWithKey("RABBITMQ_USER");
+                string RabbitMQPassword = _DBC.LookupWithKey("RABBITMQ_PASSWORD");
+                ushort RabbitMQHeartBeat = Convert.ToUInt16(_DBC.LookupWithKey("RABBIT_HEARTBEAT_CHECK"));
 
                 var rabbithosts = RabbitHosts(out RabbitVirtualHost);
 
@@ -835,7 +841,7 @@ namespace CrisesControl.Infrastructure.Services
                 using (var connection = factory.CreateConnection(rabbithosts))
                 using (var model = connection.CreateModel())
                 {
-                    string exchange_name = DBC.LookupWithKey("RABBITMQ_QUEUE_EXCHANGE");
+                    string exchange_name = _DBC.LookupWithKey("RABBITMQ_QUEUE_EXCHANGE");
                     model.ExchangeDeclare(exchange: exchange_name, type: "direct", durable: true, autoDelete: false);
 
                     IBasicProperties properties = model.CreateBasicProperties();

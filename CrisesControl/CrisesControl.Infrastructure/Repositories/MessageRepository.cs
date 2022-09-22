@@ -69,7 +69,7 @@ public class MessageRepository : IMessageRepository
         _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
         _SDE = new SendEmail(_context,_DBC);
         _CH = new CommsHelper(_context,_httpContextAccessor);
-        _PH = new PingHelper(_context,_MSG,_DBC);
+        _PH = new PingHelper(_context, _httpContextAccessor);
         
     }
 
