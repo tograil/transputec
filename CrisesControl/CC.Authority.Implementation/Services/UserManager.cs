@@ -20,6 +20,7 @@ namespace CC.Authority.Implementation.Services
         private readonly HttpClient _httpClient;
 
         private readonly Uri _baseUri;
+        private readonly string _appPath;
 
         public UserManager(HttpClient httpClient, IOptions<CrisesControlServerConfig> options)
         {
@@ -27,12 +28,14 @@ namespace CC.Authority.Implementation.Services
             var crisesControlServerConfig = options.Value;
 
             _baseUri = new Uri(crisesControlServerConfig.ApiEndpoint);
+            _appPath = crisesControlServerConfig.AppPath;
+
             _httpClient.DefaultRequestHeaders.Add("X-ApiKey", crisesControlServerConfig.ApiSecret);
         }
 
         public async Task<UserResponse> AddUser(UserInput userInput)
         {
-            var addUserUri = new Uri(_baseUri, AddUserPath);
+            var addUserUri = new Uri(_baseUri, $"{_appPath}{AddUserPath}");
 
             var serialized = JsonConvert.SerializeObject(userInput);
 
@@ -49,7 +52,7 @@ namespace CC.Authority.Implementation.Services
 
         public async Task<(bool, UserResponse?)> UserExists(string email, string externalScimId)
         {
-            var checkUserUri = new Uri(_baseUri, $"{CheckUserPath}?UserId=0&PrimaryEmail={email}&ExternalScimId={externalScimId}");
+            var checkUserUri = new Uri(_baseUri, $"{_appPath}{CheckUserPath}?UserId=0&PrimaryEmail={email}&ExternalScimId={externalScimId}");
 
             var response = await _httpClient.GetAsync(checkUserUri);
 
@@ -63,22 +66,25 @@ namespace CC.Authority.Implementation.Services
             return (true, resultStruct);
         }
 
-        public async Task<UserResponse> GetUser(int id)
+        public async Task<UserResponse?> GetUser(string id)
         {
-            var getUserUri = new Uri(_baseUri, $"{GetUserPath}{id}");
+            var getUserUri = new Uri(_baseUri, $"{_appPath}{GetUserPath}{id}");
 
             var response = await _httpClient.GetAsync(getUserUri);
 
             var result = await response.Content.ReadAsStringAsync();
 
-            var resultData = JsonConvert.DeserializeObject<UserResponse>(result);
+            if(result == "-1") {
+                return null;
+            } else {
+                return JsonConvert.DeserializeObject<UserResponse>(result);
+            }
 
-            return resultData;
         }
 
         public async Task<UserResponse> UpdateUser(UserInput userInput)
         {
-            var addUserUri = new Uri(_baseUri, UpdateUserPath);
+            var addUserUri = new Uri(_baseUri, $"{_appPath}{UpdateUserPath}");
 
             var serialized = JsonConvert.SerializeObject(userInput);
 

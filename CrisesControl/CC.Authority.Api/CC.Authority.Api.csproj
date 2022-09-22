@@ -42,6 +42,7 @@
 		<PackageReference Include="Humanizer.Core" Version="2.14.1" />
 		<PackageReference Include="MediatR" Version="10.0.1" />
 		<PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="10.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="6.0.8" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
 		<PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="6.0.6" />
 		<PackageReference Include="Microsoft.Data.SqlClient" Version="4.1.0" />
@@ -73,6 +74,15 @@
     <ProjectReference Include="..\CC.Authority.Core\CC.Authority.Core.csproj" />
     <ProjectReference Include="..\CC.Authority.Implementation\CC.Authority.Implementation.csproj" />
     <ProjectReference Include="..\CC.Authority.SCIM\CC.Authority.SCIM.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="scim-encryption-certificate.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="scim-signing-certificate.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
