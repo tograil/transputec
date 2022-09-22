@@ -6,7 +6,7 @@ namespace CC.Authority.Core.UserManagement
     {
         Task<UserResponse> AddUser(UserInput userInput);
         Task<(bool, UserResponse?)> UserExists(string email, string externalScimId);
-        Task<UserResponse> GetUser(int id);
+        Task<UserResponse> GetUser(string id);
         Task<UserResponse> UpdateUser(UserInput userInput);
     }
 }

@@ -5,11 +5,12 @@ using CC.Authority.SCIM.Service;
 using CC.Authority.SCIM.Service.Monitor;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
 
 namespace CC.Authority.Api.Controllers.SCIM
 {
     [Route(ServiceConstants.RouteGroups)]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
     [ApiController]
     public sealed class GroupsController : ControllerTemplate<Core2Group>
     {
