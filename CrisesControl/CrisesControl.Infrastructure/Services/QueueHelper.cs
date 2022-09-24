@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Messages;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Queues;
@@ -139,7 +140,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
         public  async Task<bool> PublishMessageQueue(int MessageID, List<string> RabbitHost, string Method,
-            List<MessageQueueItem> devicelist = null, int Priority = 1)
+            dynamic devicelist = null, int Priority = 1)
         {
            
 
@@ -515,7 +516,7 @@ namespace CrisesControl.Infrastructure.Services
                                     throw ex;
                                 }
 
-                                _DBC.MessageProcessLog(MessageID, "MESSAGE_QUEUE_PUBLISHING", Method, routingKey, "Count: " + QueueItemCount);
+                              await  _DBC.MessageProcessLog(MessageID, "MESSAGE_QUEUE_PUBLISHING", Method, routingKey, "Count: " + QueueItemCount);
 
                                 QueueItemCount = 0;
                             }
@@ -537,7 +538,7 @@ namespace CrisesControl.Infrastructure.Services
                                 throw ex;
                             }
                         }
-                        _DBC.MessageProcessLog(MessageID, "MESSAGE_QUEUE_PUBLISHED", Method, "", "Total published: " + PublishCount);
+                        await _DBC.MessageProcessLog(MessageID, "MESSAGE_QUEUE_PUBLISHED", Method, "", "Total published: " + PublishCount);
                     }
                 }
                 return true;
@@ -594,7 +595,7 @@ namespace CrisesControl.Infrastructure.Services
             return new List<MessageQueueItem>();
         }
 
-        public  List<MessageQueueItem> GetFailedDeviceQueue(int messageId, string method, int messageDeviceId = 0)
+        public  async Task<dynamic> GetFailedDeviceQueue(int messageId, string method, int messageDeviceId = 0)
         {
             try
             {
@@ -602,15 +603,15 @@ namespace CrisesControl.Infrastructure.Services
                 var pMethod = new SqlParameter("@Method", method);
                 var pMessageDeviceId = new SqlParameter("@MessageDeviceID", messageDeviceId);
                 db.Database.SetCommandTimeout(300);
-                var List = db.Set<MessageQueueItem>().FromSqlRaw("EXEC Pro_Get_Failed_Device_Queue @MessageID,@Method,@MessageDeviceID",
-                    pMessageId, pMethod, pMessageDeviceId).ToList();
+                var List = await db.Set<FailedDeviceQueue>().FromSqlRaw("EXEC Pro_Get_Failed_Device_Queue @MessageID,@Method,@MessageDeviceID",
+                    pMessageId, pMethod, pMessageDeviceId).ToListAsync();
                 return List;
             }
             catch (Exception ex)
             {
                 throw ex;
             }
-            return new List<MessageQueueItem>();
+           
         }
 
         public  List<string> RabbitHosts()
@@ -621,7 +622,7 @@ namespace CrisesControl.Infrastructure.Services
             return hostlist;
         }
 
-        public async  Task<bool> RequeueMessage(int messageId, string method, List<MessageQueueItem> devicelist)
+        public async  Task<bool> RequeueMessage(int messageId, string method, dynamic devicelist)
         {
             var rabbithosts = RabbitHosts();
             return await PublishMessageQueue(messageId, rabbithosts, method, devicelist);

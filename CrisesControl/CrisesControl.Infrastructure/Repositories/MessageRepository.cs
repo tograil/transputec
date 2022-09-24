@@ -542,7 +542,7 @@ public class MessageRepository : IMessageRepository
         foreach (var device in devices)
         {
             if (device.DeviceType.ToUpper().Contains(Enum.GetName(typeof(DeviceType), DeviceType.ANDROID)) || device.DeviceType.ToUpper().Contains(Enum.GetName(typeof(DeviceType), DeviceType.WINDOWS)))
-                AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
+               await AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
         }
     }
     public async Task AddTrackingDevice(int companyID, int userDeviceID, string deviceAddress, string deviceType, int messageListID = 0)
@@ -613,7 +613,7 @@ public class MessageRepository : IMessageRepository
                     }
                     else
                     {
-                        CreateSOSAlert(sos.RecepientUserId, sosType, sos.Message.MessageId, sos.MessageListId, sos.ResponseId, (int)sos.Message.IncidentActivationId,
+                      await  CreateSOSAlert(sos.RecepientUserId, sosType, sos.Message.MessageId, sos.MessageListId, sos.ResponseId, (int)sos.Message.IncidentActivationId,
                             sos.ActiveMessageResponse.ResponseLabel ?? string.Empty, sos.UpdatedOn, DateTime.Now, sos.UserLocationLat ?? string.Empty, sos.UserLocationLong ?? String.Empty, callbackOption);
                     }
                 }
@@ -1298,7 +1298,7 @@ GO
         }
     }
 
-    public async Task<dynamic> ResendFailure(int messageId, string commsMethod)
+    public async Task<CommonDTO> ResendFailure(int messageId, string commsMethod)
     {
         try
         {

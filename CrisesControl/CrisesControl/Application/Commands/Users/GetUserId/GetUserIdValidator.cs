@@ -6,7 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Users.GetUserId
     {
         public GetUserIdValidator()
         {
-            RuleFor(x => x.CompanyId).GreaterThan(0);
+            //RuleFor(x => x.CompanyId).GreaterThan(0);
             RuleFor(x => string.IsNullOrEmpty(x.EmailAddress));
         }
     }

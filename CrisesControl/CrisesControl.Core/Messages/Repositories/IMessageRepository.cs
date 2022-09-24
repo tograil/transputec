@@ -66,7 +66,7 @@ public interface IMessageRepository
     Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId);
     Task<int> PingMessages(PingMessageQuery pingMessage);
     dynamic ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId);
-    Task<dynamic> ResendFailure(int messageId, string commsMethod);
+    Task<CommonDTO> ResendFailure(int messageId, string commsMethod);
     Task<int> SaveMessageResponse(int responseId, string responseLabel, string description, bool isSafetyResponse, string safetyAckAction, string messageType, int status, int currentUserId, int companyId, string timeZoneId);
     Task<dynamic> SendPublicAlert(string messageText, int[] messageMethod, bool schedulePA, DateTime scheduleAt, string sessionId, int userId, int companyId, string timeZoneId);
     Task<bool> StartConference(List<User> UserList, int ObjectID, int CurrentUserID, int CompanyID, string TimeZoneId);

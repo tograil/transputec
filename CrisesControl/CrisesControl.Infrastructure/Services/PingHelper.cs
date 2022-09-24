@@ -341,12 +341,12 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<dynamic> ResendFailure(int messageId, string commsMethod)
+        public async Task<CommonDTO> ResendFailure(int messageId, string commsMethod)
         {
             CommonDTO ResultDTO = new CommonDTO();
             try
             {
-                var deviceList = _queueHelper.GetFailedDeviceQueue(messageId, commsMethod, 0);
+                var deviceList =await _queueHelper.GetFailedDeviceQueue(messageId, commsMethod, 0);
                 if (deviceList.Count > 0)
                 {
                     bool queued = await _queueHelper.RequeueMessage(messageId, commsMethod, deviceList);

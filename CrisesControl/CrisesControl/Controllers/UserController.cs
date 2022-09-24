@@ -38,6 +38,9 @@ using CrisesControl.Api.Application.Commands.Users.GetKeyHolders;
 using CrisesControl.Api.Application.Commands.Users.ForgotPassword;
 using CrisesControl.Api.Application.Commands.Users.LinkResetPassword;
 using CrisesControl.Api.Application.Commands.Users.ResetPassword;
+using CrisesControl.Api.Application.Commands.Users.ResetUserDeviceToken;
+using CrisesControl.Api.Application.Commands.Users.UserRelation;
+using CrisesControl.Api.Application.Commands.Users.GetUserId;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -53,7 +56,8 @@ namespace CrisesControl.Api.Controllers
             _mediator = mediator;
         }
 
-        [HttpGet ("action")]
+        [HttpGet]
+        [Route ("[action]")]
         public async Task<IActionResult> GetAllUser([FromQuery] GetAllUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -219,108 +223,108 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("UserRelations")]
-        public async Task<IActionResult> UserRelations(CancellationToken cancellationToken)
+        public async Task<IActionResult> UserRelations([FromRoute] UserRelationRequest request,CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(Request, cancellationToken);
             return Ok(result);
         }
 
         [HttpPost]
-        [Route("ResetUserDeviceToken")]
-        public async Task<IActionResult> ResetUserDeviceToken(int qUserId, CancellationToken cancellationToken)
+        [Route("ResetUserDeviceToken/{UserId}")]
+        public async Task<IActionResult> ResetUserDeviceToken([FromRoute] ResetUserDeviceTokenRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(Request);
+            var result = await _mediator.Send(request,  cancellationToken);
             return Ok(result);
         }
         [HttpPost]
         [Route("BulkAction")]
-        public async Task<ActionResult> BulkAction(BulkActionRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> BulkAction([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request,  cancellationToken);
             return Ok(result);
         }
         [HttpPost]
         [Route("SendPasswordOTP")]
-        public async Task<ActionResult> SendPasswordOTP(SendPasswordOTPRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> SendPasswordOTP([FromBody] SendPasswordOTPRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request,cancellationToken);
             return Ok(result);
         }
         [HttpPost]
         [Route("CheckUserLicense")]
-        public async Task<ActionResult> CheckUserLicense(CheckUserLicenseRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> CheckUserLicense([FromBody] CheckUserLicenseRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPost]
+        [HttpGet]
         [Route("GetUserCount")]
-        public async Task<ActionResult> GetUserCount(GetUserCountRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> GetUserCount([FromRoute] GetUserCountRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpPost]
         [Route("TrackUserDevice")]
-        public async Task<ActionResult> TrackUserDevice(TrackUserDeviceRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> TrackUserDevice([FromRoute] TrackUserDeviceRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpPost]
         [Route("GetUserMovements")]
-        public async Task<ActionResult> GetUserMovements(GetUserMovementsRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> GetUserMovements([FromRoute] GetUserMovementsRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPost]
-        [Route("GetUserGroups")]
-        public async Task<ActionResult> GetUserGroups(GetUserGroupsRequest request, CancellationToken cancellationToken)
+        [HttpGet]
+        [Route("GetUserGroups/{UserID}")]
+        public async Task<ActionResult> GetUserGroups([FromRoute] GetUserGroupsRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpPost]
         [Route("OffDutySetting")]
-        public async Task<ActionResult> OffDutySetting(OffDutySettingRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> OffDutySetting([FromBody] OffDutySettingRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpPost]
         [Route("GetUserDashboard")]
-        public async Task<ActionResult> GetUserDashboard(GetUserDashboardRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> GetUserDashboard([FromRoute]  GetUserDashboardRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request);
             return Ok(result);
         }
         [HttpPost]
         [Route("SaveDashboard")]
-        public async Task<ActionResult> SaveDashboard(SaveDashboardRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> SaveDashboard([FromBody] SaveDashboardRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpPost]
         [Route("AddDashlet")]
-        public async Task<ActionResult> AddDashlet(AddDashletRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> AddDashlet([FromBody] AddDashletRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         [HttpGet]
-        [Route("GetUserId")]
-        public async Task<ActionResult> GetUserId(GetUserSystemInfoRequest request, CancellationToken cancellationToken)
+        [Route("GetUserId/{EmailAddress}")]
+        public async Task<ActionResult> GetUserId([FromRoute] GetUserIdRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
-        [HttpPost]
+        [HttpGet]
         [Route("GetUserSystemInfo")]
-        public async Task<ActionResult> GetUserSystemInfo(GetUserSystemInfoRequest request, CancellationToken cancellationToken)
+        public async Task<ActionResult> GetUserSystemInfo([FromRoute]  GetUserSystemInfoRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>
@@ -330,7 +334,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetKeyHolders/{UserId:int}")]
+        [Route("[action]")]
         public async Task<IActionResult> GetKeyHolders([FromRoute] GetKeyHoldersRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
