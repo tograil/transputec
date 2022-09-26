@@ -920,8 +920,8 @@ public class UserRepository : IUserRepository
                     STU.UserId = UserId;
                     STU.PhoneNumber = ISDCode + MobileNo;
                     STU.Status = 1;
-                    _context.AddAsync(STU);
-                    _context.SaveChangesAsync();
+                    await _context.AddAsync(STU);
+                   await  _context.SaveChangesAsync();
                 }
             }
         }
@@ -2883,7 +2883,7 @@ public class UserRepository : IUserRepository
                     return message;
                 }
 
-                CommsHelper CH = new CommsHelper(_DBC,_context,_httpContextAccessor,_MSG,_SDE);
+                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
                 string UserMobile = _DBC.FormatMobile(user.U.Isdcode, user.U.MobileNo);
 
                 string Code = CH.SendOTP(user.U.Isdcode, UserMobile, otpMessage);
@@ -3046,7 +3046,7 @@ public class UserRepository : IUserRepository
             {
 
                 //AccountHelper AH = new AccountHelper();
-                CommsHelper CH = new CommsHelper(_DBC,_context,_httpContextAccessor,_MSG,_SDE);
+                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
 
                 if (action.ToUpper() == "CONFIRM")
                 {

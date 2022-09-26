@@ -1,6 +1,8 @@
 ﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Billing;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Companies;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
@@ -19,6 +21,7 @@ namespace CrisesControl.Infrastructure.Services
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly DBCommon DBC;
+        private readonly SendEmail _SDE;
 
         public int active_users = 0;
         public int admin_key_count = 0;
@@ -30,6 +33,7 @@ namespace CrisesControl.Infrastructure.Services
             _httpContextAccessor = new HttpContextAccessor();
             _context = db;
             DBC = new DBCommon(_context, _httpContextAccessor);
+            _SDE = new SendEmail(_context, DBC);
         }
         public async Task<int> GetTransactionTypeID(string TransactionCode)
         {
@@ -194,5 +198,74 @@ namespace CrisesControl.Infrastructure.Services
                 throw ex;
             }
         }
+        public async Task<int> AddTransaction(UpdateTransactionDetailsModel IP, int CurrentUserId, int CompanyId, string TimeZoneId)
+        {
+            try
+            {
+                var ttype = await _context.Set<TransactionType>().Where(TT => TT.TransactionTypeId == IP.TransactionTypeId).FirstOrDefaultAsync();
+                if (ttype != null)
+                {
+
+                    //Make a transaction now
+                    int Transid = await UpdateTransactionDetails(0, CompanyId, IP.TransactionTypeId, IP.TransactionRate, IP.MinimumPrice, IP.Quantity,
+                        IP.Cost, IP.LineValue, IP.Vat, IP.Total, 0, IP.TransactionDate, CurrentUserId, IP.TransactionReference, TimeZoneId,
+                        IP.TransactionStatus, 0, IP.DRCR);
+
+                    if (Transid > 0)
+                    {
+                        var comp_pp = await _context.Set<CompanyPaymentProfile>().Where(CPP => CPP.CompanyId == CompanyId).FirstOrDefaultAsync();
+                        if (comp_pp != null)
+                        {
+
+                            //Handle the TOPUP Transaction
+                            if (ttype.TransactionCode == "TOPUP")
+                            {
+                                decimal newBalance = comp_pp.CreditBalance + IP.Total;
+                                comp_pp.CreditBalance = newBalance;
+                                comp_pp.LastCreditDate = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                                comp_pp.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                                comp_pp.UpdatedBy = CurrentUserId;
+                                _context.Update(comp_pp);
+                                _context.SaveChanges();
+
+                                await DBC.GetSetCompanyComms(CompanyId);
+
+                                if (IP.PaymentMethod == "SELFTOPUP")
+                                {
+
+                                    _SDE.SendPaymentTransactionAlert(CompanyId, IP.Total, TimeZoneId);
+                                }
+                            }
+
+                            //Handle the Storage Transaction
+                            if (ttype.TransactionCode == "STORAGE")
+                            {
+                                comp_pp.StorageLimit = comp_pp.StorageLimit + IP.Storage;
+                                comp_pp.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                                comp_pp.UpdatedBy = CurrentUserId;
+                                _context.Update(comp_pp);
+                                await _context.SaveChangesAsync();
+                                return Transid = comp_pp.CompanyId;
+                            }
+                        }
+                        //ResultDTO.ErrorId = 0;
+                        //ResultDTO.Message = "Transaction entry is successful";
+                        return Transid;
+                    }
+                    //else
+                    //{
+                    //    ResultDTO.ErrorId = 100;
+                    //    ResultDTO.Message = "Transaction was not successfull";
+                    //}
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+
     }
 }

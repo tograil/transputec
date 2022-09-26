@@ -617,10 +617,9 @@ namespace CrisesControl.Infrastructure.Repositories {
                     {
 
                         string OTPMessage = DBC.LookupWithKey("SEGREGATION_CODE_MSG");
+                        CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
 
-                        CommsHelper CH = new CommsHelper(DBC, _context, _httpContextAccessor, _MSG, _SDE);
-
-                        result.Data =  CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
+                        result.Data = CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
                     }
                     else
                     {

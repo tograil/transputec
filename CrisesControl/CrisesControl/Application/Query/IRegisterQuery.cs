@@ -36,6 +36,6 @@ namespace CrisesControl.Api.Application.Query
         Task<SendCredentialsResponse> SendCredentials(SendCredentialsRequest request);
         Task<IndexResponse> Index(IndexRequest request);
         Task<BusinessSectorResponse> BusinessSector(BusinessSectorRequest request);
-        Task<List<GetAllPackagePlanResponse>> GetAllPackagePlan();
+       
     }
 }

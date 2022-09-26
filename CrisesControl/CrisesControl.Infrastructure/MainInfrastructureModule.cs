@@ -67,7 +67,9 @@ namespace CrisesControl.Infrastructure
 
         private void RegisterCommonDependencies(ContainerBuilder builder)
         {
+            builder.RegisterAutoMapper(ThisAssembly);
 
+            builder.RegisterType<MemoryCache>().As<IMemoryCache>().SingleInstance();
             builder.RegisterType<CompanyRepository>().As<ICompanyRepository>();
             builder.RegisterType<RegisterCompanyRepository>().As<IRegisterCompanyRepository>();
             builder.RegisterType<DepartmentRepository>().As<IDepartmentRepository>();
@@ -117,6 +119,9 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<SopRepository>().As<ISopRepository>();
             builder.RegisterType<AppRepository>().As<IAppRepository>();
             builder.RegisterType<CCWebSocketRepository>().As<ICCWebSocketRepository>();
+            builder.RegisterType<PingHelper>().As<PingHelper>();
+            builder.RegisterType<CommsHelper>().As<CommsHelper>();
+            builder.RegisterType<Messaging>().As<Messaging>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

@@ -33,14 +33,14 @@ namespace CrisesControl.Api.Application.Query
     {
         private readonly IRegisterRepository _registerRepository;
         private readonly ILogger<RegisterQuery> _logger;
-        private readonly IMapper _mapper;
+        //private readonly IMapper _mapper;
         private readonly ICompanyRepository _companyRepository;
         private readonly ICurrentUser _currentUser;
         private readonly IIncidentRepository _incidentRepository;
-        public RegisterQuery(IRegisterRepository registerRepository, IMapper mapper, IIncidentRepository incidentRepository,
+        public RegisterQuery(IRegisterRepository registerRepository, /*IMapper mapper,*/ IIncidentRepository incidentRepository,
         ILogger<RegisterQuery> logger, ICompanyRepository companyRepository, ICurrentUser currentUser)
         {
-            this. _mapper = mapper;
+            //this. _mapper = mapper;
             this._registerRepository = registerRepository;
             this._logger = logger;
             this._companyRepository=companyRepository;
@@ -52,7 +52,7 @@ namespace CrisesControl.Api.Application.Query
         public async Task<ActivateCompanyResponse> ActivateCompany(ActivateCompanyRequest request)
         {
             var status =await _registerRepository.ActivateCompany(request.UserId,request.ActivationKey,request.IPAddress,request.SalesSource);
-            var  response = _mapper.Map<ActivateCompanyResponse>(status);
+           // var  response = _mapper.Map<ActivateCompanyResponse>(status);
             var result = new ActivateCompanyResponse();
 
             if (status)
@@ -88,10 +88,10 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                 var device = await _registerRepository.GetUserDeviceByUserId(request.UserId);
-                var response = _mapper.Map<UserDevice>(device);
+                //var response = _mapper.Map<UserDevice>(device);
                 var result = new CheckAppDownloadResponse();
 
-                if (response != null)
+                if (device != null)
                 {
 
                     result.Data = device;
@@ -120,9 +120,9 @@ namespace CrisesControl.Api.Application.Query
 
                 
                 await _incidentRepository.CreateSOSIncident(_currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone);
-                var result = _mapper.Map<int>(incident_id);
+                //var result = _mapper.Map<int>(incident_id);
                 var response = new CreateSampleIncidentResponse();
-                response.result = result;
+                response.result = incident_id;
                 response.Message = "Company has been Found";
                 return response;
             }
@@ -146,9 +146,9 @@ namespace CrisesControl.Api.Application.Query
         public async Task<GetTempRegistrationReponse> GetTempRegistration(GetTempRegistrationRequest request)
         {
             var temp = await _registerRepository.GetTempRegistration(request.RegId,request.UniqueRef);
-            var result = _mapper.Map<GetTempRegistrationReponse>(temp);
+            //var result = _mapper.Map<GetTempRegistrationReponse>(temp);
             var response = new GetTempRegistrationReponse();
-            response.data = result.data;
+            response.data = temp;
             return response;
         }
 
@@ -157,12 +157,12 @@ namespace CrisesControl.Api.Application.Query
             var CompanyStatus = await _companyRepository.GetCompanyByID(_currentUser.CompanyId);
             if (CompanyStatus != null)
             {
-                var newReg = _mapper.Map<Company>(CompanyStatus);
+               // var newReg = _mapper.Map<Company>(CompanyStatus);
                 await _incidentRepository.CopyIncidentToCompany(_currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
 
-                newReg.CompanyProfile = "ON_TRIAL";
-                newReg.OnTrial = true;
-                var setup =await _registerRepository.SetupCompleted(newReg);
+                CompanyStatus.CompanyProfile = "ON_TRIAL";
+                CompanyStatus.OnTrial = true;
+                var setup =await _registerRepository.SetupCompleted(CompanyStatus);
 
                 var response = new SetupCompletedResponse();
                 response.Message = "Company Completed";
@@ -193,8 +193,8 @@ namespace CrisesControl.Api.Application.Query
                 RG.MobileIsd = "+44";
                 RG.CustomerId = request.CustomerId;
 
-                var newReg = _mapper.Map<Registration>(RG);
-                var temp=await  _registerRepository.TempRegister(newReg);
+                //var newReg = _mapper.Map<Registration>(RG);
+                var temp=await  _registerRepository.TempRegister(reg);
                 response.Data = temp;
                 return response;
             }
@@ -263,7 +263,7 @@ namespace CrisesControl.Api.Application.Query
             public async Task<UpgradeResponse> UpgradeRequest(UpgradeRequest request)
         {
             var status = await _registerRepository.UpgradeRequest(request.CompanyId);
-            var result = _mapper.Map<bool>(status);
+           // var result = _mapper.Map<bool>(status);
             var response = new UpgradeResponse();
             if (status)
             {
@@ -282,17 +282,18 @@ namespace CrisesControl.Api.Application.Query
         public async Task<VerifyPhoneResponse> ValidateMobile(VerifyPhoneRequest request)
         {
             var phone = await _registerRepository.ValidateMobile(request.Code, request.ISD, request.MobileNo);
-            var result = _mapper.Map<VerifyPhoneResponse>(phone);
+            //var result = _mapper.Map<VerifyPhoneResponse>(phone);
+            var response = new VerifyPhoneResponse();
             if (!string.IsNullOrEmpty(phone))
             {
-                result.Message = "Mobile Verified";
+                response.Message = "Mobile Verified";
             }
             else
             {
-                result.Message = "No record found.";
+                response.Message = "No record found.";
             }
 
-            return result;
+            return response;
         }
 
         public async Task<ValidateUserEmailResponse> ValidateUserEmail(ValidateUserEmailRequest request)
@@ -364,7 +365,8 @@ namespace CrisesControl.Api.Application.Query
                     if(registration.Status==1){
                         registration.Status = 2;
                         var result=  await _registerRepository.VerifyTempRegistration(registration);
-                        var response = _mapper.Map<VerifyTempRegistrationResponse>(result);
+                        //var response = _mapper.Map<VerifyTempRegistrationResponse>(result);
+                        var response = new VerifyTempRegistrationResponse();
                         response.Message = "Data Loaded";
                         response.RegId = result;
                         return response;
@@ -387,9 +389,9 @@ namespace CrisesControl.Api.Application.Query
         public async Task<SendVerificationResponse> SendVerification(SendVerificationRequest request)
         {
             var data = await _registerRepository.SendVerification(request.UniqueId);
-            var result = _mapper.Map<CompanyUser>(data);
+           //var result = _mapper.Map<CompanyUser>(data);
             var response = new SendVerificationResponse();
-            if (result != null)
+            if (data != null)
             {
                
                 await _registerRepository.NewUserAccount(data.UserEmail, await _registerRepository.UserName(data.UserName), data.CompanyId, data.UniqueID);
@@ -406,7 +408,7 @@ namespace CrisesControl.Api.Application.Query
         public async Task<SendCredentialsResponse> SendCredentials(SendCredentialsRequest request)
         {
             var UserInfo = await _registerRepository.GetUserByUniqueId(request.UniqueId);
-            var result = _mapper.Map<User>(UserInfo);
+            //var result = _mapper.Map<User>(UserInfo);
             var response = new SendCredentialsResponse();
             if (UserInfo != null)
             {
@@ -429,11 +431,11 @@ namespace CrisesControl.Api.Application.Query
         public async Task<IndexResponse> Index(IndexRequest request)
         {
             var registrations = await _registerRepository.GetAllRegistrations();
-            var response = _mapper.Map<List<Registration>>(registrations);
+            //var response = _mapper.Map<List<Registration>>(registrations);
             var result = new IndexResponse();
             if (registrations != null)
             {
-                result.Data = response;
+                result.Data = registrations;
                 result.Message = "Data has been Loaded";
             }
             else
@@ -448,16 +450,16 @@ namespace CrisesControl.Api.Application.Query
         {
             try { 
             var sectors = await _registerRepository.GetSectors();
-            var result = _mapper.Map<List<Sectors>>(sectors);
+            //var result = _mapper.Map<List<Sectors>>(sectors);
             var response = new BusinessSectorResponse();
-            if (result != null)
+            if (sectors != null)
             {
-                response.Data = result;
+                response.Data = sectors;
                 response.Message = "Data has been Loaded";
             }
             else
             {
-                response.Data = result;
+                response.Data = sectors;
                 response.Message = "No record Found.";
             }
             return response;
@@ -468,18 +470,5 @@ namespace CrisesControl.Api.Application.Query
             }
         }
 
-        public async Task<List<GetAllPackagePlanResponse>> GetAllPackagePlan()
-        {
-            try
-            {
-                var result = await _registerRepository.GetAllPackagePlan();
-                var response = _mapper.Map<List<GetAllPackagePlanResponse>>(result);
-                return response;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
     }
 }

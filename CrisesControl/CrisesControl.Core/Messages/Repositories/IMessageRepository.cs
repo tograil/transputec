@@ -39,25 +39,25 @@ public interface IMessageRepository
 
     Task<List<LibMessageResponse>> GetLibMessageResponse();
 
-    Task CopyMessageResponse(int CompanyID, int CurrentUserId, string TimeZoneID, CancellationToken token);
+    Task CopyMessageResponse(int companyID, int currentUserId, string timeZoneID, CancellationToken token);
     Task<List<UserMessageList>> GetMessages(int targetUserId, string? messageType, int incidentActivationId);
-    Task<AcknowledgeReturn> AcknowledgeMessage(int UserID, int MessageID, int MessageListID, string Latitude, string Longitude, string AckMethod, int ResponseID, string TimeZoneId);
-    Task<MessageAckDetails> MessageAcknowledged(int CompanyId, int MsgListId, string TimeZoneId, string UserLocationLat, string UserLocationLong, int CurrentUserId, int ResponseID = 0, string AckMethod = "WEB");
-    Task<List<IIncidentMessages>> _get_incident_message(int CompanyId, int CurrentUserId);
-    Task<List<IPingMessage>> _get_ping_message(int CompanyId, int CurrentUserId);
-    Task<List<NotificationDetails>> MessageNotifications(int CompanyId, int CurrentUserId);
-    Task<string> LookupWithKey(string Key, string Default = "");
-    Task<int> GetCallbackOption(string AckMethod);
-    void CreateSOSAlert(int UserID, string SOSType, int MessageId, int MessageListId, int ResponseID, int IncidentActivationId,
-            string ResponseLabel, DateTimeOffset UpdatedOn, DateTimeOffset ResponseTimeGMT, string Lat, string Lng, int CallbackOption);
-    void CheckSOSAlert(int MessageListID, string SOSType, int CallbackOption);
+    Task<AcknowledgeReturn> AcknowledgeMessage(int userID, int messageID, int messageListID, string latitude, string longitude, string ackMethod, int responseID, string timeZoneId);
+    Task<MessageAckDetails> MessageAcknowledged(int companyId, int msgListId, string timeZoneId, string userLocationLat, string userLocationLong, int currentUserId, int responseID = 0, string ackMethod = "WEB");
+    Task<List<IIncidentMessages>> _get_incident_message(int companyId, int currentUserId);
+    Task<List<IPingMessage>> _get_ping_message(int companyId, int currentUserId);
+    Task<List<NotificationDetails>> MessageNotifications(int companyId, int currentUserId);
+    Task<string> LookupWithKey(string key, string Default = "");
+    Task<int> GetCallbackOption(string ackMethod);
+    Task CreateSOSAlert(int userID, string sosType, int messageId, int messageListId, int responseID, int incidentActivationId,
+            string responseLabel, DateTimeOffset updatedOn, DateTimeOffset responseTimeGMT, string lat, string lng, int callbackOption);
+    Task CheckSOSAlert(int messageListID, string sosType, int callbackOption);
   
 
-    Task<IncidentMessageDetails> GetMessageDetails(string CloudMsgId, int MessageId = 0);
-    Task<List<MessageAttachment>> GetMessageAttachment(int MessageListID, int MessageID);
-    Task<List<MessageAttachment>> GetAttachment(int MessageAttachmentID = 0);
-    Task<List<MessageDetails>> GetReplies(int ParentID, string Source = "WEB");
-    Task<List<MessageGroupObject>> GetMessageGroupList(int MessageID);
+    Task<IncidentMessageDetails> GetMessageDetails(string cloudMsgId, int messageId = 0);
+    Task<List<MessageAttachment>> GetMessageAttachment(int messageListID, int messageID);
+    Task<List<MessageAttachment>> GetAttachment(int messageAttachmentID = 0);
+    Task<List<MessageDetails>> GetReplies(int parentID, string source = "WEB");
+    Task<List<MessageGroupObject>> GetMessageGroupList(int messageID);
     Task<dynamic> ConverToMp3();
     object GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId);
     object GetConfUser(int objectId, string objectType);

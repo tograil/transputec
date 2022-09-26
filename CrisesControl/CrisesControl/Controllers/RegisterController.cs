@@ -32,11 +32,11 @@ namespace CrisesControl.Api.Controllers
     public class RegisterController : ControllerBase
     {
         private readonly IMediator _mediator;
-        private readonly IRegisterQuery _registerQuery;
-        public RegisterController(IMediator mediator, IRegisterQuery registerQuery)
+        //private readonly IRegisterQuery _registerQuery;
+        public RegisterController(IMediator mediator)
         {
             _mediator = mediator;
-            _registerQuery = registerQuery;
+           // _registerQuery = registerQuery;
         }
         
         [HttpGet]
@@ -161,7 +161,7 @@ namespace CrisesControl.Api.Controllers
         [Route("GetAllPackagePlan")]
         public async Task<IActionResult> GetAllPackagePlan([FromRoute] GetAllPackagePlanRequest request, CancellationToken cancellationToken)
         {
-            var result = await _registerQuery.GetAllPackagePlan();
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 

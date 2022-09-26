@@ -68,11 +68,11 @@ namespace CrisesControl.Infrastructure.Repositories
           *
           *
           */
-        public async Task<IEnumerable<CompanySecurityGroup>> GetCompanySecurityGroup(int CompanyID)
+        public async Task<IEnumerable<CompanySecurityGroup>> GetCompanySecurityGroup(int companyID)
         {
             try
             {
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pCompanyID = new SqlParameter("@CompanyID", companyID);
                 return await _context.Set<CompanySecurityGroup>().FromSqlRaw("EXEC GetCompanySecurityGroup @CompanyID", pCompanyID).ToListAsync();
             }
             catch (Exception ex)
@@ -81,19 +81,19 @@ namespace CrisesControl.Infrastructure.Repositories
                 return null;
             }
         }
-        public async Task<SecurityGroup> GetSecurityGroup(int CompanyID, int SecurityGroupId)
+        public async Task<SecurityGroups> GetSecurityGroup(int companyID, int securityGroupId)
         {
             
             try
             {
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                var pSecurityGroupID = new SqlParameter("@CompanyID", SecurityGroupId);
+                var pSecurityGroupID  = new SqlParameter("@SecurityGroupID", securityGroupId );
+                var pCompanyID = new SqlParameter("@CompanyID", companyID);
 
-                var SecurityInfo = await _context.Set<SecurityGroup>().FromSqlRaw("exec Pro_Get_SecurityGroup @CompanyID, @SecurityGroupID", pCompanyID, pSecurityGroupID).FirstOrDefaultAsync();
-
+                var SecurityInfo = _context.Set<SecurityGroups>().FromSqlRaw("exec Pro_Get_SecurityGroup @CompanyID, @SecurityGroupID", pCompanyID, pSecurityGroupID).AsEnumerable();
+             
                 if (SecurityInfo != null)
                 {
-                    return SecurityInfo;
+                    return SecurityInfo.FirstOrDefault();
                 }
                 return null;
             }
@@ -102,13 +102,13 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<List<SecurityAllObjects>> GetAllSecurityObjects(int CompanyID)
+        public async Task<List<SecurityAllObjects>> GetAllSecurityObjects(int companyID)
         {
           
             try
             {
-                var companyId = new SqlParameter("@CompanyID", CompanyID);
-                var SecurityObjList = await _context.Set<SecurityAllObjects>().FromSqlRaw("exec Pro_Get_ALL_Security_Objects @CompanyID").ToListAsync();
+                var companyId = new SqlParameter("@CompanyID", companyID);
+                var SecurityObjList = await _context.Set<SecurityAllObjects>().FromSqlRaw("exec Pro_Get_ALL_Security_Objects @CompanyID", companyId).ToListAsync();
 
                 if (SecurityObjList != null)
                 {
@@ -121,30 +121,30 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<int> AddSecurityGroup(int CompanyID, string GroupName, string GroupDescription, int Status, string UserRole, int[] GroupSecurityObjects, int CurrentUserId, string TimeZoneId)
+        public async Task<int> AddSecurityGroup(int companyID, string groupName, string groupDescription, int status, string userRole, int[] groupSecurityObjects, int currentUserId, string timeZoneId)
         {
           
             try
             {
                 SecurityGroup secGroup = new SecurityGroup()
                 {
-                    CompanyId = CompanyID,
-                    Name = GroupName,
-                    Description = GroupDescription,
-                    Status = Status,
-                    UserRole = UserRole,
-                    CreatedBy = CurrentUserId,
+                    CompanyId = companyID,
+                    Name = groupName,
+                    Description = groupDescription,
+                    Status = status,
+                    UserRole = userRole,
+                    CreatedBy = currentUserId,
                     CreatedOn = DateTime.Now,
-                    UpdatedBy = CurrentUserId,
-                    UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId)
+                    UpdatedBy = currentUserId,
+                    UpdatedOn = DateTime.Now.GetDateTimeOffset(timeZoneId)
                 };
                 await _context.AddAsync(secGroup);
                 await _context.SaveChangesAsync();
 
 
-                if (GroupSecurityObjects != null)
+                if (groupSecurityObjects != null)
                 {
-                    foreach (int SecObj in GroupSecurityObjects)
+                    foreach (int SecObj in groupSecurityObjects)
                     {
                         GroupSecuityObject SecItem = new GroupSecuityObject()
                         {
@@ -164,41 +164,41 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<int> UpdateSecurityGroup(int CompanyID, int SecurityGroupId, string GroupName, string GroupDescription, int Status, string UserRole, int[] GroupSecurityObjects, int CurrentUserId, string TimeZoneId)
+        public async Task<int> UpdateSecurityGroup(int companyID, int securityGroupId, string groupName, string groupDescription, int status, string userRole, int[] groupSecurityObjects, int currentUserId, string timeZoneId)
         {
             
             try
             {
                 var GroupData = await  _context.Set<SecurityGroup>()
-                                 .Where(GRP=> GRP.CompanyId == CompanyID && GRP.SecurityGroupId == SecurityGroupId).FirstOrDefaultAsync();
+                                 .Where(GRP=> GRP.CompanyId == companyID && GRP.SecurityGroupId == securityGroupId).FirstOrDefaultAsync();
                 if (GroupData != null)
                 {
-                    GroupData.Name = GroupName;
-                    GroupData.Description = GroupDescription;
-                    GroupData.UserRole = UserRole;
-                    GroupData.Status = Status;
-                    GroupData.UpdatedBy = CurrentUserId;
-                    GroupData.UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneId, System.DateTime.Now);
+                    GroupData.Name = groupName;
+                    GroupData.Description = groupDescription;
+                    GroupData.UserRole = userRole;
+                    GroupData.Status = status;
+                    GroupData.UpdatedBy = currentUserId;
+                    GroupData.UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(timeZoneId, System.DateTime.Now);
                 };
-               //_context.Update(GroupData);
+               _context.Update(GroupData);
                 await _context.SaveChangesAsync();
 
                 var RegGrpDel = await  _context.Set<GroupSecuityObject>()
-                                .Where(GRPITM=> GRPITM.SecurityGroupId == SecurityGroupId).ToListAsync();
+                                .Where(GRPITM=> GRPITM.SecurityGroupId == securityGroupId).ToListAsync();
 
                 List<int[]> GSOList = new List<int[]>();
-                if (GroupSecurityObjects != null)
+                if (groupSecurityObjects != null)
                 {
-                    if (GroupSecurityObjects.Length > 0)
+                    if (groupSecurityObjects.Length > 0)
                     {
-                        foreach (int SecObj in GroupSecurityObjects)
+                        foreach (int SecObj in groupSecurityObjects)
                         {
-                            var ISExist = RegGrpDel.FirstOrDefault(s => s.SecurityGroupId == SecurityGroupId && s.SecurityObjectId == SecObj);
+                            var ISExist = RegGrpDel.FirstOrDefault(s => s.SecurityGroupId == securityGroupId && s.SecurityObjectId == SecObj);
                             if (ISExist == null)
                             {
                                 GroupSecuityObject SecItem = new GroupSecuityObject()
                                 {
-                                    SecurityGroupId = SecurityGroupId,
+                                    SecurityGroupId = securityGroupId,
                                     SecurityObjectId = Convert.ToInt32(SecObj)
                                 };
                                 await _context.AddAsync(SecItem);
@@ -223,13 +223,13 @@ namespace CrisesControl.Infrastructure.Repositories
                         }
                     }
                 }
-                if (Status == 0)
+                if (status == 0)
                 {
-                    var delUserSecurityGroup = await  _context.Set<UserSecurityGroup>().Where(USG=> USG.SecurityGroupId == SecurityGroupId).ToListAsync();
+                    var delUserSecurityGroup = await  _context.Set<UserSecurityGroup>().Where(USG=> USG.SecurityGroupId == securityGroupId).ToListAsync();
                     _context.RemoveRange(delUserSecurityGroup);
                     await _context.SaveChangesAsync();
                 }
-                return SecurityGroupId;
+                return securityGroupId;
             }
             catch (Exception ex)
             {
@@ -237,13 +237,13 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> DeleteSecurityGroup(int CompanyID, int SecurityGroupId, int CurrentUserId, string TimeZoneId)
+        public async Task<bool> DeleteSecurityGroup(int companyID, int securityGroupId, int currentUserId, string timeZoneId)
         {
 
            
             try
             {
-                var checkGroup = CheckMenuAccessAssociation(SecurityGroupId, CompanyID);
+                var checkGroup = CheckMenuAccessAssociation(securityGroupId, companyID);
                 //if (checkGroup)
                 //{
                 //    ResultDTO.ErrorId = 230;
@@ -252,13 +252,14 @@ namespace CrisesControl.Infrastructure.Repositories
                 //}
 
                 var GroupData = await  _context.Set<SecurityGroup>().
-                                 Where(GRP=> GRP.CompanyId == CompanyID && GRP.SecurityGroupId == SecurityGroupId).FirstOrDefaultAsync();
+                                 Where(GRP=> GRP.CompanyId == companyID && GRP.SecurityGroupId == securityGroupId).FirstOrDefaultAsync();
                 if (GroupData != null)
                 {
                     GroupData.Status = 3;
                     GroupData.Name = "DEL_" + GroupData.Name;
-                    GroupData.UpdatedBy = CurrentUserId;
-                    GroupData.UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(TimeZoneId, DateTime.Now);
+                    GroupData.UpdatedBy = currentUserId;
+                    GroupData.UpdatedOn = CrisesControl.SharedKernel.Utils.DateTimeExtensions.GetLocalTime(timeZoneId, DateTime.Now);
+                    _context.Update(GroupData);
                     await _context.SaveChangesAsync();
 
                     //var delUserSecurityGroup = (from USG in db.UserSecurityGroup where USG.SecurityGroupId == SecurityGroupId select USG).ToList();
@@ -277,23 +278,23 @@ namespace CrisesControl.Infrastructure.Repositories
 
         }
 
-        public async Task<int> CreateSecurityGroup(int CompanyId, string Name, string Description, string UserRole, int Status, int CreatedUpdatedBy, string TimeZoneId = "GMT Standard Time")
+        public async Task<int> CreateSecurityGroup(int companyId, string name, string description, string userRole, int status, int createdUpdatedBy, string timeZoneId = "GMT Standard Time")
         {
             try
             {
-                var chkdupe =await _context.Set<SecurityGroup>().Where(SC=> SC.CompanyId == CompanyId && SC.Name == Name).AnyAsync();
+                var chkdupe =await _context.Set<SecurityGroup>().Where(SC=> SC.CompanyId == companyId && SC.Name == name).AnyAsync();
                 if (!chkdupe)
                 {
                     SecurityGroup NewSecurityGroup = new SecurityGroup();
-                    NewSecurityGroup.CompanyId = CompanyId;
-                    NewSecurityGroup.Name = Name.Left( 50);
-                    NewSecurityGroup.Description = Description;
-                    NewSecurityGroup.UserRole = UserRole;
-                    NewSecurityGroup.Status = Status;
-                    NewSecurityGroup.CreatedBy = CreatedUpdatedBy;
-                    NewSecurityGroup.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
-                    NewSecurityGroup.UpdatedBy = CreatedUpdatedBy;
-                    NewSecurityGroup.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+                    NewSecurityGroup.CompanyId = companyId;
+                    NewSecurityGroup.Name = name.Left( 50);
+                    NewSecurityGroup.Description = description;
+                    NewSecurityGroup.UserRole = userRole;
+                    NewSecurityGroup.Status = status;
+                    NewSecurityGroup.CreatedBy = createdUpdatedBy;
+                    NewSecurityGroup.CreatedOn = DateTime.Now.GetDateTimeOffset(timeZoneId);
+                    NewSecurityGroup.UpdatedBy = createdUpdatedBy;
+                    NewSecurityGroup.UpdatedOn = DateTime.Now.GetDateTimeOffset(timeZoneId);
                     await _context.AddAsync(NewSecurityGroup);
                     await _context.SaveChangesAsync();
                     return NewSecurityGroup.SecurityGroupId;
@@ -306,29 +307,29 @@ namespace CrisesControl.Infrastructure.Repositories
            
         }
 
-        public async Task CreateGroupSecurityObject(int SecurityGroupID, int[] SecurityAdminObjectList)
+        public async Task CreateGroupSecurityObject(int securityGroupID, int[] securityAdminObjectList)
         {
-            foreach (var AdminSecurityItem in SecurityAdminObjectList)
+            foreach (var AdminSecurityItem in securityAdminObjectList)
             {
                 GroupSecuityObject groupSecurityObjects = new GroupSecuityObject()
                 {
                     SecurityObjectId = AdminSecurityItem,
-                    SecurityGroupId = SecurityGroupID,
+                    SecurityGroupId = securityGroupID,
                 };
                 await _context.AddAsync(groupSecurityObjects);
                 await _context.SaveChangesAsync();
             }
         }
 
-        public async Task<bool> CheckMenuAccessAssociation(int SecurityGroupID, int CompanyID)
+        public async Task<bool> CheckMenuAccessAssociation(int securityGroupID, int companyID)
         {
             try
             {
                 DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
                 bool sendemail = false;
 
-                var pCompanyId = new SqlParameter("@CompanyId", CompanyID);
-                var pSecurityGroupID = new SqlParameter("@SecurityGroupID", SecurityGroupID);
+                var pCompanyId = new SqlParameter("@CompanyId", companyID);
+                var pSecurityGroupID = new SqlParameter("@SecurityGroupID", securityGroupID);
 
                 var result = await _context.Set<ModuleLinks>().FromSqlRaw("exec Pro_Get_SecurityGroup_Association @SecurityGroupID, @CompanyID", pSecurityGroupID, pCompanyId).ToListAsync();
 
@@ -343,7 +344,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     }
                     sb.AppendLine("</table>");
                     SendEmail SDE = new SendEmail(_context, DBC);
-                    await SDE.SendMenuAccessAssociationsToAdmin(sb.ToString(), SecurityGroupID, CompanyID);
+                    await SDE.SendMenuAccessAssociationsToAdmin(sb.ToString(), securityGroupID, companyID);
                 }
 
                 return sendemail;

@@ -274,6 +274,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<BillingStats>().HasNoKey();
             modelBuilder.Entity<UserRoles>().HasNoKey();
             modelBuilder.Entity<LicenseCheckResult>().HasNoKey();
+            modelBuilder.Entity<SecurityGroups>().HasNoKey();
+            
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())

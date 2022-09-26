@@ -52,8 +52,8 @@ namespace CrisesControl.Api.Application.Helpers
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-            companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            //userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            //companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         }
         public class UpdateEventArgs : EventArgs
         {
@@ -1736,9 +1736,8 @@ namespace CrisesControl.Api.Application.Helpers
         public string LogWrite(string str, string strType = "I")
         {
             return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
-        }
-
-        public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
+        }   
+       public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
         {
             var devices = await _context.Set<UserDevice>().Where(UD=> UD.UserId == userID).ToListAsync();
             if (devices!=null) { 

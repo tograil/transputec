@@ -25,13 +25,14 @@ namespace CrisesControl.Infrastructure.Services
         public int GUserId;
         public string GTimezoneId = "GMT Standard Time";
 
-        public CommsHelper(DBCommon DBC, CrisesControlContext context, IHttpContextAccessor httpContextAccessor, Messaging MSG, SendEmail SDE)
+        public CommsHelper( CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
-            _DBC = DBC;
+           
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            _MSG = MSG;
-            _SDE = SDE;
+            _DBC = new DBCommon(_context, _httpContextAccessor);
+            _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+            _SDE = new SendEmail(_context, _DBC); ;
         }
 
         public async Task<string> StartConference(int companyId, int userId, List<int> userList, string timeZoneId, int activeIncidentId = 0, int messageId = 0, string objectType = "Incident")

@@ -36,14 +36,14 @@ namespace CrisesControl.Infrastructure.Services
         public string MessageSourceAction = "";
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly DBCommon _DBC;
-        private readonly Messaging _MSG;
+        //private readonly Messaging _MSG;
         private readonly SendEmail _SDE;
         public Messaging(CrisesControlContext _db, IHttpContextAccessor httpContextAccessor, DBCommon DBC)
         {
             db = _db;
             _httpContextAccessor = httpContextAccessor;
-            _DBC = DBC;
-            _MSG = new Messaging(db,_httpContextAccessor,DBC);
+            _DBC = new DBCommon(db,_httpContextAccessor);
+            //_MSG = new Messaging(db,_httpContextAccessor,DBC);
             _SDE = new SendEmail(db,DBC);
         }
  
@@ -2320,7 +2320,7 @@ namespace CrisesControl.Infrastructure.Services
                                     var result = FH.UploadToAzure(AzureAPIShare, SavePath, recordingSid + ".mp3", filestream).Result;
                                     if (FH.FileExists(recordingSid + ".mp3", AzureAPIShare, SavePath))
                                     {
-                                        CommsHelper CH = new CommsHelper(_DBC, db, _httpContextAccessor, _MSG, _SDE);
+                                        CommsHelper CH = new CommsHelper(db, _httpContextAccessor);
                                         CH.DeleteRecording(recordingSid);
                                     }
                                 }
@@ -2330,7 +2330,7 @@ namespace CrisesControl.Infrastructure.Services
 
                                     if (File.Exists(SavePath + recordingSid + ".mp3"))
                                     {
-                                        CommsHelper CH = new CommsHelper(_DBC, db, _httpContextAccessor, _MSG, _SDE);
+                                        CommsHelper CH = new CommsHelper(db, _httpContextAccessor);
                                         CH.DeleteRecording(recordingSid);
                                     }
                                 }
