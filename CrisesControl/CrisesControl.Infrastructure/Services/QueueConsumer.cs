@@ -54,7 +54,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         CascadePlanID = msg.CascadePlanId;
 
-                        string TimeZoneId = DBC.GetTimeZoneVal(msg.CreatedBy);
+                        string TimeZoneId = await DBC.GetTimeZoneVal(msg.CreatedBy);
 
                         bool notifySender = false;
                         bool.TryParse(DBC.GetCompanyParameter("INC_SENDER_INCIDENT_UPDATE", msg.CompanyId), out notifySender);

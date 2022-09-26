@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using CC.Authority.Implementation.Data;
 using CC.Authority.SCIM.Protocol;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,11 +10,12 @@ using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 using OpenIddict.Server.AspNetCore;
+using OpenIddict.Validation.AspNetCore;
 
 namespace CC.Authority.Api.Controllers
 {
     [ApiController]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
     [Route("[controller]")]
     public class UserController : Controller
     {
@@ -35,27 +37,46 @@ namespace CC.Authority.Api.Controllers
         [HttpPost("token")]
         public IActionResult GenerateToken(int id)
         {
+            var oidcRequest = HttpContext.GetOpenIddictServerRequest();
+
             var user = _authContext.Users.First(x => x.UserId == id);
 
-            var identity = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            var identity = new ClaimsIdentity(
+            TokenValidationParameters.DefaultAuthenticationType,
+            OpenIddictConstants.Claims.Name,
+            OpenIddictConstants.Claims.Role);
 
-            identity.AddClaim(OpenIddictConstants.Claims.Subject, user.UserId.ToString(),
-                OpenIddictConstants.Destinations.AccessToken);
-            identity.AddClaim(OpenIddictConstants.Claims.Username, user.PrimaryEmail,
-                OpenIddictConstants.Destinations.AccessToken);
-            identity.AddClaim(CompanyIdClaimName, user.CompanyId.ToString(),
-                OpenIddictConstants.Destinations.AccessToken);
+            identity.AddClaim(OpenIddictConstants.Claims.Subject, user.UserId.ToString(), OpenIddictConstants.Destinations.AccessToken);
+            identity.AddClaim(OpenIddictConstants.Claims.Username, user.PrimaryEmail, OpenIddictConstants.Destinations.AccessToken);
+            identity.AddClaim(CompanyIdClaimName, user.CompanyId.ToString(), OpenIddictConstants.Destinations.AccessToken);
 
             var claimsPrincipal = new ClaimsPrincipal(identity);
-            claimsPrincipal.SetResources("api");
+            //claimsPrincipal.SetResources("api");
+            var scopes = oidcRequest.GetScopes().Add(OpenIddictConstants.Scopes.OfflineAccess);
+            //scopes = scopes.Add(OpenIddictConstants.Scopes.OfflineAccess);
+            claimsPrincipal.SetScopes(scopes);
 
-            var authProperties = new AuthenticationProperties
-            {
-                ExpiresUtc = DateTimeOffset.Now.AddYears(2),
-                IsPersistent = true
-            };
+            return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
-            return SignIn(claimsPrincipal, authProperties, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            //var identity = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+            //identity.AddClaim(OpenIddictConstants.Claims.Subject, user.UserId.ToString(),
+            //    OpenIddictConstants.Destinations.AccessToken);
+            //identity.AddClaim(OpenIddictConstants.Claims.Username, user.PrimaryEmail,
+            //    OpenIddictConstants.Destinations.AccessToken);
+            //identity.AddClaim(CompanyIdClaimName, user.CompanyId.ToString(),
+            //    OpenIddictConstants.Destinations.AccessToken);
+
+            //var claimsPrincipal = new ClaimsPrincipal(identity);
+            ////claimsPrincipal.SetResources("api");
+
+            //var authProperties = new AuthenticationProperties
+            //{
+            //    ExpiresUtc = DateTimeOffset.Now.AddYears(2),
+            //    IsPersistent = true
+            //};
+
+            //return SignIn(claimsPrincipal, authProperties, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
     }
 }

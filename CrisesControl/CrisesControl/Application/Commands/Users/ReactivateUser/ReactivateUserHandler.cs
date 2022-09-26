@@ -1,6 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
 using CrisesControl.Core.Users.Repositories;
+using FluentValidation;
 using MediatR;
 
 namespace CrisesControl.Api.Application.Commands.Users.ReactivateUser
@@ -9,21 +10,23 @@ namespace CrisesControl.Api.Application.Commands.Users.ReactivateUser
     {
         private readonly ReactivateUserValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly ILogger<ReactivateUserHandler> _logger;
 
-        public ReactivateUserHandler(ReactivateUserValidator userValidator, IUserRepository userService, IMapper mapper)
+        public ReactivateUserHandler(ReactivateUserValidator userValidator, IUserRepository userService, ILogger<ReactivateUserHandler> logger)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<ReactivateUserResponse> Handle(ReactivateUserRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(ReactivateUserRequest));
-
-            var userId = await _userRepository.ReactivateUser(request.QueriedUserId, cancellationToken);
-            return new ReactivateUserResponse();
+            await _userValidator.ValidateAndThrowAsync(request,cancellationToken);
+            var user = await _userRepository.ReactivateUser(request.QueriedUserId, cancellationToken);
+            var response= new ReactivateUserResponse();
+            response.User = user;
+            return response;
         }
     }
 }

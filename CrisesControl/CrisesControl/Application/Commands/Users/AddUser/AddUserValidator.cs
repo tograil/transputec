@@ -6,9 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Users.AddUser
     {
         public AddUserValidator()
         {
-            RuleFor(x => x.UserId)
-                .GreaterThan(0);
-            RuleFor(x => x.CompanyId)
+               RuleFor(x => x.CompanyId)
                 .GreaterThan(0);
 
         }

@@ -13,6 +13,7 @@ using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SavePriority;
 using CrisesControl.Api.Application.Commands.CompanyParameters.AddCompanyParameter;
+using CrisesControl.Api.Application.Commands.CompanyParameters.SegregationOtp;
 
 namespace CrisesControl.Api.Application.Query {
     public class CompanyParametersQuery : ICompanyParametersQuery {
@@ -207,6 +208,24 @@ namespace CrisesControl.Api.Application.Query {
             {
                 throw ex;
             }
+        }
+
+        public async Task<SegregationOtpResponse> SegregationOtp(SegregationOtpRequest request)
+        {
+            var otp = await _companyParametersRepository.SegregationOtp(_currentUser.CompanyId,_currentUser.UserId,request.Method);
+            var result  = _mapper.Map<string>(otp);
+            var response = new SegregationOtpResponse();
+            if (!string.IsNullOrEmpty(otp))
+            {
+                response.Message = result;
+            }
+            else
+            {
+             
+                response.Message = "Data Not found";
+            }
+
+            return response;
         }
     }
 }

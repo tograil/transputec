@@ -25,7 +25,7 @@
         public string Lat { get; set; }
         public string Lng { get; set; }
         public DateTimeOffset PasswordChangeDate { get; set; }
-        public bool ExpirePassword { get; set; }
+        public bool? ExpirePassword { get; set; }
         public string UserLanguage { get; set; }
         public bool FirstLogin { get; set; }
         public string OTPCode { get; set; }

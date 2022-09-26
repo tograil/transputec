@@ -9,6 +9,7 @@ using CrisesControl.Api.Application.Commands.CompanyParameters.SaveParameter;
 using CrisesControl.Api.Application.Commands.CompanyParameters.DeleteCascading;
 using CrisesControl.Api.Application.Commands.CompanyParameters.SavePriority;
 using CrisesControl.Api.Application.Commands.CompanyParameters.AddCompanyParameter;
+using CrisesControl.Api.Application.Commands.CompanyParameters.SegregationOtp;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -23,5 +24,6 @@ namespace CrisesControl.Api.Application.Query
         Task<DeleteCascadingResponse> DeleteCascading(DeleteCascadingRequest request);
         Task<SavePriorityResponse> SavePriority(SavePriorityRequest request);
         Task<AddCompanyParameterResponse> AddCompanyParameter(AddCompanyParameterRequest request);
+        Task<SegregationOtpResponse> SegregationOtp(SegregationOtpRequest request);
     }
 }

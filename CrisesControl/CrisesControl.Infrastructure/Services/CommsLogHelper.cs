@@ -1,11 +1,11 @@
 ﻿using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Communication;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.System;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -15,19 +15,19 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using Twilio;
-using Twilio.Base;
 using Twilio.Rest.Api.V2010.Account;
-using static CrisesControl.Infrastructure.Services.Jobs.Update;
+using static CrisesControl.Api.Application.Helpers.DBCommon;
+using Twilio.Base;
 
 namespace CrisesControl.Infrastructure.Services
 {
     public class CommsLogsHelper
     {
+        private readonly CrisesControlContext db;
         private readonly DBCommon DBC;
-        private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         private string PHONESID = string.Empty;
@@ -40,11 +40,15 @@ namespace CrisesControl.Infrastructure.Services
         public event UpdateHandler EntityUpdate;
         private string CM_CLIENTID = string.Empty;
 
-        public CommsLogsHelper(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+        public CommsLogsHelper(CrisesControlContext db, IHttpContextAccessor httpContextAccessor)
         {
-            _context = context;
-            _httpContextAccessor=httpContextAccessor;
-            DBC = new DBCommon(_context, _httpContextAccessor);
+            this.db = db;
+            this._httpContextAccessor = httpContextAccessor;
+            this.DBC = new DBCommon(db,_httpContextAccessor);
+        }
+
+        public CommsLogsHelper()
+        {
             PHONESID = DBC.LookupWithKey("PHONESID");
             PHONETOKEN = DBC.LookupWithKey("PHONETOKEN");
             CM_CLIENTID = DBC.LookupWithKey("CM_CLIENTID");
@@ -97,10 +101,10 @@ namespace CrisesControl.Infrastructure.Services
 
                 DateTimeOffset checkTime = DBC.GetDateTimeOffset(DateTime.Now.AddHours(-2));
 
-                var getSMSList = _context.Set<MessageTransaction>()
-                                  .Where(MT=> MT.CloudMessageId != null && (MT.MethodName == "TEXT" || MT.MethodName == "PHONE") &&
-                                  MT.LogCollected == false)
-                                 .ToList();
+                var getSMSList = (from MT in db.Set<MessageTransaction>()
+                                  where MT.CloudMessageId != null && (MT.MethodName == "TEXT" || MT.MethodName == "PHONE") &&
+                                  MT.LogCollected == false
+                                  select MT).ToList();
 
                 foreach (var msg in getSMSList)
                 {
@@ -501,7 +505,7 @@ namespace CrisesControl.Infrastructure.Services
                 decimal Price = item.Price == null ? 0M : Convert.ToDecimal(item.Price);
                 int Duration = item.Duration == null ? 0 : Convert.ToInt32(item.Duration);
 
-                CreateCommsLog(item.Sid, "RECORDING", "COMPLETED", item.ConferenceSid, item.Source.ToString(), "outbound", Price, "", "USD", 0, "",
+                CreateCommsLogAsync(item.Sid, "RECORDING", "COMPLETED", item.ConferenceSid, item.Source.ToString(), "outbound", Price, "", "USD", 0, "",
                     Duration, (DateTimeOffset)item.DateCreated, (DateTimeOffset)item.DateUpdated, (DateTimeOffset)item.DateCreated, (DateTimeOffset)item.DateCreated, CommsProvider: "TWILIO");
             }
             catch (Exception ex)
@@ -510,19 +514,11 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public class TwilioLogModel
-        {
-            public string LogType { get; set; }
-            public List<CallResource> Calls { get; set; }
-            public List<MessageResource> Texts { get; set; }
-            public List<RecordingResource> Recordings { get; set; }
-        }
-
         public bool SendLogDumpToApi(string LogType, List<CallResource> Calls, List<MessageResource> Texts, List<RecordingResource> Recs)
         {
             try
             {
-                var pushlogshost =  _context.Set<TwilioLogPushHost>().ToList();
+                var pushlogshost =  db.Set<TwilioLogPushHost>().ToList();
 
                 foreach (var loghost in pushlogshost)
                 {
@@ -576,16 +572,15 @@ namespace CrisesControl.Infrastructure.Services
             return false;
         }
 
-        public  async Task<bool> ProcessCommsLogs(string SessionId)
+        public bool ProcessCommsLogs(string SessionId)
         {
             try
             {
                 var pSession = new SqlParameter("@SessionId", SessionId);
 
-               
-                    var result = await _context.Database.ExecuteSqlRawAsync("Twilio_Log_Process @SessionId", pSession);
+                 var result = db.Database.ExecuteSqlRaw("Twilio_Log_Process @SessionId", pSession);
                     return true;
-               
+                
             }
             catch (Exception ex)
             {
@@ -600,6 +595,30 @@ namespace CrisesControl.Infrastructure.Services
         {
             try
             {
+                //CommsLogDumpPayload payload = new CommsLogDumpPayload();
+                //payload.Session = Session;
+                //payload.Sid = Sid;
+                //payload.CommType = CommType;
+                //payload.Status = Status;
+                //payload.FromFormatted = From;
+                //payload.ToFormatted = To;
+                //payload.Direction = Direction;
+                //payload.Price = Price;
+                //payload.AnsweredBy = AnsweredBy;
+                //payload.PriceUnit = PriceUnit;
+                //payload.NumSegments = NumSegments;
+                //payload.Body = Body;
+                //payload.Duration = Duration;
+                //payload.DateCreated = DateCreated;
+                //payload.DateUpdated = DateUpdated;
+                //payload.StartTime = StartTime;
+                //payload.EndTime = EndTime;
+                //payload.ErrorCode = ErrorCode;
+                //payload.ErrorMessage = ErrorMessage;
+                //payload.LogStatus = LogStatus;
+                //payload.CommsProvider = CommsProvider;
+                //payload.DateSent = StartTime;
+
                 var pSession = new SqlParameter("@SessionId", Session);
                 var pSid = new SqlParameter("@Sid", Sid);
                 var pDateCreated = new SqlParameter("@DateCreated", DateCreated);
@@ -623,12 +642,12 @@ namespace CrisesControl.Infrastructure.Services
                 var pLogStatus = new SqlParameter("@LogStatus", LogStatus);
                 var pCommsProvider = new SqlParameter("@CommsPovider", CommsProvider);
 
-               
-                    var result = _context.Database.ExecuteSqlRaw("Comms_Log_Dump_Insert @SessionId, @Sid, @DateCreated, @DateUpdated, @DateSent, @Body, @NumSegments, @ToFormatted, " +
+                
+                    var result = db.Database.ExecuteSqlRaw("Comms_Log_Dump_Insert @SessionId, @Sid, @DateCreated, @DateUpdated, @DateSent, @Body, @NumSegments, @ToFormatted, " +
                         "@FromFormatted, @Status, @StartTime, @EndTime, @Duration,@Price,@PriceUnit,@Direction,@AnsweredBy,@ErrorCode,@ErrorMessage,@CommType, @LogStatus,@CommsPovider",
                         pSession, pSid, pDateCreated, pDateUpdated, pDateSent, pBody, pNumSegments, pToFormatted, pFromFormatted, pStatus, pStartTime, pEndTime, pDuration, pPrice,
                         pPriceUnit, pDirection, pAnsweredBy, pErrorCode, pErrorMessage, pCommType, pLogStatus, pCommsProvider);
-               
+                
             }
             catch (Exception ex)
             {
@@ -651,18 +670,17 @@ namespace CrisesControl.Infrastructure.Services
                 var pLogType = new SqlParameter("@LogType", LogType);
                 var pCommsProvider = new SqlParameter("@CommsProvider", CommsProvider);
 
-              
-                    var result = _context.Set<TwilioBatch>().FromSqlRaw("Get_Twilio_Log_Batch @LogType, @CommsProvider", pLogType, pCommsProvider).FirstOrDefault();
+               var result = db.Set<TwilioBatch>().FromSqlRaw("exec Get_Twilio_Log_Batch @LogType, @CommsProvider", pLogType, pCommsProvider).FirstOrDefault();
                     if (result != null)
                     {
                         return result;
                     }
-
                 return null;
+
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw ex ;
             }
             
         }
@@ -688,14 +706,13 @@ namespace CrisesControl.Infrastructure.Services
                             throw ex;
                         }
                     }
-                    return message;
 
                 }
                 catch (Exception ex)
                 {
                     throw ex;
-                }
-             
+                } 
+                return message;
             }
             else
             {
@@ -724,13 +741,13 @@ namespace CrisesControl.Infrastructure.Services
                             throw ex;
                         }
                     }
-                    return call;
+
                 }
                 catch (Exception ex)
                 {
                     throw ex;
                 }
-               
+                return call;
             }
             else
             {
@@ -759,13 +776,12 @@ namespace CrisesControl.Infrastructure.Services
                             throw ex;
                         }
                     }
-                    return conference;
                 }
                 catch (Exception ex)
                 {
                     throw ex;
                 }
-                
+                return conference;
             }
             else
             {
@@ -804,13 +820,12 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     DBC.CreateLog("INFO", ressultstr, null, "CommsClient", "ApiCall", 0);
                 }
-                return message;
             }
             catch (Exception ex)
             {
                 throw ex;
             }
-           
+            return message;
         }
 
         public CallResource GetTwilioCallByApi(string Sid)
@@ -848,7 +863,7 @@ namespace CrisesControl.Infrastructure.Services
             {
                 throw ex;
             }
-           
+          
         }
 
         public ConferenceResource GetTwilioConfByApi(string Sid)
@@ -932,7 +947,7 @@ namespace CrisesControl.Infrastructure.Services
         {
             try
             {
-                var confList =  _context.Set<ConferenceCallLogHeader>().Where(CF=> CF.CurrentStatus == "ENDED").ToList();
+                var confList = db.Set<ConferenceCallLogHeader>().Where(CF=> CF.CurrentStatus == "ENDED" ).ToList();
 
                 foreach (var conf in confList)
                 {
@@ -956,9 +971,10 @@ namespace CrisesControl.Infrastructure.Services
 
 
                                     //Go To call list
-                                    var confuser =  _context.Set<ConferenceCallLogDetail>()
+                                    var confuser =  db.Set<ConferenceCallLogDetail>()
                                                     .Where(CD=> CD.ConferenceCallId == conf.ConferenceCallId &&
-                                                    CD.UserId == conf.InitiatedBy).ToList();
+                                                    CD.UserId == conf.InitiatedBy
+                                                    ).ToList();
                                     foreach (var rcpnt in confuser)
                                     {
                                         try
@@ -977,7 +993,7 @@ namespace CrisesControl.Infrastructure.Services
                                                     DateTimeOffset StartTime = call.StartTime == null ? conf.CreatedOn : (DateTimeOffset)call.StartTime;
                                                     DateTimeOffset EndTime = call.EndTime == null ? conf.CreatedOn : (DateTimeOffset)call.EndTime;
 
-                                                    CreateCommsLog(call.Sid, "CONFERENCE", call.Status.ToString(), call.From, call.To, call.Direction, Price, answered_by, "USD",
+                                                    CreateCommsLogAsync(call.Sid, "CONFERENCE", call.Status.ToString(), call.From, call.To, call.Direction, Price, answered_by, "USD",
                                                         0, answered_by, Duration, (DateTimeOffset)call.DateCreated, (DateTimeOffset)call.DateUpdated, StartTime, EndTime, CommsProvider: "TWILIO");
 
                                                     rcpnt.ConfJoined = StartTime;
@@ -991,10 +1007,10 @@ namespace CrisesControl.Infrastructure.Services
                                         }
                                         catch (Exception ex)
                                         {
-                                            throw ex;
+                                            throw ex; ;
                                         }
                                     }
-                                    _context.SaveChanges();
+                                    db.SaveChanges();
                                 }
                             }
                         }
@@ -1037,7 +1053,7 @@ namespace CrisesControl.Infrastructure.Services
                         DateTimeOffset StartTime = call.StartTime == null ? (DateTimeOffset)SqlDateTime.MinValue.Value : (DateTimeOffset)call.StartTime;
                         DateTimeOffset EndTime = call.EndTime == null ? (DateTimeOffset)SqlDateTime.MinValue.Value : (DateTimeOffset)call.EndTime;
 
-                        CreateCommsLog(recording.Sid, "RECORDING", "COMPLETED", call.From, call.To, call.Direction, Price, "", "USD", 0, "",
+                        CreateCommsLogAsync(recording.Sid, "RECORDING", "COMPLETED", call.From, call.To, call.Direction, Price, "", "USD", 0, "",
                             Duration, (DateTimeOffset)recording.DateCreated, (DateTimeOffset)recording.DateUpdated, StartTime, EndTime, CommsProvider: "TWILIO");
                     }
                 }
@@ -1048,7 +1064,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void CreateCommsLog(string Sid, string CommType, string Status, string From, string To, string Direction, decimal Price, string AnsweredBy, string PriceUnit,
+        public async Task CreateCommsLogAsync(string Sid, string CommType, string Status, string From, string To, string Direction, decimal Price, string AnsweredBy, string PriceUnit,
             int NumSegments, string Body, int Duration, DateTimeOffset DateCreated, DateTimeOffset DateUpdated, DateTimeOffset StartTime, DateTimeOffset EndTime,
             string ErrorCode = "", string ErrorMessage = "", string CommsProvider = "")
         {
@@ -1056,7 +1072,7 @@ namespace CrisesControl.Infrastructure.Services
             {
                 if (!string.IsNullOrEmpty(Sid))
                 {
-                    var checksid =  _context.Set<CommsLog>().Where(L=> L.Sid == Sid).FirstOrDefault();
+                    var checksid = await db.Set<CommsLog>().Where(L=> L.Sid == Sid).FirstOrDefaultAsync();
                     if (checksid != null)
                     {
                         checksid.DateCreated = DBC.ToNullIfTooEarlyForDb(DateCreated);
@@ -1072,7 +1088,7 @@ namespace CrisesControl.Infrastructure.Services
                         checksid.StartTime = EndTime != null ? DBC.ToNullIfTooEarlyForDb(EndTime) : DateUpdated;
                         checksid.ErrorCode = !string.IsNullOrEmpty(ErrorCode) ? ErrorCode : "";
                         checksid.ErrorMessage = !string.IsNullOrEmpty(ErrorMessage) ? ErrorMessage : "";
-                        _context.SaveChanges();
+                        db.SaveChanges();
                     }
                     else
                     {
@@ -1097,16 +1113,16 @@ namespace CrisesControl.Infrastructure.Services
                         CL.ErrorMessage = !string.IsNullOrEmpty(ErrorMessage) ? ErrorMessage : "";
                         CL.CommType = CommType;
                         CL.CommsProvider = CommsProvider;
-                        _context.Add(CL);
-                        _context.SaveChanges();
+                        await db.AddAsync(CL);
+                       await  db.SaveChangesAsync();
                     }
                 }
             }
-           
             catch (Exception ex)
             {
                 throw ex;
             }
+            
         }
 
         public void GetCommsPrice()
@@ -1128,11 +1144,11 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void DownloadTwilioPricing()
+        public async void DownloadTwilioPricing()
         {
             try
             {
-                var countries =  _context.Set<Country>().Where(C=> C.PhoneAvailable == true || C.Smsavailable == true && C.CountryPhoneCode != null).ToList();
+                var countries =await  db.Set<Country>().Where(C=> C.PhoneAvailable == true || C.Smsavailable == true && C.CountryPhoneCode != null).ToListAsync();
                 foreach (var country in countries)
                 {
                     GetVoicePricing(country.Iso2code, country.CountryCode);
@@ -1146,7 +1162,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void GetVoicePricing(string ISO2Code, string CountryCode)
+        public async void GetVoicePricing(string ISO2Code, string CountryCode)
         {
             try
             {
@@ -1167,15 +1183,14 @@ namespace CrisesControl.Infrastructure.Services
                     {
                         foreach (var prefix in price.Prefixes)
                         {
-                            var prfxrec =  _context.Set<TwilioPricing>().Where(TPR=> TPR.CountryIso2 == ISO2Code && TPR.DesinationPrefix == prefix && TPR.ChannelType == "PHONE").FirstOrDefault();
+                            var prfxrec =  db.Set<TwilioPricing>().Where(TPR=> TPR.CountryIso2 == ISO2Code && TPR.DesinationPrefix == prefix && TPR.ChannelType == "PHONE" ).FirstOrDefault();
                             if (prfxrec != null)
                             {
                                 prfxrec.CurrentPrice = Convert.ToDecimal(price.CurrentPrice);
                                 prfxrec.BasePrice = Convert.ToDecimal(price.BasePrice);
                                 prfxrec.FriendlyName = price.FriendlyName;
                                 prfxrec.UpdateTime = DateTimeOffset.Now;
-                                _context.Update(prfxrec);
-                                _context.SaveChangesAsync();
+                                db.SaveChanges();
 
                                 UpdateEventArgs UEA3 = new UpdateEventArgs(DBC.LogWrite("Voice price information updated for country " + CountryCode + ": " + prefix));
                                 FireUpdateEvent(UEA3);
@@ -1183,7 +1198,7 @@ namespace CrisesControl.Infrastructure.Services
                             }
                             else
                             {
-                                AddTwilioPrice(ISO2Code, CountryCode, "PHONE", prefix, Convert.ToDecimal(price.BasePrice), Convert.ToDecimal(price.CurrentPrice),
+                               await  AddTwilioPrice(ISO2Code, CountryCode, "PHONE", prefix, Convert.ToDecimal(price.BasePrice), Convert.ToDecimal(price.CurrentPrice),
                                     price.FriendlyName);
 
                                 UpdateEventArgs UEA4 = new UpdateEventArgs(DBC.LogWrite("Voice price information added for country " + CountryCode + ": " + prefix));
@@ -1199,7 +1214,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void GetSMSPricing(string ISO2Code, string CountryCode, string DialingCode)
+        public async void GetSMSPricing(string ISO2Code, string CountryCode, string DialingCode)
         {
             try
             {
@@ -1219,9 +1234,10 @@ namespace CrisesControl.Infrastructure.Services
                         foreach (var price in carrier.Prices)
                         {
                             string numberType = price.NumberType.ToString();
-                            var prfxrec = _context.Set<TwilioPricing>()
-                                           .Where(TPR=> TPR.CountryIso2 == ISO2Code && TPR.FriendlyName == carrier.Carrier
-                                           && TPR.ChannelType == "SMS" && TPR.NumberType == numberType).FirstOrDefault();
+                            var prfxrec =  db.Set<TwilioPricing>()
+                                           .Where(TPR => TPR.CountryIso2 == ISO2Code && TPR.FriendlyName == carrier.Carrier
+                                           && TPR.ChannelType == "SMS" && TPR.NumberType == numberType
+                                           ).FirstOrDefault();
                             if (prfxrec != null)
                             {
                                 prfxrec.CurrentPrice = Convert.ToDecimal(price.CurrentPrice);
@@ -1229,7 +1245,7 @@ namespace CrisesControl.Infrastructure.Services
                                 prfxrec.FriendlyName = carrier.Carrier;
                                 prfxrec.NumberType = price.NumberType.ToString();
                                 prfxrec.UpdateTime = DateTimeOffset.Now;
-                                _context.SaveChanges();
+                                db.SaveChanges();
 
                                 int PriceID = prfxrec.Id;
                                 UpdateEventArgs UEA3 = new UpdateEventArgs(DBC.LogWrite(PriceID + ": SMS price information updated for country " + CountryCode + ": " + DialingCode));
@@ -1238,7 +1254,7 @@ namespace CrisesControl.Infrastructure.Services
                             }
                             else
                             {
-                                int PriceID = AddTwilioPrice(ISO2Code, CountryCode, "SMS", DialingCode, Convert.ToDecimal(price.BasePrice), Convert.ToDecimal(price.CurrentPrice),
+                                int PriceID =await  AddTwilioPrice(ISO2Code, CountryCode, "SMS", DialingCode, Convert.ToDecimal(price.BasePrice), Convert.ToDecimal(price.CurrentPrice),
                                     carrier.Carrier, price.NumberType.ToString());
 
                                 UpdateEventArgs UEA4 = new UpdateEventArgs(DBC.LogWrite(PriceID + ": SMS price information added for country " + CountryCode + ": " + DialingCode));
@@ -1254,7 +1270,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public int AddTwilioPrice(string ISO2Code, string ISO3Code, string ChannelType, string Prefix, decimal BasePrice, decimal CurrentPrice, string FriendyName, string NumberType = "")
+        public async Task<int> AddTwilioPrice(string ISO2Code, string ISO3Code, string ChannelType, string Prefix, decimal BasePrice, decimal CurrentPrice, string FriendyName, string NumberType = "")
         {
             try
             {
@@ -1268,17 +1284,14 @@ namespace CrisesControl.Infrastructure.Services
                 TP.FriendlyName = FriendyName;
                 TP.NumberType = NumberType;
                 TP.UpdateTime = DateTimeOffset.Now;
-                _context.Add(TP);
-                _context.SaveChanges();
-                if (TP.Id > 0)
-                {
-                    return TP.Id;
-                }
-                return 0;
+                await db.AddAsync(TP);
+                await db.SaveChangesAsync();
+                return TP.Id;
             }
             catch (Exception ex)
             {
                 throw ex;
+                return 0;
             }
         }
 
@@ -1292,7 +1305,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 foreach (var country in countries)
                 {
-                    var cntr =  _context.Set<Country>().Where(C=> C.Iso2code == country.IsoCountry).FirstOrDefault();
+                    var cntr = db.Set<Country>().Where(C=> C.Iso2code == country.IsoCountry).FirstOrDefault();
                     if (cntr != null)
                     {
                         cntr.PhoneAvailable = true;
@@ -1302,7 +1315,7 @@ namespace CrisesControl.Infrastructure.Services
                         FireUpdateEvent(UEA);
                     }
                 }
-                _context.SaveChanges();
+                db.SaveChanges();
             }
             catch (Exception ex)
             {
@@ -1319,7 +1332,7 @@ namespace CrisesControl.Infrastructure.Services
                 var countries = Twilio.Rest.Pricing.V1.Messaging.CountryResource.Read(500);
                 foreach (var country in countries)
                 {
-                    var cntr = _context.Set<Country>().Where(C => C.Iso2code == country.IsoCountry).FirstOrDefault();
+                    var cntr =  db.Set<Country>().Where(C=> C.Iso2code == country.IsoCountry).FirstOrDefault();
                     if (cntr != null)
                     {
                         cntr.Smsavailable = true;
@@ -1328,7 +1341,7 @@ namespace CrisesControl.Infrastructure.Services
                         FireUpdateEvent(UEA);
                     }
                 }
-                _context.SaveChanges();
+                db.SaveChanges();
             }
             catch (Exception ex)
             {
@@ -1337,7 +1350,7 @@ namespace CrisesControl.Infrastructure.Services
 
         }
 
-        public void UpdateBalance_SMS(string SMSSid)
+        public async void UpdateBalance_SMS(string SMSSid)
         {
             try
             {
@@ -1351,7 +1364,7 @@ namespace CrisesControl.Infrastructure.Services
                     string ErrorMessage = !string.IsNullOrEmpty(message.ErrorMessage) ? message.ErrorMessage : "NA";
                     string Price = message.Price != null ? message.Price : "0";
 
-                    CreateCommsLog(message.Sid, "TEXT", message.Status.ToString(), message.From.ToString(), message.To, message.Direction.ToString(),
+                   await CreateCommsLogAsync(message.Sid, "TEXT", message.Status.ToString(), message.From.ToString(), message.To, message.Direction.ToString(),
                         Convert.ToDecimal(Price), "self", message.PriceUnit, Convert.ToInt32(message.NumSegments), message.Body, 0, (DateTime)message.DateCreated,
                         (DateTime)message.DateUpdated, (DateTime)message.DateSent, (DateTime)message.DateSent, ErrorCode, ErrorMessage, CommsProvider: "TWILIO");
                 }
@@ -1362,7 +1375,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void UpdateBalance_PHONE(string CallSid)
+        public  async Task UpdateBalance_PHONE(string CallSid)
         {
             try
             {
@@ -1378,7 +1391,7 @@ namespace CrisesControl.Infrastructure.Services
                     DateTime StartTime = call.StartTime == null ? (DateTime)SqlDateTime.MinValue : (DateTime)call.StartTime;
                     DateTime EndTime = call.EndTime == null ? (DateTime)SqlDateTime.MinValue : (DateTime)call.EndTime;
 
-                    CreateCommsLog(call.Sid, "PHONE", call.Status.ToString(), call.From, call.To, call.Direction, Price, answered_by, "USD", 0, "", Duration,
+                    await CreateCommsLogAsync(call.Sid, "PHONE", call.Status.ToString(), call.From, call.To, call.Direction, Price, answered_by, "USD", 0, "", Duration,
                                (DateTime)call.DateCreated, (DateTime)call.DateUpdated, StartTime, EndTime, CommsProvider: "TWILIO");
 
                 }
@@ -1400,18 +1413,18 @@ namespace CrisesControl.Infrastructure.Services
                 var pPhoneNumber = new SqlParameter("@PhoneNumber", PhoneNumber);
                 var pChannel = new SqlParameter("@Channel", Channel);
                 
-                    tp = _context.Set<TwilioPriceByNumber>().FromSqlRaw("exec Get_Twilio_Pricing_By_Number @PhoneNumber, @Channel", pPhoneNumber, pChannel).FirstOrDefault();
+                    tp = db.Set<TwilioPriceByNumber>().FromSqlRaw("exec Get_Twilio_Pricing_By_Number @PhoneNumber, @Channel", pPhoneNumber, pChannel).FirstOrDefault();
                     if (tp != null)
                     {
                         return tp;
                     }
-                return tp;
+             
             }
             catch (Exception ex)
             {
                 throw ex;
             }
-           
+            return tp;
         }
 
         public void ClearTwilioLogs(int CompanyID)
@@ -1458,19 +1471,77 @@ namespace CrisesControl.Infrastructure.Services
             {
 
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                
-                    var result = _context.Set<TwilioLogToClear>().FromSqlRaw("exec Get_Twilio_Logs_To_Clear @CompanyID", pCompanyID).ToList();
-                if (result != null)
-                {
+               
+                    var result = db.Set<TwilioLogToClear>().FromSqlRaw("exec Get_Twilio_Logs_To_Clear @CompanyID", pCompanyID).ToList();
                     return result;
-                }
-                return null;
+                
+
             }
             catch (Exception ex)
             {
                 throw ex;
             }
-            
+            return null;
+        }
+
+        public async void CreateCommsLog(string sid, string commType, string status, string from, string to, string direction, decimal price, string answeredBy, string priceUnit,
+            int numSegments, string body, int duration, DateTimeOffset dateCreated, DateTimeOffset dateUpdated, DateTimeOffset startTime, DateTimeOffset endTime,
+            string errorCode = "", string errorMessage = "", string commsProvider = "")
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(sid))
+                {
+                    var checksid = await (from L in db.Set<CommsLog>() where L.Sid == sid select L).FirstOrDefaultAsync();
+                    if (checksid != null)
+                    {
+                        checksid.DateCreated = DBC.ToNullIfTooEarlyForDb(dateCreated);
+                        checksid.Price = price;
+                        checksid.Status = status;
+                        checksid.Duration = duration;
+                        checksid.DateUpdated = DBC.ToNullIfTooEarlyForDb(dateUpdated);
+                        checksid.EndTime = endTime != null ? DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
+                        checksid.CommType = commType;
+                        checksid.NumSegments = numSegments;
+                        checksid.Body = body;
+                        checksid.DateSent = startTime != null ? DBC.ToNullIfTooEarlyForDb(startTime) : dateUpdated;
+                        checksid.StartTime = endTime != null ? DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
+                        checksid.ErrorCode = !string.IsNullOrEmpty(errorCode) ? errorCode : "";
+                        checksid.ErrorMessage = !string.IsNullOrEmpty(errorMessage) ? errorMessage : "";
+                        db.SaveChanges();
+                    }
+                    else
+                    {
+                        CommsLog CL = new CommsLog();
+                        CL.Sid = sid;
+                        CL.DateCreated = DBC.ToNullIfTooEarlyForDb(dateCreated);
+                        CL.DateUpdated = DBC.ToNullIfTooEarlyForDb(dateUpdated);
+                        CL.DateSent = DBC.ToNullIfTooEarlyForDb(startTime);
+                        CL.Body = body;
+                        CL.NumSegments = numSegments;
+                        CL.ToFormatted = to;
+                        CL.FromFormatted = from;
+                        CL.Status = status;
+                        CL.StartTime = startTime != null ? DBC.ToNullIfTooEarlyForDb(startTime) : dateUpdated;
+                        CL.EndTime = endTime != null ? DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
+                        CL.Duration = duration;
+                        CL.Price = price;
+                        CL.PriceUnit = priceUnit;
+                        CL.Direction = direction;
+                        CL.AnsweredBy = answeredBy;
+                        CL.ErrorCode = !string.IsNullOrEmpty(errorCode) ? errorCode : "";
+                        CL.ErrorMessage = !string.IsNullOrEmpty(errorMessage) ? errorMessage : "";
+                        CL.CommType = commType;
+                        CL.CommsProvider = commsProvider;
+                        await db.Set<CommsLog>().AddAsync(CL);
+                        await db.SaveChangesAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }

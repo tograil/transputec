@@ -1,6 +1,8 @@
-﻿namespace CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList
+﻿using MediatR;
+
+namespace CrisesControl.Api.Application.Commands.Users.GetAllOneUserDeviceList
 {
-    public class GetAllOneUserDeviceListRequest
+    public class GetAllOneUserDeviceListRequest:IRequest<GetAllOneUserDeviceListResponse>
     {
         public int QueriedUserId { get; set; }
         public string Filters { get; set; }

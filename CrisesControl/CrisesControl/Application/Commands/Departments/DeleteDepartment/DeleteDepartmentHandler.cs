@@ -12,13 +12,13 @@ namespace CrisesControl.Api.Application.Commands.Departments.DeleteDepartment
     {
         private readonly DeleteDepartmentValidator _departmentValidator;
         private readonly IDepartmentQuery _departmentQuery;
-        private readonly IMapper _mapper;
+        private readonly ILogger<DeleteDepartmentHandler> _logger;
 
-        public DeleteDepartmentHandler(DeleteDepartmentValidator departmentValidator, IDepartmentQuery departmentQuery, IMapper mapper)
+        public DeleteDepartmentHandler(DeleteDepartmentValidator departmentValidator, IDepartmentQuery departmentQuery, ILogger<DeleteDepartmentHandler> logger)
         {
             _departmentValidator = departmentValidator;
             _departmentQuery = departmentQuery;
-            _mapper = mapper;
+            _logger = logger;
         }
         public async Task<DeleteDepartmentResponse> Handle(DeleteDepartmentRequest request, CancellationToken cancellationToken)
         {

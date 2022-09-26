@@ -9,13 +9,13 @@ namespace CrisesControl.Api.Application.Commands.Users.GetUserDashboard
     {
         private readonly GetUserDashboardValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly ILogger<GetUserDashboardHandler> _logger;
 
-        public GetUserDashboardHandler(GetUserDashboardValidator userValidator, IUserRepository userService, IMapper mapper)
+        public GetUserDashboardHandler(GetUserDashboardValidator userValidator, IUserRepository userService, ILogger<GetUserDashboardHandler> logger)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<GetUserDashboardResponse> Handle(GetUserDashboardRequest request, CancellationToken cancellationToken)

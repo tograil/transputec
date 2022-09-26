@@ -8,6 +8,6 @@ namespace CrisesControl.Api.Application.Commands.Locations.UpdateSegregationLink
         public int TargetID { get; set; }
         public int SourceID { get; set; }
         public GroupType LinkType { get; set; }
-        public string Action { get; set; }
+       
     }
 }

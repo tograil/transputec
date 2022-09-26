@@ -12,13 +12,13 @@ namespace CrisesControl.Api.Application.Commands.Departments.CreateDepartment
     {
         private readonly CreateDepartmentValidator _departmentValidator;
         private readonly IDepartmentQuery _departmentQuery;
-        private readonly IMapper _mapper;
+        private readonly ILogger<CreateDepartmentHandler> _logger;
 
-        public CreateDepartmentHandler(CreateDepartmentValidator departmentValidator, IDepartmentQuery departmentQuery, IMapper mapper)
+        public CreateDepartmentHandler(CreateDepartmentValidator departmentValidator, IDepartmentQuery departmentQuery, ILogger<CreateDepartmentHandler> logger)
         {
             _departmentValidator = departmentValidator;
             _departmentQuery = departmentQuery;
-            _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<CreateDepartmentResponse> Handle(CreateDepartmentRequest request, CancellationToken cancellationToken)

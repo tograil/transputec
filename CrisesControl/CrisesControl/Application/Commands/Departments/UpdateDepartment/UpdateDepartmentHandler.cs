@@ -1,5 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
+using CrisesControl.Api.Application.Commands.Departments.UpdateSegregationLink;
 using CrisesControl.Api.Application.Query;
 using CrisesControl.Api.Application.ViewModels.Company;
 using CrisesControl.Core.Departments;
@@ -13,13 +14,13 @@ namespace CrisesControl.Api.Application.Commands.Departments.UpdateDepartment
     {
         private readonly UpdateDepartmentValidator _departmentValidator;
         private readonly IDepartmentQuery _departmentQuery;
-        private readonly IMapper _mappper;
+        private readonly ILogger<UpdateDepartmentHandler> _logger;
 
-        public UpdateDepartmentHandler(UpdateDepartmentValidator departmentValidator, IDepartmentQuery departmentQuery, IMapper mapper)
+        public UpdateDepartmentHandler(UpdateDepartmentValidator departmentValidator, IDepartmentQuery departmentQuery, ILogger<UpdateDepartmentHandler> logger)
         {
             _departmentValidator = departmentValidator;
             _departmentQuery = departmentQuery;
-            _mappper = mapper;
+            _logger = logger;
         }
 
         public async Task<UpdateDepartmentResponse> Handle(UpdateDepartmentRequest request, CancellationToken cancellationToken)

@@ -17,15 +17,15 @@ namespace CrisesControl.Api.Application.Query
         private readonly IAddressRepository _addressRepository;
         private readonly ILogger<AddressQuery> _logger;
         private readonly ICurrentUser _currentUser;
-        private readonly IMapper _mapper;
+        //private readonly IMapper _mapper;
         private readonly IPaging _paging;
-        public AddressQuery(IAddressRepository addressRepository, IMapper mapper, 
+        public AddressQuery(IAddressRepository addressRepository, 
             ILogger<AddressQuery> logger, ICurrentUser currentUser, IPaging paging)
         {
             this._addressRepository = addressRepository;
             this._logger = logger;
             this._currentUser = currentUser;
-            this._mapper = mapper;
+            //this._mapper = mapper;
             this._paging = paging;
         }
 
@@ -36,7 +36,7 @@ namespace CrisesControl.Api.Application.Query
                 AddressLabel=request.AddressLabel,
                 AddressLine1=request.AddressLine1,
                 AddressLine2=request.AddressLine2,
-                AddressType=request.AddressType.ToDbString(),
+                AddressType=request.AddressType.ToAdString(),
                 City=request.City,
                 CountryCode=request.CountryCode,
                 Postcode=request.Postcode,
@@ -49,12 +49,12 @@ namespace CrisesControl.Api.Application.Query
                 
             };
             var AddId = await _addressRepository.AddAddress(address);
-            var result = _mapper.Map<Address>(address);
+            //var result = _mapper.Map<Address>(address);
             var response = new AddAddressResponse();
             if (AddId > 0)
             {
                 response.AddressId = AddId;
-                response.Message = "Address added " + result.AddressId;
+                response.Message = "Address added " + AddId;
             }
             else
             {
@@ -71,9 +71,9 @@ namespace CrisesControl.Api.Application.Query
             if (request.AddressId>0)
             {
                 var address=  await  _addressRepository.DeleteAddress(request.AddressId);
-                var result = _mapper.Map<bool>(address);
+                //var result = _mapper.Map<bool>(address);
 
-                response.Success = result;
+                response.Success = address;
                 response.Message = "Deleted";
 
             }
@@ -91,9 +91,9 @@ namespace CrisesControl.Api.Application.Query
             if (request.AddressId > 0)
             {
                 var address = await _addressRepository.GetAddress(request.AddressId);
-                var result = _mapper.Map<Address>(address);
+                //var result = _mapper.Map<Address>(address);
 
-                response.data = result;
+                response.data = address;
                 response.Message = "Data has been loaded";
 
             }
@@ -108,16 +108,16 @@ namespace CrisesControl.Api.Application.Query
         public async Task<GetAllAddressResponse> GetAllAddress(GetAllAddressRequest request)
         {
             var address = await _addressRepository.GetAllAddress(_paging.PageNumber, _paging.PageSize, _paging.OrderBy);
-            var result = _mapper.Map<List<Address>>(address);
+            //var result = _mapper.Map<List<Address>>(address);
             var response = new GetAllAddressResponse();
-            if (result!=null)
+            if (address != null)
             {
-                response.Data = result;
+                response.Data = address;
                 response.Message = "Data Loaded";
             }
             else
             {
-                response.Data = result;
+                response.Data = address;
                 response.Message = "No Data Found";
             }
             return response;
@@ -133,7 +133,7 @@ namespace CrisesControl.Api.Application.Query
                 AddressLabel = request.AddressLabel,
                 AddressLine1 = request.AddressLine1,
                 AddressLine2 = request.AddressLine2,
-                AddressType = request.AddressType.ToDbString(),
+                AddressType = request.AddressType.ToAdString(),
                 City = request.City,
                 CountryCode = request.CountryCode,
                 Postcode = request.Postcode,
@@ -146,12 +146,12 @@ namespace CrisesControl.Api.Application.Query
 
             };
             var AddId = await _addressRepository.UpdateAddress(address);
-            var result = _mapper.Map<Address>(address);
+            //var result = _mapper.Map<Address>(address);
             var response = new UpdateAddressResponse();
             if (AddId > 0)
             {
                 response.AddressId = AddId;
-                response.Message = "Address has been updated " + result.AddressId;
+                response.Message = "Address has been updated " + AddId;
             }
             else
             {

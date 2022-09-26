@@ -9,20 +9,20 @@ namespace CrisesControl.Api.Application.Commands.Users.GetUserCount
     {
         private readonly GetUserCountValidator _userValidator;
         private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
+        private readonly ILogger<GetUserCountHandler> _logger;
 
-        public GetUserCountHandler(GetUserCountValidator userValidator, IUserRepository userService, IMapper mapper)
+        public GetUserCountHandler(GetUserCountValidator userValidator, IUserRepository userService, ILogger<GetUserCountHandler> logger)
         {
             _userValidator = userValidator;
             _userRepository = userService;
-            _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<GetUserCountResponse> Handle(GetUserCountRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(GetUserCountRequest));
 
-            //var userId = await _userRepository.GetUserCount(request.ModuleId, request.UserId, request.XPos, request.YPos);
+            var userId = await _userRepository.GetUserCount(request.CompanyId, request.UserId);
             return new GetUserCountResponse();
         }
     }

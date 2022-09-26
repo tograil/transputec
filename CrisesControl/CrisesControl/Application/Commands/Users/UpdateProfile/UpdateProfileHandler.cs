@@ -19,17 +19,17 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
     {
         private readonly ICurrentUser _currentUser;
         private readonly ILogger<UpdateProfileHandler> _logger;
-        private readonly IMapper _mapper;
+       
         private readonly IUserRepository _userRepository;
         private readonly string timeZoneId = "GMT Standard Time";
    
-        public UpdateProfileHandler(ICurrentUser currentUser, IMapper mapper, ILogger<UpdateProfileHandler> logger,
+        public UpdateProfileHandler(ICurrentUser currentUser, ILogger<UpdateProfileHandler> logger,
         IUserRepository userRepository, ICompanyParametersRepository companyParRepository, CrisesControlContext context)
         {
             this._currentUser = currentUser;
             this._logger = logger;
             this._userRepository = userRepository;
-            this._mapper = mapper;
+          
              
         }
 
@@ -64,7 +64,7 @@ namespace CrisesControl.Api.Application.Commands.Users.UpdateProfile
                     user.UpdatedOn = DateTime.Now.GetDateTimeOffset(timeZoneId);
 
                     var Id = await _userRepository.UpdateProfile(user);
-                    _mapper.Map<UpdateProfileRequest, User>(request);
+                    //_mapper.Map<UpdateProfileRequest, User>(request);
                    await _userRepository.CreateUserSearch(user.UserId, user.FirstName, user.LastName, user.Isdcode, user.MobileNo, user.PrimaryEmail, request.CompanyId);
 
                     string userchannelallowed = await _userRepository.GetCompanyParameter(KeyType.ALLOWCHANGECHANNELUSER.ToDbKeyString(), request.CompanyId);
