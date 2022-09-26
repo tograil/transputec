@@ -35,6 +35,7 @@ using CrisesControl.Api.Application.Commands.Incidents.UpdateCompanyIncidentActi
 using CrisesControl.Api.Application.Commands.Incidents.UpdateSegregationLink;
 using CrisesControl.Api.Application.Commands.Incidents.UpdateSOS;
 using CrisesControl.Api.Application.Commands.Incidents.UpdateSOSIncident;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllCompanyIncident;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
@@ -43,7 +44,8 @@ namespace CrisesControl.Api.Application.Query
 {
     public interface IIncidentQuery
     {
-        List<IncidentList> GetAllCompanyIncident(int userId);
+     
+        Task<GetAllCompanyIncidentResponse> GetAllCompanyIncident(GetAllCompanyIncidentRequest request);
         List<IncidentTypeReturn> GetCompanyIncidentType(int companyId);
         List<AffectedLocation> GetAffectedLocations(int companyId, string locationType);
         List<AffectedLocation> GetIncidentLocations(int companyId, int incidentActivationId);
