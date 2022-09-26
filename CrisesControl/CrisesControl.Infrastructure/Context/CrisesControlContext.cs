@@ -268,6 +268,8 @@ namespace CrisesControl.Infrastructure.Context
 
             modelBuilder.Entity<AssetLink>().HasNoKey();
             modelBuilder.Entity<AssetsDetails>().HasNoKey();
+            modelBuilder.Entity<InvoiceSchReturn>().HasNoKey();
+            modelBuilder.Entity<OrderListReturn>().HasNoKey();
             //modelBuilder.Entity<Location>().HasNoKey();
             modelBuilder.Entity<AssetLink>().HasNoKey();
             modelBuilder.Entity<AssetsDetails>().HasNoKey();
