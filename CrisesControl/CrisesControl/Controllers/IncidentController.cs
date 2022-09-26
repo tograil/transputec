@@ -13,6 +13,7 @@ using CrisesControl.Api.Application.Commands.Incidents.DeleteCompanyIncidentActi
 using CrisesControl.Api.Application.Commands.Incidents.DeleteIncidentAsset;
 using CrisesControl.Api.Application.Commands.Incidents.GetActiveIncidentBasic;
 using CrisesControl.Api.Application.Commands.Incidents.GetActiveIncidentDetailsById;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.GetAttachments;
 using CrisesControl.Api.Application.Commands.Incidents.GetCallToAction;
 using CrisesControl.Api.Application.Commands.Incidents.GetCMDMessage;
@@ -153,9 +154,9 @@ public class IncidentController : Controller
     /// <returns></returns>
     [HttpGet]
     [Route("[action]/{UserId}")]
-    public IActionResult GetAllCompanyIncident([FromRoute] int userId)
+    public async Task<IActionResult> GetAllCompanyIncident([FromRoute] GetAllCompanyIncidentRequest request)
     {
-        var result = _incidentQuery.GetAllCompanyIncident(userId);
+        var result = await _mediator.Send(request);
         return Ok(result);
     }
 
