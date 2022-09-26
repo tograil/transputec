@@ -5,11 +5,13 @@ using CC.Authority.SCIM.Service;
 using CC.Authority.SCIM.Service.Monitor;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Server.AspNetCore;
+using OpenIddict.Validation.AspNetCore;
 
 namespace CC.Authority.Api.Controllers.SCIM
 {
     [Route(ServiceConstants.RouteUsers)]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
     [ApiController]
     public sealed class UsersController : ControllerTemplate<Core2EnterpriseUser>
     {

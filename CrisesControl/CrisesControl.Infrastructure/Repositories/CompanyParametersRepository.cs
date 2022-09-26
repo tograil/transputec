@@ -617,10 +617,12 @@ namespace CrisesControl.Infrastructure.Repositories {
                     {
 
                         string OTPMessage = DBC.LookupWithKey("SEGREGATION_CODE_MSG");
-
+<<<<<<<<< Temporary merge branch 1
+                        CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
                         CommsHelper CH = new CommsHelper(_context, _httpContextAccessor);
 
                         result.Data =  CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
+>>>>>>>>> Temporary merge branch 2
                     }
                     else
                     {
