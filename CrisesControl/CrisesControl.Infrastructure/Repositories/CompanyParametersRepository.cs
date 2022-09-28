@@ -25,19 +25,19 @@ namespace CrisesControl.Infrastructure.Repositories {
     public class CompanyParametersRepository : ICompanyParametersRepository {
         private readonly CrisesControlContext _context;
         private readonly ILogger<CompanyParametersRepository> _logger;
-        private readonly DBCommon DBC;
-        private readonly HttpContextAccessor _httpContextAccessor;
+        private readonly DBCommon _DBC;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly Messaging _MSG;
         private readonly SendEmail _SDE;
-        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, DBCommon dBCommon, HttpContextAccessor httpContextAccessor, Messaging MSG, SendEmail SDE)
+        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, IHttpContextAccessor httpContextAccessor)
         {
-            this._context = context;
-            this.DBC = dBCommon;
-            this._httpContextAccessor = httpContextAccessor;
-            this._logger = logger;
-            this._MSG = MSG;
-            this._SDE = SDE;
-           
+            _context = context;
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
+
+            _DBC = new DBCommon(context, _httpContextAccessor);
+            _MSG = new Messaging(context, _httpContextAccessor);
+            _SDE = new SendEmail(context, _DBC);
         }
         public async Task<IEnumerable<CascadingPlanReturn>> GetCascading(int planID, string planType, int companyId, bool getDetails = false)
         {
@@ -142,7 +142,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         }
                         else
                         {
-                            Default =  DBC.LookupWithKey(key, Default);
+                            Default = _DBC.LookupWithKey(key, Default);
                         }
                     }
                 }
@@ -616,7 +616,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     if (reg_user.RegisteredUser)
                     {
 
-                        string OTPMessage = DBC.LookupWithKey("SEGREGATION_CODE_MSG");
+                        string OTPMessage = _DBC.LookupWithKey("SEGREGATION_CODE_MSG");
 
                         CommsHelper CH = new CommsHelper(_context, _httpContextAccessor);
 

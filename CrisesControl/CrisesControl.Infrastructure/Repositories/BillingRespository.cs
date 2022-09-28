@@ -31,13 +31,13 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly int companyId;
 
-        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, UsageHelper usage, DBCommon DBC) {
+        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor) {
             _context = context;
             _mapper = mapper;
-            _usage = usage;
-            _DBC = DBC;
             _httpContextAccessor = httpContextAccessor;
             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            _DBC = new DBCommon(context, _httpContextAccessor);
+            _usage = new UsageHelper(context);
         }
 
         public async Task<BillingPaymentProfile> GetPaymentProfile(int companyID)

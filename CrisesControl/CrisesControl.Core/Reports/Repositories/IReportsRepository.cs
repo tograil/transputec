@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace CrisesControl.Core.Reports.Repositories
 {
     public interface IReportsRepository {
-        public Task<List<SOSItem>> GetSOSItems();
+        public Task<List<SOSItem>> GetSOSItems(int UserId);
         public Task<List<IncidentPingStatsCount>> GetIncidentPingStats(int CompanyID, int NoOfMonth);
         Task<List<ResponseSummary>> ResponseSummary(int MessageID);
         Task<DataTablePaging> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int RecordStart, int RecordLength, string search,

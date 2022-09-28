@@ -35,7 +35,7 @@ namespace CrisesControl.Infrastructure.Services
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _DBC = new DBCommon(_context,_httpContextAccessor);
-            _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+            _MSG = new Messaging(_context,_httpContextAccessor);
             queue = new QueueConsumer(_context, _httpContextAccessor);
             _queueHelper = new QueueHelper(_context);
         }

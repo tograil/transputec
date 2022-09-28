@@ -66,7 +66,7 @@ public class UserRepository : IUserRepository
         _SDE = new SendEmail(_context,_DBC);
         _locationRepository = locationRepository;
         _groupRepository = groupRepository;
-        _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+        _MSG = new Messaging(_context,_httpContextAccessor);
         _usage = new UsageHelper(_context);
     }
 
@@ -502,6 +502,7 @@ public class UserRepository : IUserRepository
                                              CompanyId = U.CompanyId,
                                              CompanyName = strCompanyName,
                                              CompanyLogo = CompanyInfo.C.CompanyLogoPath,
+                                             PhoneISDCode = CompanyInfo.C.Isdcode,
                                              CompanyProfile = CompanyInfo.C.CompanyProfile,
                                              AnniversaryDate = CompanyInfo.C.AnniversaryDate,
                                              UserId = U.UserId,

@@ -6,7 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Users.ValidateEmail
     {
         public ValidateEmailValidator()
         {
-            RuleFor(x => x.UserEmail)
+            RuleFor(x => x.UserName)
                 .NotNull()
                 .NotEmpty();
         }
