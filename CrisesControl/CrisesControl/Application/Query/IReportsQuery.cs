@@ -46,7 +46,7 @@ namespace CrisesControl.Api.Application.Query
     public interface IReportsQuery {
         public Task<GetSOSItemsResponse> GetSOSItems(GetSOSItemsRequest request);
         public Task<GetIncidentPingStatsResponse> GetIncidentPingStats(GetIncidentPingStatsRequest request);
-        Task<GetIndidentMessageAckResponse> GetIndidentMessageAck(GetIndidentMessageAckRequest request);
+        Task<GetIndidentMessageAckResponse> GetIndidentMessageAck(GetIndidentMessageAckRequest request, DataTableAjaxPostModel pagedRequest);
         Task<ResponseSummaryResponse> ResponseSummary(ResponseSummaryRequest request);
         Task<GetIndidentMessageNoAckResponse> GetIndidentMessageNoAck(GetIndidentMessageNoAckRequest request);
         CurrentIncidentStatsResponse GetCurrentIncidentStats(int companyId);

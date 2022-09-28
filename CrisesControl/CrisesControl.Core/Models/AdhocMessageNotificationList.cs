@@ -1,4 +1,5 @@
 ﻿using System;
+using CrisesControl.Core.Departments;
 
 namespace CrisesControl.Core.Models
 {
@@ -15,5 +16,6 @@ namespace CrisesControl.Core.Models
         public DateTimeOffset CreatedOn { get; set; }
         public int UpdatedBy { get; set; }
         public DateTimeOffset UpdatedOn { get; set; }
+        public Department Department { get; set; }
     }
 }

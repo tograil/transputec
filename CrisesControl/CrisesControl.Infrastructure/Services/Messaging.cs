@@ -20,7 +20,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using MessageMethod = CrisesControl.Core.Models.MessageMethod;
+using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 
 namespace CrisesControl.Infrastructure.Services
 {
@@ -38,13 +38,14 @@ namespace CrisesControl.Infrastructure.Services
         private readonly DBCommon _DBC;
         //private readonly Messaging _MSG;
         private readonly SendEmail _SDE;
-        public Messaging(CrisesControlContext _db, IHttpContextAccessor httpContextAccessor, DBCommon DBC)
+        public Messaging(CrisesControlContext _db, IHttpContextAccessor httpContextAccessor)
         {
             db = _db;
             _httpContextAccessor = httpContextAccessor;
             _DBC = new DBCommon(db,_httpContextAccessor);
             //_MSG = new Messaging(db,_httpContextAccessor,DBC);
-            _SDE = new SendEmail(db,DBC);
+            _DBC = new DBCommon(db, _httpContextAccessor);
+            _SDE = new SendEmail(db, _DBC);
         }
  
 
@@ -61,7 +62,7 @@ namespace CrisesControl.Infrastructure.Services
                           };
 
                 db.AddRange(ins);
-                db.SaveChanges();
+                db.SaveChangesAsync();
 
             }
             catch (Exception ex)
@@ -113,14 +114,14 @@ namespace CrisesControl.Infrastructure.Services
                     MessageSourceAction = MessageSourceAction
                 };
                 await db.AddAsync(tblMessage);
-                db.SaveChanges();
+                await db.SaveChangesAsync();
 
                 if (multiResponse)
                     await SaveActiveMessageResponse(tblMessage.MessageId, ackOptions, incidentActivationId);
 
                 //Add TrackMe Users in Notification.
                 if (incidentActivationId > 0)
-                    AddTrackMeUsers(incidentActivationId, tblMessage.MessageId, companyId);
+                  await   AddTrackMeUsers(incidentActivationId, tblMessage.MessageId, companyId);
 
 
                 if (messageMethod != null && CascadePlanID <= 0)
@@ -132,7 +133,7 @@ namespace CrisesControl.Infrastructure.Services
                     else
                     {
 
-                        var commsmethod = await  db.Set<MessageMethod>()
+                        var commsmethod = await  db.Set<CrisesControl.Core.Messages.MessageMethod>()
                                            .Where(MM=> MM.ActiveIncidentId == incidentActivationId).Select(MM=>MM.MethodId).Distinct().ToArrayAsync();
                         if (commsmethod != null)
                         {
@@ -184,7 +185,7 @@ namespace CrisesControl.Infrastructure.Services
                 tblMessage.Phone = PhoneUsed;
                 tblMessage.Email = EmailUsed;
                 tblMessage.Push = PushUsed;
-                db.SaveChanges();
+                db.SaveChangesAsync();
 
                 //Process message attachments
                 if (mediaAttachments != null)
@@ -306,7 +307,7 @@ namespace CrisesControl.Infrastructure.Services
                             if (msg != null)
                             {
                                 msg.AttachmentCount = Count;
-                                db.SaveChanges();
+                                await db.SaveChangesAsync();
                             }
                         }
                     }
@@ -340,7 +341,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 try
                 {
-                    var asset =await db.Set<Assets>().Where(A=> A.AssetId == assetId).FirstOrDefaultAsync();
+                    var asset =await db.Set<CrisesControl.Core.Assets.Assets>().Where(A=> A.AssetId == assetId).FirstOrDefaultAsync();
                     if (asset != null)
                     {
                         FileHandler FH = new FileHandler(db, _httpContextAccessor);
@@ -804,10 +805,9 @@ namespace CrisesControl.Infrastructure.Services
             {
                 string ConServiceEnable = _DBC.GetCompanyParameter("CONCIERGE_SERVICE", companyId);
 
-                var phone_method = (from CM in db.Set<CompanyComm>()
-                                    join CO in db.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
-                                    where CM.CompanyId == companyId && CO.MethodCode == "PHONE" && CM.Status == 1 && CM.ServiceStatus == true
-                                    select CO).FirstOrDefault();
+                var phone_method = await db.Set<CompanyComm>().Include(CO=>CO.CommsMethod)
+                                    .Where(CM=> CM.CompanyId == companyId && CM.CommsMethod.MethodCode == "PHONE" && CM.Status == 1 && CM.ServiceStatus == true
+                                    ).FirstOrDefaultAsync();
 
                 if (ConServiceEnable == "true" && phone_method != null)
                 {
@@ -815,7 +815,7 @@ namespace CrisesControl.Infrastructure.Services
                     if (userList.Count > 0)
                     {
                         
-                        var result = StartConferenceNew(companyId, currentUserId, userList, timeZoneId, objectId, 0);
+                        var result = await StartConferenceNew(companyId, currentUserId, userList, timeZoneId, objectId, 0);
                         return true;
 
                     }
@@ -1919,20 +1919,20 @@ namespace CrisesControl.Infrastructure.Services
             return (distance < range ? true : false);
         }
 
-        public void AddTrackMeUsers(int incidentActivationId, int messageId, int companyId)
+        public async Task AddTrackMeUsers(int incidentActivationId, int messageId, int companyId)
         {
             try
             {
                 //get list of track me users
                 var pCompanyId = new SqlParameter("@CompanyID", companyId);
 
-                var track_me_list = db.Set<TrackMeUsers>().FromSqlRaw("exec Get_Track_Me_Users @CompanyID", pCompanyId).ToList();
+                var track_me_list = await  db.Set<TrackMeUsers>().FromSqlRaw("exec Get_Track_Me_Users @CompanyID", pCompanyId).ToListAsync();
 
                 //get the list of all the location of the incident
-                var loc_list = (from IL in db.Set<IncidentLocation>()
+                var loc_list = await (from IL in db.Set<IncidentLocation>()
                                 join ILL in db.Set<IncidentLocationLibrary>() on IL.LibLocationId equals ILL.LocationId
                                 where IL.IncidentActivationId == incidentActivationId
-                                select ILL).ToList();
+                                select ILL).ToListAsync();
 
                 double DistanceToAlert = 100;
 
@@ -2002,7 +2002,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         if (price.I.SMSCount > 0 && price.P.ChannelType == "SMS")
                         {
-                            TotalPrice += Math.Max((price.P.BasePrice * SMSSegment * cpp.TextUplift), cpp.MinimumTextRate);
+                            TotalPrice += Math.Max((price.P.BasePrice  * SMSSegment * cpp.TextUplift), cpp.MinimumTextRate);
                             ShouldCheckCost = true;
                         }
 

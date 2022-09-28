@@ -28,14 +28,14 @@ namespace CrisesControl.Api.Application.Query
     public class UserQuery : IUserQuery
     {
         private readonly IUserRepository _UserRepository;
-       // private readonly IMapper _mapper;
+        private readonly IMapper _mapper;
         private readonly ILogger<UserQuery> _logger;
         private readonly IPaging _paging;
         private readonly ICurrentUser _currentUser;
-        public UserQuery(IUserRepository UserRepository, /*IMapper mapper,*/ ILogger<UserQuery> logger, IPaging paging, ICurrentUser currentUser)
+        public UserQuery(IUserRepository UserRepository, IMapper mapper, ILogger<UserQuery> logger, IPaging paging, ICurrentUser currentUser)
         {
             _UserRepository = UserRepository;
-           // _mapper =  mapper;
+            _mapper =  mapper;
             _logger = logger;
             _paging = paging;
             _currentUser = currentUser;
@@ -43,12 +43,24 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetAllUserResponse> GetUsers(Commands.Users.GetAllUser.GetAllUserRequest request, CancellationToken cancellationToken)
         {
+
            
-           // var mappedRequest = _mapper.Map<Core.Users.GetAllUserRequestList>(request);
-            var users = await _UserRepository.GetAllUsers(request.GetAllUserRequestList);
-            //List<GetUserResponse> response = _mapper.Map<List<User>, List<GetUserResponse>>(users.ToList());
+            GetAllUserRequestList getAllUser = new GetAllUserRequestList();
+            getAllUser.ActiveOnly = request.ActiveOnly;
+            getAllUser.CompanyKey = request.CompanyKey;
+            getAllUser.Filters = request.Filters;
+            getAllUser.KeyHolderOnly = request.KeyHolderOnly;
+            getAllUser.OrderBy = _paging.OrderBy;
+            getAllUser.OrderDir = request.OrderDir;
+            getAllUser.RecordLength = _paging.PageSize;
+            getAllUser.RecordStart = _paging.PageNumber;
+            getAllUser.SearchString = request.SearchString;
+            getAllUser.SkipDeleted = request.SkipDeleted;
+            getAllUser.SkipInActive = request.SkipInActive;
+            var users = await _UserRepository.GetAllUsers(getAllUser);
+            var result = _mapper.Map<List<User>>(users);
             var response = new GetAllUserResponse();
-            response.Data = users.ToList();
+            response.Data = result;
             return response;
         }
 
@@ -123,7 +135,7 @@ namespace CrisesControl.Api.Application.Query
             response.UniqueKey = User.UniqueKey;
             response.Status = User.Status;
             response.TimeZoneId = User.TimeZoneId;
-            response.UserMobileISD = User.UserMobileISD;
+            response.PhoneISDCode = User.PhoneISDCode;
             response.UserId = User.UserId;
             response.UserLanguage = User.UserLanguage;
             response.UserPhoto = User.UserPhoto;
@@ -216,7 +228,7 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<ValidateEmailResponse> ValidateLoginEmail(ValidateEmailRequest request)
         {
-            var validateEmail =await _UserRepository.ValidateLoginEmail(request.UserEmail);
+            var validateEmail =await _UserRepository.ValidateLoginEmail(request.UserName);
             //var result = _mapper.Map<ValidateEmailResponse>(validateEmail.Result);
             var response = new ValidateEmailResponse();
             response.SSOEnabled = validateEmail.SSOEnabled;
@@ -342,7 +354,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var userId = await _UserRepository.GetUserId(request.CompanyId,request.EmailAddress);
+                var userId = await _UserRepository.GetUserId(_currentUser.CompanyId,request.EmailAddress);
                 // var result = _mapper.Map<string>(forgotPassword);
                 var response = new GetUserIdResponse();
                 if (userId != null)

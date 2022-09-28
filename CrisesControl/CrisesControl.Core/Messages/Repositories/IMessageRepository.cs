@@ -45,7 +45,7 @@ public interface IMessageRepository
     Task<MessageAckDetails> MessageAcknowledged(int companyId, int msgListId, string timeZoneId, string userLocationLat, string userLocationLong, int currentUserId, int responseID = 0, string ackMethod = "WEB");
     Task<List<IIncidentMessages>> _get_incident_message(int companyId, int currentUserId);
     Task<List<IPingMessage>> _get_ping_message(int companyId, int currentUserId);
-    Task<List<NotificationDetails>> MessageNotifications(int companyId, int currentUserId);
+    Task<NotificationDetails> MessageNotifications(int companyId, int currentUserId);
     Task<string> LookupWithKey(string key, string Default = "");
     Task<int> GetCallbackOption(string ackMethod);
     Task CreateSOSAlert(int userID, string sosType, int messageId, int messageListId, int responseID, int incidentActivationId,
@@ -60,13 +60,13 @@ public interface IMessageRepository
     Task<List<MessageGroupObject>> GetMessageGroupList(int messageID);
     Task<dynamic> ConverToMp3();
     object GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId);
-    object GetConfUser(int objectId, string objectType);
+    Task<dynamic> GetConfUser(int objectId, string objectType);
     Task<PingInfoReturn> GetPingInfo(int messageId, int userId, int companyId);
     dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId);
-    List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId);
+    Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId);
     Task<int> PingMessages(PingMessageQuery pingMessage);
     dynamic ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId);
-    Task<dynamic> ResendFailure(int messageId, string commsMethod);
+    Task<CommonDTO> ResendFailure(int messageId, string commsMethod);
     Task<int> SaveMessageResponse(int responseId, string responseLabel, string description, bool isSafetyResponse, string safetyAckAction, string messageType, int status, int currentUserId, int companyId, string timeZoneId);
     Task<dynamic> SendPublicAlert(string messageText, int[] messageMethod, bool schedulePA, DateTime scheduleAt, string sessionId, int userId, int companyId, string timeZoneId);
     Task<bool> StartConference(List<User> UserList, int ObjectID, int CurrentUserID, int CompanyID, string TimeZoneId);

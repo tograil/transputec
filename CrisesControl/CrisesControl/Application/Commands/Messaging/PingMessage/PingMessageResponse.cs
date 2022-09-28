@@ -2,6 +2,7 @@
 {
     public class PingMessageResponse
     {
-        public int PingId { get; set; }
+        public int MessageId { get; set; }
+        public string Message { get; set; }
     }
 }

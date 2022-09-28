@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Core.Users;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ namespace CrisesControl.Core.Messages
         public int Executed { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        [NotMapped]
         public UserFullName SentBy { get; set; }
         public DateTimeOffset CreatedOn { get; set; }
         public int CreatedBy { get; set; }

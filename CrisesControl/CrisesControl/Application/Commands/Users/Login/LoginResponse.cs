@@ -14,6 +14,7 @@ namespace CrisesControl.Api.Application.Commands.Users.Login
         public string First_Name { get; set; }
         public string Last_Name { get; set; }
         public string UserMobileISD { get; set; }
+        public string PhoneISDCode { get; set; }
         public string MobileNo { get; set; }
         public string Primary_Email { get; set; }
         public string UserPassword { get; set; }

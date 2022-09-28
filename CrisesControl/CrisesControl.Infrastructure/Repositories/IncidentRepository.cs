@@ -43,26 +43,31 @@ public class IncidentRepository : IIncidentRepository
     private readonly Messaging _MSG;
     private readonly DBCommon _DBC;
     private readonly SendEmail _SDE;
+    private readonly QueueConsumer queueConsumer;
+    private readonly QueueHelper _queueHelper;
     public bool IsSOS = false;
     public string Latitude = "0";
     public string Longtude = "0";
     public bool IsFundAvailable = true;
     private readonly IActiveIncidentTaskService _activeIncidentTaskService;
     public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository,
-        ICompanyParametersRepository companyParamentersRepository, IMessageService service,
-        ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor,
-        Messaging MSG, DBCommon DBC, SendEmail SDE, IActiveIncidentTaskService activeIncidentTaskService)
+        ICompanyParametersRepository companyParamentersRepository,
+        IMessageService service, ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor,
+         IActiveIncidentTaskService activeIncidentTaskService)
     {
         _context = context;
         _companyParamentersRepository = companyParamentersRepository;
         _service = service;
         _logger = logger;
         _activeIncidentRepository = activeIncidentRepository;
-        _httpContextAccessor = httpContextAccessor;
-        _MSG = MSG;
-        _DBC = DBC;
-        _SDE = SDE;
+        _httpContextAccessor = httpContextAccessor;        
+
+        _DBC = new DBCommon(_context,_httpContextAccessor);
+        _SDE = new SendEmail(_context,_DBC);
+        _MSG = new Messaging(_context,_httpContextAccessor);
+        queueConsumer = new QueueConsumer(_context,_httpContextAccessor);
         _activeIncidentTaskService = activeIncidentTaskService;
+        _queueHelper = new QueueHelper(_context);
     }
 
     public async Task<bool> CheckDuplicate(int companyId, string incidentName, int incidentId)
@@ -1184,10 +1189,10 @@ public class IncidentRepository : IIncidentRepository
 
                     IsFundAvailable = await _MSG.CalculateMessageCost(CompanyId, tblmessageid, MsgText);
 
-                    Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Ping", 1, CascadePlanID));
+                    Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Ping", 1, CascadePlanID));
 
                     //QueueHelper.MessageDevicePublish(tblmessageid, 1);
-                    QueueConsumer.CreateCascadingJobs(CascadePlanID, tblmessageid, 0, CompanyId, TimeZoneId);
+                    queueConsumer.CreateCascadingJobs(CascadePlanID, tblmessageid, 0, CompanyId, TimeZoneId);
                 }
                 catch (Exception ex)
                 {
@@ -1629,7 +1634,7 @@ public class IncidentRepository : IIncidentRepository
 
                 if (CascadePlanID <= 0)
                 {
-                    Messaging MSG = new Messaging(_context,_httpContextAccessor ,_DBC);
+                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
                     foreach (int Method in MessageMethod)
                     {
                        await MSG.CreateMessageMethod(0, Method, 0, IncidentId);
@@ -2256,7 +2261,7 @@ public class IncidentRepository : IIncidentRepository
 
                 int mPriority = SharedKernel.Utils.Common.GetPriority(verifyInci.Severity);
 
-                Messaging MSG = new Messaging(_context,_httpContextAccessor, _DBC)
+                Messaging MSG = new Messaging(_context,_httpContextAccessor)
                 {
                     TimeZoneId = TimeZoneId
                 };
@@ -2312,10 +2317,10 @@ public class IncidentRepository : IIncidentRepository
 
                     IsFundAvailable =await MSG.CalculateMessageCost(CompanyId, tblmessageid, tblIncidenActivation.IncidentDescription);
 
-                    await Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, verifyInci.CascadePlanId));
+                    await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, verifyInci.CascadePlanId));
 
                     //QueueHelper.MessageDevicePublish(tblmessageid, 1);
-                    QueueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
+                    queueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
 
                 }
                 catch (Exception ex)
@@ -2435,7 +2440,7 @@ public class IncidentRepository : IIncidentRepository
         {
             var OldNotifyList = await _context.Set<IncidentNotificationList>().Where(ONL=> ONL.CompanyId == CompanyId && ONL.IncidentActivationId == IncidentActivationId).ToListAsync();
 
-            Messaging MSG = new Messaging(_context,_httpContextAccessor, _DBC);
+            Messaging MSG = new Messaging(_context,_httpContextAccessor);
 
             List<int> LINOList = new List<int>();
             List<IncidentNotificationObjLst> LstIncNotiLst = new List<IncidentNotificationObjLst>(LaunchIncidentNotificationObjLst);
@@ -2602,7 +2607,7 @@ public class IncidentRepository : IIncidentRepository
                         pushmethodid = await _context.Set<CommsMethod>().Where(w => w.MethodCode == "PUSH").Select(s => s.CommsMethodId).FirstOrDefaultAsync();
                     }
 
-                    Messaging MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
                     foreach (int Method in MessageMethod)
                     {
                        await  MSG.CreateMessageMethod(0, Method, inci.IncidentActivationId);
@@ -2618,13 +2623,13 @@ public class IncidentRepository : IIncidentRepository
 
             if (UsersToNotify != null)
             {
-                Messaging MSG = new Messaging(_context, _httpContextAccessor, DBC);
+                Messaging MSG = new Messaging(_context, _httpContextAccessor);
                 MSG.AddUserToNotify(0, UsersToNotify.ToList(), inci.IncidentActivationId);
             }
 
             if (MultiResponse)
             {
-                Messaging MSG = new Messaging(_context, _httpContextAccessor,DBC);
+                Messaging MSG = new Messaging(_context, _httpContextAccessor);
                 await MSG.SaveActiveMessageResponse(0, AckOptions, inci.IncidentActivationId);
             }
 

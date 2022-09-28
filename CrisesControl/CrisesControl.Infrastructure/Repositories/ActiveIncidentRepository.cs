@@ -38,14 +38,18 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     private IConfiguration _configuration;
     private readonly Messaging _MSG;
     private readonly DBCommon _DBC;
+    private readonly QueueConsumer queueConsumer;
+    private readonly QueueHelper _queueHelper;
 
-    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration, Messaging MSG, DBCommon dBCommon)
+    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _configuration = configuration;
-        _MSG = MSG;
-        _DBC = dBCommon;
+        _MSG = new Messaging(_context, _httpContextAccessor);
+        _DBC = new DBCommon(_context, _httpContextAccessor);
+        queueConsumer = new QueueConsumer(_context, _httpContextAccessor);
+        _queueHelper = new QueueHelper(_context);
     }
 
     public async Task ProcessKeyHolders(int companyId, int incidentId, int activeIncidentId, int currentUserId,
@@ -597,8 +601,9 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                     {
                         await _MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, _MSG.TextUsed, _MSG.PhoneUsed, _MSG.EmailUsed, _MSG.PushUsed, currentUserId, timeZoneId);
                     }
-                    await QueueConsumer.CreateMessageList(tblmessageid);
-                    IsFundAvailable = QueueConsumer.IsFundAvailable;
+                   
+                    await queueConsumer.CreateMessageList(tblmessageid);
+                    IsFundAvailable = queueConsumer.IsFundAvailable;
                 }
 
                 //Create participent list
@@ -618,10 +623,10 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
                 IsFundAvailable = await _MSG.CalculateMessageCost(companyId, tblmessageid, message);
 
-                Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, cascadePlanId));
+                Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, cascadePlanId));
                 //QueueHelper.MessageDevicePublish(tblmessageid, 1);
 
-                QueueConsumer.CreateCascadingJobs(cascadePlanId, tblmessageid, activeIncidentId, companyId, timeZoneId);
+                queueConsumer.CreateCascadingJobs(cascadePlanId, tblmessageid, activeIncidentId, companyId, timeZoneId);
             }
 
         }
@@ -685,8 +690,8 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 {
                     await _MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, _MSG.TextUsed, _MSG.PhoneUsed, _MSG.EmailUsed, _MSG.PushUsed, currentUserId, timeZoneId);
                 }
-                await QueueConsumer.CreateMessageList(tblmessageid);
-                IsFundAvailable = QueueConsumer.IsFundAvailable;
+                await queueConsumer.CreateMessageList(tblmessageid);
+                IsFundAvailable = queueConsumer.IsFundAvailable;
             }
 
         }

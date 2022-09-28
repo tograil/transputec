@@ -102,6 +102,9 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<PingGroupChartCount>().HasNoKey();
             modelBuilder.Entity<DeliveryOutput>().HasNoKey();
             modelBuilder.Entity<TrackUserCount>().HasNoKey();
+            modelBuilder.Entity<IIncidentMessages>().HasNoKey();
+            modelBuilder.Entity<IPingMessage>().HasNoKey();
+
 
             modelBuilder.Entity<AckOption>().HasNoKey();
             modelBuilder.Entity<IncKeyCons>().HasNoKey();
@@ -277,7 +280,14 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<UserRoles>().HasNoKey();
             modelBuilder.Entity<LicenseCheckResult>().HasNoKey();
             modelBuilder.Entity<SecurityGroups>().HasNoKey();
-            
+            modelBuilder.Entity<IIncNotificationLst>().HasNoKey();
+            modelBuilder.Entity<Results>().HasNoKey();
+            modelBuilder.Entity<PublicAlertRtn>().HasNoKey();
+            modelBuilder.Entity<ConferenceUser>().HasNoKey();
+            modelBuilder.Entity<FailedDeviceQueue>().HasNoKey();
+            modelBuilder.Entity<UserParams>().HasNoKey();
+            //modelBuilder.Entity<MessageMethod>().HasNoKey();
+
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())

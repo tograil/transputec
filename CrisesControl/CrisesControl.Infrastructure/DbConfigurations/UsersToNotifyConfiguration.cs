@@ -21,5 +21,6 @@ public class UsersToNotifyConfiguration : IEntityTypeConfiguration<UsersToNotify
         builder.Property(e => e.MessageId).HasColumnName("MessageID");
 
         builder.Property(e => e.UserId).HasColumnName("UserID");
+        builder.HasOne(e => e.User).WithMany().HasForeignKey(e=>e.UserId);
     }
 }

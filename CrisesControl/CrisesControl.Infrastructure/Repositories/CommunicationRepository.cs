@@ -34,8 +34,8 @@ using Twilio.Rest.Verify.V2.Service;
 namespace CrisesControl.Infrastructure.Repositories {
     public class CommunicationRepository : ICommunicationRepository {
         private readonly CrisesControlContext _context;
-        private readonly HttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon DBC;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly DBCommon _DBC;
         private readonly Messaging _MSG;
         private readonly SendEmail _SDE;
         private readonly ILogger<CommunicationRepository> _logger;
@@ -43,12 +43,12 @@ namespace CrisesControl.Infrastructure.Repositories {
         private int UserID;
         private int CompanyID;
             
-        public CommunicationRepository(CrisesControlContext context, HttpContextAccessor httpContextAccessor, Messaging MSG, SendEmail SDE, ILogger<CommunicationRepository> logger) {
+        public CommunicationRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<CommunicationRepository> logger) {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            DBC = new DBCommon(_context, _httpContextAccessor);
-            _MSG = MSG;
-            _SDE = SDE;
+            _DBC = new DBCommon(_context, _httpContextAccessor);
+            _MSG = new Messaging(_context, _httpContextAccessor);
+            _SDE = new SendEmail(_context, _DBC);
             _logger = logger;
         }
 
@@ -64,9 +64,9 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var result = await _context.Set<UserConferenceItem>().FromSqlRaw("exec Pro_Get_User_Active_Conference_List {0},{1}", pCompanyID, pUserId).ToListAsync();
 
                 return result;
-            } catch (Exception) {
+            } catch (Exception ex) {
 
-                throw;
+                throw ex;
             }
         }
         public async Task<string> HandelCallResponse(string callSid, string callStatus, string from, string to, int duration = 0, string operato = "TWILIO")
@@ -83,9 +83,9 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (MsgRslt != null)
                 {
 
-                    string TimeZoneId = await DBC.GetTimeZoneVal(MsgRslt.U.UserId);
+                    string TimeZoneId =await _DBC.GetTimeZoneVal(MsgRslt.U.UserId);
                     int dlvStatus = 0;
-                    int MaxAttempt = Convert.ToInt32(DBC.GetCompanyParameter("PHONE_MAX_ATTEMPT", MsgRslt.U.CompanyId));
+                    int MaxAttempt = Convert.ToInt32(_DBC.GetCompanyParameter("PHONE_MAX_ATTEMPT", MsgRslt.U.CompanyId));
 
                     callStatus = callStatus.ToUpper() == "NOT-ANSWERED" ? "NO-ANSWER" : callStatus.ToUpper();
 
@@ -113,7 +113,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         await _context.SaveChangesAsync();
                     }
 
-                    DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                     MsgRslt.ML.DateDelivered = dtNow;
                     MsgRslt.ML.UpdatedOn = dtNow;
 
@@ -151,14 +151,13 @@ namespace CrisesControl.Infrastructure.Repositories {
         }
         public async Task LogUndelivered(int messageId, string method, int messageDeviceId, int attempt, int companyId, string timeZoneId)
         {
-            DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
             try
             {
                 UndeliveredMessage UM = new UndeliveredMessage();
                 UM.Id = Guid.NewGuid();
                 UM.Attempt = attempt;
                 UM.MessageId = messageId;
-                UM.DateCreated = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                UM.DateCreated = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 UM.MessageDeviceId = messageDeviceId;
                 UM.MethodName = method;
                 UM.ScheduleFlag = 0;
@@ -187,9 +186,9 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (MsgRslt != null)
                 {
 
-                    string TimeZoneId =await  DBC.GetTimeZoneVal(MsgRslt.U.UserId);
+                    string TimeZoneId =await  _DBC.GetTimeZoneVal(MsgRslt.U.UserId);
                     int dlvStatus = 0;
-                    int MaxAttempt = Convert.ToInt32(DBC.GetCompanyParameter("PHONE_MAX_ATTEMPT", MsgRslt.U.CompanyId));
+                    int MaxAttempt = Convert.ToInt32(_DBC.GetCompanyParameter("PHONE_MAX_ATTEMPT", MsgRslt.U.CompanyId));
 
                     callStatus = callStatus.ToUpper() == CallStatus.NOTANSWERED.ToCString() ? CallStatus.NOANSWER.ToCString() : callStatus.ToUpper();
 
@@ -216,7 +215,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         await _context.SaveChangesAsync();
                     }
 
-                    DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                     MsgRslt.ML.DateDelivered = dtNow;
                     MsgRslt.ML.UpdatedOn = dtNow;
 
@@ -271,10 +270,10 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (MsgRslt != null)
                 {
 
-                    string TimeZoneId =await DBC.GetTimeZoneVal(MsgRslt.U.UserId);
+                    string TimeZoneId =await _DBC.GetTimeZoneVal(MsgRslt.U.UserId);
                     int dlvStatus = 0;
 
-                    DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                     MsgRslt.ML.DateDelivered = dtNow;
                     MsgRslt.ML.UpdatedOn = dtNow;
 
@@ -287,7 +286,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     else if (smsStatus.ToUpper() == SmsStatus.UNDELIVERED.ToSString() || smsStatus.ToUpper() == SmsStatus.REJECTED.ToSString() || smsStatus == "1")
                     {
                         dlvStatus = 2;
-                        int MaxAttempt = Convert.ToInt32(DBC.GetCompanyParameter("TEXT_MAX_ATTEMPT", MsgRslt.U.CompanyId));
+                        int MaxAttempt = Convert.ToInt32(_DBC.GetCompanyParameter("TEXT_MAX_ATTEMPT", MsgRslt.U.CompanyId));
 
                         if (MsgRslt.MD.Attempt <= MaxAttempt && MaxAttempt != 0)
                         {
@@ -313,7 +312,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     CommsLogsHelper CLH = new CommsLogsHelper(_context,_httpContextAccessor);
                     DateTimeOffset utcNow = DateTimeOffset.UtcNow;
                     DateTimeOffset dateCreated = MsgRslt.ML.DateSent.UtcDateTime;
-                    await CLH.CreateCommsLogAsync(messageSid, "TEXT", smsStatus, from, to, "outbound-api", 0, "self", "USD", 1, body, 0, dateCreated, utcNow, utcNow, utcNow, CommsProvider: operato);
+                    CLH.CreateCommsLogAsync(messageSid, "TEXT", smsStatus, from, to, "outbound-api", 0, "self", "USD", 1, body, 0, dateCreated, utcNow, utcNow, utcNow, CommsProvider: operato);
 
                     if (operato == "CM")
                     {
@@ -385,9 +384,9 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (MsgRslt != null)
                 {
 
-                    string TimeZoneId =await DBC.GetTimeZoneVal(MsgRslt.U.UserId);
+                    string TimeZoneId =await _DBC.GetTimeZoneVal(MsgRslt.U.UserId);
 
-                    //DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    //DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                     if (MsgRslt.ML.MessageAckStatus == 0)
                     {
@@ -400,7 +399,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                             {
                                 //MsgRslt.ML.MessageAckStatus = 1;
                                 //MsgRslt.ML.DateAcknowledge = dtNow;
-                                Messaging MSG = new Messaging(_context,_httpContextAccessor,DBC);
+                                Messaging MSG = new Messaging(_context,_httpContextAccessor);
                                 MSG.AcknowledgeMessage(MsgRslt.U.UserId, MsgRslt.ML.MessageId, MsgRslt.ML.MessageListId, "0", "0", "PHONE", 0, TimeZoneId);
                             }
                         }
@@ -437,9 +436,9 @@ namespace CrisesControl.Infrastructure.Repositories {
 
                 if (MsgRslt != null)
                 {
-                    string TimeZoneId =await  DBC.GetTimeZoneVal(MsgRslt.MessageList.User.UserId);
+                    string TimeZoneId =await  _DBC.GetTimeZoneVal(MsgRslt.MessageList.User.UserId);
 
-                    DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                     MsgRslt.MessageList.DateDelivered = dtNow;
                     MsgRslt.MessageList.UpdatedOn = dtNow;
                     MsgRslt.MessageList.MessageDelvStatus = 1;
@@ -476,8 +475,8 @@ namespace CrisesControl.Infrastructure.Repositories {
                     if (getConf != null)
                     {
 
-                        string TimeZoneId =await DBC.GetTimeZoneVal(getConf.CD.UserId);
-                        DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                        string TimeZoneId =await _DBC.GetTimeZoneVal(getConf.CD.UserId);
+                        DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                         int userconfcount =await  _context.Set<ConferenceCallLogDetail>().Where(w => w.UserId == getConf.CD.UserId && w.ConferenceCallId == getConf.CH.ConferenceCallId).CountAsync();
 
@@ -540,8 +539,8 @@ namespace CrisesControl.Infrastructure.Repositories {
                                    .Where(CH=> CH.CloudConfId == conferenceSid).FirstOrDefaultAsync();
                     if (getConf != null)
                     {
-                        string TimeZoneId =await DBC.GetTimeZoneVal(getConf.CreatedBy);
-                        DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                        string TimeZoneId =await _DBC.GetTimeZoneVal(getConf.CreatedBy);
+                        DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                         getConf.CloudConfId = conferenceSid;
 
@@ -586,8 +585,8 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (conf != null)
                 {
                     CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
-                    bool SendInDirect = DBC.IsTrue(DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
-                    string DataCenter = DBC.GetCompanyParameter("TWILIO_EDGE_LOCATION", conf.CompanyId);
+                    bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                    string DataCenter = _DBC.GetCompanyParameter("TWILIO_EDGE_LOCATION", conf.CompanyId);
 
                     dynamic CommsAPI = CH.InitComms("TWILIO", dataCenter: DataCenter);
                     CommsAPI.SendInDirect = SendInDirect;
@@ -644,20 +643,20 @@ namespace CrisesControl.Infrastructure.Repositories {
                         //Get the selected conferance api for the company and set the requrest api params.
                         //Use: EXEC [dbo].[Pro_Global_GetSystemParameter] @ParamNames for LookupWithKey
                         //Use: EXEC [dbo].[Pro_Global_GetCompanyParameter] @CompanyID,@ParamNames for GetCompanyParameter
-                        string CONF_API = DBC.GetCompanyParameter("CONFERANCE_API", CompanyID);
-                        string DataCenter = DBC.GetCompanyParameter("TWILIO_EDGE_LOCATION", CompanyID);
+                        string CONF_API = _DBC.GetCompanyParameter("CONFERANCE_API", CompanyID);
+                        string DataCenter = _DBC.GetCompanyParameter("TWILIO_EDGE_LOCATION", CompanyID);
 
-                        string RetryNumberList = DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", CompanyID, FromNumber);
+                        string RetryNumberList = _DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", CompanyID, FromNumber);
                         List<string> FromNumberList = RetryNumberList.Split(',').ToList();
                         FromNumber = FromNumberList.FirstOrDefault();
 
-                        //FromNumber = DBC.LookupWithKey(CONF_API + "_FROM_NUMBER");
-                        CallBackUrl = DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
-                        MessageXML = DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
-                        bool SendInDirect = DBC.IsTrue(DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
-                        string TwilioRoutingApi = DBC.LookupWithKey("TWILIO_ROUTING_API");
+                        //FromNumber = _DBC.LookupWithKey(CONF_API + "_FROM_NUMBER");
+                        CallBackUrl = _DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
+                        MessageXML = _DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
+                        bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                        string TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
-                        string ConfWelcome = DBC.LookupWithKey("TWILIO_DEFAULT_CONF_MSG");
+                        string ConfWelcome = _DBC.LookupWithKey("TWILIO_DEFAULT_CONF_MSG");
 
                         //Check if conference is started for an Incident
                         if (confHead.ActiveIncidentId > 0)
@@ -669,7 +668,7 @@ namespace CrisesControl.Infrastructure.Repositories {
 
                             if (InciDtl != null)
                             {
-                                string CONF_MAIN_MESSAGE = DBC.LookupWithKey("INCIDENT_CONF_MAIN_MESSAGE");
+                                string CONF_MAIN_MESSAGE = _DBC.LookupWithKey("INCIDENT_CONF_MAIN_MESSAGE");
                                 ConfWelcome = CONF_MAIN_MESSAGE.Replace("{INCIDENTNAME}", InciDtl.ToString());
                             }
                         }
@@ -682,12 +681,12 @@ namespace CrisesControl.Infrastructure.Repositories {
                         CommsAPI.SendInDirect = SendInDirect;
                         CommsAPI.TwilioRoutingApi = TwilioRoutingApi;
 
-                        Messaging MSG = new Messaging(_context,_httpContextAccessor,DBC);
+                        Messaging MSG = new Messaging(_context,_httpContextAccessor);
 
                         string CallId = string.Empty;
                         string CalledOn = "MOBILE";
                         string Status = string.Empty;
-                        string TimeZoneId = DBC.GetTimeZoneByCompany(CompanyID);
+                        string TimeZoneId = _DBC.GetTimeZoneByCompany(CompanyID);
 
                         //Calling each participant except the moderator.
                         foreach (var pc in conf_pc)
@@ -748,8 +747,8 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (getConf != null)
                 {
 
-                    string TimeZoneId =await DBC.GetTimeZoneVal(getConf.CreatedBy);
-                    DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    string TimeZoneId =await _DBC.GetTimeZoneVal(getConf.CreatedBy);
+                    DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                     if (recordingStatus == "completed")
                     {
@@ -760,7 +759,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         getConf.Record = true;
                         await _context.SaveChangesAsync();
 
-                        Messaging MSG = new Messaging(_context,_httpContextAccessor,DBC);
+                        Messaging MSG = new Messaging(_context,_httpContextAccessor);
                         MSG.DownloadRecording(recordingSid, getConf.CompanyId, recordingUrl);
                     }
                     Message = "Conferance details saved";
@@ -795,13 +794,13 @@ namespace CrisesControl.Infrastructure.Repositories {
             {
 
                 //Get the selected conferance api for the company and set the requrest api params.
-                string CONF_API = DBC.GetCompanyParameter("CONFERANCE_API", companyId);
-                string DataCenter = DBC.GetCompanyParameter("TWILIO_EDGE_LOCATION", companyId);
+                string CONF_API = _DBC.GetCompanyParameter("CONFERANCE_API", companyId);
+                string DataCenter = _DBC.GetCompanyParameter("TWILIO_EDGE_LOCATION", companyId);
 
-                bool RecordConf = Convert.ToBoolean(DBC.GetCompanyParameter("RECORD_CONFERENCE", companyId));
-                bool SendInDirect = DBC.IsTrue(DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                bool RecordConf = Convert.ToBoolean(_DBC.GetCompanyParameter("RECORD_CONFERENCE", companyId));
+                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
-                TwilioRoutingApi = DBC.LookupWithKey("TWILIO_ROUTING_API");
+                TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 //Create instance of CommsApi choosen by company
                 dynamic CommsAPI = this.InitComms(CONF_API, dataCenter: DataCenter);
@@ -811,14 +810,14 @@ namespace CrisesControl.Infrastructure.Repositories {
                 CommsAPI.SendInDirect = SendInDirect;
                 CommsAPI.TwilioRoutingApi = TwilioRoutingApi;
 
-                //FromNumber = DBC.LookupWithKey(CONF_API + "_FROM_NUMBER");
+                //FromNumber = _DBC.LookupWithKey(CONF_API + "_FROM_NUMBER");
                 //Get API configraiton from sysparameters
-                string RetryNumberList = DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", companyId, FromNumber);
+                string RetryNumberList = _DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", companyId, FromNumber);
                 List<string> FromNumberList = RetryNumberList.Split(',').ToList();
 
                 FromNumber = FromNumberList.FirstOrDefault();
-                CallBackUrl = DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
-                MessageXML = DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
+                CallBackUrl = _DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
+                MessageXML = _DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
 
                 //Get the user list to fetch their mobile numbers
                 List<int> nUList = new List<int>();
@@ -847,8 +846,8 @@ namespace CrisesControl.Infrastructure.Repositories {
                 //Loop through with each user and their phone number to make the call
                 foreach (var uItem in tmpUserList)
                 {
-                    string Mobile = DBC.FormatMobile(uItem.ISD, uItem.PhoneNumber);
-                    string Landline = DBC.FormatMobile(uItem.Llisdcode, uItem.Landline);
+                    string Mobile = _DBC.FormatMobile(uItem.ISD, uItem.PhoneNumber);
+                    string Landline = _DBC.FormatMobile(uItem.Llisdcode, uItem.Landline);
 
                     if (!string.IsNullOrEmpty(uItem.PhoneNumber))
                     {
@@ -895,7 +894,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             if (!callrslt.Status)
             {
                 status = "";
-                CallStatus = callId = DBC.Left(callId, 50);
+                CallStatus = callId = _DBC.Left(callId, 50);
                 if (!string.IsNullOrEmpty(landLineNumber))
                 {
                     Task<dynamic> recalltask = Task.Factory.StartNew(() => commsAPI.Call(fromNumber, landLineNumber, messageXML, callBackUrl));
@@ -910,7 +909,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     {
                         callId = recallrslt.CommsId;
                         status = "";
-                        CallStatus = callId = DBC.Left(callId, 50);
+                        CallStatus = callId = _DBC.Left(callId, 50);
                     }
                 }
             }
@@ -928,16 +927,16 @@ namespace CrisesControl.Infrastructure.Repositories {
             {
 
                 int RetryCount = 2;
-                int.TryParse(DBC.LookupWithKey(api_CLASS + "_MESSAGE_RETRY_COUNT"), out RetryCount);
+                int.TryParse(_DBC.LookupWithKey(api_CLASS + "_MESSAGE_RETRY_COUNT"), out RetryCount);
 
                 if (string.IsNullOrEmpty(aPIClass))
-                    aPIClass = DBC.LookupWithKey(api_CLASS + "_API_CLASS");
+                    aPIClass = _DBC.LookupWithKey(api_CLASS + "_API_CLASS");
 
                 if (string.IsNullOrEmpty(clientId))
-                    clientId = DBC.LookupWithKey(api_CLASS + "_CLIENTID");
+                    clientId = _DBC.LookupWithKey(api_CLASS + "_CLIENTID");
 
                 if (string.IsNullOrEmpty(clientSecret))
-                    clientSecret = DBC.LookupWithKey(api_CLASS + "_CLIENT_SECRET");
+                    clientSecret = _DBC.LookupWithKey(api_CLASS + "_CLIENT_SECRET");
 
                 string[] TmpClass = aPIClass.Trim().Split('|');
 
@@ -1049,8 +1048,8 @@ namespace CrisesControl.Infrastructure.Repositories {
         
             try
             {
-                bool SendInDirect = DBC.IsTrue(DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
-                string TwilioRoutingApi = DBC.LookupWithKey("TWILIO_ROUTING_API");
+                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 dynamic CommsAPI = this.InitComms("TWILIO");
                 CommsAPI.SendInDirect = SendInDirect;
@@ -1279,7 +1278,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
 
-                string TwilioURL = DBC.LookupWithKey("RECORDING_URL");
+                string TwilioURL = _DBC.LookupWithKey("RECORDING_URL");
 
                 WebClient client = new WebClient();
                 try

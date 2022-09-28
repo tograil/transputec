@@ -31,7 +31,7 @@ namespace CrisesControl.Infrastructure.Services
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _DBC = new DBCommon(_context, _httpContextAccessor);
-            _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+            _MSG = new Messaging(_context,_httpContextAccessor);
             _SDE = new SendEmail(_context, _DBC); ;
         }
 

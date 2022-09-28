@@ -1,8 +1,11 @@
 ﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.AuditLog.Services;
 using CrisesControl.Core.Common;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Context.Misc;
+using GrpcAuditLogClient;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Infrastructure.Services
 {
-    public class QueueConsumer
+    public  class QueueConsumer
     {
 
         public List<string> RabbitHost = new List<string>();
@@ -26,18 +29,26 @@ namespace CrisesControl.Infrastructure.Services
         public string RabbitMQPassword = "guest";
         public string RabbitVirtualHost = "/";
 
-        public static bool IsFundAvailable = true;
+        public bool IsFundAvailable = true;
         public ushort RabbitMQHeartBeat = 60;
-        private static readonly Messaging _MSG;
-        private static readonly CrisesControlContext _db;
-        private static readonly IHttpContextAccessor _httpContextAccessor;
+        private  readonly IHttpContextAccessor _httpContextAccessor;    
+        private  readonly CrisesControlContext _db;
+        private  readonly DBCommon _DBC;
+        private  readonly Messaging _MSG;
+        private readonly QueueHelper _queueHelper;
 
-
-        
-        public static async Task<int> CreateMessageList(int MessageID, string ReplyTo = "")
+        public QueueConsumer(CrisesControlContext db, IHttpContextAccessor httpContextAccessor)
+        {
+            _db = db;
+            _httpContextAccessor = httpContextAccessor;
+            _DBC = new DBCommon(_db, _httpContextAccessor);
+            _MSG = new Messaging(_db, _httpContextAccessor);
+            _queueHelper = new QueueHelper(db);
+        }
+        public  async Task<int> CreateMessageList(int MessageID, string ReplyTo = "")
         {
 
-            DBCommon DBC = new DBCommon(_db, _httpContextAccessor);
+         
             string MessageType = string.Empty;
             int Priority = 999;
             int QueueSize = 0;
@@ -54,13 +65,13 @@ namespace CrisesControl.Infrastructure.Services
 
                         CascadePlanID = msg.CascadePlanId;
 
-                        string TimeZoneId = await DBC.GetTimeZoneVal(msg.CreatedBy);
+                        string TimeZoneId = await _DBC.GetTimeZoneVal(msg.CreatedBy);
 
                         bool notifySender = false;
-                        bool.TryParse(DBC.GetCompanyParameter("INC_SENDER_INCIDENT_UPDATE", msg.CompanyId), out notifySender);
+                        bool.TryParse(_DBC.GetCompanyParameter("INC_SENDER_INCIDENT_UPDATE", msg.CompanyId), out notifySender);
 
                         bool NotifyKeyholders = false;
-                        bool.TryParse(DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", msg.CompanyId), out NotifyKeyholders);
+                        bool.TryParse(_DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", msg.CompanyId), out NotifyKeyholders);
 
                         MessageType = msg.MessageType.ToUpper();
                         Priority = msg.Priority;
@@ -79,7 +90,7 @@ namespace CrisesControl.Infrastructure.Services
                                 try
                                 {
                                     var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
-                                    var pCustomerTime = new SqlParameter("@CustomerTime", DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+                                    var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
                                     _db.Database.ExecuteSqlRaw("Pro_Create_Keyholder_Message_List @MessageID, @CustomerTime", pMessageId, pCustomerTime);
                                 }
@@ -93,7 +104,7 @@ namespace CrisesControl.Infrastructure.Services
                             { //Normal ping message
                                 var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
                                 var pNotifySender = new SqlParameter("@NotifySender", notifySender);
-                                var pCustomerTime = new SqlParameter("@CustomerTime", DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+                                var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
                                 if (msg.ParentId == 0 && ReplyTo.ToUpper() != "RENOTIFY")
                                 {
@@ -133,7 +144,7 @@ namespace CrisesControl.Infrastructure.Services
                             var pIncidentActivationId = new SqlParameter("@IncidentActivationID", msg.IncidentActivationId);
                             var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
                             var pNotifySender = new SqlParameter("@NotifySender", notifySender);
-                            var pCustomerTime = new SqlParameter("@CustomerTime", DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+                            var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
                             if (msg.ParentId == 0 && ReplyTo.ToUpper() != "RENOTIFY")
                             {
@@ -170,7 +181,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         CreateCascadingJobs(CascadePlanID, MessageID, msg.IncidentActivationId, msg.CompanyId, TimeZoneId);
 
-                        DBC.MessageProcessLog(msg.MessageId, "MESSAGE_LIST_CREATED", "", "", "Total count: " + QueueSize);
+                       await  _DBC.MessageProcessLog(msg.MessageId, "MESSAGE_LIST_CREATED", "", "", "Total count: " + QueueSize);
 
                         IsFundAvailable =await _MSG.CalculateMessageCost(msg.CompanyId, MessageID, msg.MessageText);
                     }
@@ -184,17 +195,17 @@ namespace CrisesControl.Infrastructure.Services
             {
                 if (ReplyTo.ToUpper() != "RENOTIFY")
                 {
-                    Task.Factory.StartNew(() => QueueHelper.MessageDeviceQueue(MessageID, MessageType, 1, CascadePlanID));
+                    Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(MessageID, MessageType, 1, CascadePlanID));
                 }
                 else
                 {
-                    Task.Factory.StartNew(() => QueueHelper.MessageDevicePublish(MessageID, 1, ""));
+                    Task.Factory.StartNew(() => _queueHelper.MessageDevicePublish(MessageID, 1, ""));
                 }
                 //CreateMessageDevice(MessageID);
             }
             return QueueSize;
         }
-        public static async void CreateCascadingJobs(int PlanID, int MessageID, int ActiveIncidentID, int CompanyID, string TimeZoneId)
+        public  async void CreateCascadingJobs(int PlanID, int MessageID, int ActiveIncidentID, int CompanyID, string TimeZoneId)
         {
             DBCommon DBC = new DBCommon(_db, _httpContextAccessor);
             try
@@ -256,7 +267,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public static void CreateCascadeJobStep(int MessageID, int PlanID, int ActiveIncidentID, string MessageType, int Priority, int Interval, ref DateTimeOffset StartMessageTime, string TimeZoneId)
+        public  void CreateCascadeJobStep(int MessageID, int PlanID, int ActiveIncidentID, string MessageType, int Priority, int Interval, ref DateTimeOffset StartMessageTime, string TimeZoneId)
         {
             DBCommon DBC = new DBCommon(_db,_httpContextAccessor);
             try
@@ -297,7 +308,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public static void SOSSchedule(int MessageID, int CompanyID, int Priority, DateTimeOffset StartTime, string TimeZoneId, int ActiveIncidentID)
+        public  void SOSSchedule(int MessageID, int CompanyID, int Priority, DateTimeOffset StartTime, string TimeZoneId, int ActiveIncidentID)
         {
             DBCommon DBC = new DBCommon(_db, _httpContextAccessor);
             try

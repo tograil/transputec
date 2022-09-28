@@ -29,8 +29,8 @@ namespace CrisesControl.Core.Incidents
         public UserFullName DeactivatedByName { get; set; }
         public DateTimeOffset ClosedOn { get; set; }
         public int ClosedBy { get; set; }
-        //[NotMapped]
-        //public UserFullName ClosedByName { get; set; }
+        [NotMapped]
+        public UserFullName ClosedByName { get; set; }
         public int StatusId { get; set; }
         public string Status { get; set; }
         public bool HasTask { get; set; }
@@ -56,11 +56,11 @@ namespace CrisesControl.Core.Incidents
         //public List<AckOption> AckOptions { get; set; }
         //[NotMapped]
         //public List<AffectedLocation> AffectedLocations { get; set; }
-        //public int TotalAffectedLocations { get; set; }
+        public int TotalAffectedLocations { get; set; }
         //public bool ShowTrackUser { get; set; }
         //public bool ShowSilentMessage { get; set; }
         //public bool ShowMessageMethod { get; set; }
-        //public bool IsKeyContact { get; set; }
+        public bool IsKeyContact { get; set; }
         public int TotalSOSEvents { get; set; }
         //public bool IsSOS { get; set; }
         //public int SegregationWarning { get; set; }

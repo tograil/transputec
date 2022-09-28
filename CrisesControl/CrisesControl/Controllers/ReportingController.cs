@@ -66,7 +66,7 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetSOSItems")]
+        [Route("GetSOSItems/{UserId:int}")]
         public async Task<IActionResult> GetSOSItems([FromRoute] GetSOSItemsRequest request, CancellationToken cancellationToken) {
             var result = await _mediator.Send(request, cancellationToken);
 

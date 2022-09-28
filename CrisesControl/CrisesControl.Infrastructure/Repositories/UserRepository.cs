@@ -66,7 +66,7 @@ public class UserRepository : IUserRepository
         _SDE = new SendEmail(_context,_DBC);
         _locationRepository = locationRepository;
         _groupRepository = groupRepository;
-        _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+        _MSG = new Messaging(_context,_httpContextAccessor);
         _usage = new UsageHelper(_context);
     }
 
@@ -502,6 +502,7 @@ public class UserRepository : IUserRepository
                                              CompanyId = U.CompanyId,
                                              CompanyName = strCompanyName,
                                              CompanyLogo = CompanyInfo.C.CompanyLogoPath,
+                                             PhoneISDCode = CompanyInfo.C.Isdcode,
                                              CompanyProfile = CompanyInfo.C.CompanyProfile,
                                              AnniversaryDate = CompanyInfo.C.AnniversaryDate,
                                              UserId = U.UserId,
@@ -995,7 +996,7 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            var RegUserInfo = await _context.Set<User>().Include(uc => uc.UserComm).Include(usg => usg.UserSecurityGroup).Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
+            var RegUserInfo = await _context.Set<User>().Include(usg => usg.UserSecurityGroup).Where(Usersval => Usersval.CompanyId == CompanyId && Usersval.UserId == userId).FirstOrDefaultAsync();
 
             if (RegUserInfo != null)
             {
@@ -1326,16 +1327,17 @@ public class UserRepository : IUserRepository
         return UR;
     }
 
-    public void ResetUserDeviceToken(int qUserId)
+    public async Task ResetUserDeviceToken(int qUserId)
     {
         try
         {
-            var dvcs = _context.Set<UserDevice>().Where(w => w.UserId == qUserId).ToList();
+            var dvcs = await  _context.Set<UserDevice>().Where(w => w.UserId == qUserId).ToListAsync();
             foreach (var dvc in dvcs)
             {
                 dvc.DeviceToken = Guid.NewGuid().ToString();
             }
-            _context.SaveChanges();
+           await  _context.SaveChangesAsync();
+         
         }
         catch (Exception ex)
         {
@@ -1344,7 +1346,7 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public void CreateUserSecurityGroup(int userId, int securityGroupId, int createdUpatedBy, int companyId, string securityGroupStandatdFilter = "")
+    public async Task CreateUserSecurityGroup(int userId, int securityGroupId, int createdUpatedBy, int companyId, string securityGroupStandatdFilter = "")
     {
         try
         {
@@ -1355,18 +1357,18 @@ public class UserRepository : IUserRepository
             }
             else if (!string.IsNullOrEmpty(securityGroupStandatdFilter))
             {
-                newSecurityGroupId = _context.Set<SecurityGroup>().Where(t => t.CompanyId == companyId && t.Name == securityGroupStandatdFilter).Select(t => t.SecurityGroupId).FirstOrDefault();
+                newSecurityGroupId = await  _context.Set<SecurityGroup>().Where(t => t.CompanyId == companyId && t.Name == securityGroupStandatdFilter).Select(t => t.SecurityGroupId).FirstOrDefaultAsync();
             }
             if (newSecurityGroupId > 0)
             {
-                bool isUserSecurityGroupDefined = _context.Set<UserSecurityGroup>().Where(t => t.UserId == userId && t.SecurityGroupId == securityGroupId).Any();
+                bool isUserSecurityGroupDefined = await  _context.Set<UserSecurityGroup>().Where(t => t.UserId == userId && t.SecurityGroupId == securityGroupId).AnyAsync();
                 if (!isUserSecurityGroupDefined)
                 {
                     UserSecurityGroup newUserSecurityGroup = new UserSecurityGroup();
                     newUserSecurityGroup.UserId = userId;
                     newUserSecurityGroup.SecurityGroupId = securityGroupId;
-                    _context.Set<UserSecurityGroup>().Add(newUserSecurityGroup);
-                    _context.SaveChanges();
+                    await _context.AddAsync(newUserSecurityGroup);
+                    await _context.SaveChangesAsync();
                 }
             }
         }
@@ -1377,13 +1379,13 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public void UserSecurityGroup(int userId, string[] totSecGroup, int currentUserId, int companyId)
+    public async Task UserSecurityGroup(int userId, string[] totSecGroup, int currentUserId, int companyId)
     {
         try
         {
             if (totSecGroup.Length > 0)
             {
-                var regUserDel = _context.Set<UserSecurityGroup>().Where(t => t.UserId == userId).ToList();
+                var regUserDel = await  _context.Set<UserSecurityGroup>().Where(t => t.UserId == userId).ToListAsync();
                 List<int[]> USGList = new List<int[]>();
                 foreach (string group in totSecGroup)
                 {
@@ -1391,8 +1393,8 @@ public class UserRepository : IUserRepository
                     var ISExist = regUserDel.FirstOrDefault(s => s.UserId == userId && s.SecurityGroupId == groupid);
                     if (ISExist == null)
                     {
-                        CreateUserSecurityGroup(userId, Convert.ToInt16(group), currentUserId, companyId);
-                        ResetUserDeviceToken(userId);
+                      await  CreateUserSecurityGroup(userId, Convert.ToInt16(group), currentUserId, companyId);
+                      await  ResetUserDeviceToken(userId);
                     }
                     else
                     {
@@ -1407,19 +1409,20 @@ public class UserRepository : IUserRepository
                     bool ISDEL = USGList.Any(s => s[0] == item.UserId && s[1] == item.SecurityGroupId);
                     if (!ISDEL)
                     {
-                        _context.Set<UserSecurityGroup>().Remove(item);
+                        _context.Remove(item);
                     }
                 }
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
         {
             //ToDo: throw exception
+            throw ex;
         }
     }
 
-    public void UserObjectRelation(int userId, string[] objFilters, int currentUserId, int companyId, string timeZoneId, string deptAction = "REPLACE", string locAction = "REPLACE")
+    public async Task UserObjectRelation(int userId, string[] objFilters, int currentUserId, int companyId, string timeZoneId, string deptAction = "REPLACE", string locAction = "REPLACE")
     {
 
         try
@@ -1453,16 +1456,14 @@ public class UserRepository : IUserRepository
 
                 foreach (int OBjs in UniqOBjs)
                 {
-                    var objMap = (from OM in _context.Set<ObjectMapping>()
-                                  join O in _context.Set<Core.Models.Object>() on OM.SourceObjectId equals O.ObjectId
-                                  where OM.ObjectMappingId == OBjs
-                                  select O).FirstOrDefault();
+                    var objMap = await  _context.Set<ObjectMapping>().Include(O=>O.Object)
+                                  .Where(OM => OM.ObjectMappingId == OBjs).FirstOrDefaultAsync();
                     if (objMap != null)
                     {
-                        var ObjName = objMap.ObjectTableName;
+                        var ObjName = objMap.Object.ObjectTableName;
 
                         var SourceIds = objf.Where(s => s.ObjMapId == OBjs && s.SourceId > 0).ToList();
-                        var queryRec = _context.Set<ObjectRelation>().Where(t => t.TargetObjectPrimaryId == userId && t.ObjectMappingId == OBjs).ToList();
+                        var queryRec = await  _context.Set<ObjectRelation>().Where(t => t.TargetObjectPrimaryId == userId && t.ObjectMappingId == OBjs).ToListAsync();
 
                         if (SourceIds.Count > 0)
                         {
@@ -1489,10 +1490,10 @@ public class UserRepository : IUserRepository
                                 bool ISDEL = OBJRList.Any(s => s == item.ObjectRelationId);
                                 if (!ISDEL || SourceIds.Count == 0)
                                 {
-                                    _context.Set<ObjectRelation>().Remove(item);
+                                    _context.Remove(item);
                                 }
                             }
-                            _context.SaveChanges();
+                           await _context.SaveChangesAsync();
                         }
                     }
                 }

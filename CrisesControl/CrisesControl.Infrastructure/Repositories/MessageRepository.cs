@@ -32,6 +32,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
+using Group = CrisesControl.Core.Groups.Group;
+using CrisesControl.Core.Register;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -65,10 +67,10 @@ public class MessageRepository : IMessageRepository
         _logger = logger;
        // _companyParameters = companyParameters;
         _DBC = new DBCommon(_context,_httpContextAccessor);
-        _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+        _MSG = new Messaging(_context,_httpContextAccessor);
         _SDE = new SendEmail(_context,_DBC);
         _CH = new CommsHelper(_context,_httpContextAccessor);
-        _PH = new PingHelper(_context,_MSG,_DBC);
+        _PH = new PingHelper(_context, _httpContextAccessor);
         
     }
 
@@ -434,10 +436,6 @@ public class MessageRepository : IMessageRepository
     {
         try
         {
-            if (string.IsNullOrEmpty(longitude))
-            {
-
-            }
             DateTimeOffset dtNow = DateTime.Now.GetDateTimeOffset(timeZoneId);
             var pUserID = new SqlParameter("@UserID", userID);
             var pMessageID = new SqlParameter("@MessageID", messageID);
@@ -450,11 +448,15 @@ public class MessageRepository : IMessageRepository
 
 
             var MessageData = _context.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID,@MessageID,@MessageListID, @Latitude, @Longitude,@Mode,@Timestamp,@ResponseID",
-                                             pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode, pTimestamp, pResponseID).AsEnumerable<AcknowledgeReturn>();
+                                             pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode, pTimestamp, pResponseID).AsEnumerable();
             if (MessageData != null)
             {
-                var message = MessageData.FirstOrDefault();
-                return message;
+                //Todo
+                //Task.Factory.StartNew(() => {
+                //    CCWebSocketHelper.SendMessageCountToUsersByMessage(messageID);
+                //});
+
+                return MessageData.FirstOrDefault();
             }
 
         }
@@ -473,19 +475,22 @@ public class MessageRepository : IMessageRepository
         try
         {
             const string message = "Acknowleged";
-            AcknowledgeReturn MessageData = await AcknowledgeMessage(currentUserId, 0, msgListId, userLocationLat, userLocationLong, ackMethod, responseID, timeZoneId);
+            string ackMethodLink = (ackMethod.ToUpper() == "SMSLINK" ? "TEXT" : ackMethod);
+
+            AcknowledgeReturn MessageData = await AcknowledgeMessage(currentUserId, 0, msgListId, userLocationLat, userLocationLong, ackMethodLink, responseID, timeZoneId);
 
             if (MessageData != null)
             {
 
-                if (responseID > 0)
-                {
-                    int callbackOption = await GetCallbackOption(ackMethod);
-                   await CheckSOSAlert(msgListId, "ACKNOWLEGE", callbackOption);
+                //if (ackMethod.ToUpper() == "SMSLINK")
+                //    SendConfirmationText(companyId, currentUserId, msgListId);
+
+                if (responseID > 0) {
+                    int CallbackOption = await GetCallbackOption(ackMethodLink);
+                    await CheckSOSAlert(msgListId, "ACKNOWLEGE", CallbackOption);
                 }
 
-                if (ackMethod != "APP")
-                {
+                if (ackMethodLink != "APP") {
                     AddUserTrackingDevices(currentUserId);
                 }
 
@@ -541,10 +546,10 @@ public class MessageRepository : IMessageRepository
         foreach (var device in devices)
         {
             if (device.DeviceType.ToUpper().Contains(Enum.GetName(typeof(DeviceType), DeviceType.ANDROID)) || device.DeviceType.ToUpper().Contains(Enum.GetName(typeof(DeviceType), DeviceType.WINDOWS)))
-                AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
+               await AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
         }
     }
-    public async void AddTrackingDevice(int companyID, int userDeviceID, string deviceAddress, string deviceType, int messageListID = 0)
+    public async Task AddTrackingDevice(int companyID, int userDeviceID, string deviceAddress, string deviceType, int messageListID = 0)
     {
         const string messageText = "Track Device";
         try
@@ -577,6 +582,44 @@ public class MessageRepository : IMessageRepository
         {
             _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                      ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
+        }
+    }
+
+    public async void SendConfirmationText(int CompanyId, int UserId, int MessageListId) {
+        
+        try {
+            var user = (from U in _context.Set<User>() where U.UserId == UserId && U.CompanyId == CompanyId select U).FirstOrDefault();
+            if (user != null) {
+
+                string SMS_API = _DBC.GetCompanyParameter("SMS_API", CompanyId);
+                string CoPilotSid = _DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", CompanyId);
+                string FromNumber = _DBC.GetCompanyParameter(SMS_API + "_FROM_NUMBER", CompanyId);
+                string TextMessageXML = _DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
+
+                string sendDirect = _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION");
+
+                bool SendInDirect = _DBC.IsTrue(sendDirect, false);
+
+                dynamic CommsAPI = _CH.InitComms(SMS_API);
+
+                CommsAPI.IsConf = false;
+                CommsAPI.CommsDebug = false;
+                CommsAPI.USE_MESSAGING_COPILOT = SMS_API == "TWILIO" ? true : false;
+                CommsAPI.MESSAGING_COPILOT_SID = CoPilotSid;
+                CommsAPI.SendInDirect = SendInDirect;
+
+                CommsStatus textrslt = new CommsStatus();
+
+                string toNumber = _DBC.FormatMobile(user.Isdcode, user.MobileNo);
+                //Change this message in TwilioSMSAck.ashx
+                string message = "CRISES CONTROL: Message [" + MessageListId + "] has been acknowledged successfully.";
+
+                textrslt = await CommsAPI.Text(FromNumber, toNumber, message, TextMessageXML);
+            }
+
+        } catch (Exception ex) {
+
+            throw;
         }
     }
     public async Task CheckSOSAlert(int messageListID, string sosType, int callbackOption)
@@ -612,7 +655,7 @@ public class MessageRepository : IMessageRepository
                     }
                     else
                     {
-                        CreateSOSAlert(sos.RecepientUserId, sosType, sos.Message.MessageId, sos.MessageListId, sos.ResponseId, (int)sos.Message.IncidentActivationId,
+                      await  CreateSOSAlert(sos.RecepientUserId, sosType, sos.Message.MessageId, sos.MessageListId, sos.ResponseId, (int)sos.Message.IncidentActivationId,
                             sos.ActiveMessageResponse.ResponseLabel ?? string.Empty, sos.UpdatedOn, DateTime.Now, sos.UserLocationLat ?? string.Empty, sos.UserLocationLong ?? String.Empty, callbackOption);
                     }
                 }
@@ -657,14 +700,16 @@ public class MessageRepository : IMessageRepository
 
 
 
-    public async Task<List<NotificationDetails>> MessageNotifications(int companyId, int currentUserId)
+    public async Task<NotificationDetails> MessageNotifications(int companyId, int currentUserId)
     {
-        List<NotificationDetails> NDL = new List<NotificationDetails>();
+        NotificationDetails NDL = new NotificationDetails();
 
         List<IIncidentMessages> IM = await _get_incident_message(companyId, currentUserId);
-        List<IPingMessage> PM = await _get_ping_message(companyId, currentUserId);
+        NDL.IncidentMessages = IM;
 
-        NDL.Add(new NotificationDetails { IncidentMessages = IM, PingMessage = PM });
+        List<IPingMessage> PM = await _get_ping_message(companyId, currentUserId);
+        NDL.PingMessage = PM;
+
         return NDL;
     }
     public async Task<string> LookupWithKey(string key, string Default = "")
@@ -698,25 +743,18 @@ public class MessageRepository : IMessageRepository
         var pTargetUserId = new SqlParameter("@UserID", currentUserId);
         var pCompanyID = new SqlParameter("@CompanyID", companyId);
 
-        var result = await _context.Set<IIncidentMessages>().FromSqlRaw(" exec Pro_User_Incident_Notifications @UserID, @CompanyID",
-            pTargetUserId, pCompanyID).ToListAsync();
-
-        result.Select(async c =>
-        {
-            c.AckOptions = new List<AckOption>(await _context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
-                   new AckOption()
-                   {
+        var result = _context.Set<IIncidentMessages>().FromSqlRaw(" exec Pro_User_Incident_Notifications @UserID, @CompanyID",
+            pTargetUserId, pCompanyID).ToListAsync().Result.Select(c => {
+                c.AckOptions = new List<AckOption>(_context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
+                   new AckOption() {
                        ResponseId = n.ResponseId,
                        ResponseLabel = n.ResponseLabel,
-                   }).ToListAsync());
-            return c;
-        }).ToList();
+                   }).ToList());
+                return c;
+                }
+            ).ToList();
+
         return result;
-
-
-
-
-
     }
 
     public async Task<List<IPingMessage>> _get_ping_message(int companyId, int currentUserId)
@@ -725,19 +763,17 @@ public class MessageRepository : IMessageRepository
         var pTargetUserId = new SqlParameter("@UserID", currentUserId);
         var pCompanyID = new SqlParameter("@CompanyID", companyId);
 
-        var result = await _context.Set<IPingMessage>().FromSqlRaw("exec Pro_User_Ping_Notifications @UserID, @CompanyID",
-            pTargetUserId, pCompanyID).ToListAsync();
+        var result = _context.Set<IPingMessage>().FromSqlRaw("exec Pro_User_Ping_Notifications @UserID, @CompanyID",
+            pTargetUserId, pCompanyID).ToListAsync().Result.Select(c =>
+            {
+                c.AckOptions = new List<AckOption>(_context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
+                      new AckOption() {
+                          ResponseId = n.ResponseId,
+                          ResponseLabel = n.ResponseLabel,
+                      }).ToList());
+                return c;
+            }).ToList();
 
-        result.Select(async c =>
-        {
-            c.AckOptions = new List<AckOption>(await _context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
-                  new AckOption()
-                  {
-                      ResponseId = n.ResponseId,
-                      ResponseLabel = n.ResponseLabel,
-                  }).ToListAsync());
-            return c;
-        }).ToList();
         return result;
 
     }
@@ -853,7 +889,7 @@ public class MessageRepository : IMessageRepository
             var pUserID = new SqlParameter("@UserID", UserID);
             var pSource = new SqlParameter("@Source", source);
 
-            var result = _context.Set<MessageDetails>().FromSqlRaw("Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
+            var result = _context.Set<MessageDetails>().FromSqlRaw("exec Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
                 pParentID, pCompanyID, pUserID, pSource).AsEnumerable();
 
             var replies = result.Select(c =>
@@ -1083,28 +1119,28 @@ public class MessageRepository : IMessageRepository
         }
     }
 
-    public object GetConfUser(int objectId, string objectType)
+    public async Task<dynamic> GetConfUser(int objectId, string objectType)
     {
         CommonDTO ResultDTO = new CommonDTO();
         try
         {
             if (objectType.ToUpper() == "INCIDENT")
             {
-                var rcpnt_list = (from ML in _context.Set<MessageList>()
+                var rcpnt_list = await  (from ML in _context.Set<MessageList>()
                                   join M in _context.Set<Message>() on ML.MessageId equals M.MessageId
                                   join U in _context.Set<User>() on ML.RecepientUserId equals U.UserId
                                   where M.IncidentActivationId == objectId && U.Status == 1 && M.MessageType == "Incident"
-                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToList();
+                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToListAsync();
 
                 return rcpnt_list;
             }
             else if (objectType.ToUpper() == "PING")
             {
-                var rcpnt_list = (from ML in _context.Set<MessageList>()
+                var rcpnt_list = await (from ML in _context.Set<MessageList>()
                                   join M in _context.Set<Message>() on ML.MessageId equals M.MessageId
                                   join U in _context.Set<User>() on ML.RecepientUserId equals U.UserId
                                   where M.MessageId == objectId && U.Status == 1 && M.MessageType == "Ping"
-                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToList();
+                                  select new { U.FirstName, U.LastName, U.UserPhoto, U.Isdcode, U.MobileNo, U.PrimaryEmail, U.UserId }).Distinct().ToListAsync();
                 return rcpnt_list;
             }
             return ResultDTO;
@@ -1115,14 +1151,77 @@ public class MessageRepository : IMessageRepository
         }
 
     }
+    /* -- ================================================
+-- Template generated from Template Explorer using:
+-- Create Procedure (New Menu).SQL
+--
+-- Use the Specify Values for Template Parameters 
+-- command (Ctrl-Shift-M) to fill in the parameter 
+-- values below.
+--
+-- This block of comments will not be included in
+-- the definition of the procedure.
+-- ================================================
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Confidence Selomo>
+-- Create date: <16/09/2022,,>
+-- Description:	<SP to Ping Notification List,,>
+-- =============================================
+CREATE PROCEDURE Pro_Get_Ping_Notification_List 
+	-- Add the parameters for the stored procedure here
+	@CompanyID int, 
+	@MessageID int 
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+		SELECT
+		ObjectMappingId = INL.ObjectMappingId,
+		SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
+		ObjectLabel = L.Location_Name,
+		ObjectType ='LOCATION'
+		from  AdhocMessageNotificationList INL
+		INNER JOIN ObjectRelation ORL on  (INL.ObjectMappingId = ORL.ObjectMappingId)
+		AND
+		 (INL.SourceObjectPrimaryId= ORL.SourceObjectPrimaryId )
+		INNER JOIN ObjectMapping OP on ORL.ObjectMappingId=OP.ObjectMappingId
+		Inner JOIN Objects O on  OP.TargetObjectID=O.ObjectID
+		INNER JOIN [dbo].[Location] L on INL.SourceObjectPrimaryId = L.LocationId
+		WHERE INL.CompanyId = 7 
+		AND ORL.ObjectMappingId = 9 
+		AND INL.MessageId = @MessageID
+		UNION
+		SELECT                                                              
+		ObjectMappingId = INL.ObjectMappingId,
+		SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
+		ObjectLabel = D.GroupName,
+		ObjectType = 'GROUP'
+		FROM  AdhocMessageNotificationList INL
+		INNER JOIN  ObjectRelation ORL on  (INL.ObjectMappingId = ORL.ObjectMappingId)
+		AND (INL.SourceObjectPrimaryId= ORL.SourceObjectPrimaryId )
+		INNER JOIN [dbo].[Group] D on INL.SourceObjectPrimaryId = D.GroupId
+		Where INL.CompanyId = @CompanyID AND ORL.ObjectMappingId = 10 AND
+		INL.MessageId = @MessageID
+                                                               
+                                                              
+END
+GO
+     * 
+     */
 
     public async Task<PingInfoReturn> GetPingInfo(int messageId, int userId, int companyId)
     {
         try
         {
-            var pingifo = await (from M in _context.Set<Message>()
-                                 where M.MessageId == messageId
-                                 select new PingInfoReturn
+            var pingifo = await  _context.Set<Message>()
+                                 .Where(M=> M.MessageId == messageId)
+                                 .Select(M=> new PingInfoReturn
                                  {
                                      MessageText = M.MessageText,
                                      AssetId = M.AssetId,
@@ -1135,62 +1234,40 @@ public class MessageRepository : IMessageRepository
                                  }).FirstOrDefaultAsync();
             if (pingifo != null)
             {
-                pingifo.PingNotificationList = await (from INL in _context.Set<AdhocMessageNotificationList>()
-                                                      join ORL in _context.Set<ObjectRelation>() on new { INL.ObjectMappingId, INL.SourceObjectPrimaryId }
-                                                      equals new { ORL.ObjectMappingId, ORL.SourceObjectPrimaryId }
-                                                      join L in _context.Set<Location>() on INL.SourceObjectPrimaryId equals L.LocationId
-                                                      where INL.CompanyId == CompanyID && ORL.ObjectMappingId == 9 &&
-                                                      INL.MessageId == messageId
-                                                      select new IIncNotificationLst
-                                                      {
-                                                          ObjectMappingId = INL.ObjectMappingId,
-                                                          SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
-                                                          ObjectLabel = L.LocationName,
-                                                          ObjectType = "LOCATION"
-                                                      }).Union((from INL in _context.Set<AdhocMessageNotificationList>()
-                                                                join ORL in _context.Set<ObjectRelation>() on new { INL.ObjectMappingId, INL.SourceObjectPrimaryId }
-                                                                equals new { ORL.ObjectMappingId, ORL.SourceObjectPrimaryId }
-                                                                join D in _context.Set<Group>() on INL.SourceObjectPrimaryId equals D.GroupId
-                                                                where INL.CompanyId == CompanyID && ORL.ObjectMappingId == 10 &&
-                                                                INL.MessageId == messageId
-                                                                select new IIncNotificationLst
-                                                                {
-                                                                    ObjectMappingId = INL.ObjectMappingId,
-                                                                    SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
-                                                                    ObjectLabel = D.GroupName,
-                                                                    ObjectType = "GROUP"
-                                                                })
-                               ).ToListAsync();
-                pingifo.AckOptions = await (from MM in _context.Set<ActiveMessageResponse>()
-                                            where MM.MessageId == messageId
-                                            select new AckOption
+                var pCompanyId = new SqlParameter("@CompanyID", companyId);
+                var pMessageId = new SqlParameter("@MessageID", messageId);
+                pingifo.PingNotificationList = await _context.Set<IIncNotificationLst>().FromSqlRaw("Exec Pro_Get_Ping_Notification_List @CompanyID,@MessageID", pCompanyId, pMessageId) .ToListAsync();
+                pingifo.AckOptions = await _context.Set<ActiveMessageResponse>()
+                                            .Where(MM=> MM.MessageId == messageId)
+                                            .Select(MM => new AckOption
                                             {
                                                 ResponseId = MM.ResponseId,
                                                 ResponseLabel = MM.ResponseLabel,
                                                 ResponseCode = MM.ResponseCode
                                             }).ToListAsync();
-                pingifo.MessageMethod = await (from MM in _context.Set<MessageMethod>()
-                                               join MT in _context.Set<CommsMethod>() on MM.MethodId equals MT.CommsMethodId
-                                               where MM.MessageId == messageId
-                                               select new CommsMethods { MethodId = MM.MethodId, MethodName = MT.MethodName }).ToListAsync();
-                pingifo.UsersToNotify = await (from UN in _context.Set<UsersToNotify>()
-                                               join U in _context.Set<User>() on UN.UserId equals U.UserId
-                                               where UN.MessageId == messageId
-                                               select new IIncKeyConResponse
+                pingifo.MessageMethod = await  _context.Set<MessageMethod>().Include(MT=>MT.CommsMethod)                                               
+                                               .Where(MM=> MM.MessageId == messageId)
+                                               .Select(MM=> new CommsMethods 
+                                               { 
+                                                   MethodId = MM.MethodId, 
+                                                   MethodName = MM.CommsMethod.MethodName 
+                                               }).ToListAsync();
+                pingifo.UsersToNotify = await  _context.Set<UsersToNotify>().Include(U=>U.User)
+                                               .Where(UN=> UN.MessageId == messageId)
+                                               .Select(U=> new IIncKeyConResponse
                                                {
-                                                   FirstName = U.FirstName,
-                                                   LastName = U.LastName,
+                                                   FirstName = U.User.FirstName,
+                                                   LastName = U.User.LastName,
                                                    UserId = U.UserId
                                                }).ToListAsync();
-                pingifo.DepartmentToNotify = await (from INL in _context.Set<AdhocMessageNotificationList>()
-                                                    join D in _context.Set<Department>() on INL.SourceObjectPrimaryId equals D.DepartmentId
-                                                    where INL.CompanyId == CompanyID && INL.ObjectMappingId == 100 &&
-                                                    INL.MessageId == messageId
-                                                    select new IIncNotificationLst
+                pingifo.DepartmentToNotify = await  _context.Set<AdhocMessageNotificationList>().Include(d => d.Department)                                                    
+                                                    .Where(INL=> INL.CompanyId == CompanyID && INL.ObjectMappingId == 100 &&
+                                                    INL.MessageId == messageId)
+                                                    .Select(INL=> new IIncNotificationLst
                                                     {
                                                         ObjectMappingId = 100,
                                                         SourceObjectPrimaryId = INL.SourceObjectPrimaryId,
-                                                        ObjectLabel = D.DepartmentName,
+                                                        ObjectLabel = INL.Department.DepartmentName,
                                                         ObjectType = "DEPARTMENT"
                                                     }).ToListAsync();
 
@@ -1204,7 +1281,7 @@ public class MessageRepository : IMessageRepository
         }
     }
 
-    public List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId)
+    public async Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId)
     {
         try
         {
@@ -1256,7 +1333,7 @@ public class MessageRepository : IMessageRepository
         }
     }
 
-    public async Task<dynamic> ResendFailure(int messageId, string commsMethod)
+    public async Task<CommonDTO> ResendFailure(int messageId, string commsMethod)
     {
         try
         {

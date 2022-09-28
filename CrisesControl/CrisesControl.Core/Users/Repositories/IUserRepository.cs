@@ -47,10 +47,10 @@ public interface IUserRepository
     Task<IEnumerable<UserDeviceListModel>> GetAllOneUserDeviceList(int quiredUserId, CancellationToken cancellationToken);
     Task<bool> DeleteUserDevice(int userDeviceId, CancellationToken cancellationToken);
     Task<UserRelations> UserRelations(CancellationToken cancellationToken);
-    void ResetUserDeviceToken(int qUserId);
-    void CreateUserSecurityGroup(int userId, int securityGroupId, int createdUpatedBy, int companyId, string securityGroupStandatdFilter = "");
-    void UserSecurityGroup(int userId, string[] totSecGroup, int currentUserId, int companyId);
-    void UserObjectRelation(int userId, string[] objFilters, int currentUserId, int companyId, string timeZoneId, string deptAction = "REPLACE", string locAction = "REPLACE");
+    Task ResetUserDeviceToken(int qUserId);
+    Task CreateUserSecurityGroup(int userId, int securityGroupId, int createdUpatedBy, int companyId, string securityGroupStandatdFilter = "");
+    Task UserSecurityGroup(int userId, string[] totSecGroup, int currentUserId, int companyId);
+    Task UserObjectRelation(int userId, string[] objFilters, int currentUserId, int companyId, string timeZoneId, string deptAction = "REPLACE", string locAction = "REPLACE");
     Task<bool> BulkAction(BulkActionModel request, CancellationToken cancellationToken);
     Task<List<UserGroup>> GetUserGroups(int userId);
     Task<dynamic> OffDuty(OffDutyModel request, CancellationToken cancellationToken);

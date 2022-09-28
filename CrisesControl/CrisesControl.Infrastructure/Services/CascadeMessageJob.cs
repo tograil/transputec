@@ -23,9 +23,11 @@ namespace CrisesControl.Infrastructure.Services
     public class CascadeMessageJob : IJob
     {
         private readonly CrisesControlContext _controlContext;
+        private readonly QueueHelper _queueHelper;
         public CascadeMessageJob(CrisesControlContext controlContext)
         {
             this._controlContext = controlContext;
+            this._queueHelper = new QueueHelper(_controlContext);
         }
         //DBCommon DBC = new DBCommon();
 
@@ -47,7 +49,7 @@ namespace CrisesControl.Infrastructure.Services
 
                     if (RowsCount > 0)
                     {
-                        QueueHelper.MessageDevicePublish(MessageID, Priority);
+                        _queueHelper.MessageDevicePublish(MessageID, Priority);
                     }
                 
             }

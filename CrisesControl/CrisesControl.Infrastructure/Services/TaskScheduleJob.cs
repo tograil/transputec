@@ -2,6 +2,7 @@
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Messages;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;

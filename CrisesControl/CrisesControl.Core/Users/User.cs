@@ -1,6 +1,7 @@
 ﻿using CrisesControl.Core.Companies;
 using CrisesControl.Core.Models;
 using System;
+using System.Collections.Generic;
 
 namespace CrisesControl.Core.Users
 {
@@ -43,8 +44,9 @@ namespace CrisesControl.Core.Users
         public string? UserHash { get; set; }
         public int? TimezoneId { get; set; }
         public UserSecurityGroup UserSecurityGroup { get; set; }
-        public UserComm UserComm { get; set; }
+        //public UserComm UserComm { get; set; }
 
         public Company Company { get; set; }
+       
     }
 }

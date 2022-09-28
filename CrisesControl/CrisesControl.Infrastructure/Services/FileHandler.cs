@@ -26,11 +26,12 @@ namespace CrisesControl.Infrastructure.Services
         private readonly IAuditLogService _auditLogService;
         public FileHandler(CrisesControlContext context,  IHttpContextAccessor httpContextAccessor)
         {
-            connectionString = DBC.Getconfig("AzureFileShareConnection");
-            hostingEnv = DBC.Getconfig("HostingEnvironment");
+           
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             DBC = new DBCommon(_context, _httpContextAccessor);
+            connectionString = DBC.Getconfig("AzureFileShareConnection");
+            hostingEnv = DBC.Getconfig("HostingEnvironment");
         }
 
         public Uri GetFileSasUri(string shareName, string filePath, DateTime expiration, ShareFileSasPermissions permissions)
