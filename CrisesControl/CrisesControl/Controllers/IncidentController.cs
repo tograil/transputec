@@ -13,6 +13,9 @@ using CrisesControl.Api.Application.Commands.Incidents.DeleteCompanyIncidentActi
 using CrisesControl.Api.Application.Commands.Incidents.DeleteIncidentAsset;
 using CrisesControl.Api.Application.Commands.Incidents.GetActiveIncidentBasic;
 using CrisesControl.Api.Application.Commands.Incidents.GetActiveIncidentDetailsById;
+using CrisesControl.Api.Application.Commands.Incidents.GetAffectedLocations;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllActiveCompanyIncident;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.GetAttachments;
 using CrisesControl.Api.Application.Commands.Incidents.GetCallToAction;
 using CrisesControl.Api.Application.Commands.Incidents.GetCMDMessage;
@@ -139,10 +142,10 @@ public class IncidentController : Controller
     /// <param name="paging"></param>
     /// <returns></returns>
     [HttpGet]
-    [Route("[action]")]
-    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? status, [FromRoute] DataTableAjaxPostModel paging)
+    [Route("[action]/{Status}")]
+    public async Task<IActionResult> GetAllActiveCompanyIncident([FromRoute] GetAllActiveCompanyIncidentRequest request, CancellationToken cancellationToken)
     {
-        var result = _incidentQuery.GetAllActiveCompanyIncident(status, paging);
+        var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 
@@ -153,9 +156,9 @@ public class IncidentController : Controller
     /// <returns></returns>
     [HttpGet]
     [Route("[action]/{UserId}")]
-    public IActionResult GetAllCompanyIncident([FromRoute] int userId)
+    public async Task<IActionResult> GetAllCompanyIncident([FromRoute] GetAllCompanyIncidentRequest request, CancellationToken cancellationToken)
     {
-        var result = _incidentQuery.GetAllCompanyIncident(userId);
+        var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 
@@ -165,7 +168,7 @@ public class IncidentController : Controller
     /// <param name="companyId"></param>
     /// <returns></returns>
     [HttpGet]
-    [Route("[action]/{CompanyId}")]
+    [Route("[action]/{companyId}")]
     public IActionResult GetCompanyIncidentType([FromRoute] int companyId)
     {
         var result = _incidentQuery.GetCompanyIncidentType(companyId);
@@ -179,10 +182,10 @@ public class IncidentController : Controller
     /// <param name="locationType">IMPACTED/AFFECTED etc.</param>
     /// <returns></returns>
     [HttpGet]
-    [Route("[action]/{CompanyId}/{LocationType}")]
-    public IActionResult GetAffectedLocations([FromRoute] int companyId, [FromRoute] string locationType) //TODO: Change LocationType to enum
+    [Route("[action]/{LocationType}")]
+    public async Task<IActionResult> GetAffectedLocations([FromRoute] GetAffectedLocationsRequest request, CancellationToken cancellationToken)
     {
-        var result = _incidentQuery.GetAffectedLocations(companyId, locationType);
+        var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
 
@@ -193,7 +196,7 @@ public class IncidentController : Controller
     /// <param name="incidentActivationId"></param>
     /// <returns></returns>
     [HttpGet]
-    [Route("[action]/{CompanyId}/{IncidentActivationId}")]
+    [Route("[action]/{companyId}/{incidentActivationId}")]
     public IActionResult GetIncidentLocations([FromRoute] int companyId, [FromRoute] int incidentActivationId)
     {
         var result = _incidentQuery.GetIncidentLocations(companyId, incidentActivationId);
@@ -207,7 +210,7 @@ public class IncidentController : Controller
     /// <param name="type">Set to 'TASK' for Tasks, or it'll be regarded as Incident.</param>
     /// <returns></returns>
     [HttpGet]
-    [Route("[action]/{ItemID}/{Type}")]
+    [Route("[action]/{itemID}/{type}")]
     public IActionResult GetIncidentComms([FromRoute] int itemID, [FromRoute] string type) //TODO: Change Type to enum
     {
         var result = _incidentQuery.GetIncidentComms(itemID, type);
@@ -222,7 +225,7 @@ public class IncidentController : Controller
     /// <param name="userStatus"></param>
     /// <returns></returns>
     [HttpGet]
-    [Route("[action]/{CompanyId}/{IncidentId}/{UserStatus}")]
+    [Route("[action]/{companyId}/{incidentId}/{serStatus}")]
     public IActionResult GetCompanyIncidentById([FromRoute] int companyId, [FromRoute] int incidentId, [FromRoute] string userStatus) //TODO: Change UserStatus to enum
     {
         var result = _incidentQuery.GetCompanyIncidentById(companyId, incidentId, userStatus);
@@ -258,7 +261,7 @@ public class IncidentController : Controller
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
     }
-    [HttpGet]
+    [HttpPut]
     [Route("[action]")]
     public async Task<IActionResult> UpdateSOS([FromBody] UpdateSOSRequest request, CancellationToken cancellationToken)
     {
@@ -385,7 +388,7 @@ public class IncidentController : Controller
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    [HttpGet]
+    [HttpDelete]
     [Route("[action]/{IncidentActionId}/{IncidentId}")]
     public async Task<IActionResult> DeleteCompanyIncidentAction([FromRoute] DeleteCompanyIncidentActionRequest request, CancellationToken cancellationToken)
     {
@@ -398,7 +401,7 @@ public class IncidentController : Controller
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    [HttpGet]
+    [HttpDelete]
     [Route("[action]/{IncidentAssetId}/{AssetObjMapId}/{IncidentId}")]
     public async Task<IActionResult> DeleteIncidentAsset([FromRoute] DeleteIncidentAssetRequest request, CancellationToken cancellationToken)
     {
@@ -620,8 +623,8 @@ public class IncidentController : Controller
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpGet]
-    [Route("[action]")]
-    public async Task<IActionResult> GetIncidentRecipientEntity([FromRoute] GetIncidentRecipientEntityRequest request, CancellationToken cancellationToken)
+    [Route("[action]/{ActiveIncidentID}/{EntityID}/{EntityType}")]
+    public async Task<IActionResult> GetIncidentRecipientEntity([FromRoute] GetIncidentRecipientEntityRequest request,  CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);
@@ -633,7 +636,7 @@ public class IncidentController : Controller
     /// <param name= "cancellationToken" ></param >
     /// <returns ></returns >
     [HttpGet]
-    [Route("[action]")]
+    [Route("[action]/{ActiveIncidentID}/{EntityID}/{EntityType}")]
     public async Task<IActionResult> GetIncidentEntityRecipient([FromRoute] GetIncidentEntityRecipientRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);

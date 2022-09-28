@@ -34,7 +34,7 @@ using Twilio.Rest.Verify.V2.Service;
 namespace CrisesControl.Infrastructure.Repositories {
     public class CommunicationRepository : ICommunicationRepository {
         private readonly CrisesControlContext _context;
-        private readonly HttpContextAccessor _httpContextAccessor;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly DBCommon DBC;
         private readonly Messaging _MSG;
         private readonly SendEmail _SDE;
@@ -43,15 +43,14 @@ namespace CrisesControl.Infrastructure.Repositories {
         private int UserID;
         private int CompanyID;
             
-        public CommunicationRepository(CrisesControlContext context, HttpContextAccessor httpContextAccessor, Messaging MSG, SendEmail SDE, ILogger<CommunicationRepository> logger) {
+        public CommunicationRepository(CrisesControlContext context, HttpContextAccessor httpContextAccessor, ILogger<CommunicationRepository> logger) {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             DBC = new DBCommon(_context, _httpContextAccessor);
-            _MSG = MSG;
-            _SDE = SDE;
+            _MSG = new Messaging(_context, _httpContextAccessor, DBC);
+            _SDE = new SendEmail(_context, DBC);
             _logger = logger;
         }
-
         public async Task<List<UserConferenceItem>> GetUserActiveConferences() {
             try {
 

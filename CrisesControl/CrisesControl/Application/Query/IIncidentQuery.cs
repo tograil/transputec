@@ -39,6 +39,8 @@ using CrisesControl.Api.Application.Commands.Incidents.GetAllCompanyIncident;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
+using CrisesControl.Api.Application.Commands.Incidents.GetAffectedLocations;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllActiveCompanyIncident;
 
 namespace CrisesControl.Api.Application.Query
 {
@@ -47,11 +49,11 @@ namespace CrisesControl.Api.Application.Query
      
         Task<GetAllCompanyIncidentResponse> GetAllCompanyIncident(GetAllCompanyIncidentRequest request);
         List<IncidentTypeReturn> GetCompanyIncidentType(int companyId);
-        List<AffectedLocation> GetAffectedLocations(int companyId, string locationType);
+        Task<GetAffectedLocationsResponse> GetAffectedLocations(GetAffectedLocationsRequest request);
         List<AffectedLocation> GetIncidentLocations(int companyId, int incidentActivationId);
         List<CommsMethods> GetIncidentComms(int itemID, string type);
         IncidentDetails GetCompanyIncidentById(int companyId, int incidentId, string userStatus);
-        DataTablePaging GetAllActiveCompanyIncident(string? status, DataTableAjaxPostModel pagedRequest);
+        Task<GetAllActiveCompanyIncidentResponse> GetAllActiveCompanyIncident(GetAllActiveCompanyIncidentRequest request);
         Task<GetIncidentTaskNotesResponse> GetIncidentTaskNotes(GetIncidentTaskNotesRequest request);
         Task<CheckUserSOSResponse> CheckUserSOS(CheckUserSOSRequest request);
         Task<AddNotesResponse> AddNotes(AddNotesRequest request);

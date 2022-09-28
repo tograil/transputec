@@ -35,7 +35,6 @@ namespace CrisesControl.Infrastructure.Repositories;
 public class IncidentRepository : IIncidentRepository
 {
     private readonly CrisesControlContext _context;
-    private readonly ICompanyParametersRepository _companyParamentersRepository;
     private readonly IMessageService _service;
     private readonly ILogger<IncidentRepository> _logger;
     private readonly IActiveIncidentRepository _activeIncidentRepository;
@@ -51,12 +50,12 @@ public class IncidentRepository : IIncidentRepository
     public bool IsFundAvailable = true;
     private readonly IActiveIncidentTaskService _activeIncidentTaskService;
     public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository,
-        ICompanyParametersRepository companyParamentersRepository, IMessageService service,
+              IMessageService service,
         ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor,
          IActiveIncidentTaskService activeIncidentTaskService)
     {
         _context = context;
-        _companyParamentersRepository = companyParamentersRepository;
+       // _companyParamentersRepository = companyParamentersRepository;
         _service = service;
         _logger = logger;
         _activeIncidentRepository = activeIncidentRepository;
@@ -81,8 +80,8 @@ public class IncidentRepository : IIncidentRepository
 
     public async Task<Incident?> GetIncident(int companyId, int incidentId)
     {
-        return await _context.Set<Incident>()
-            .FirstOrDefaultAsync(x => x.IncidentId == incidentId && x.CompanyId == companyId);
+        return await _context.Set<Incident>().Where(x => x.IncidentId == incidentId && x.CompanyId == companyId)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<int> AddIncident(Incident incident)
@@ -615,7 +614,7 @@ public class IncidentRepository : IIncidentRepository
             bool SilentMessage = false, List<AckOption> AckOptions = null, bool IsSOS = false, int[] MessageMethod = null, int CascadePlanID = 0,
             int[] Groups = null, int[] Keyholders = null)
     {
-        string allow_nominated_kh = await _companyParamentersRepository.GetCompanyParameter("ALLOW_KEYHOLDER_NOMINATION", CompanyId);
+        string allow_nominated_kh = _DBC.GetCompanyParameter("ALLOW_KEYHOLDER_NOMINATION", CompanyId);
 
         Incident tblIncident = new Incident()
         {
@@ -1242,20 +1241,24 @@ public class IncidentRepository : IIncidentRepository
             throw ex;
         }
     }
-    public async Task<UpdateIncidentStatusReturn> GetActiveIncidentBasic(int CompanyId, int IncidentActivationId)
+    public async Task<IEnumerable<UpdateIncident>> GetActiveIncidentBasic(int CompanyId, int IncidentActivationId)
     {
         try
         {
             DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
-            var incidentStatus= await _context.Set<UpdateIncidentStatusReturn>().FromSqlRaw("exec Pro_Get_Active_Incident_Basic @CompanyID, @IncidentActivationID", CompanyId, IncidentActivationId).FirstOrDefaultAsync();
-            incidentStatus.Status = DBC.LookupWithKey("IncidentStatus");
+            var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
+            var pIncidentActivationId = new SqlParameter("@IncidentActivationID", IncidentActivationId);
+            var incidentStatus =  _context.Set<UpdateIncident>().FromSqlRaw("exec Pro_Get_Active_Incident_Basic @CompanyID, @IncidentActivationID", pCompanyId, pIncidentActivationId).AsEnumerable();
+
+           
+            incidentStatus.FirstOrDefault().Status = DBC.LookupWithKey("IncidentStatus");
 
             return incidentStatus;
         }
         catch (Exception ex)
         {
             throw ex;
-            return new UpdateIncidentStatusReturn();
+            
         }
              
     }
@@ -1733,6 +1736,7 @@ public class IncidentRepository : IIncidentRepository
             IncidtAct.Status = Status;
             IncidtAct.UpdatedBy = CurrentUserId;
             IncidtAct.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
+            _context.Update(IncidtAct);
             await _context.SaveChangesAsync();
 
             await IncidentParticipantGroup(IncidentId, IncidentActionId, IncidentParticipants);
@@ -1741,9 +1745,10 @@ public class IncidentRepository : IIncidentRepository
 
         var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
         var pIncidentID = new SqlParameter("@IncidentID", IncidentId);
-        return await _context.Set<ActionLsts>().FromSqlRaw(
+        var result= await _context.Set<ActionLsts>().FromSqlRaw(
                 "exec Pro_Incident_GetIncidentByRef_ActionList @CompanyID,@IncidentID", pCompanyID, pIncidentID).ToListAsync();
 
+        return result;
     }
 
     public async Task<bool> DeleteCompanyIncidents(int CompanyId, int IncidentId, int CurrentUserId, string TimeZoneId)
@@ -2865,14 +2870,14 @@ public class IncidentRepository : IIncidentRepository
     }
 
 
-    public async Task<DataTablePaging> GetIncidentEntityRecipient(int start, int length, Search search,int draw,string orderBy,string dir ,int activeIncidentID, string entityType, int entityID, int companyId, int currentUserId, string companyKey)
+    public async Task<DataTablePaging> GetIncidentEntityRecipient(int start, int length, string search,int draw,string orderBy,string dir ,int activeIncidentID, string entityType, int entityID, int companyId, int currentUserId, string companyKey)
     {
         try
         {
 
             var RecordStart = start == 0 ? 0 : start;
             var RecordLength = length == 0 ? int.MaxValue : length;
-            var SearchString = (search != null) ? search.Value : "";
+            var SearchString = (search != string.Empty) ? search : "";
             string OrderBy = orderBy != null ? orderBy : "UserId";
             string OrderDir = dir != string.Empty ? dir : "desc";
             OrderBy = string.IsNullOrEmpty(OrderBy) ? "UserId" : OrderBy;

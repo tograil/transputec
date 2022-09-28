@@ -73,7 +73,7 @@ public interface IIncidentRepository
     Task<UpdateIncidentStatusReturn> UpdateIncidentStatus(int CompanyId, int IncidentActivationId, string Type, string TimeZoneId, int CurrentUserId,
             string UserRole, string Reason, int NumberOfKeyHolder, string CompletionNotes = "", int[] MessageMethod = null, int CascadePlanID = 0, bool isSos = false);
     Task<List<IncidentSOSRequest>> GetIncidentSOSRequest(int IncidentActivationId);
-    Task<UpdateIncidentStatusReturn> GetActiveIncidentBasic(int CompanyId, int IncidentActivationId);
+    Task<IEnumerable<UpdateIncident>> GetActiveIncidentBasic(int CompanyId, int IncidentActivationId);
     Task<int> UpdateIncidentType(string Name, int IncidentTypeId, int UserId, int CompanyId);
     Task DeleteEmptyTaskHeader(int IncidentID);
     Task<int> UpdateCompanyIncidents(int CompanyId, int IncidentId, string IncidentIcon, string Name, string Description,
@@ -115,7 +115,7 @@ public interface IIncidentRepository
     Task<List<MapLocationReturn>> GetIncidentMapLocations(int ActiveIncidentID, string Filter);
     Task<bool> UpdateSegregationLink(int SourceID, int TargetID, string LinkType, int CurrentUserId, int CompanyId);
     Task<List<IncidentSegLinks>> SegregationLinks(int TargetID, string MemberShipType, string LinkType, int OutUserCompanyId);
-    Task<DataTablePaging> GetIncidentEntityRecipient(int start, int length, Search search, int draw, string orderBy, string dir, int activeIncidentID, string entityType, int entityID, int companyId, int currentUserId, string companyKey);
+    Task<DataTablePaging> GetIncidentEntityRecipient(int start, int length, string search, int draw, string orderBy, string dir, int activeIncidentID, string entityType, int entityID, int companyId, int currentUserId, string companyKey);
     Task<List<EntityRcpntResponse>> GetIncidentEntityRecipientData(int ActiveIncidentID, string EntityType, int EntityID, int CompanyId, int UserId,
            int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir, string CompanyKey);
     Task<List<MessageGroupObject>> GetIncidentRecipientEntity(int ActiveIncidentID, string EntityType, int TargetUserId, int CompanyId);
