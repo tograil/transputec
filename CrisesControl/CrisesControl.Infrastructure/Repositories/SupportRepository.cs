@@ -134,7 +134,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<List<IncidentMessagesRtn>> GetIndidentReportDetails(int incidentActivationId, int companyId)
+        public async Task<List<IncidentMessagesRtn>> GetIncidentReportDetails(int incidentActivationId, int companyId)
         {
             try
             {

@@ -1,6 +1,6 @@
 ﻿using CrisesControl.Api.Application.Commands.Reports.GetIncidentPingStats;
-using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck;
-using CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentMessageAck;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentMessageNoAck;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliveryReport;
 using CrisesControl.Api.Application.Commands.Reports.GetPingReportChart;
 using CrisesControl.Api.Application.Commands.Reports.GetMessageDeliverySummary;
@@ -13,7 +13,7 @@ using CrisesControl.Api.Application.Query.Requests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using CrisesControl.Api.Application.Commands.Reports.GetIndidentReportDetails;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentReportDetails;
 using CrisesControl.Api.Application.Commands.Reports.GetUserReportPiechartData;
 using CrisesControl.Api.Application.Commands.Reports.GetUserIncidentReport;
 using CrisesControl.Api.Application.Commands.Reports.GetIncidentReport;
@@ -42,6 +42,7 @@ using CrisesControl.Api.Application.Commands.Reports.CMD_TaskOverView;
 using CrisesControl.Api.Application.Commands.Reports.IncidentResponseDump;
 using CrisesControl.Api.Application.Commands.Reports.GetUserInvitationReport;
 using CrisesControl.Api.Application.Commands.Reports.ExportUserInvitationDump;
+using CrisesControl.Core.Compatibility;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -88,8 +89,8 @@ namespace CrisesControl.Api.Controllers
         }
         
         [HttpGet]
-        [Route("GetIndidentMessageNoAck/{IncidentActivationId:int}/{RecordStart:int}/{RecordLength:int}")]
-        public async Task<IActionResult> GetIndidentMessageNoAck([FromRoute] GetIndidentMessageNoAckRequest request, CancellationToken cancellationToken)
+        [Route("GetIncidentMessageNoAck/{IncidentActivationId:int}/{RecordStart:int}/{RecordLength:int}")]
+        public async Task<IActionResult> GetIncidentMessageNoAck([FromRoute] GetIncidentMessageNoAckRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
 
@@ -103,22 +104,10 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetIndidentMessageAck/{MessageId:int}/{MessageAckStatus:int}/{MessageSentStatus:int}")]
-        public async Task<IActionResult> GetIndidentMessageAck([FromRoute] IncidentMsgAckRequestRoute requestRoute,
-            [FromQuery] IncidentMsgAckRequestQuery requestQuery, CancellationToken cancellationToken)
+        [Route("GetIncidentMessageAck/{MessageId:int}/{MessageAckStatus:int}/{MessageSentStatus:int}")]
+        public async Task<IActionResult> GetIncidentMessageAck([FromRoute] GetIncidentMessageAckRequest requestRoute, CancellationToken cancellationToken)
         {
-            GetIndidentMessageAckRequest request = new GetIndidentMessageAckRequest();
-            request.MessageId = requestRoute.MessageId;
-            request.MessageAckStatus = requestRoute.MessageAckStatus;
-            request.MessageSentStatus = requestRoute.MessageSentStatus;
-            request.SearchString = requestQuery.SearchString;
-            request.OrderDir = requestQuery.OrderDir;
-            request.Source = requestQuery.Source;
-            request.draw = requestQuery.draw;
-            request.CompanyKey = requestQuery.CompanyKey;
-            request.Filters = requestQuery.Filters;
-
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _reportQuery.GetIncidentMessageAck(requestRoute);
 
             return Ok(result);
         }
@@ -130,10 +119,10 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("ResponseSummary/{MessageID:int}")]
+        [Route("ResponseSummary/{MessageId:int}")]
         public async Task<IActionResult> ResponseSummary([FromRoute] ResponseSummaryRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _reportQuery.ResponseSummary(request);
 
             return Ok(result);
         }
@@ -194,9 +183,9 @@ namespace CrisesControl.Api.Controllers
 
         [HttpGet]
         [Route("[action]/{incidentActivationId:int}/{companyId:int}")]
-        public IActionResult GetIndidentMessagesAudit([FromRoute] int incidentActivationId, [FromRoute] int companyId)
+        public IActionResult GetIncidentMessagesAudit([FromRoute] int incidentActivationId, [FromRoute] int companyId)
         {
-            var result = _reportQuery.GetIndidentMessagesAudit(incidentActivationId, companyId);
+            var result = _reportQuery.GetIncidentMessagesAudit(incidentActivationId, companyId);
             return Ok(result);
         }
 
@@ -239,8 +228,8 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
         [HttpGet]
-        [Route("GetIndidentReportDetails/{IncidentActivationId}")]
-        public async Task<IActionResult> GetIndidentReportDetails([FromRoute] GetIndidentReportDetailsRequest request, CancellationToken cancellationToken)
+        [Route("GetIncidentReportDetails/{IncidentActivationId}")]
+        public async Task<IActionResult> GetIncidentReportDetails([FromRoute] GetIncidentReportDetailsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);

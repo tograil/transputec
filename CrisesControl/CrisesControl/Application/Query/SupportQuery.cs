@@ -1,10 +1,13 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Reports.GetIncidentMessageAck;
 using CrisesControl.Api.Application.Commands.Support.ActiveIncidentTasks;
 using CrisesControl.Api.Application.Commands.Support.GetIncidentData;
 using CrisesControl.Api.Application.Commands.Support.GetIncidentMessageAck;
 using CrisesControl.Api.Application.Commands.Support.GetIncidentReportDetails;
 using CrisesControl.Api.Application.Commands.Support.GetIncidentStats;
 using CrisesControl.Api.Application.Commands.Support.GetUser;
+using CrisesControl.Api.Maintenance.Interfaces;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Reports.Repositories;
 using CrisesControl.Core.Support.Repositories;
@@ -17,13 +20,17 @@ namespace CrisesControl.Api.Application.Query
         private readonly IReportsRepository _reportsRepository;
         private readonly IActiveIncidentRepository _activeIncidentRepository;
         private readonly IMapper _mapper;
+        private readonly IPaging _paging;
 
-        public SupportQuery(ISupportRepository supportRepository, IReportsRepository reportsRepository, IMapper mapper, IActiveIncidentRepository activeIncidentRepository)
+        public SupportQuery(ISupportRepository supportRepository, IReportsRepository reportsRepository, IMapper mapper, 
+            IActiveIncidentRepository activeIncidentRepository,
+            IPaging paging)
         {
             _supportRepository = supportRepository;
             _reportsRepository = reportsRepository;
             _activeIncidentRepository = activeIncidentRepository;
             _mapper = mapper;
+            _paging = paging;
         }
         public async Task<ActiveIncidentTasksResponse> ActiveIncidentTasks(ActiveIncidentTasksRequest request)
         {
@@ -54,16 +61,18 @@ namespace CrisesControl.Api.Application.Query
             }
         }
 
-        public async Task<GetIncidentMessageAckResponse> GetIncidentMessageAck(GetIncidentMessageAckRequest request)
+        public async Task<Commands.Support.GetIncidentMessageAck.GetIncidentMessageAckResponse> GetIncidentMessageAck(Commands.Support.GetIncidentMessageAck.GetIncidentMessageAckRequest request)
         {
             try
             {
-                var response = new GetIncidentMessageAckResponse();
-                response.Data = await _reportsRepository.GetIndidentMessageAck(request.MessageId, request.MessageAckStatus, 
-                    request.MessageSentStatus, request.RecordStart, request.RecordLength, request.search, 
-                    request.OrderBy, request.OrderDir, request.draw, request.Filters, request.CompanyKey,
-                    request.Source);
-                return response;
+                var ackresult = await _reportsRepository.GetIncidentMessageAck(request.MessageId, request.MessageAckStatus, request.MessageSentStatus, request.Source,
+                    _paging.Start, _paging.Length, _paging.Search, _paging.OrderBy, _paging.Dir, _paging.Filters, _paging.UniqueKey);
+
+                var response = _mapper.Map<DataTablePaging>(ackresult);
+                var result = new Commands.Support.GetIncidentMessageAck.GetIncidentMessageAckResponse();
+                result.Data = response;
+                result.ErrorCode = System.Net.HttpStatusCode.OK;
+                return result;
             }
             catch(Exception ex)
             {
@@ -76,7 +85,7 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                 var response = new GetIncidentReportDetailsResponse();
-                response.Data = await _reportsRepository.GetIndidentReportDetails(request.IncidentActivationId, request.CompanyId, request.UserId);
+                response.Data = await _reportsRepository.GetIncidentReportDetails(request.IncidentActivationId, request.CompanyId, request.UserId);
                 return response;
             }
             catch (Exception ex)

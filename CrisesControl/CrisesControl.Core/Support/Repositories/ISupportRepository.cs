@@ -10,7 +10,7 @@ namespace CrisesControl.Core.Support.Repositories
     {
         Task<IncidentDataByActivationRefResponse> GetIncidentData(int incidentActivationId, int companyId);
         Task<SupportUserResponse> GetUser(int userId);
-        Task<List<IncidentMessagesRtn>> GetIndidentReportDetails(int incidentActivationId, int companyId);
+        Task<List<IncidentMessagesRtn>> GetIncidentReportDetails(int incidentActivationId, int companyId);
 
     }
 }

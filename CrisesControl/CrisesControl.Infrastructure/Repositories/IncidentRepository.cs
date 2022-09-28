@@ -864,7 +864,7 @@ public class IncidentRepository : IIncidentRepository
             throw ex;
         }
     }
-    public async Task<List<IncidentMessagesRtn>> GetIndidentTimeline(int IncidentActivationID, int CompanyID, int UserID)
+    public async Task<List<IncidentMessagesRtn>> GetIncidentTimeline(int IncidentActivationID, int CompanyID, int UserID)
     {
 
         try

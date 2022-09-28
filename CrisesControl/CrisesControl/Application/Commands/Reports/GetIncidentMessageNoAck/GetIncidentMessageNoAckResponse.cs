@@ -2,9 +2,9 @@
 using CrisesControl.Core.Reports;
 using System.Net;
 
-namespace CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck
+namespace CrisesControl.Api.Application.Commands.Reports.GetIncidentMessageNoAck
 {
-    public class GetIndidentMessageNoAckResponse
+    public class GetIncidentMessageNoAckResponse
     {
         public List<DataTablePaging> data { get; set; }
         public string Message { get; set; }

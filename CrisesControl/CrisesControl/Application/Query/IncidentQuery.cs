@@ -23,7 +23,7 @@ using CrisesControl.Api.Application.Commands.Incidents.GetIncidentMessage;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentRecipientEntity;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentSOSRequest;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTaskNotes;
-using CrisesControl.Api.Application.Commands.Incidents.GetIndidentTimeline;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTimeline;
 using CrisesControl.Api.Application.Commands.Incidents.GetSOSIncident;
 using CrisesControl.Api.Application.Commands.Incidents.IncidentStatusUpdate;
 using CrisesControl.Api.Application.Commands.Incidents.SaveIncidentJob;
@@ -101,8 +101,9 @@ public class IncidentQuery : IIncidentQuery
         var RecordStart = pagedRequest.Start == 0 ? 0 : pagedRequest.Start;
         var RecordLength = pagedRequest.Length == 0 ? int.MaxValue : pagedRequest.Length;
         var SearchString = (pagedRequest.Search != null) ? pagedRequest.Search.Value : "";
-        string OrderBy = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().Column : "Name";
-        string OrderDir = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().Dir : "asc";
+        string OrderBy = pagedRequest.Order != null ? pagedRequest.Order : "Name";
+        string OrderDir = pagedRequest.Dir != null ? pagedRequest.Dir : "asc";
+        
         string Status = status != null ? status : "1,2,3,4";
 
         int totalRecord = 0;
@@ -270,13 +271,13 @@ public class IncidentQuery : IIncidentQuery
         }
     }
 
-    public async Task<GetIndidentTimelineResponse> GetIndidentTimeline(GetIndidentTimelineRequest request)
+    public async Task<GetIncidentTimelineResponse> GetIncidentTimeline(GetIncidentTimelineRequest request)
     {
         try
         {
-            var groups = await _incidentRepository.GetIndidentTimeline(request.IncidentActivationId, _currentUser.CompanyId, _currentUser.UserId);
+            var groups = await _incidentRepository.GetIncidentTimeline(request.IncidentActivationId, _currentUser.CompanyId, _currentUser.UserId);
             var result = _mapper.Map<List<IncidentMessagesRtn>>(groups);
-            var response = new GetIndidentTimelineResponse();
+            var response = new GetIncidentTimelineResponse();
             if (result != null)
             {
                 response.Data = result;

@@ -6,7 +6,7 @@ namespace CrisesControl.Api.Application.Commands.Reports.ResponsesSummary
     {
         public ResponseSummaryValidator()
         {
-            RuleFor(x=>x.MessageID).GreaterThan(0);
+            RuleFor(x=>x.MessageId).GreaterThan(0);
         }
     }
 }

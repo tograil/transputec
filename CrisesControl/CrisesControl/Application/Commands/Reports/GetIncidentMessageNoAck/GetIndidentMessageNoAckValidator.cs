@@ -1,10 +1,10 @@
 ﻿using FluentValidation;
 
-namespace CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck
+namespace CrisesControl.Api.Application.Commands.Reports.GetIncidentMessageNoAck
 {
-    public class GetIndidentMessageNoAckValidator:AbstractValidator<GetIndidentMessageNoAckRequest> 
+    public class GetIncidentMessageNoAckValidator:AbstractValidator<GetIncidentMessageNoAckRequest> 
     {
-         public GetIndidentMessageNoAckValidator()
+         public GetIncidentMessageNoAckValidator()
         {
             RuleFor(x => x.RecordLength).GreaterThan(0).ToString();
             RuleFor(x => x.IncidentActivationId).GreaterThan(0).ToString();
