@@ -16,7 +16,7 @@ namespace CrisesControl.Api.Application.Commands.Messaging.GetNotifications
         {
             Guard.Against.Null(request, nameof(GetNotificationsRequest));
             var response = new GetNotificationsResponse();
-            response.Result =  await _messageRepository.MessageNotifications(request.CompanyId,request.CurrentUserId);
+            response.Data =  await _messageRepository.MessageNotifications(request.CompanyId,request.CurrentUserId);
             return response;
         }
     }

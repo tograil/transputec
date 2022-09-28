@@ -142,19 +142,17 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="requestNullable"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpGet]
-        [Route("MessageAcknowledge/{CompanyId:int}/{CurrentUserId:int}/{MsgListId:int}/ResponseID")]
-        public async Task<IActionResult> MessageAcknowledge([FromRoute] MessageAcknowledgeRequestRoute requestRoute, [FromQuery] MessageAcknowledgeRequestNullable requestNullable, CancellationToken cancellationToken)
+        [HttpPut]
+        [Route("MessageAcknowledge/{MsgListId:int}")]
+        public async Task<IActionResult> MessageAcknowledge([FromRoute] int MsgListId, [FromBody] MessageAcknowledgeRequestRoute requestRoute, CancellationToken cancellationToken)
         {
-           
+
             MessageAcknowledgeRequest request = new MessageAcknowledgeRequest();
-            request.AckMethod = requestNullable.AckMethod;
-            request.UserLocationLat = requestNullable.UserLocationLat;
-            request.UserLocationLong=requestNullable.UserLocationLong;
-            request.CompanyId = requestRoute.CompanyId;
-            request.CurrentUserId = requestRoute.CurrentUserId;
+            request.AckMethod = requestRoute.AckMethod;
+            request.UserLocationLat = requestRoute.UserLocationLat;
+            request.UserLocationLong = requestRoute.UserLocationLong;
             request.ResponseID = requestRoute.ResponseID;
-            request.MsgListId=requestRoute.MsgListId;
+            request.MsgListId = MsgListId;
 
             var result = await _mediator.Send(request, cancellationToken);
 

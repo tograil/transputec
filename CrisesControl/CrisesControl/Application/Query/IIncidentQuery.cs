@@ -23,7 +23,7 @@ using CrisesControl.Api.Application.Commands.Incidents.GetIncidentMessage;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentRecipientEntity;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentSOSRequest;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTaskNotes;
-using CrisesControl.Api.Application.Commands.Incidents.GetIndidentTimeline;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTimeline;
 using CrisesControl.Api.Application.Commands.Incidents.GetSOSIncident;
 using CrisesControl.Api.Application.Commands.Incidents.IncidentStatusUpdate;
 using CrisesControl.Api.Application.Commands.Incidents.SaveIncidentJob;
@@ -61,7 +61,7 @@ namespace CrisesControl.Api.Application.Query
         Task<GetAttachmentsResponse> GetAttachments(GetAttachmentsRequest request);
         Task<GetCallToActionResponse> GetCallToAction(GetCallToActionRequest request);
         Task<GetIncidentSOSRequestResponse> GetIncidentSOSRequest(GetIncidentSOSRequest request);
-        Task<GetIndidentTimelineResponse> GetIndidentTimeline(GetIndidentTimelineRequest request);
+        Task<GetIncidentTimelineResponse> GetIncidentTimeline(GetIncidentTimelineRequest request);
         Task<UpdateSOSResponse> UpdateSOS(UpdateSOSRequest request);
         Task<AddIncidentTypeResponse> AddIncidentType(AddIncidentTypeRequest request);
         Task<AddIncidentActionResponse> AddIncidentAction(AddIncidentActionRequest request);

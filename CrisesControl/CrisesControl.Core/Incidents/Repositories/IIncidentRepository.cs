@@ -62,7 +62,7 @@ public interface IIncidentRepository
     Task<List<Attachment>> _get_attachments(int ObjectID, string AttachmentType);
     Task<List<IncidentTask>> GetNotes(int ObjectID, string NoteType, bool GetAttachments, string AttachmentType, int CompanyId);
     Task<List<Attachment>> GetAttachments(int ObjectID, string AttachmentType);
-    Task<List<IncidentMessagesRtn>> GetIndidentTimeline(int IncidentActivationID, int CompanyID, int UserID);
+    Task<List<IncidentMessagesRtn>> GetIncidentTimeline(int IncidentActivationID, int CompanyID, int UserID);
     Task<int> IncidentNote(int ObjectID, string NoteType, string Notes, int CompanyID, int UserID);
     Task<bool> AddIncidentNote(int ActiveIncidentID, string Note, List<Attachment> Attachments, int UserID, int CompanyID, string TimeZoneId);
     Task<bool> InsertAttachment(int ObjectID, string Title, string OrigFileName, string FileName, string MimeType, string AttachmentType, decimal? FileSize);

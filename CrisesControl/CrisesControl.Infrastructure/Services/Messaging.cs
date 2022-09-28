@@ -38,13 +38,14 @@ namespace CrisesControl.Infrastructure.Services
         private readonly DBCommon _DBC;
         //private readonly Messaging _MSG;
         private readonly SendEmail _SDE;
-        public Messaging(CrisesControlContext _db, IHttpContextAccessor httpContextAccessor, DBCommon DBC)
+        public Messaging(CrisesControlContext _db, IHttpContextAccessor httpContextAccessor)
         {
             db = _db;
             _httpContextAccessor = httpContextAccessor;
             _DBC = new DBCommon(db,_httpContextAccessor);
             //_MSG = new Messaging(db,_httpContextAccessor,DBC);
-            _SDE = new SendEmail(db,DBC);
+            _DBC = new DBCommon(db, _httpContextAccessor);
+            _SDE = new SendEmail(db, _DBC);
         }
  
 

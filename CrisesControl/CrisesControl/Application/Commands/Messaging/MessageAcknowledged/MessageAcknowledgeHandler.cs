@@ -26,11 +26,11 @@ namespace CrisesControl.Api.Application.Commands.Messaging.MessageAcknowledged
             try
             {
 
-                var msgResponse = await _messageRepository.MessageAcknowledged(request.CompanyId, request.MsgListId, _currentUser.TimeZone, request.UserLocationLat, request.UserLocationLong, _currentUser.UserId, request.ResponseID, request.AckMethod);
+                var msgResponse = await _messageRepository.MessageAcknowledged(_currentUser.CompanyId, request.MsgListId, _currentUser.TimeZone, request.UserLocationLat, request.UserLocationLong, _currentUser.UserId, request.ResponseID, request.AckMethod);
                 var response = _mapper.Map<MessageAckDetails>(msgResponse);
                 if (response != null)
                 {
-                    var Msglist =await _messageRepository.MessageNotifications(request.CompanyId, _currentUser.UserId);
+                    var Msglist =await _messageRepository.MessageNotifications(_currentUser.CompanyId, _currentUser.UserId);
                     return new MessageAcknowledgeResponse
                     {
                         MessageAckDetails = response,

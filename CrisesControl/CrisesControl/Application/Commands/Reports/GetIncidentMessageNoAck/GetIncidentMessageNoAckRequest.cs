@@ -1,8 +1,8 @@
 ﻿using MediatR;
 
-namespace CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageNoAck
+namespace CrisesControl.Api.Application.Commands.Reports.GetIncidentMessageNoAck
 {
-    public class GetIndidentMessageNoAckRequest: IRequest<GetIndidentMessageNoAckResponse>
+    public class GetIncidentMessageNoAckRequest: IRequest<GetIncidentMessageNoAckResponse>
     {
         public int IncidentActivationId { get; set; }
         public int RecordStart { get; set; }

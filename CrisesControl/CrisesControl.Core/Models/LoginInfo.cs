@@ -36,6 +36,7 @@ namespace CrisesControl.Core.Models
         public int Status { get; set; }
         public bool FirstLogin { get; set; }
         public int CompanyPlanId { get; set; }
+        public string PhoneISDCode { get; set; }
         public int CompanyStatus { get; set; }
         public string UniqueKey { get; set; }
         public string PortalTimeZone { get; set; }

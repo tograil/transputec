@@ -4,6 +4,7 @@ using CrisesControl.Api.Application.Commands.Support.GetIncidentData;
 using CrisesControl.Api.Application.Commands.Support.GetIncidentReportDetails;
 using CrisesControl.Api.Application.Commands.Support.GetIncidentMessageAck;
 using CrisesControl.Api.Application.Commands.Support.GetUser;
+using CrisesControl.Core.Compatibility;
 
 namespace CrisesControl.Api.Application.Query
 {

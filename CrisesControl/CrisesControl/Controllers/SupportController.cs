@@ -5,6 +5,7 @@ using CrisesControl.Api.Application.Commands.Support.GetIncidentReportDetails;
 using CrisesControl.Api.Application.Commands.Support.GetIncidentStats;
 using CrisesControl.Api.Application.Commands.Support.GetUser;
 using CrisesControl.Api.Application.Query;
+using CrisesControl.Core.Compatibility;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

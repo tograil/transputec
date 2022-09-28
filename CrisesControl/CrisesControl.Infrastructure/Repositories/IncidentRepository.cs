@@ -60,9 +60,10 @@ public class IncidentRepository : IIncidentRepository
         _logger = logger;
         _activeIncidentRepository = activeIncidentRepository;
         _httpContextAccessor = httpContextAccessor;        
+
         _DBC = new DBCommon(_context,_httpContextAccessor);
         _SDE = new SendEmail(_context,_DBC);
-        _MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+        _MSG = new Messaging(_context,_httpContextAccessor);
         queueConsumer = new QueueConsumer(_context,_httpContextAccessor);
         _activeIncidentTaskService = activeIncidentTaskService;
         _queueHelper = new QueueHelper(_context);
@@ -862,7 +863,7 @@ public class IncidentRepository : IIncidentRepository
             throw ex;
         }
     }
-    public async Task<List<IncidentMessagesRtn>> GetIndidentTimeline(int IncidentActivationID, int CompanyID, int UserID)
+    public async Task<List<IncidentMessagesRtn>> GetIncidentTimeline(int IncidentActivationID, int CompanyID, int UserID)
     {
 
         try
@@ -1636,7 +1637,7 @@ public class IncidentRepository : IIncidentRepository
 
                 if (CascadePlanID <= 0)
                 {
-                    Messaging MSG = new Messaging(_context,_httpContextAccessor ,_DBC);
+                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
                     foreach (int Method in MessageMethod)
                     {
                        await MSG.CreateMessageMethod(0, Method, 0, IncidentId);
@@ -2265,7 +2266,7 @@ public class IncidentRepository : IIncidentRepository
 
                 int mPriority = SharedKernel.Utils.Common.GetPriority(verifyInci.Severity);
 
-                Messaging MSG = new Messaging(_context,_httpContextAccessor, _DBC)
+                Messaging MSG = new Messaging(_context,_httpContextAccessor)
                 {
                     TimeZoneId = TimeZoneId
                 };
@@ -2444,7 +2445,7 @@ public class IncidentRepository : IIncidentRepository
         {
             var OldNotifyList = await _context.Set<IncidentNotificationList>().Where(ONL=> ONL.CompanyId == CompanyId && ONL.IncidentActivationId == IncidentActivationId).ToListAsync();
 
-            Messaging MSG = new Messaging(_context,_httpContextAccessor, _DBC);
+            Messaging MSG = new Messaging(_context,_httpContextAccessor);
 
             List<int> LINOList = new List<int>();
             List<IncidentNotificationObjLst> LstIncNotiLst = new List<IncidentNotificationObjLst>(LaunchIncidentNotificationObjLst);
@@ -2611,7 +2612,7 @@ public class IncidentRepository : IIncidentRepository
                         pushmethodid = await _context.Set<CommsMethod>().Where(w => w.MethodCode == "PUSH").Select(s => s.CommsMethodId).FirstOrDefaultAsync();
                     }
 
-                    Messaging MSG = new Messaging(_context,_httpContextAccessor,_DBC);
+                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
                     foreach (int Method in MessageMethod)
                     {
                        await  MSG.CreateMessageMethod(0, Method, inci.IncidentActivationId);
@@ -2627,13 +2628,13 @@ public class IncidentRepository : IIncidentRepository
 
             if (UsersToNotify != null)
             {
-                Messaging MSG = new Messaging(_context, _httpContextAccessor, DBC);
+                Messaging MSG = new Messaging(_context, _httpContextAccessor);
                 MSG.AddUserToNotify(0, UsersToNotify.ToList(), inci.IncidentActivationId);
             }
 
             if (MultiResponse)
             {
-                Messaging MSG = new Messaging(_context, _httpContextAccessor,DBC);
+                Messaging MSG = new Messaging(_context, _httpContextAccessor);
                 await MSG.SaveActiveMessageResponse(0, AckOptions, inci.IncidentActivationId);
             }
 

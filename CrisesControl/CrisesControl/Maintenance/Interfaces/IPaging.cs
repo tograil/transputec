@@ -1,4 +1,6 @@
-﻿namespace CrisesControl.Api.Maintenance.Interfaces
+﻿using CrisesControl.Core.Compatibility;
+
+namespace CrisesControl.Api.Maintenance.Interfaces
 {
     public interface IPaging
     {

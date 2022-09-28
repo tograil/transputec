@@ -41,13 +41,13 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     private readonly QueueConsumer queueConsumer;
     private readonly QueueHelper _queueHelper;
 
-    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration, Messaging MSG, DBCommon dBCommon)
+    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _configuration = configuration;
-        _MSG = MSG;
-        _DBC = dBCommon;
+        _MSG = new Messaging(_context, _httpContextAccessor);
+        _DBC = new DBCommon(_context, _httpContextAccessor);
         queueConsumer = new QueueConsumer(_context, _httpContextAccessor);
         _queueHelper = new QueueHelper(_context);
     }

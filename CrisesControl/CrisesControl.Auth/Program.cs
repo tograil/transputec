@@ -28,6 +28,10 @@ builder.Services.AddDbContext<CrisesControlContext>(options => {
     options.UseOpenIddict();
 });
 
+var serverCredentials = builder.Configuration
+                               .GetSection(ServerCredentialsOptions.ServerCredentials)
+                               .Get<ServerCredentialsOptions>();
+
 builder.Services.Configure<IdentityOptions>(options =>
 {
     options.ClaimsIdentity.UserNameClaimType = OpenIddictConstants.Claims.Name;
@@ -57,12 +61,15 @@ builder.Services.AddOpenIddict()
             .SetAuthorizationEndpointUris("/connect/authorize");
 
         // Encryption and signing of tokens
-        options
-            .AddEphemeralEncryptionKey()
-            .AddEphemeralSigningKey();
+        //options
+        //    .AddEphemeralEncryptionKey()
+        //    .AddEphemeralSigningKey();
 
-        options.AddEncryptionKey(new SymmetricSecurityKey(
-            Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
+        //options.AddEncryptionKey(new SymmetricSecurityKey(
+        //    Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
+
+        options.AddEncryptionCertificate(serverCredentials.EncryptionKeyThumbprint);
+        options.AddSigningCertificate(serverCredentials.SigningKeyThumbprint);
 
         // Register scopes (permissions)
         options.RegisterScopes("api");
@@ -72,6 +79,8 @@ builder.Services.AddOpenIddict()
             .UseAspNetCore()
             .EnableTokenEndpointPassthrough()
             .DisableTransportSecurityRequirement();
+
+        options.SetAccessTokenLifetime(TimeSpan.FromDays(serverCredentials.TokenExpiryInDays));
 
     });
 
