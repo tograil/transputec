@@ -1782,87 +1782,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        //public void InsertMessageTransaction(int MessageId, int MessageListId, string Method, string MessageText, int Attempt, string MsgStatus,
-        //    string DeviceAddress = "", string CloudMessageId = "", bool DebugOn = false, string CommsPovider = "TWILIO")
-        //{
-        //    DBCommon DBC = new DBCommon();
-        //    try
-        //    {
-        //        try
-        //        {
-        //            DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now);
-
-        //            var pMessageId = new SqlParameter("@MessageId", MessageId);
-        //            var pMethodName = new SqlParameter("@MethodName", Method.ToUpper());
-        //            var pAttempts = new SqlParameter("@Attempts", Attempt);
-        //            var pMessageText = new SqlParameter("@MessageText", MessageText);
-        //            var pStatus = new SqlParameter("@Status", MsgStatus);
-        //            var pCreatedOn = new SqlParameter("@CreatedOn", dtNow);
-        //            var pMessageListId = new SqlParameter("@MessageListId", MessageListId);
-        //            var pCloudMessageId = new SqlParameter("@CloudMessageId", CloudMessageId);
-        //            var pDeviceAddress = new SqlParameter("@DeviceAddress", DeviceAddress);
-        //            var pDebugOn = new SqlParameter("@DebugOn", DebugOn);
-        //            var pCommsProvider = new SqlParameter("@CommsPovider", CommsPovider);
-
-        //            var MessageData = db.Database.ExecuteSqlCommand("Message_Transaction_Insert @MessageId, @MethodName, @Attempts, @MessageText, @Status, @CreatedOn, @MessageListId, @CloudMessageId, @DeviceAddress, @DebugOn, @CommsPovider",
-        //                pMessageId, pMethodName, pAttempts, pMessageText, pStatus, pCreatedOn, pMessageListId, pCloudMessageId, pDeviceAddress, pDebugOn, pCommsProvider);
-
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            DBC.catchException(ex);
-        //        }
-
-
-        //        //MessageTransaction MessageTrans = new MessageTransaction() {
-        //        //    MessageId = MessageId,
-        //        //    MessageListId = MessageListId,
-        //        //    MethodName = Method.ToUpper(),
-        //        //    MessageText = MessageText,
-        //        //    Attempts = Attempt,
-        //        //    Status = MsgStatus,
-        //        //    CloudMessageId = CloudMessageId,
-        //        //    DeviceAddress = DeviceAddress,
-        //        //    CreatedOn = DateTime.Now,
-        //        //    IsBilled = (DebugOn ? true : false),
-        //        //    LogCollected = ((Method == "PUSH" || Method == "EMAIL" || DebugOn == true) ? true : false)
-        //        //};
-        //        //db.MessageTransaction.Add(MessageTrans);
-        //        //db.SaveChanges();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        DBC.catchException(ex);
-        //    }
-        //}
-
-        ////public void ClearQueueLocks(string ServiceHost = "", string Source = "SELF") {
-        ////    DBCommon DBC = new DBCommon();
-        ////    try {
-        ////        if(Source == "SELF")
-        ////            ServiceHost = DBC.LocalhostName();
-
-        ////        var QueueLst = (from PQ in db.ProcessQueue where PQ.LockedBy == ServiceHost && PQ.Owner != "NOOWNER" select PQ).ToList();
-        ////        if(QueueLst.Count > 0) {
-        ////            foreach(var QItem in QueueLst) {
-        ////                if(QItem.Status == 2) {
-        ////                    QItem.Status = 1;
-        ////                    QItem.CurrentAction = "UPDATEQUEUE";
-        ////                } else if(QItem.Status == 1 || QItem.Status == 4) {
-        ////                    QItem.Status = 0;
-        ////                    DeleteDevices(QItem.MessageId);
-        ////                }
-        ////                QItem.Owner = "NOOWNER";
-        ////                if(Source != "SELF") {
-        ////                    QItem.LockedBy = Source;
-        ////                }
-        ////                db.SaveChanges();
-        ////            }
-        ////        }
-        ////    } catch(DbEntityValidationException ex) {
-        ////        DBC.dbExceptionLog(ex, "DbCommon", "ClearQueueLocks");
-        ////    }
-        ////}
+        
 
         public async Task<List<UserLocation>> GetUserMovements(int UserID)
         {
@@ -1879,19 +1799,6 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        //public int GetCallbackOption(string AckMethod)
-        //{
-        //    int CallbackOption = 3;
-        //    if (AckMethod == "PHONE")
-        //    {
-        //        CallbackOption = 1;
-        //    }
-        //    else if (AckMethod == "TEXT")
-        //    {
-        //        CallbackOption = 1;
-        //    }
-        //    return CallbackOption;
-        //}
 
         public double GetDistance(double lat1, double lon1, double lat2, double lon2)
         {

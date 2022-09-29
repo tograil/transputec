@@ -39,6 +39,7 @@ using CrisesControl.Core.CustomEventLog.Repositories;
 using CrisesControl.Core.Sop.Respositories;
 using CrisesControl.Core.App.Repositories;
 using CrisesControl.Core.CCWebSocket.Repositories;
+using CrisesControl.Core.DBCommon.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -122,6 +123,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<PingHelper>().As<PingHelper>();
             builder.RegisterType<CommsHelper>().As<CommsHelper>();
             builder.RegisterType<Messaging>().As<Messaging>();
+            builder.RegisterType<DBCommonRepository>().As<IDBCommonRepository>();
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

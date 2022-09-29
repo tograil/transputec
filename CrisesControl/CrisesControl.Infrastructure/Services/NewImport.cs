@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
 using Microsoft.Data.SqlClient;
@@ -15,7 +16,7 @@ namespace CrisesControl.Core.Import
 {
     public class NewImport
     {
-        private readonly DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         private readonly CrisesControlContext _context;
         private readonly ImportService _importService;
 
@@ -49,7 +50,7 @@ namespace CrisesControl.Core.Import
         /// <param name="ColDelim"></param>
         public NewImport(int CompanyId, int UserId, string SessionId, string ImportType, string FilePath, string ImportFileType,
             string ColumnFilePath, string ColumnFileType, bool FileHasHeader = true, string ColDelim = ",", bool SendInvite = false,
-            bool AutoForceVerify = false, string JobType = "FULL", DBCommon DBC = default, CrisesControlContext context = default, ImportService importService = default)
+            bool AutoForceVerify = false, string JobType = "FULL", IDBCommonRepository DBC = default, CrisesControlContext context = default, ImportService importService = default)
         {
             this.CompanyId = CompanyId;
             this.UserId = UserId;
@@ -68,7 +69,7 @@ namespace CrisesControl.Core.Import
             _DBC = DBC;
             _context = context;
             _importService = importService;
-            TimeZoneId = _DBC.GetTimeZoneByCompany(CompanyId);
+            //TimeZoneId = await _DBC.GetTimeZoneByCompany(CompanyId);
         }
 
 
@@ -130,7 +131,7 @@ namespace CrisesControl.Core.Import
             }
         }
 
-        public void BulkInsert()
+        public async Task BulkInsert()
         {
             try
             {
@@ -139,7 +140,7 @@ namespace CrisesControl.Core.Import
 
                 List<ImportDumpData> userlist = new List<ImportDumpData>();
 
-                DateTimeOffset dtnow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                DateTimeOffset dtnow = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                 userlist = (from DataRow dr in importData.Rows
                             select new ImportDumpData()

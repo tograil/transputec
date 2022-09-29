@@ -29,6 +29,7 @@ using CrisesControl.Core.Incidents.Services;
 using CrisesControl.Core.Messages;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.DBCommon.Repositories;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -40,8 +41,8 @@ public class IncidentRepository : IIncidentRepository
     private readonly IActiveIncidentRepository _activeIncidentRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly Messaging _MSG;
-    private readonly DBCommon _DBC;
-    private readonly SendEmail _SDE;
+    private readonly IDBCommonRepository _DBC;
+    private readonly ISenderEmailService _SDE;
     private readonly QueueConsumer queueConsumer;
     private readonly QueueHelper _queueHelper;
     public bool IsSOS = false;
@@ -50,7 +51,7 @@ public class IncidentRepository : IIncidentRepository
     public bool IsFundAvailable = true;
     private readonly IActiveIncidentTaskService _activeIncidentTaskService;
     public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository,
-              IMessageService service,
+              IMessageService service, IDBCommonRepository DBC, ISenderEmailService SDE,
         ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor,
          IActiveIncidentTaskService activeIncidentTaskService)
     {
@@ -61,8 +62,8 @@ public class IncidentRepository : IIncidentRepository
         _activeIncidentRepository = activeIncidentRepository;
         _httpContextAccessor = httpContextAccessor;        
 
-        _DBC = new DBCommon(_context,_httpContextAccessor);
-        _SDE = new SendEmail(_context,_DBC);
+        _DBC = DBC;
+        _SDE = SDE;
         _MSG = new Messaging(_context,_httpContextAccessor);
         queueConsumer = new QueueConsumer(_context,_httpContextAccessor);
         _activeIncidentTaskService = activeIncidentTaskService;
@@ -615,7 +616,7 @@ public class IncidentRepository : IIncidentRepository
             bool SilentMessage = false, List<AckOption> AckOptions = null, bool IsSOS = false, int[] MessageMethod = null, int CascadePlanID = 0,
             int[] Groups = null, int[] Keyholders = null)
     {
-        string allow_nominated_kh = _DBC.GetCompanyParameter("ALLOW_KEYHOLDER_NOMINATION", CompanyId);
+        string allow_nominated_kh =await _DBC.GetCompanyParameter("ALLOW_KEYHOLDER_NOMINATION", CompanyId);
 
         Incident tblIncident = new Incident()
         {
@@ -1202,7 +1203,7 @@ public class IncidentRepository : IIncidentRepository
                 _DBC.CancelJobsByGroup("MESSAGE_CASCADE_" + IncidentActivationId);
             }
 
-            var roles = _DBC.CCRoles();
+            var roles =await _DBC.CCRoles();
             if (Type.ToUpper() == "DEACTIVATE")
             {
                 if (!roles.Contains(UserRole.ToUpper()) && NumberOfKeyHolder > 1)
