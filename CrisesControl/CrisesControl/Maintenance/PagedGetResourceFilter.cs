@@ -30,15 +30,15 @@ namespace CrisesControl.Api.Maintenance {
             var orderBy = context.HttpContext.Request.Query["orderBy"];
             var search = context.HttpContext.Request.Query["search"];
 
-            int.TryParse(pageIndex.First(), out var iPageIndex);
-            int.TryParse(pageSize.First(), out var iPageLength);
+            int.TryParse(!string.IsNullOrEmpty(pageIndex) ? pageIndex.First() : "0", out var iPageIndex);
+            int.TryParse(!string.IsNullOrEmpty(pageSize) ? pageSize.First() : "500", out var iPageLength);
 
             _paging.Start = iPageIndex;
             _paging.UniqueKey = !string.IsNullOrEmpty(uniqueKey) ? uniqueKey.First() : "";
             _paging.Filters = !string.IsNullOrEmpty(filters) ? filters.First() : "";
             _paging.Dir = !string.IsNullOrEmpty(dir) ? dir.First() : "asc";
             _paging.Length = iPageLength;
-            _paging.Search = !string.IsNullOrEmpty(search) ? search.First() : "asc";
+            _paging.Search = !string.IsNullOrEmpty(search) ? search.First() : "";
 
             if (pageNumber.Any() && int.TryParse(pageNumber.First(), out var iPageNumber) && iPageNumber > 0) {
                 _paging.PageNumber = iPageNumber;

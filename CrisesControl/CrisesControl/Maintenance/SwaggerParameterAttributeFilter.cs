@@ -8,39 +8,39 @@ namespace CrisesControl.Api.Maintenance
     {
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
-            var attributes = context.MethodInfo.DeclaringType.GetCustomAttributes(true)
-                .Union(context.MethodInfo.GetCustomAttributes(true))
-                .OfType<HttpGetAttribute>();
+            //var attributes = context.MethodInfo.DeclaringType.GetCustomAttributes(true)
+            //    .Union(context.MethodInfo.GetCustomAttributes(true))
+            //    .OfType<HttpGetAttribute>();
 
-            if (attributes.Any())
-            {
-                operation.Parameters.Add(new OpenApiParameter
-                {
-                    Name = "pageNumber",
-                    Description = "Page number",
-                    In = ParameterLocation.Query,
-                    Required = false,
-                    Schema = new OpenApiSchema { Type = "Int" }
-                });
+            //if (attributes.Any())
+            //{
+            //    operation.Parameters.Add(new OpenApiParameter
+            //    {
+            //        Name = "pageNumber",
+            //        Description = "Page number",
+            //        In = ParameterLocation.Query,
+            //        Required = false,
+            //        Schema = new OpenApiSchema { Type = "Int" }
+            //    });
 
-                operation.Parameters.Add(new OpenApiParameter
-                {
-                    Name = "pageSize",
-                    Description = "Page size",
-                    In = ParameterLocation.Query,
-                    Required = false,
-                    Schema = new OpenApiSchema { Type = "Int" }
-                });
+            //    operation.Parameters.Add(new OpenApiParameter
+            //    {
+            //        Name = "pageSize",
+            //        Description = "Page size",
+            //        In = ParameterLocation.Query,
+            //        Required = false,
+            //        Schema = new OpenApiSchema { Type = "Int" }
+            //    });
 
-                operation.Parameters.Add(new OpenApiParameter
-                {
-                    Name = "orderBy",
-                    Description = "Order by field",
-                    In = ParameterLocation.Query,
-                    Required = false,
-                    Schema = new OpenApiSchema { Type = "String" }
-                });
-            }
+            //    operation.Parameters.Add(new OpenApiParameter
+            //    {
+            //        Name = "orderBy",
+            //        Description = "Order by field",
+            //        In = ParameterLocation.Query,
+            //        Required = false,
+            //        Schema = new OpenApiSchema { Type = "String" }
+            //    });
+            //}
         }
     }
 }
