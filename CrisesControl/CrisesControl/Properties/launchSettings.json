@@ -29,9 +29,18 @@
       "applicationUrl": "http://localhost:7010;http://localhost:5010",
       "dotnetRunMessages": true
     },
+    "CrisesControlAsif": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Asif"
+      },
+      "applicationUrl": "http://localhost:7010;http://localhost:5010",
+      "dotnetRunMessages": true
+    },
     "CrisesControlDenish": {
       "commandName": "Project",
-      "launchBrowser": false,
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Denish"

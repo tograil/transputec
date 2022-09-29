@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrisesControl.Core.Companies
 {
@@ -48,6 +49,7 @@ namespace CrisesControl.Core.Companies
         public string? CardHolderName { get; set; }
         public decimal? Vatrate { get; set; }
         public bool? OrderCustomer { get; set; }
+        [NotMapped]
         public Company Company { get; set; }
     }
 }

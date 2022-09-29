@@ -400,7 +400,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     if (get_last_loc != null)
                     {
-                        Messaging MSG = new Messaging(_context,_httpContextAccessor,DBC);
+                        Messaging MSG = new Messaging(_context,_httpContextAccessor);
                         double LastLat =Convert.ToDouble( get_last_loc.Lat);
                         double LastLng = Convert.ToDouble(get_last_loc.Long);
                         foreach (LocationInfo loc in userLocations)
@@ -434,7 +434,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     }
                     else
                     {
-                        Messaging MSG = new Messaging(_context,_httpContextAccessor,DBC);
+                        Messaging MSG = new Messaging(_context,_httpContextAccessor);
                         double LastLat = 0;
                         double LastLng = 0;
 

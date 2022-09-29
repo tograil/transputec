@@ -45,7 +45,7 @@ public interface IMessageRepository
     Task<MessageAckDetails> MessageAcknowledged(int companyId, int msgListId, string timeZoneId, string userLocationLat, string userLocationLong, int currentUserId, int responseID = 0, string ackMethod = "WEB");
     Task<List<IIncidentMessages>> _get_incident_message(int companyId, int currentUserId);
     Task<List<IPingMessage>> _get_ping_message(int companyId, int currentUserId);
-    Task<List<NotificationDetails>> MessageNotifications(int companyId, int currentUserId);
+    Task<NotificationDetails> MessageNotifications(int companyId, int currentUserId);
     Task<string> LookupWithKey(string key, string Default = "");
     Task<int> GetCallbackOption(string ackMethod);
     Task CreateSOSAlert(int userID, string sosType, int messageId, int messageListId, int responseID, int incidentActivationId,

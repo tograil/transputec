@@ -135,7 +135,7 @@ namespace CrisesControl.Api.Application.Query
             response.UniqueKey = User.UniqueKey;
             response.Status = User.Status;
             response.TimeZoneId = User.TimeZoneId;
-            response.UserMobileISD = User.UserMobileISD;
+            response.PhoneISDCode = User.PhoneISDCode;
             response.UserId = User.UserId;
             response.UserLanguage = User.UserLanguage;
             response.UserPhoto = User.UserPhoto;
@@ -228,7 +228,7 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<ValidateEmailResponse> ValidateLoginEmail(ValidateEmailRequest request)
         {
-            var validateEmail =await _UserRepository.ValidateLoginEmail(request.UserEmail);
+            var validateEmail =await _UserRepository.ValidateLoginEmail(request.UserName);
             //var result = _mapper.Map<ValidateEmailResponse>(validateEmail.Result);
             var response = new ValidateEmailResponse();
             response.SSOEnabled = validateEmail.SSOEnabled;

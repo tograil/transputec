@@ -29,7 +29,7 @@ namespace CrisesControl.Infrastructure.Services
         {
             db = _db;
             _DBC = new DBCommon(db, _httpContextAccessor);
-            _MSG = new Messaging(db, _httpContextAccessor, _DBC);
+            _MSG = new Messaging(db, _httpContextAccessor);
         }
         public  void MessageDeviceQueue(int MessageID, string MessageType, int Priority, int CascadePlanID = 0)
         {

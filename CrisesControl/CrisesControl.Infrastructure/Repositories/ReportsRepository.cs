@@ -61,14 +61,14 @@ namespace CrisesControl.Infrastructure.Repositories
             _DBC = DBC;
             //_queueService = queueService;
         }
-        public async Task<List<SOSItem>> GetSOSItems()
+        public async Task<List<SOSItem>> GetSOSItems(int UserId)
         {
             try
             {
-                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+                //UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
                 CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
 
-                var pUserId = new SqlParameter("@UserID", UserID);
+                var pUserId = new SqlParameter("@UserID", UserId);
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
 
                 var result = await _context.Set<SOSItem>().FromSqlRaw("exec Pro_Get_SOS_Alerts {0},{1}", pCompanyID, pUserId).ToListAsync();

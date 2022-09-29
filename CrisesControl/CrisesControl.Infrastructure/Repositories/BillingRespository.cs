@@ -38,6 +38,8 @@ namespace CrisesControl.Infrastructure.Repositories
             _DBC = new DBCommon(_context,_httpContextAccessor);
             _usage = new UsageHelper(_context);
             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            _DBC = new DBCommon(context, _httpContextAccessor);
+            _usage = new UsageHelper(context);
         }
 
         public async Task<BillingPaymentProfile> GetPaymentProfile(int companyID)

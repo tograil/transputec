@@ -140,8 +140,8 @@ public class IncidentController : Controller
     /// <param name="paging"></param>
     /// <returns></returns>
     [HttpGet]
-    [Route("[action]")]
-    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? status, [FromRoute] DataTableAjaxPostModel paging)
+    [Route("[action]/{Status}")]
+    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? status, [FromQuery] DataTableAjaxPostModel paging)
     {
         var result = _incidentQuery.GetAllActiveCompanyIncident(status, paging);
         return Ok(result);

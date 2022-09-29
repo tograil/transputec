@@ -41,6 +41,7 @@ using CrisesControl.Api.Application.Commands.Users.ResetPassword;
 using CrisesControl.Api.Application.Commands.Users.ResetUserDeviceToken;
 using CrisesControl.Api.Application.Commands.Users.UserRelation;
 using CrisesControl.Api.Application.Commands.Users.GetUserId;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CrisesControl.Api.Controllers
 {
@@ -81,6 +82,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("GetLoggedinUserInfo")]
+        [Authorize]
         public async Task<IActionResult> GetLoggedinUserInfo([FromForm] LoginRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -90,6 +92,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("AddUser")]
+        [Authorize]
         public async Task<IActionResult> AddUser([FromBody] AddUserRequest UserModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(UserModel, cancellationToken);
@@ -106,6 +109,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPut]
         [Route("UpdateUser")]
+        [Authorize]
         public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest UserModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(UserModel, cancellationToken);
@@ -114,6 +118,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpDelete]
         [Route("DeleteUser")]
+        [Authorize]
         public async Task<IActionResult> DeleteUser([FromBody] DeleteUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -121,6 +126,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPut]
         [Route("UpdateProfile")]
+        [Authorize]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -129,6 +135,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPut]
         [Route("UpdateUserGroup")]
+        [Authorize]
         public async Task<IActionResult> UpdateUserGroup([FromBody] UpdateUserGroupRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -136,6 +143,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPut]
         [Route("UpdateGroupMember")]
+        [Authorize]
         public async Task<IActionResult> UpdateGroupMember([FromBody] UpdateGroupMemberRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -143,6 +151,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpGet]
         [Route("MembershipList")]
+        [Authorize]
         public async Task<IActionResult> MembershipList([FromQuery] MembershipRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -150,6 +159,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPost]
         [Route("GetAllUserDeviceList")]
+        [Authorize]
         public async Task<IActionResult> GetAllUserDeviceList([FromBody] GetAllUserDevicesRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -158,6 +168,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("GetUserComms")]
+        [Authorize]
         public async Task<IActionResult> GetUserComms([FromBody] GetUserCommsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -175,6 +186,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("UpdateUserPhoto")]
+        [Authorize]
         public async Task<IActionResult> UpdateUserPhoto([FromBody] UpdateUserPhotoRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -183,6 +195,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("UpdateUserPhone")]
+        [Authorize]
         public async Task<IActionResult> UpdateUserPhone([FromBody] UpdateUserPhoneRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -199,6 +212,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("SendInvites")]
+        [Authorize]
         public async Task<IActionResult> SendInvites([FromBody] SendInvitesRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -207,6 +221,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("GetAllOneUserDeviceList")]
+        [Authorize]
         public async Task<IActionResult> GetAllOneUserDeviceList([FromBody] GetAllOneUserDeviceListRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -215,6 +230,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("DeleteUserDevice")]
+        [Authorize]
         public async Task<IActionResult> DeleteUserDevice([FromBody] DeleteUserDeviceRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -223,6 +239,7 @@ namespace CrisesControl.Api.Controllers
 
         [HttpPost]
         [Route("UserRelations")]
+        [Authorize]
         public async Task<IActionResult> UserRelations([FromRoute] UserRelationRequest request,CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(Request, cancellationToken);
@@ -238,6 +255,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPost]
         [Route("BulkAction")]
+        [Authorize]
         public async Task<ActionResult> BulkAction([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request,  cancellationToken);
@@ -252,6 +270,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPost]
         [Route("CheckUserLicense")]
+        [Authorize]
         public async Task<ActionResult> CheckUserLicense([FromBody] CheckUserLicenseRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -259,6 +278,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpGet]
         [Route("GetUserCount")]
+        [Authorize]
         public async Task<ActionResult> GetUserCount([FromRoute] GetUserCountRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -266,6 +286,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPost]
         [Route("TrackUserDevice")]
+        [Authorize]
         public async Task<ActionResult> TrackUserDevice([FromRoute] TrackUserDeviceRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -273,6 +294,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPost]
         [Route("GetUserMovements")]
+        [Authorize]
         public async Task<ActionResult> GetUserMovements([FromRoute] GetUserMovementsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -280,6 +302,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpGet]
         [Route("GetUserGroups/{UserID}")]
+        [Authorize]
         public async Task<ActionResult> GetUserGroups([FromRoute] GetUserGroupsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -287,6 +310,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPost]
         [Route("OffDutySetting")]
+        [Authorize]
         public async Task<ActionResult> OffDutySetting([FromBody] OffDutySettingRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -294,6 +318,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPost]
         [Route("GetUserDashboard")]
+        [Authorize]
         public async Task<ActionResult> GetUserDashboard([FromRoute]  GetUserDashboardRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request);
@@ -301,6 +326,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPost]
         [Route("SaveDashboard")]
+        [Authorize]
         public async Task<ActionResult> SaveDashboard([FromBody] SaveDashboardRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -308,6 +334,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpPost]
         [Route("AddDashlet")]
+        [Authorize]
         public async Task<ActionResult> AddDashlet([FromBody] AddDashletRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -315,6 +342,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpGet]
         [Route("GetUserId/{EmailAddress}")]
+        [Authorize]
         public async Task<ActionResult> GetUserId([FromRoute] GetUserIdRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -322,6 +350,7 @@ namespace CrisesControl.Api.Controllers
         }
         [HttpGet]
         [Route("GetUserSystemInfo")]
+        [Authorize]
         public async Task<ActionResult> GetUserSystemInfo([FromRoute]  GetUserSystemInfoRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -335,6 +364,7 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("[action]")]
+        [Authorize]
         public async Task<IActionResult> GetKeyHolders([FromRoute] GetKeyHoldersRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

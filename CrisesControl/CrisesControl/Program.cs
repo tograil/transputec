@@ -42,8 +42,8 @@ builder.Services.Configure<AuditLogOptions>(builder.Configuration.GetSection("Au
 
 // Add services to the container.
 
-/*builder.Services.AddControllers()
-                .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null);*/
+builder.Services.AddControllers()
+                .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
 var serverCredentials = builder.Configuration
                                .GetSection(ServerCredentialsOptions.ServerCredentials)
@@ -118,9 +118,10 @@ builder.Services.AddOpenIddict()
         options.SetIssuer(serverCredentials.OpendIddictEndpoint);
         options.AddAudiences("api");
 
+        options.AddEncryptionCertificate(serverCredentials.EncryptionKeyThumbprint);
 
-        options.AddEncryptionKey(new SymmetricSecurityKey(
-            Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
+        //options.AddEncryptionKey(new SymmetricSecurityKey(
+        //    Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
 
         // Register the System.Net.Http integration.
         options.UseSystemNetHttp();

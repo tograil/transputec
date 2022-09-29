@@ -21,8 +21,8 @@ namespace CrisesControl.Api.Application.Commands.Reports.GetIndidentMessageAck
             Guard.Against.Null(request, nameof(GetIndidentMessageAckRequest));
             await _getIndidentMessageAckValidator.ValidateAndThrowAsync(request, cancellationToken);
 
-            var result = await _reportsQuery.GetIndidentMessageAck(request);
-            return result;
+            var result = await _reportsQuery.GetIndidentMessageAck(request, null);
+            return null;
         }
     }
 }

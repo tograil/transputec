@@ -42,7 +42,7 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetUserActiveConferences/{CompanyID:int}")]
+        [Route("GetUserActiveConferences/{CompanyId:int}")]
         public async Task<IActionResult> GetUserActiveConferences([FromRoute] GetUserActiveConferencesRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

@@ -73,7 +73,7 @@ namespace CrisesControl.Api.Application.Query
         }
 
         public async Task<GetSOSItemsResponse> GetSOSItems(GetSOSItemsRequest request) {
-            var sositems = await _reportRepository.GetSOSItems();
+            var sositems = await _reportRepository.GetSOSItems(request.UserId);
 
             var response = _mapper.Map<List<SOSItem>>(sositems);
             var result = new GetSOSItemsResponse();
@@ -91,7 +91,7 @@ namespace CrisesControl.Api.Application.Query
             result.ErrorCode = "0";
             return result;
         }
-        public async Task<GetIndidentMessageAckResponse> GetIndidentMessageAck(GetIndidentMessageAckRequest request)
+        public async Task<GetIndidentMessageAckResponse> GetIndidentMessageAck(GetIndidentMessageAckRequest request, DataTableAjaxPostModel pagedRequest)
         {
             var stats = await _reportRepository.GetIndidentMessageAck(request.MessageId, request.MessageAckStatus, request.MessageSentStatus, _paging.PageNumber, _paging.PageSize, request.SearchString,_paging.OrderBy,request.OrderDir,request.draw ?? default(int),request.Filters,request.CompanyKey, request.Source="WEB");
 

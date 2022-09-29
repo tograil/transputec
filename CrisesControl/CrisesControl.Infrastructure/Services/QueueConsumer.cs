@@ -42,7 +42,7 @@ namespace CrisesControl.Infrastructure.Services
             _db = db;
             _httpContextAccessor = httpContextAccessor;
             _DBC = new DBCommon(_db, _httpContextAccessor);
-            _MSG = new Messaging(_db, _httpContextAccessor, _DBC);
+            _MSG = new Messaging(_db, _httpContextAccessor);
             _queueHelper = new QueueHelper(db);
         }
         public  async Task<int> CreateMessageList(int MessageID, string ReplyTo = "")
