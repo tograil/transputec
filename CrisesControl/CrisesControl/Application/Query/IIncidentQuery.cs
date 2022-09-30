@@ -49,7 +49,7 @@ namespace CrisesControl.Api.Application.Query
         List<AffectedLocation> GetIncidentLocations(int companyId, int incidentActivationId);
         List<CommsMethods> GetIncidentComms(int itemID, string type);
         IncidentDetails GetCompanyIncidentById(int companyId, int incidentId, string userStatus);
-        DataTablePaging GetAllActiveCompanyIncident(string? status, DataTableAjaxPostModel pagedRequest);
+        DataTablePaging GetAllActiveCompanyIncident(string? status);
         Task<GetIncidentTaskNotesResponse> GetIncidentTaskNotes(GetIncidentTaskNotesRequest request);
         Task<CheckUserSOSResponse> CheckUserSOS(CheckUserSOSRequest request);
         Task<AddNotesResponse> AddNotes(AddNotesRequest request);

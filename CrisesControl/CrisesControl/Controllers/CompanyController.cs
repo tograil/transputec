@@ -35,10 +35,12 @@ namespace CrisesControl.Api.Controllers;
 public class CompanyController : Controller
 {
     private readonly IMediator _mediator;
+    private readonly ICompanyQuery _companyQuery;
 
-    public CompanyController(IMediator mediator)
+    public CompanyController(IMediator mediator, ICompanyQuery companyQuery)
     {
         _mediator = mediator;
+        _companyQuery = companyQuery;
     }
 
     [HttpGet]
@@ -158,10 +160,10 @@ public class CompanyController : Controller
         return Ok(result);
     }
     [HttpGet]
-    [Route("GetCompanyComms")]
+    [Route("GetCompanyComms/{CompanyId:int}")]
     public async Task<IActionResult> GetCompanyComms([FromRoute] GetCompanyCommsRequest request, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(request, cancellationToken);
+        var result = await _companyQuery.GetCompanyComms(request);
 
         return Ok(result);
     }
@@ -228,7 +230,7 @@ public class CompanyController : Controller
     [Route("[action]/{ObjectName}")]
     public async Task<IActionResult> GetCompanyObject([FromRoute] GetCompanyObjectRequest request, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(request, cancellationToken);
+        var result = await _companyQuery.GetCompanyObject(request);
         return Ok(result);
     }
     /// <summary>

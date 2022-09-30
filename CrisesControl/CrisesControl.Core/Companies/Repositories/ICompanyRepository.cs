@@ -48,6 +48,6 @@ public interface ICompanyRepository
     Task<CompanyScimProfile> SaveScimProfileAsync(CompanyScim IP, int CurrentUserId, int CompanyId, string TimezoneId);
     Task<CompanyScimProfile> GetScimProfile(int outUserCompanyId);
     Task<List<GroupUsers>> GetGroupUsers(int GroupId, int ObjectMappingId);
-    Task<CompanyObject> GetCompanyObject(int CompanyID, string ObjectName);
+    Task<List<CompanyObject>> GetCompanyObject(int CompanyID, string ObjectName);
     Task<string> DeleteCompany(int TargetCompanyID, int CompanyID, int CurrentUserID, string TimeZoneId);
 }

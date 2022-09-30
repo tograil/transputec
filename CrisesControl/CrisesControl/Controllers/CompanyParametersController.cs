@@ -57,7 +57,7 @@ namespace CrisesControl.Api.Controllers
         [Route("GetAllCompanyParameters/{CompanyId:int}")]
         public async Task<IActionResult> GetAllCompanyParameters([FromRoute] GetAllCompanyParametersRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _companyParametersQuery.GetAllCompanyParameters(request);
 
             return Ok(result);
         }

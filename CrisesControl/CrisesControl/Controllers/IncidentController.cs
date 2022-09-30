@@ -140,9 +140,9 @@ public class IncidentController : Controller
     /// <returns></returns>
     [HttpGet]
     [Route("[action]/{Status}")]
-    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? status, [FromQuery] DataTableAjaxPostModel paging)
+    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? status, CancellationToken cancellationToken)
     {
-        var result = _incidentQuery.GetAllActiveCompanyIncident(status, paging);
+        var result = _incidentQuery.GetAllActiveCompanyIncident(status);
         return Ok(result);
     }
 

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using CrisesControl.Api.Application.Commands.Companies.GetCompany;
+using CrisesControl.Api.Application.Commands.Companies.GetCompanyObject;
 using CrisesControl.Api.Application.Commands.Companies.TempRegister;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Models;
@@ -20,6 +21,5 @@ public class CompanyProfile : Profile
 
         CreateMap<GetCompanyRequest, CompanyRequestInfo>();
         CreateMap<CompanyInfoReturn, GetCompanyResponse>();
-
     }
 }

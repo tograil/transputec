@@ -179,7 +179,7 @@ builder.Services.AddCors(options => {
 
 TokenCredential credentials = new DefaultAzureCredential(new DefaultAzureCredentialOptions
 {
-    ManagedIdentityClientId = builder.Configuration["AzureADManagedIdentityClientId"]
+    ManagedIdentityClientId = builder.Configuration["appdentityClientId"]
 });
 
 if (builder.Environment.IsProduction())

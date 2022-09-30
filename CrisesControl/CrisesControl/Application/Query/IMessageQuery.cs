@@ -6,6 +6,7 @@ using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
 using CrisesControl.Api.Application.Commands.Messaging.GetReplies;
+using CrisesControl.Api.Application.Commands.Messaging.GetPingInfo;
 
 namespace CrisesControl.Api.Application.Query {
     public interface IMessageQuery {
@@ -17,5 +18,6 @@ namespace CrisesControl.Api.Application.Query {
         public Task<GetRepliesResponse> GetReplies(GetRepliesRequest request);
         Task<GetMessageGroupListResponse> GetMessageGroupList(GetMessageGroupListRequest request);
         Task<StartConferenceResponse> StartConference(StartConferenceRequest request);
+        Task<GetPingInfoResponse> GetPingInfo(GetPingInfoRequest request);
     }
 }
