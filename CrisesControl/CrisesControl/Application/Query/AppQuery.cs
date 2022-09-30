@@ -42,7 +42,7 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                string Token = request.Token;
-                var home = _appRepository.AppHome(_currentUser.CompanyId, _currentUser.UserId, request.UserDeviceID,Token);
+                var home = await _appRepository.AppHome(_currentUser.CompanyId, _currentUser.UserId, request.UserDeviceID,Token);
                 var result = _mapper.Map<AppHomeReturn>(home);
                 var response = new AppHomeResponse();
                 if (result!=null)
@@ -218,6 +218,7 @@ namespace CrisesControl.Api.Application.Query
                 if (request.PinNumber == ValidPin)
                 {
                     response.PinExpire = 10;
+                    response.Message = "Pin has been Validated correctly";
                 }
                 else
                 {

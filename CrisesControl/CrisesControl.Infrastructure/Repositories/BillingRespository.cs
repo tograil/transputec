@@ -202,8 +202,8 @@ namespace CrisesControl.Infrastructure.Repositories
                     if (orderId > 0 )
                     {
                         var newresult = result.FirstOrDefault();
-                        newresult.Modules = await GetProducts(newresult.OrderID, companyId);
-                        newresult.InvItems = await GetInvItems(newresult.OrderID, DateTime.Now.Month, DateTime.Now.Year);
+                        newresult.Modules = await GetProducts(newresult.OrderID ?? 0, companyId);
+                        newresult.InvItems = await GetInvItems(newresult.OrderID ?? 0, DateTime.Now.Month, DateTime.Now.Year);
                         var r = new List<OrderListReturn>();
                         r.Add(newresult);
                         return r;
@@ -473,7 +473,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         {
                             cp.OnTrial = false;
                             cpp.ContractStartDate = order.ContractStartDate;
-                            cpp.ContractAnniversary = order.ContractStartDate.AddMonths(order.ContractDuration).AddDays(-1);
+                            cpp.ContractAnniversary = order.ContractStartDate.AddMonths(order.ContractDuration ?? 0).AddDays(-1);
 
                             await _context.SaveChangesAsync();
                         }
@@ -492,10 +492,10 @@ namespace CrisesControl.Infrastructure.Repositories
                         var Storage = (from A in _context.Set<Assets>() where A.CompanyId == CompanyId select A).ToList();
                         double AssetSize = Storage.Select(s => s.AssetSize).Sum();
 
-                        DateTime EndTime = order.ContractStartDate.AddMonths(order.ContractDuration).AddDays(-1);
+                        DateTime EndTime = order.ContractStartDate.AddMonths(order.ContractDuration ?? 0).AddDays(-1);
 
                         int tran_header_id = await _usage.AddTransactionHeader(CompanyId, Convert.ToDecimal(order.ContractValue), VATRate, Convert.ToDecimal(order.VatTotal),
-                            Convert.ToDecimal(TotalValue), 0, cpp.CreditLimit, order.KeyholderCount, TotalAdmin, order.StaffCount, TotalStaff, StorageLimit, AssetSize,
+                            Convert.ToDecimal(TotalValue), 0, cpp.CreditLimit, order.KeyholderCount ?? 0, TotalAdmin, order.StaffCount ?? 0, TotalStaff, StorageLimit, AssetSize,
                             order.ContractStartDate, EndTime);
 
 
