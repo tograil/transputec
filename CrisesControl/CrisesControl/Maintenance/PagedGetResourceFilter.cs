@@ -29,6 +29,7 @@ namespace CrisesControl.Api.Maintenance {
             var pageSize = context.HttpContext.Request.Query["length"];
             var orderBy = context.HttpContext.Request.Query["orderBy"];
             var search = context.HttpContext.Request.Query["search"];
+            var draw = context.HttpContext.Request.Query["draw"];
 
             int.TryParse(pageIndex.First(), out var iPageIndex);
             int.TryParse(pageSize.First(), out var iPageLength);

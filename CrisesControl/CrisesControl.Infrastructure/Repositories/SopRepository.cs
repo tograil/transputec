@@ -27,13 +27,13 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly ILogger<SopRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon DBC;
-        public SopRepository(IHttpContextAccessor httpContextAccessor, ILogger<SopRepository> logger, CrisesControlContext context)
+        private readonly IDBCommonRepository DBC;
+        public SopRepository(IHttpContextAccessor httpContextAccessor, ILogger<SopRepository> logger, CrisesControlContext context, IDBCommonRepository _DBC)
         {
            this._context = context;
            this._logger = logger;
            this._httpContextAccessor = httpContextAccessor;
-            this.DBC = new DBCommon(_context,_httpContextAccessor);
+            this.DBC = _DBC;
         }
         public async Task<List<LibSopSection>> GetSOPSectionLibrary()
         {

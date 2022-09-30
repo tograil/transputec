@@ -16,8 +16,8 @@ namespace CrisesControl.Infrastructure.Repositories
     public class CustomEventLogRepository : ICustomEventLogRepository
     {
         private readonly CrisesControlContext _context;
-        private readonly DBCommon _DBC;
-        public CustomEventLogRepository(CrisesControlContext context, DBCommon DBC)
+        private readonly IDBCommonRepository _DBC;
+        public CustomEventLogRepository(CrisesControlContext context, IDBCommonRepository DBC)
         {
             _context = context;
             _DBC = DBC;

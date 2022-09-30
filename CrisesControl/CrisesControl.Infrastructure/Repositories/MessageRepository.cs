@@ -34,6 +34,8 @@ using Serilog;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 using Group = CrisesControl.Core.Groups.Group;
 using CrisesControl.Core.Register;
+using CrisesControl.Core.DBCommon.Repositories;
+using CrisesControl.Core.Messages.Services;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -48,27 +50,30 @@ public class MessageRepository : IMessageRepository
     private readonly CrisesControlContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<MessageRepository> _logger;
-    private  DBCommon _DBC;
+    private readonly IDBCommonRepository _DBC;
+    private readonly ISenderEmailService _SDE;
     private CommsHelper _CH;
     private  PingHelper _PH;
-    private Messaging _MSG;
-    private  SendEmail _SDE;
+    private readonly IMessageService _MSG;
+   
 
 
     public MessageRepository(
         CrisesControlContext context,
         IHttpContextAccessor httpContextAccessor,
-        ILogger<MessageRepository> logger       
-      
+        ILogger<MessageRepository> logger,
+        IDBCommonRepository DBC,
+        IMessageService MSG,
+        ISenderEmailService SDE
         )
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
        // _companyParameters = companyParameters;
-        _DBC = new DBCommon(_context,_httpContextAccessor);
-        _MSG = new Messaging(_context,_httpContextAccessor);
-        _SDE = new SendEmail(_context,_DBC);
+        _DBC =  DBC;
+        _MSG =MSG;
+        _SDE = SDE;
         _CH = new CommsHelper(_context,_httpContextAccessor);
         _PH = new PingHelper(_context, _httpContextAccessor);
         
@@ -591,14 +596,14 @@ public class MessageRepository : IMessageRepository
             var user = (from U in _context.Set<User>() where U.UserId == UserId && U.CompanyId == CompanyId select U).FirstOrDefault();
             if (user != null) {
 
-                string SMS_API = _DBC.GetCompanyParameter("SMS_API", CompanyId);
-                string CoPilotSid = _DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", CompanyId);
-                string FromNumber = _DBC.GetCompanyParameter(SMS_API + "_FROM_NUMBER", CompanyId);
-                string TextMessageXML = _DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
+                string SMS_API = await _DBC.GetCompanyParameter("SMS_API", CompanyId);
+                string CoPilotSid = await _DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", CompanyId);
+                string FromNumber =await _DBC.GetCompanyParameter(SMS_API + "_FROM_NUMBER", CompanyId);
+                string TextMessageXML =await _DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
 
-                string sendDirect = _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION");
+                string sendDirect =await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION");
 
-                bool SendInDirect = _DBC.IsTrue(sendDirect, false);
+                bool SendInDirect =await _DBC.IsTrue(sendDirect, false);
 
                 dynamic CommsAPI = _CH.InitComms(SMS_API);
 
@@ -610,7 +615,7 @@ public class MessageRepository : IMessageRepository
 
                 CommsStatus textrslt = new CommsStatus();
 
-                string toNumber = _DBC.FormatMobile(user.Isdcode, user.MobileNo);
+                string toNumber = await _DBC.FormatMobile(user.Isdcode, user.MobileNo);
                 //Change this message in TwilioSMSAck.ashx
                 string message = "CRISES CONTROL: Message [" + MessageListId + "] has been acknowledged successfully.";
 
@@ -632,7 +637,7 @@ public class MessageRepository : IMessageRepository
             if (sos != null)
             {
                 bool IsSOSEnabled = false;
-                bool.TryParse( _DBC.GetCompanyParameter(key, sos.Message.CompanyId), out IsSOSEnabled);
+                bool.TryParse(await _DBC.GetCompanyParameter(key, sos.Message.CompanyId), out IsSOSEnabled);
 
                 if (sos.ActiveMessageResponse.IsSafetyResponse && IsSOSEnabled)
                 {
@@ -985,7 +990,7 @@ public class MessageRepository : IMessageRepository
         //}
     }
 
-    public object GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId)
+    public async Task<object> GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId)
     {
         CommonDTO ResultDTO = new CommonDTO();
 
@@ -994,7 +999,7 @@ public class MessageRepository : IMessageRepository
             objectType = objectType.ToUpper();
             if (confCallId <= 0)
             {
-                var recordings = (from CH in _context.Set<ConferenceCallLogHeader>()
+                var recordings = await (from CH in _context.Set<ConferenceCallLogHeader>()
                                   join U in _context.Set<User>() on CH.InitiatedBy equals U.UserId
                                   where CH.CompanyId == CompanyID && CH.TargetObjectId == objectId && CH.TargetObjectName == objectType
                                   select new
@@ -1004,28 +1009,27 @@ public class MessageRepository : IMessageRepository
                                       U.LastName,
                                       ConferenceStart = CH.ConfrenceStart != null ? CH.ConfrenceStart : CH.CreatedOn,
                                       ConferenceEnd = CH.ConfrenceEnd != null ? CH.ConfrenceEnd : CH.CreatedOn
-                                  }).ToList();
+                                  }).ToListAsync();
 
                 return recordings;
             }
             else if (confCallId > 0 && single == true)
             {
-                var recording = (from CH in _context.Set<ConferenceCallLogHeader>()
-                                 where CH.ConferenceCallId == confCallId
-                                 select CH).FirstOrDefault();
+                var recording = await  _context.Set<ConferenceCallLogHeader>()
+                                 .Where(CH=> CH.ConferenceCallId == confCallId).FirstOrDefaultAsync();
                 if (recording != null)
                 {
                     if (recording.RecordingSid != null)
                     {
 
-                        _DBC.connectUNCPath();
+                        await _DBC.connectUNCPath();
 
-                        string RecordingPath = _DBC.LookupWithKey("RECORDINGS_PATH");
+                        string RecordingPath = await _DBC.LookupWithKey("RECORDINGS_PATH");
                         string SavePath = @RecordingPath + "\\" + recording.CompanyId + "\\";
 
                         if (!File.Exists(@SavePath + recording.RecordingSid + ".mp3"))
                         {
-                            DownloadRecording(recording.RecordingSid, recording.CompanyId, recording.RecordingUrl);
+                           await DownloadRecording(recording.RecordingSid, recording.CompanyId, recording.RecordingUrl);
                         }
                     }
                 }
@@ -1060,16 +1064,16 @@ public class MessageRepository : IMessageRepository
         }
     }
 
-    public void DownloadRecording(string recordingSid, int companyId, string recordingUrl)
+    public async Task DownloadRecording(string recordingSid, int companyId, string recordingUrl)
     {
         try
         {
             int RetryCount = 2;
-            string RecordingPath = _DBC.LookupWithKey("RECORDINGS_PATH");
-            int.TryParse(_DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT"), out RetryCount);
+            string RecordingPath =await _DBC.LookupWithKey("RECORDINGS_PATH");
+            int.TryParse(await _DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT"), out RetryCount);
             string SavePath = @RecordingPath + "\\" + companyId + "\\";
 
-            _DBC.connectUNCPath();
+            await _DBC.connectUNCPath();
 
             if (!Directory.Exists(SavePath))
                 Directory.CreateDirectory(SavePath);
@@ -1078,8 +1082,8 @@ public class MessageRepository : IMessageRepository
             {
                 WebClient Client = new WebClient();
                 bool confdownloaded = false;
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
-                string RoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string RoutingApi =await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 for (int i = 0; i < RetryCount; i++)
                 {
@@ -1112,10 +1116,12 @@ public class MessageRepository : IMessageRepository
             }
             catch (Exception ex)
             {
+                throw ex;
             }
         }
         catch (WebException ex)
         {
+            throw ex;
         }
     }
 
@@ -1387,7 +1393,7 @@ GO
         }
     }
 
-    public Return UploadAttachment()
+    public async Task<Return> UploadAttachment()
     {
         string ServerUploadFolder = "C:\\Temp\\";
         int iUploadedCnt = 0;
@@ -1395,13 +1401,13 @@ GO
         try
         {
 
-            string AttachmentSavePath = _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
-            string AttachmentUncUser = _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
-            string AttachmentUncPwd = _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
-            string AttachmentUseUnc = _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
-            ServerUploadFolder = _DBC.LookupWithKey("UPLOAD_PATH");
+            string AttachmentSavePath =await _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
+            string AttachmentUncUser =await _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
+            string AttachmentUncPwd =await _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
+            string AttachmentUseUnc =await _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
+            ServerUploadFolder = await _DBC.LookupWithKey("UPLOAD_PATH");
 
-            _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
+            await _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
 
             List<IFormFile> hfc = new List<IFormFile>();
 
@@ -1421,16 +1427,16 @@ GO
             }
             if (iUploadedCnt > 0)
             {
-                return _DBC.Return(0, "0", true, "File Uploaded successfully", FileName);
+                return await _DBC.Return(0, "0", true, "File Uploaded successfully", FileName);
             }
             else
             {
-                return _DBC.Return(1, "E001", false, "Could not upload file", null);
+                return await _DBC.Return(1, "E001", false, "Could not upload file", null);
             }
         }
         catch (Exception ex)
         {
-            return _DBC.Return(1, "E001", false, ex.ToString(), null);
+            return await _DBC.Return(1, "E001", false, ex.ToString(), null);
         }
     }
 

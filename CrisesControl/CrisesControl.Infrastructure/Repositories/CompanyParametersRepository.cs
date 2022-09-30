@@ -25,19 +25,19 @@ namespace CrisesControl.Infrastructure.Repositories {
     public class CompanyParametersRepository : ICompanyParametersRepository {
         private readonly CrisesControlContext _context;
         private readonly ILogger<CompanyParametersRepository> _logger;
-        private readonly DBCommon _DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly Messaging _MSG;
-        private readonly SendEmail _SDE;
-        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, IHttpContextAccessor httpContextAccessor)
+        private readonly IDBCommonRepository _DBC;
+        private readonly IMessageService _MSG;
+        private readonly ISenderEmailService _SDE;
+        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG, ISenderEmailService _SDE)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
 
-            _DBC = new DBCommon(context, _httpContextAccessor);
-            _MSG = new Messaging(context, _httpContextAccessor);
-            _SDE = new SendEmail(context, _DBC);
+            _DBC = DBC;
+            _MSG = MSG;
+            _SDE = SDE;
         }
         public async Task<IEnumerable<CascadingPlanReturn>> GetCascading(int planID, string planType, int companyId, bool getDetails = false)
         {

@@ -82,7 +82,7 @@ namespace CrisesControl.Core.DBCommon.Repositories
         Task<DateTimeOffset> ToNullIfTooEarlyForDb(DateTimeOffset date, bool convertUTC = false);
         Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0);
         Task UpdateUserDepartment(int userId, int departmentId, int createdUpdatedBy, int companyId, string timeZoneId);
-
+        Task<string> RetrieveFormatedAddress(string lat, string lng);
 
 
 

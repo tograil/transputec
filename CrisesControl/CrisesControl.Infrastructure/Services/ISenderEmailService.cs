@@ -16,5 +16,10 @@ namespace CrisesControl.Infrastructure.Services
         Task UsageAlert(int CompanyId);
         Task NotifyKeyHolders(string tmpltype, int inciActId, int currentUserid, int companyId, string statusReason = "", bool hasNominatedKH = false);
         Task KeyContactEmail(string tmpltype, int userId, int inciActId, string statusReason = "");
+        Task SendUserAssociationsToAdmin(string items, int userId, int companyId);
+        Task NewUserAccount(string emailId, string userName, int companyId, string guid);
+        Task SendReviewAlert(int incidentId, int headerId, int companyId, string reminderType = "TASK");
+        Task NewUserAccountConfirm(string emailId, string userName, string userPass, int companyId, string guid);
+        Task CompanySignUpConfirm(string emailId, string userName, string mobile, string paymentMethod, string plan, string userPass, int companyId);
     }
 }

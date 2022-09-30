@@ -5,6 +5,7 @@ using CrisesControl.Core.Administrator.Repositories;
 using CrisesControl.Core.Assets.Respositories;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
@@ -32,21 +33,21 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly ILogger<AdminRepository> _logger;
-        private readonly SendEmail _SDE;
-        private readonly DBCommon DBC;
+        private readonly ISenderEmailService _SDE;
+        private readonly IDBCommonRepository DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private static IScheduler _scheduler;
         private static ISchedulerFactory schedulerFactory;
         private readonly IJobRepository _jobRepository;
         private readonly IAssetRepository _assetRepository;
-        public AdminRepository(CrisesControlContext context, ILogger<AdminRepository> logger, SendEmail SDE, IJobRepository jobRepository, IHttpContextAccessor httpContextAccessor, IAssetRepository assetRepository)
+        public AdminRepository(CrisesControlContext context, ILogger<AdminRepository> logger, ISenderEmailService SDE, IJobRepository jobRepository, IHttpContextAccessor httpContextAccessor, IDBCommonRepository _DBC, IAssetRepository assetRepository)
         {
             this._context=context;
             this._logger=logger;
             this._SDE = SDE;
             this._httpContextAccessor = httpContextAccessor;
             this._jobRepository = jobRepository;
-            this.DBC =new DBCommon(_context, _httpContextAccessor);
+            this.DBC =_DBC;
             this._assetRepository = assetRepository;
         }
         public async Task<List<LibIncident>> GetAllLibIncident()

@@ -20,12 +20,12 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon _DBC;
-        public FileServiceRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+        private readonly IDBCommonRepository _DBC;
+        public FileServiceRepository(CrisesControlContext context, IDBCommonRepository DBC, IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
             _context = context;
-            _DBC = new DBCommon(_context, _httpContextAccessor);
+            _DBC =  DBC;
 
         }
        

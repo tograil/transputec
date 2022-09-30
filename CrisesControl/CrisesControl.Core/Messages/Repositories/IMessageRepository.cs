@@ -59,7 +59,7 @@ public interface IMessageRepository
     Task<List<MessageDetails>> GetReplies(int parentID, string source = "WEB");
     Task<List<MessageGroupObject>> GetMessageGroupList(int messageID);
     Task<dynamic> ConverToMp3();
-    object GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId);
+    Task<object> GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId);
     Task<dynamic> GetConfUser(int objectId, string objectType);
     Task<PingInfoReturn> GetPingInfo(int messageId, int userId, int companyId);
     dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId);
@@ -70,7 +70,7 @@ public interface IMessageRepository
     Task<int> SaveMessageResponse(int responseId, string responseLabel, string description, bool isSafetyResponse, string safetyAckAction, string messageType, int status, int currentUserId, int companyId, string timeZoneId);
     Task<dynamic> SendPublicAlert(string messageText, int[] messageMethod, bool schedulePA, DateTime scheduleAt, string sessionId, int userId, int companyId, string timeZoneId);
     Task<bool> StartConference(List<User> UserList, int ObjectID, int CurrentUserID, int CompanyID, string TimeZoneId);
-    public Return UploadAttachment();
+    public Task<Return> UploadAttachment();
     Task<dynamic> ReplyToMessage(int parentId, string messageText, string replyTo, string messageType, int activeIncidentId, int[] messageMethod,
             int cascadePlanId, int currentUserId, int companyId, string timeZoneId);
 }

@@ -32,7 +32,7 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<ImportRepository> _logger;
-        private readonly DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         private readonly IDepartmentRepository _departmentRepository;
         private readonly IGroupRepository _groupRepository;
         private readonly ILocationRepository _locationRepository;
@@ -50,8 +50,8 @@ namespace CrisesControl.Infrastructure.Repositories
 
         public ImportRepository(CrisesControlContext context, 
             IHttpContextAccessor httpContextAccessor, 
-            ILogger<ImportRepository> logger, 
-            DBCommon DBC, 
+            ILogger<ImportRepository> logger,
+            IDBCommonRepository DBC, 
             IDepartmentRepository departmentRepository, 
             IMapper mapper, 
             IGroupRepository groupRepository,

@@ -625,6 +625,402 @@ namespace CrisesControl.Infrastructure.Services
                 //ToDo: Throw exception
             }
         }
+        public async Task SendUserAssociationsToAdmin(string items, int userId, int companyId)
+        {
+            try
+            {
+                var roles = await _DBC.CCRoles();
+                var user = _context.Set<User>().Where(t => t.UserId == userId).Select(t => new UserFullName { Firstname = t.FirstName, Lastname = t.LastName }).FirstOrDefault();
+
+                var adminuser = await  _context.Set<User>()
+                                 .Where(U=> roles.Contains(U.UserRole) && U.CompanyId == companyId && U.Status == 1)
+                                 .Select(U=> new { U.PrimaryEmail, U.FirstName, U.LastName }).ToListAsync();
+
+                var company = await _context.Set<Company>().Include(CP=>CP.CompanyPaymentProfiles)
+                              // join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                               .Where(C=> C.CompanyId == companyId)
+                               .FirstOrDefaultAsync();
+                if (company != null)
+                {
+                    string templatename = "USER_DELETE_ALERT";
+                    string Subject = string.Empty;
+                    string message = Convert.ToString(await _DBC.ReadHtmlFile(templatename, "DB", company.CompanyId,  Subject));
+
+                    string Website = await  _DBC.LookupWithKey("DOMAIN");
+                    string Portal = await _DBC.LookupWithKey("PORTAL");
+
+                    string hostname = await _DBC.LookupWithKey("SMTPHOST");
+                    string fromadd = await _DBC.LookupWithKey("EMAILFROM");
+                    string CompanyLogo = Portal + "/uploads/" + company.CompanyId + "/companylogos/" + company.CompanyLogoPath;
+
+                    if (string.IsNullOrEmpty(company.CompanyLogoPath))
+                    {
+                        CompanyLogo = await _DBC.LookupWithKey("CCLOGO");
+                    }
+
+                    if ((message != null) && (hostname != null) && (fromadd != null))
+                    {
+                        string messagebody = message;
+
+                        messagebody = messagebody.Replace("{COMPANY_NAME}", company.CompanyName);
+                        messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                        messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
+                        messagebody = messagebody.Replace("{PORTAL}", Portal);
+                        messagebody = messagebody.Replace("{DELETED_USER_NAME}", user.Firstname + " " + user.Lastname);
+                        messagebody = messagebody.Replace("{USER_LINKS}", items);
+                        messagebody = messagebody.Replace("{CUSTOMER_ID}", company.CustomerId);
+
+                        foreach (var admin in adminuser)
+                        {
+                            string sendbody = messagebody;
+                            sendbody = sendbody.Replace("{RECIPIENT_NAME}", admin.FirstName + " " + admin.LastName);
+                            string[] adm_email = { admin.PrimaryEmail };
+                           await Email(adm_email, sendbody, fromadd, hostname, Subject);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                //ToDo: throw exception
+            }
+        }
+        public async Task NewUserAccount(string emailId, string userName, int companyId, string guid)
+        {
+            try
+            {
+                string Subject = string.Empty;
+                string message = Convert.ToString(await _DBC.ReadHtmlFile("NEW_USER_ACCOUNT", "DB", companyId, Subject))!;
+                var company = _context.Set<Company>().Where(c => c.CompanyId == companyId).FirstOrDefault();
+
+                string website =await _DBC.LookupWithKey("DOMAIN");
+                string portal =await _DBC.LookupWithKey("PORTAL");
+                string valdiateURL =await _DBC.LookupWithKey("EMAIL_VALIDATE_URL");
+                string accountDeleteURL =await _DBC.LookupWithKey("EMAIL_VALIDATE_ACCOUNT_DELETE");
+
+                string verifylink = portal + valdiateURL + companyId + "/" + guid;
+                string deleteVerifyLink = portal + accountDeleteURL + companyId + "/" + guid;
+
+                string hostname =await _DBC.LookupWithKey("SMTPHOST");
+                string fromadd =await _DBC.LookupWithKey("EMAILFROM");
+                string companyLogo = portal + "/uploads/" + companyId + "/companylogos/" + company?.CompanyLogoPath;
+
+                if (string.IsNullOrEmpty(company?.CompanyLogoPath))
+                {
+                    companyLogo =await _DBC.LookupWithKey("CCLOGO");
+                }
+
+
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+
+                    string messagebody = message;
+
+                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", userName);
+                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", emailId);
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", company?.CompanyName);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", companyLogo);
+                    messagebody = messagebody.Replace("{PORTAL}", portal);
+                    messagebody = messagebody.Replace("{VERIFY_LINK}", verifylink);
+                    messagebody = messagebody.Replace("{DELETE_ACCOUNT_LINK}", deleteVerifyLink);
+                    messagebody = messagebody.Replace("{CC_WEBSITE}", website);
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", company?.CustomerId);
+
+                    messagebody = messagebody.Replace("{TWITTER_LINK}",await _DBC.LookupWithKey("CC_TWITTER_PAGE"));
+                    messagebody = messagebody.Replace("{TWITTER_ICON}",await _DBC.LookupWithKey("CC_TWITTER_ICON"));
+                    messagebody = messagebody.Replace("{FACEBOOK_LINK}",await _DBC.LookupWithKey("CC_FB_PAGE"));
+                    messagebody = messagebody.Replace("{FACEBOOK_ICON}",await _DBC.LookupWithKey("CC_FB_ICON"));
+                    messagebody = messagebody.Replace("{LINKEDIN_LINK}",await _DBC.LookupWithKey("CC_LINKEDIN_PAGE"));
+                    messagebody = messagebody.Replace("{LINKEDIN_ICON}",await _DBC.LookupWithKey("CC_LINKEDIN_ICON"));
+
+                    string[] toEmails = { emailId };
+                    bool ismailsend =await Email(toEmails, messagebody, fromadd, hostname, Subject);
+                }
+            }
+            catch (Exception ex)
+            {
+                //ToDo: throw exception
+            }
+        }
+
+        public async Task SendReviewAlert(int incidentId, int headerId, int companyId, string reminderType = "TASK")
+        {
+            try
+            {
+
+                string path = "TASK_REVIEW_REMINDER";
+
+                if (reminderType == "SOP")
+                {
+                    path = "SOP_REVIEW_REMINDER";
+                }
+                string subject = string.Empty;
+                string message = Convert.ToString(await _DBC.ReadHtmlFile(path, "DB", companyId,  subject))!;
+
+
+                var companyInfo = _context.Set<Company>().Where(c => c.CompanyId == companyId).FirstOrDefault()!;
+                string website =await _DBC.LookupWithKey("DOMAIN");
+                string portal =await _DBC.LookupWithKey("PORTAL");
+                string hostname =await _DBC.LookupWithKey("SMTPHOST");
+                string fromadd =await _DBC.LookupWithKey("EMAILFROM");
+                string companyLogo = portal + "/uploads/" + companyInfo.CompanyId + "/companylogos/" + companyInfo.CompanyLogoPath;
+                if (string.IsNullOrEmpty(companyInfo.CompanyLogoPath))
+                {
+                    companyLogo =await _DBC.LookupWithKey("CCLOGO");
+                }
+                string incidentname = string.Empty;
+                string incidentimage = portal + "/assets/images/incident-icons/";
+
+                DateTimeOffset review_date = DateTimeOffset.Now;
+                int sendtoid = 0;
+
+                string emailmessage = string.Empty;
+                if (reminderType.ToUpper() == "TASK")
+                {
+                    var incidentrow = (from I in _context.Set<Incident>()
+                                       join TH in _context.Set<TaskHeader>() on I.IncidentId equals TH.IncidentId
+                                       where I.IncidentId == incidentId
+                                       select new { I, TH }).FirstOrDefault();
+
+                    if (incidentrow != null)
+                    {
+                        sendtoid = (int)incidentrow.TH.Author;
+                        incidentname = incidentrow.I.Name;
+                        incidentimage = incidentrow.I.IncidentIcon;
+                        review_date = incidentrow.TH.NextReviewDate;
+                        subject = subject + "Incident task review reminder";
+                        emailmessage = "This is the reminder for you to review the tasks for the following incident.";
+                        if (incidentrow.TH.ReminderCount == 3)
+                        {
+                            emailmessage = "<span style='color:#ff0000'>This is the final reminder for you to review the tasks for the following incident.</span>";
+                        }
+                    }
+                }
+                else if (reminderType.ToUpper() == "SOP")
+                {
+                    var incidentrow = (from I in _context.Set<Incident>()
+                                       join TH in _context.Set<IncidentSop>() on I.IncidentId equals TH.IncidentId
+                                       join SH in _context.Set<Sopheader>() on TH.SopheaderId equals SH.SopheaderId
+                                       where I.IncidentId == incidentId && SH.SopheaderId == headerId
+                                       select new { I, SH }).FirstOrDefault();
+
+                    if (incidentrow != null)
+                    {
+                        incidentname = incidentrow.I.Name!;
+                        incidentimage = incidentrow.I.IncidentIcon!;
+                        review_date = incidentrow.SH.ReviewDate;
+                        emailmessage = "This is the reminder for you to review the SOP document for the following incident.";
+                        if (incidentrow.SH.ReminderCount == 3)
+                        {
+                            emailmessage = "<span style='color:#ff0000'>This is the final reminder for you to review the SOP document for the following incident</span>";
+                        }
+                    }
+                }
+
+
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+                    string messagebody = message;
+
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", companyInfo.CompanyName);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", companyLogo);
+                    messagebody = messagebody.Replace("{CC_WEBSITE}", website);
+                    messagebody = messagebody.Replace("{PORTAL}", portal);
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", companyInfo.CustomerId);
+
+                    messagebody = messagebody.Replace("{INCIDENT_NAME}", incidentname);
+                    messagebody = messagebody.Replace("{INCIDENT_ICON}", portal + "assets/images/incident-icons/" + incidentimage);
+                    messagebody = messagebody.Replace("{SOP_REVIEW_DATE}", review_date.ToString("dd-MMM-yy"));
+                    messagebody = messagebody.Replace("{INCIDENT_REVIEW_DATE}", review_date.ToString("dd-MMM-yy"));
+                    messagebody = messagebody.Replace("{INCIDENT_MESSAGE}", emailmessage);
+
+                    if (reminderType == "TASK" && sendtoid > 0)
+                    {
+                        var kc = await  _context.Set<User>()
+                                  .Where(U=> U.UserId == sendtoid && U.Status == 1)
+                                  .Select(U=> new
+                                  {
+                                      UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName },
+                                      U.PrimaryEmail
+                                  }).ToListAsync();
+
+                        foreach (var k in kc)
+                        {
+                            string sendbody = messagebody;
+                            sendbody = sendbody.Replace("{RECIPIENT_NAME}", await _DBC.UserName(k.UserName));
+                            sendbody = sendbody.Replace("{RECIPIENT_EMAIL}", k.PrimaryEmail);
+                            string[] toEmails = { k.PrimaryEmail };
+                            bool ismailsend = await Email(toEmails, sendbody, fromadd, hostname, subject);
+                        }
+                    }
+                    else if (reminderType == "SOP")
+                    {
+                        var owners = (from OW in _context.Set<SopdetailGroup>()
+                                      join SD in _context.Set<Sopdetail>() on OW.SopdetailId equals SD.SopdetailId
+                                      join SC in _context.Set<ContentSection>() on SD.ContentSectionId equals SC.ContentSectionId
+                                      join U in _context.Set<User>() on OW.SopgroupId equals U.UserId
+                                      where SD.SopheaderId == headerId && U.CompanyId == companyId
+                                      orderby U.UserId
+                                      select new { U.UserId, UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName }, U.PrimaryEmail, SC.SectionName }).ToList();
+
+                        int CurrentUserID = 0;
+                        string CurrentEmail = "";
+                        string CurrentUser = "";
+                        StringBuilder sections = new StringBuilder();
+
+                        foreach (var k in owners)
+                        {
+
+                            if (CurrentUserID != k.UserId && CurrentUserID != 0)
+                            {
+                                string sendbody = messagebody;
+                                sendbody = sendbody.Replace("{RECIPIENT_NAME}", CurrentUser);
+                                sendbody = sendbody.Replace("{RECIPIENT_EMAIL}", CurrentEmail);
+                                sendbody = sendbody.Replace("{SECTION_CONTENT}", "<ul>" + sections.ToString() + "</ul>");
+                                string[] toEmails = { k.PrimaryEmail };
+                                bool ismailsend = await Email(toEmails, sendbody, fromadd, hostname, subject);
+                            }
+
+                            CurrentUser = await _DBC.UserName(k.UserName);
+                            CurrentEmail = k.PrimaryEmail;
+                            CurrentUserID = k.UserId;
+
+                            sections.AppendLine("<li>" + k.SectionName + "</li>");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                //ToDo:
+            }
+        }
+        public async Task NewUserAccountConfirm(string emailId, string userName, string userPass, int companyId, string guid)
+        {
+            try
+            {
+
+                string subject = string.Empty;
+                string message = Convert.ToString(await _DBC.ReadHtmlFile("NEW_ACCOUNT_CONFIRMED", "DB", companyId,  subject))!;
+
+                var companyInfo = _context.Set<Company>().Where(c => c.CompanyId == companyId).FirstOrDefault();
+                string website = await _DBC.LookupWithKey("DOMAIN");
+                string portal =await _DBC.LookupWithKey("PORTAL");
+                string valdiateURL = await _DBC.LookupWithKey("EMAIL_VALIDATE_URL");
+                string hostname = await _DBC.LookupWithKey("SMTPHOST");
+                string fromadd =await _DBC.LookupWithKey("EMAILFROM");
+                string sso_login = await _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", companyId);
+
+                string verifylink = portal + valdiateURL + companyId + "/" + guid;
+                string companyLogo = portal + "/uploads/" + companyInfo.CompanyId + "/companylogos/" + companyInfo.CompanyLogoPath;
+
+                if (string.IsNullOrEmpty(companyInfo.CompanyLogoPath))
+                {
+                    companyLogo = await _DBC.LookupWithKey("CCLOGO");
+                }
+
+                if (!string.IsNullOrEmpty(sso_login))
+                    userPass = "Use the single sign-on to login";
+
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+                    string messagebody = message;
+
+                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", userName);
+                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", emailId);
+                    messagebody = messagebody.Replace("{RECIPIENT_PASSWORD}", userPass);
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", companyInfo.CompanyName);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", companyLogo);
+                    messagebody = messagebody.Replace("{VERIFY_LINK}", verifylink);
+                    messagebody = messagebody.Replace("{CC_WEBSITE}", website);
+                    messagebody = messagebody.Replace("{PORTAL}", portal);
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", companyInfo.CustomerId);
+
+                    messagebody = messagebody.Replace("{TWITTER_LINK}",await _DBC.LookupWithKey("CC_TWITTER_PAGE"));
+                    messagebody = messagebody.Replace("{TWITTER_ICON}",await _DBC.LookupWithKey("CC_TWITTER_ICON"));
+                    messagebody = messagebody.Replace("{FACEBOOK_LINK}",await _DBC.LookupWithKey("CC_FB_PAGE"));
+                    messagebody = messagebody.Replace("{FACEBOOK_ICON}",await _DBC.LookupWithKey("CC_FB_ICON"));
+                    messagebody = messagebody.Replace("{LINKEDIN_LINK}",await _DBC.LookupWithKey("CC_LINKEDIN_PAGE"));
+                    messagebody = messagebody.Replace("{LINKEDIN_ICON}",await _DBC.LookupWithKey("CC_LINKEDIN_ICON"));
+
+                    string[] toEmails = { emailId };
+
+                    bool ismailsend = await Email(toEmails, messagebody, fromadd, hostname, subject);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task CompanySignUpConfirm(string emailId, string userName, string mobile, string paymentMethod, string plan, string userPass, int companyId)
+        {
+            try
+            {
+                string subject = string.Empty;
+                string message = Convert.ToString(await _DBC.ReadHtmlFile("COMPANY_CONFIRMED", "DB", companyId,  subject))!;
+
+            
+                var company = (from C in _context.Set<Company>()
+                               join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                               where C.CompanyId == companyId
+                               select new { C, CP }).FirstOrDefault();
+
+                string website = await _DBC.LookupWithKey("DOMAIN");
+                string portal =await _DBC.LookupWithKey("PORTAL");
+                string adminPortal =await _DBC.LookupWithKey("ADMIN_SITE_URL");
+
+                string hostname =await _DBC.LookupWithKey("SMTPHOST");
+                string fromadd =await _DBC.LookupWithKey("EMAILFROM");
+                string CCimage =await _DBC.LookupWithKey("CCLOGO");
+
+
+                StringBuilder adminMsg = new StringBuilder();
+
+                adminMsg.AppendLine("<h2>A new company is registered on Crises Control</h2>");
+                adminMsg.AppendLine("<p>Below are the company information:</p>");
+                adminMsg.AppendLine("<strong>Company Name: </strong>" + company?.C.CompanyName + "(" + company.C.CustomerId + ")</br>");
+                adminMsg.AppendLine("<strong>Plan Name: </strong>" + plan + "</br>");
+                adminMsg.AppendLine("<strong>Primary Email: </strong>" + emailId + "</br>");
+                adminMsg.AppendLine("<strong>Contact Person: </strong>" + userName + "</br>");
+                adminMsg.AppendLine("<strong>Mobile: </strong>" + mobile + "</br>");
+
+                //if(Company.PackagePlanId == 2)
+                //    adminMsg.AppendLine("<p style=\"color:#ff0000;font-size:18px\"><strong>Please configure the enterprise parameters for the company, <a href=\"" + AdminPortal + "\">configure now</a></p>");
+
+                string[] AdminEmail = await _DBC.LookupWithKey("SENDFEEDBACKTO").Split(',');
+
+                await Email(AdminEmail, adminMsg.ToString(), fromadd, hostname, company.C.CompanyName + ": A new Company registered on crises control");
+
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+                    string messagebody = message;
+
+                    int TrialDays = (int)DateTimeOffset.Now.Date.Subtract(company.CP.ContractStartDate.Date).TotalDays;
+
+                    messagebody = messagebody.Replace("{TRIALS_END_DAYS}", TrialDays.ToString());
+                    messagebody = messagebody.Replace("{TRIALS_END_ON}", company.CP.ContractStartDate.ToString("dd-MM-yy"));
+                    messagebody = messagebody.Replace("{TRIAL_END_DATE}", company.CP.ContractStartDate.ToString("dd-MM-yy"));
+
+                    messagebody = messagebody.Replace("{RECIPIENT_NAME}", userName);
+                    messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", emailId);
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+                    messagebody = messagebody.Replace("{PORTAL}", portal);
+                    messagebody = messagebody.Replace("{RECIPIENT_PASSWORD}", userPass);
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", CCimage);
+                    messagebody = messagebody.Replace("{DOMAIN}", website);
+
+                    string[] toEmails = { emailId };
+                    bool ismailsend =await Email(toEmails, messagebody, fromadd, hostname, subject);
+                }
+            }
+            catch (Exception ex)
+            {
+                //ToDo: throw exception
+            }
+        }
 
     }
 }

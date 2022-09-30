@@ -35,9 +35,9 @@ public class CompanyRepository : ICompanyRepository
     private readonly ISenderEmailService _senderEmailService;
     //private readonly ICompanyParametersRepository _companyParametersRepository;
     // private readonly IUserRepository _userRepository;
-    private readonly DBCommon _DBC;
+    private readonly IDBCommonRepository _DBC;
 
-    public CompanyRepository(CrisesControlContext context, DBCommon DBC, ISenderEmailService senderEmailService, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
+    public CompanyRepository(CrisesControlContext context, IDBCommonRepository DBC, ISenderEmailService senderEmailService, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
     {
         _context = context;
         _globalParametersRepository = globalParametersRepository;

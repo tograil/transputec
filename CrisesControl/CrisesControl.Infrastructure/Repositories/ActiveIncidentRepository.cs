@@ -25,6 +25,8 @@ using Newtonsoft.Json;
 using CrisesControl.Core.Reports;
 using Location = CrisesControl.Core.Locations.Location;
 using Object = CrisesControl.Core.Models.Object;
+using CrisesControl.Core.Messages.Services;
+using CrisesControl.Core.DBCommon.Repositories;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -36,18 +38,18 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     private string MessageSourceAction = string.Empty;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private IConfiguration _configuration;
-    private readonly Messaging _MSG;
-    private readonly DBCommon _DBC;
+    private readonly IMessageService _MSG;
+    private readonly IDBCommonRepository _DBC;
     private readonly QueueConsumer queueConsumer;
     private readonly QueueHelper _queueHelper;
 
-    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration)
+    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration, IDBCommonRepository DBC, IMessageService MSG)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _configuration = configuration;
-        _MSG = new Messaging(_context, _httpContextAccessor);
-        _DBC = new DBCommon(_context, _httpContextAccessor);
+        _MSG = MSG;
+        _DBC = DBC;
         queueConsumer = new QueueConsumer(_context, _httpContextAccessor);
         _queueHelper = new QueueHelper(_context);
     }
@@ -1833,7 +1835,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         {
             TaskIncidentAction TIA = new TaskIncidentAction
             {
-                ActionDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId),
+                ActionDate = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId),
                 ActionDescription = attachmentTitle,
                 ActiveIncidentTaskId = activeIncidentTaskId,
                 TaskActionBy = userId,

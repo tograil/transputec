@@ -37,7 +37,7 @@ namespace CrisesControl.Infrastructure.Repositories {
         private readonly ILogger<ReportsRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
-        private readonly DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         // private readonly IQueueService _queueService;
 
         private int UserID;
@@ -50,7 +50,7 @@ namespace CrisesControl.Infrastructure.Repositories {
         public ReportsRepository(CrisesControlContext context,
                                 IHttpContextAccessor httpContextAccessor,
                                 ILogger<ReportsRepository> logger,
-                                IMapper mapper, DBCommon DBC) {
+                                IMapper mapper, IDBCommonRepository DBC) {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;

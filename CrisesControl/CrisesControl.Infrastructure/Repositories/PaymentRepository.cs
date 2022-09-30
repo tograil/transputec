@@ -23,8 +23,8 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly ILogger<PaymentRepository> _logger;
         private readonly IAdminRepository _adminRepository;
-        private readonly DBCommon DBC;
-        public PaymentRepository(CrisesControlContext context, ILogger<PaymentRepository> logger, DBCommon _DBC, IAdminRepository adminRepository)
+        private readonly IDBCommonRepository DBC;
+        public PaymentRepository(CrisesControlContext context, ILogger<PaymentRepository> logger, IDBCommonRepository _DBC, IAdminRepository adminRepository)
         {
             this._context = context;
             this._logger = logger;

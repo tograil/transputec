@@ -40,7 +40,6 @@ public class IncidentRepository : IIncidentRepository
     private readonly ILogger<IncidentRepository> _logger;
     private readonly IActiveIncidentRepository _activeIncidentRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly Messaging _MSG;
     private readonly IDBCommonRepository _DBC;
     private readonly ISenderEmailService _SDE;
     private readonly QueueConsumer queueConsumer;
@@ -56,15 +55,13 @@ public class IncidentRepository : IIncidentRepository
          IActiveIncidentTaskService activeIncidentTaskService)
     {
         _context = context;
-       // _companyParamentersRepository = companyParamentersRepository;
         _service = service;
         _logger = logger;
         _activeIncidentRepository = activeIncidentRepository;
-        _httpContextAccessor = httpContextAccessor;        
+        _httpContextAccessor = httpContextAccessor;       
 
         _DBC = DBC;
         _SDE = SDE;
-        _MSG = new Messaging(_context,_httpContextAccessor);
         queueConsumer = new QueueConsumer(_context,_httpContextAccessor);
         _activeIncidentTaskService = activeIncidentTaskService;
         _queueHelper = new QueueHelper(_context);
@@ -1172,10 +1169,10 @@ public class IncidentRepository : IIncidentRepository
                 UserFullName closedUser = await _context.Set<User>().Where(U => U.UserId == Incidt.inc.ClosedBy).Select(s => new UserFullName { Firstname = s.FirstName, Lastname = s.LastName }).SingleOrDefaultAsync();
                 string MsgText = Incidt.inc.Name + " at " + Incidt.LocationName + ", launched on " + Incidt.inc.LaunchedOn.ToString("dd-MMM-yyyy HH:mm") + " is closed by " + _DBC.UserName(closedUser) + " with the following reason:" + Environment.NewLine + "\"" + Reason + "\"";
 
-                _MSG.TimeZoneId = TimeZoneId;
-                _MSG.CascadePlanID = CascadePlanID;
-                _MSG.MessageSourceAction = isSos ? SourceAction.SosClosure : SourceAction.IncidentClosure;
-                int tblmessageid = await _MSG.CreateMessage(CompanyId, MsgText, "Ping", IncidentActivationId, 500, CurrentUserId, 1, LocalTime, false, null, 99,
+                _service.TimeZoneId = TimeZoneId;
+                _service.CascadePlanID = CascadePlanID;
+                _service.MessageSourceAction = isSos ? SourceAction.SosClosure : SourceAction.IncidentClosure;
+                int tblmessageid = await _service.CreateMessage(CompanyId, MsgText, "Ping", IncidentActivationId, 500, CurrentUserId, 1, LocalTime, false, null, 99,
                     0, 0, false, false, MessageMethod);
 
                 var pMessageId = new SqlParameter("@MessageID", tblmessageid);
@@ -1187,9 +1184,9 @@ public class IncidentRepository : IIncidentRepository
                     int RowsCount = await _context.Database.ExecuteSqlRawAsync("Pro_Incident_Closure_Message_List @IncidentActivationID,@MessageID,@CustomerTime",
                        pIncidentActivationId, pMessageId, pCustomerTime);
 
-                    IsFundAvailable = await _MSG.CalculateMessageCost(CompanyId, tblmessageid, MsgText);
+                    IsFundAvailable = await _service.CalculateMessageCost(CompanyId, tblmessageid, MsgText);
 
-                    Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Ping", 1, CascadePlanID));
+                   await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Ping", 1, CascadePlanID));
 
                     //QueueHelper.MessageDevicePublish(tblmessageid, 1);
                     queueConsumer.CreateCascadingJobs(CascadePlanID, tblmessageid, 0, CompanyId, TimeZoneId);
@@ -1199,8 +1196,8 @@ public class IncidentRepository : IIncidentRepository
                     throw ex;
                 }
 
-                _MSG.DeleteMessageMethod(0, IncidentActivationId);
-                _DBC.CancelJobsByGroup("MESSAGE_CASCADE_" + IncidentActivationId);
+               await _service.DeleteMessageMethod(0, IncidentActivationId);
+               await _DBC.CancelJobsByGroup("MESSAGE_CASCADE_" + IncidentActivationId);
             }
 
             var roles =await _DBC.CCRoles();
@@ -1208,14 +1205,14 @@ public class IncidentRepository : IIncidentRepository
             {
                 if (!roles.Contains(UserRole.ToUpper()) && NumberOfKeyHolder > 1)
                 {
-                    _SDE.NotifyKeyHolders("deactivate", IncidentActivationId, CurrentUserId, CompanyId, Reason);
+                   await _SDE.NotifyKeyHolders("deactivate", IncidentActivationId, CurrentUserId, CompanyId, Reason);
                 }
             }
             else if (Type.ToUpper() == "CANCEL")
             {
                 if (NumberOfKeyHolder > 1)
                 {
-                    _SDE.NotifyKeyHolders("cancel", IncidentActivationId, CurrentUserId, CompanyId, Reason);
+                   await _SDE.NotifyKeyHolders("cancel", IncidentActivationId, CurrentUserId, CompanyId, Reason);
                 }
             }
 

@@ -32,13 +32,30 @@ public class MessageService : IMessageService
     private readonly IDBCommonRepository _DBC;
     //private readonly Messaging _MSG;
     private readonly ISenderEmailService _SDE;
-    public bool TextUsed = false;
-    public bool PhoneUsed = false;
-    public bool EmailUsed = false;
-    public bool PushUsed = false;
-    public string TimeZoneId = "GMT Standard Time";
-    public int CascadePlanID = 0;
-    public string MessageSourceAction = "";
+    public bool _textUsed = false;
+    public bool _phoneUsed = false;
+    public bool _emailUsed = false;
+    public bool _pushUsed = false;
+    public string _timeZoneId = "GMT Standard Time";
+    public int _cascadePlanID = 0;
+    public string _messageSourceAction = "";
+
+    bool IMessageService.TextUsed
+    {
+        get => _textUsed;
+        set => _textUsed = value;
+    }
+    bool IMessageService.PhoneUsed {
+        get => _phoneUsed;
+        set => _phoneUsed = value;
+    }
+    bool IMessageService.EmailUsed { get => _emailUsed; set => _emailUsed = value; }
+    bool IMessageService.PushUsed { get => _pushUsed; set => _pushUsed = value; }
+
+    string IMessageService.TimeZoneId { get => _timeZoneId; set => _timeZoneId = value; }
+
+    int IMessageService.CascadePlanID { get => _cascadePlanID; set => _cascadePlanID = value; }
+    string IMessageService.MessageSourceAction { get => _messageSourceAction; set => _messageSourceAction =value; }
 
     public MessageService(IMessageRepository messageRepository, CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, ISenderEmailService SDE)
     {
@@ -130,7 +147,7 @@ public class MessageService : IMessageService
                 Priority = priority,
                 Status = status,
                 CreatedBy = currentUserId,
-                CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
                 UpdatedBy = currentUserId,
                 UpdatedOn = localTime,
                 Source = source,
@@ -143,8 +160,8 @@ public class MessageService : IMessageService
                 AttachmentCount = 0,
                 ParentId = parentId,
                 MessageActionType = messageActionType,
-                CascadePlanId = CascadePlanID,
-                MessageSourceAction = MessageSourceAction
+                CascadePlanId = _cascadePlanID,
+                MessageSourceAction = _messageSourceAction
             };
             await _context.AddAsync(tblMessage);
             await _context.SaveChangesAsync();
@@ -157,7 +174,7 @@ public class MessageService : IMessageService
                 await AddTrackMeUsers(incidentActivationId, tblMessage.MessageId, companyId);
 
 
-            if (messageMethod != null && CascadePlanID <= 0)
+            if (messageMethod != null && _cascadePlanID <= 0)
             {
                 if (messageMethod.Length > 0)
                 {
@@ -174,10 +191,10 @@ public class MessageService : IMessageService
                     }
                 }
             }
-            else if (CascadePlanID > 0)
+            else if (_cascadePlanID > 0)
             {
                 var methods = await _context.Set<PriorityInterval>()
-                               .Where(PI => PI.CascadingPlanId == CascadePlanID)
+                               .Where(PI => PI.CascadingPlanId == _cascadePlanID)
                                .Select(PI => PI.Methods).ToListAsync();
                 if (methods != null)
                 {
@@ -214,19 +231,19 @@ public class MessageService : IMessageService
                   //from message table and requery the methdos from the last message.
             }
 
-            tblMessage.Text = TextUsed;
-            tblMessage.Phone = PhoneUsed;
-            tblMessage.Email = EmailUsed;
-            tblMessage.Push = PushUsed;
+            tblMessage.Text = _textUsed;
+            tblMessage.Phone = _phoneUsed;
+            tblMessage.Email = _emailUsed;
+            tblMessage.Push = _pushUsed;
             await _context.SaveChangesAsync();
 
             //Process message attachments
             if (mediaAttachments != null)
-                await ProcessMessageAttachments(tblMessage.MessageId, mediaAttachments, companyId, currentUserId, TimeZoneId);
+                await ProcessMessageAttachments(tblMessage.MessageId, mediaAttachments, companyId, currentUserId, _timeZoneId);
 
             //Convert Asset to Message Attachment
             if (assetId > 0)
-                await CreateMessageAttachment(tblMessage.MessageId, assetId, companyId, currentUserId, TimeZoneId);
+                await CreateMessageAttachment(tblMessage.MessageId, assetId, companyId, currentUserId, _timeZoneId);
 
             await _DBC.MessageProcessLog(tblMessage.MessageId, "MESSAGE_CREATED");
 
@@ -325,7 +342,7 @@ public class MessageService : IMessageService
                                     File.Move(@ServerUploadFolder + ma.FileName, @DirectoryPath + ma.FileName);
                                 }
                             }
-                            await CreateMediaAttachment(messageId, ma.Title, ma.FileName, ma.OriginalFileName, ma.FileSize, ma.AttachmentType, 0, createdUserId, TimeZoneId);
+                            await CreateMediaAttachment(messageId, ma.Title, ma.FileName, ma.OriginalFileName, ma.FileSize, ma.AttachmentType, 0, createdUserId, _timeZoneId);
                             Count++;
                         }
                         catch (Exception ex)
@@ -423,7 +440,7 @@ public class MessageService : IMessageService
                                         File.Delete(@DirectoryPath + asset.AssetPath);
                                     }
                                     File.Move(@ServerUploadFolder + asset.AssetPath, @DirectoryPath + asset.AssetPath);
-                                    await CreateMediaAttachment(messageId, asset.AssetTitle, asset.AssetPath, asset.SourceFileName, (decimal)asset.AssetSize, 2, 0, createdUserId, TimeZoneId);
+                                    await CreateMediaAttachment(messageId, asset.AssetTitle, asset.AssetPath, asset.SourceFileName, (decimal)asset.AssetSize, 2, 0, createdUserId, _timeZoneId);
                                     Count++;
                                 }
                                 catch (Exception ex)
@@ -529,7 +546,7 @@ public class MessageService : IMessageService
             CreatedBy = currentUserId,
             CreatedOn = DateTime.Now,
             UpdatedBy = currentUserId,
-            UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+            UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId)
         };
         await _context.AddAsync(tblIncidentNotiLst);
         await _context.SaveChangesAsync();
@@ -544,7 +561,7 @@ public class MessageService : IMessageService
             {
                 AttachmentType = attachmentType,
                 CreatedBy = createdBy,
-                CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
                 FilePath = filePath,
                 FileSize = fileSize,
                 MessageId = messageId,
@@ -584,19 +601,19 @@ public class MessageService : IMessageService
 
                 string chkmethod = methodlist.Where(w => w.CommsMethodId == Method).Select(s => s.MethodCode).FirstOrDefault();
                 if (chkmethod == "TEXT")
-                    TextUsed = true;
+                    _textUsed = true;
 
                 //var phnmethod = methodlist.Where(w => w.CommsMethodId == Method && w.MethodCode == "PHONE").Select(s => s.MethodCode).Any();
                 if (chkmethod == "PHONE")
-                    PhoneUsed = true;
+                    _phoneUsed = true;
 
                 //var emailmethod = methodlist.Where(w => w.CommsMethodId == Method && w.MethodCode == "EMAIL").Select(s => s.MethodCode).Any();
                 if (chkmethod == "EMAIL")
-                    EmailUsed = true;
+                    _emailUsed = true;
 
                 //var pushmethod = methodlist.Where(w => w.CommsMethodId == Method && w.MethodCode == "PUSH").Select(s => s.MethodCode).Any();
                 if (chkmethod == "PUSH")
-                    PushUsed = true;
+                    _pushUsed = true;
 
                 if (pushmethodid == Method)
                     pushadded = true;
@@ -604,7 +621,7 @@ public class MessageService : IMessageService
             if (trackUser && !pushadded)
             {
                 await CreateMessageMethod(messageId, pushmethodid, incidentactivationId);
-                PushUsed = true;
+                _pushUsed = true;
             }
 
         }
@@ -908,7 +925,7 @@ public class MessageService : IMessageService
 
                 if (!string.IsNullOrEmpty(uItem.PhoneNumber))
                 {
-                    int CallDetaildId = await CreateConferenceDetail("ADD", ConfHeaderId, uItem.UserId, Mobile, Landline, CallId.ToString(), "ADDED", TimeZoneId, 0);
+                    int CallDetaildId = await CreateConferenceDetail("ADD", ConfHeaderId, uItem.UserId, Mobile, Landline, CallId.ToString(), "ADDED", _timeZoneId, 0);
                     if (uItem.UserId == userId)
                     {
                         ModeratorCDId = CallDetaildId;
@@ -991,7 +1008,7 @@ public class MessageService : IMessageService
                 TargetObjectName = objectType,
                 CompanyId = companyId,
                 CreatedBy = createdBy,
-                CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
                 InitiatedBy = createdBy,
                 MessageId = messageId,
                 ConfRoomName = confRoom,
@@ -1025,7 +1042,7 @@ public class MessageService : IMessageService
                 ConferenceCallId = conferenceCallId,
                 UserId = userId,
                 PhoneNumber = phoneNumber,
-                CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
                 SuccessCallId = successCallId,
                 Status = status,
                 ConfJoined = (DateTime)SqlDateTime.MinValue,
@@ -1071,15 +1088,15 @@ public class MessageService : IMessageService
                     Lat = _DBC.Left(latitude.ToString().Replace(",", "."), 15),
                     Long = _DBC.Left(longitude.ToString().Replace(",", "."), 15),
                     LocationName = locationAddress,
-                    CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                    CreatedOnGMT = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                    UserDeviceTime = userDeviceTime != null ? userDeviceTime : await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                    CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
+                    CreatedOnGMT = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
+                    UserDeviceTime = userDeviceTime != null ? userDeviceTime : await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId)
                 };
                 ;
                 await _context.AddAsync(UL);
                 await _context.SaveChangesAsync();
 
-                await _DBC.UpdateUserLocation(userID,  latitude.ToString(), longitude.ToString(), TimeZoneId);
+                await _DBC.UpdateUserLocation(userID,  latitude.ToString(), longitude.ToString(), _timeZoneId);
             }
 
 
@@ -1088,7 +1105,7 @@ public class MessageService : IMessageService
                             TM.TrackMeStopped.Value.Year < 2000).ToListAsync();
             foreach (var tm in track_me)
             {
-                tm.LastUpdate = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                tm.LastUpdate = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId);
             }
            await _context.SaveChangesAsync();
 
@@ -1109,15 +1126,15 @@ public class MessageService : IMessageService
             var pMessageId = new SqlParameter("@MessageID", messageId);
             var pRecipientID = new SqlParameter("@UserID", recipientId);
             var pTransportType = new SqlParameter("@TransportType", "All");
-            var pDateSent = new SqlParameter("@DateSent", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+            var pDateSent = new SqlParameter("@DateSent", _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId));
             var pIsTaskRecepient = new SqlParameter("@IsTaskRecepient", isTaskRecepient);
-            var pTextUsed = new SqlParameter("@TextUsed", TextUsed);
-            var pPhoneUsed = new SqlParameter("@PhoneUsed", PhoneUsed);
-            var pEmailUsed = new SqlParameter("@EmailUsed", EmailUsed);
-            var pPushUsed = new SqlParameter("@PushUsed", PushUsed);
+            var pTextUsed = new SqlParameter("@TextUsed", _textUsed);
+            var pPhoneUsed = new SqlParameter("@PhoneUsed", _phoneUsed);
+            var pEmailUsed = new SqlParameter("@EmailUsed", _emailUsed);
+            var pPushUsed = new SqlParameter("@PushUsed", _pushUsed);
             var pCreatedBy = new SqlParameter("@CreatedBy", currentUserId);
             var pUpdatedBy = new SqlParameter("@UpdatedBy", currentUserId);
-            var pUpdatedOn = new SqlParameter("@UpdatedOn", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+            var pUpdatedOn = new SqlParameter("@UpdatedOn", _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId));
 
 
             int MsgListId = await _context.Database.ExecuteSqlRawAsync(
@@ -1172,7 +1189,7 @@ public class MessageService : IMessageService
                     option.MessageType = messageType;
                     option.Status = status;
                     option.UpdatedBy = currentUserId;
-                    option.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    option.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId);
                     _context.Update(option);
                     await _context.SaveChangesAsync();
                     return responseId;
@@ -1206,7 +1223,7 @@ public class MessageService : IMessageService
             option.Status = status;
             option.UpdatedBy = currentUserId;
             option.CompanyId = companyId;
-            option.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+            option.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId);
             await _context.AddAsync(option);
             await _context.SaveChangesAsync();
             return option.ResponseId;
