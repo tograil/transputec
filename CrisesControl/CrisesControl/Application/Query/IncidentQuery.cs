@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.AddIncidentAction;
 using CrisesControl.Api.Application.Commands.Incidents.AddIncidentAsset;
 using CrisesControl.Api.Application.Commands.Incidents.AddIncidentType;
@@ -66,9 +67,10 @@ public class IncidentQuery : IIncidentQuery
         _paging = paging;
     }
 
-    public List<IncidentList> GetAllCompanyIncident(int userId)
+    public async Task<GetAllCompanyIncidentResponse> GetAllCompanyIncident(GetAllCompanyIncidentRequest request)
     {
-        return _incidentRepository.GetCompanyIncident(_currentUser.CompanyId, userId > 0 ? userId : _currentUser.UserId);
+        ///return _incidentRepository.GetCompanyIncident(_currentUser.CompanyId, userId > 0 ? userId : _currentUser.UserId);
+        return null;
     }
 
     public List<IncidentTypeReturn> GetCompanyIncidentType(int companyId)
