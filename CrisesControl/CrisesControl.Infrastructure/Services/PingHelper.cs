@@ -356,18 +356,20 @@ namespace CrisesControl.Infrastructure.Services
                         ResultDTO.ErrorCode = "205";
                         ResultDTO.Message = "Message queued successfully";
                     }
+                    else
+                    {
+                        ResultDTO.ErrorId = 206;
+                        ResultDTO.ErrorCode = "206";
+                        ResultDTO.Message = "No items found for resending";
+                    }
+                    return ResultDTO;
                 }
-                else
-                {
-                    ResultDTO.ErrorId = 206;
-                    ResultDTO.ErrorCode = "206";
-                    ResultDTO.Message = "No items found for resending";
-                }
+                
                 return ResultDTO;
             }
             catch (Exception ex)
             {
-                return ResultDTO;
+                throw ex;
             }
 
         }

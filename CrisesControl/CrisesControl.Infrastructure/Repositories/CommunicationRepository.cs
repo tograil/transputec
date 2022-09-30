@@ -312,7 +312,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                     CommsLogsHelper CLH = new CommsLogsHelper(_context,_httpContextAccessor);
                     DateTimeOffset utcNow = DateTimeOffset.UtcNow;
                     DateTimeOffset dateCreated = MsgRslt.ML.DateSent.UtcDateTime;
-                    CLH.CreateCommsLogAsync(messageSid, "TEXT", smsStatus, from, to, "outbound-api", 0, "self", "USD", 1, body, 0, dateCreated, utcNow, utcNow, utcNow, CommsProvider: operato);
+                    await CLH.CreateCommsLogAsync(messageSid, "TEXT", smsStatus, from, to, "outbound-api", 0, "self", "USD", 1, body, 0, dateCreated, utcNow, utcNow, utcNow, CommsProvider: operato);
 
                     if (operato == "CM")
                     {

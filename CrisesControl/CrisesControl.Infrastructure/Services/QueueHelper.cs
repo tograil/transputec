@@ -140,7 +140,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
         public  async Task<bool> PublishMessageQueue(int MessageID, List<string> RabbitHost, string Method,
-            dynamic devicelist = null, int Priority = 1)
+           dynamic devicelist = null, int Priority = 1)
         {
            
 
@@ -150,7 +150,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 string RabbitMQUser = _DBC.LookupWithKey("RABBITMQ_USER");
                 string RabbitMQPassword = _DBC.LookupWithKey("RABBITMQ_PASSWORD");
-
+                string RabbitVirtualHosts = _DBC.LookupWithKey("RABBITMQ_VIRTUAL_HOST");
                 ushort RabbitMQHeartBeat = Convert.ToUInt16(_DBC.LookupWithKey("RABBIT_HEARTBEAT_CHECK"));
                 var factory = new ConnectionFactory()
                 {
@@ -160,7 +160,7 @@ namespace CrisesControl.Infrastructure.Services
                     RequestedHeartbeat = TimeSpan.FromTicks(RabbitMQHeartBeat),
                     UserName = RabbitMQUser,
                     Password = RabbitMQPassword,
-                    VirtualHost = RabbitVirtualHost
+                    VirtualHost = RabbitVirtualHosts
                 };
 
                 using (var connection = factory.CreateConnection(RabbitHost))
