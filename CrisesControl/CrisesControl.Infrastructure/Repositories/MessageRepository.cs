@@ -40,8 +40,8 @@ namespace CrisesControl.Infrastructure.Repositories;
 public class MessageRepository : IMessageRepository
 {
 
-    private int UserID;
-    private int CompanyID;
+    private int CurrentUserID;
+    private int CurrentCompanyID;
     private readonly string TimeZoneId = "GMT Standard Time";
     private readonly string ServerUploadFolder = "C:\\Temp\\";
 
@@ -71,7 +71,9 @@ public class MessageRepository : IMessageRepository
         _SDE = new SendEmail(_context,_DBC);
         _CH = new CommsHelper(_context,_httpContextAccessor);
         _PH = new PingHelper(_context, _httpContextAccessor);
-        
+
+        CurrentCompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+        CurrentUserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
     }
 
     public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0)
@@ -297,9 +299,8 @@ public class MessageRepository : IMessageRepository
         CompanyMessageResponse companyMessageResponse = new CompanyMessageResponse();
         try
         {
-            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
 
-            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
             var pResponseID = new SqlParameter("@ResponseID", responseID.ToString());
             var pmessageType = new SqlParameter("@MessageType", messageType);
             var pStatus = new SqlParameter("@Status", -1);
@@ -324,10 +325,7 @@ public class MessageRepository : IMessageRepository
         try
         {
 
-            UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-
-            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
             var pResponseID = new SqlParameter("@ResponseID", "0");
             var pmessageType = new SqlParameter("@MessageType", messageType);
             var pStatus = new SqlParameter("@Status", Status);
@@ -367,7 +365,7 @@ public class MessageRepository : IMessageRepository
             foreach (var rsp in rsps)
             {
                 int responseid = await CreateMessageResponse(rsp.ResponseLabel, (bool)rsp.IsSafetyOption, rsp.MessageType,
-                    "NONE", rsp.Status, currentUserId, CompanyID, timeZoneID, token);
+                    "NONE", rsp.Status, currentUserId, CurrentCompanyID, timeZoneID, token);
             }
         }
         catch (Exception)
@@ -412,9 +410,7 @@ public class MessageRepository : IMessageRepository
         try
         {
 
-            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-
-            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
             var pUserId = new SqlParameter("@UserID", targetUserId);
             var pmessageType = new SqlParameter("@MessageType", messageType);
             var pIncidentId = new SqlParameter("@IncidentActivationId", incidentActivationId);
@@ -780,10 +776,9 @@ public class MessageRepository : IMessageRepository
 
     public async Task<IncidentMessageDetails> GetMessageDetails(string cloudMsgId, int messageId = 0)
     {
-        CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-        UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-        var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-        var pUserId = new SqlParameter("@UserID", UserID);
+        
+        var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
+        var pUserId = new SqlParameter("@UserID", CurrentUserID);
 
         //int MsgListid = Base64Decode(CloudMsgId);
         var MsgListid = await _context.Set<MessageDevice>().FirstOrDefaultAsync(ml => ml.CloudMessageId == cloudMsgId);
@@ -844,8 +839,7 @@ public class MessageRepository : IMessageRepository
     {
         try
         {
-            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+            var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
             var messageListId = new SqlParameter("@MessageListID", messageListID);
             var messageId = new SqlParameter("@MessageID", messageID);
             var attachment = await _context.Set<MessageAttachment>().FromSqlRaw("exec Pro_Get_Message_Attachment @MessageListID,@MessageID,@CompanyID", messageListId, messageId, pCompanyID).ToListAsync();
@@ -882,15 +876,14 @@ public class MessageRepository : IMessageRepository
 
         try
         {
-            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-            UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+
             var pParentID = new SqlParameter("@ParentID", parentID);
-            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-            var pUserID = new SqlParameter("@UserID", UserID);
+            var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
+            var pUserID = new SqlParameter("@UserID", CurrentUserID);
             var pSource = new SqlParameter("@Source", source);
 
             var result = _context.Set<MessageDetails>().FromSqlRaw("exec Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
-                pParentID, pCompanyID, pUserID, pSource).AsEnumerable();
+                pParentID, pCompanyID, pUserID, pSource).AsEnumerable().ToList();
 
             var replies = result.Select(c =>
             {
@@ -918,11 +911,9 @@ public class MessageRepository : IMessageRepository
         try
         {
 
-            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-            UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
             var pMessageID = new SqlParameter("@MessageID", messageID);
-            var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-            var pUserID = new SqlParameter("@UserID", UserID);
+            var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
+            var pUserID = new SqlParameter("@UserID", CurrentUserID);
 
             var result = await _context.Set<MessageGroupObject>().FromSqlRaw("Exec Pro_Get_Message_User_Groups @MessageID, @CompanyID, @UserID",
                 pMessageID, pCompanyID, pUserID).ToListAsync();
@@ -996,7 +987,7 @@ public class MessageRepository : IMessageRepository
             {
                 var recordings = (from CH in _context.Set<ConferenceCallLogHeader>()
                                   join U in _context.Set<User>() on CH.InitiatedBy equals U.UserId
-                                  where CH.CompanyId == CompanyID && CH.TargetObjectId == objectId && CH.TargetObjectName == objectType
+                                  where CH.CompanyId == CurrentCompanyID && CH.TargetObjectId == objectId && CH.TargetObjectName == objectType
                                   select new
                                   {
                                       CH,
@@ -1261,7 +1252,7 @@ GO
                                                    UserId = U.UserId
                                                }).ToListAsync();
                 pingifo.DepartmentToNotify = await  _context.Set<AdhocMessageNotificationList>().Include(d => d.Department)                                                    
-                                                    .Where(INL=> INL.CompanyId == CompanyID && INL.ObjectMappingId == 100 &&
+                                                    .Where(INL=> INL.CompanyId == CurrentCompanyID && INL.ObjectMappingId == 100 &&
                                                     INL.MessageId == messageId)
                                                     .Select(INL=> new IIncNotificationLst
                                                     {

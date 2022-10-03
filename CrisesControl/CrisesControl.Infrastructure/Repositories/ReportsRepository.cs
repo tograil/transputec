@@ -31,19 +31,17 @@ using FailedTaskList = CrisesControl.Core.Reports.FailedTaskList;
 using CrisesControl.Core.Import;
 using CrisesControl.Api.Application.Helpers;
 
-namespace CrisesControl.Infrastructure.Repositories
-{
-    public class ReportsRepository : IReportsRepository
-    {
+namespace CrisesControl.Infrastructure.Repositories {
+    public class ReportsRepository : IReportsRepository {
         private readonly CrisesControlContext _context;
         private readonly ILogger<ReportsRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
         private readonly DBCommon _DBC;
-       // private readonly IQueueService _queueService;
+        // private readonly IQueueService _queueService;
 
-        private int UserID;
-        private int CompanyID;
+        private int CurrentUserID;
+        private int CurrentCompanyID;
         public DateTimeOffset MinTrackingDate = DateTimeOffset.Now;
         public DateTimeOffset MaxTrackingDate = DateTimeOffset.Now;
         public DateTimeOffset NewMaxTrackingDate = DateTimeOffset.Now;
@@ -52,40 +50,34 @@ namespace CrisesControl.Infrastructure.Repositories
         public ReportsRepository(CrisesControlContext context,
                                 IHttpContextAccessor httpContextAccessor,
                                 ILogger<ReportsRepository> logger,
-                                IMapper mapper, DBCommon DBC)
-        {
+                                IMapper mapper, DBCommon DBC) {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
             _mapper = mapper;
             _DBC = DBC;
             //_queueService = queueService;
+
+            CurrentUserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            CurrentCompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         }
-        public async Task<List<SOSItem>> GetSOSItems(int UserId)
-        {
-            try
-            {
-                //UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+        public async Task<List<SOSItem>> GetSOSItems(int UserId) {
+            try {
 
                 var pUserId = new SqlParameter("@UserID", UserId);
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
 
                 var result = await _context.Set<SOSItem>().FromSqlRaw("exec Pro_Get_SOS_Alerts {0},{1}", pCompanyID, pUserId).ToListAsync();
 
                 return result;
 
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 return null;
             }
         }
 
-        public async Task<List<IncidentPingStatsCount>> GetIncidentPingStats(int CompanyID, int NoOfMonth)
-        {
-            try
-            {
+        public async Task<List<IncidentPingStatsCount>> GetIncidentPingStats(int CompanyID, int NoOfMonth) {
+            try {
 
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
                 var pNoOfMonth = new SqlParameter("@NoOfMonth", NoOfMonth);
@@ -94,23 +86,81 @@ namespace CrisesControl.Infrastructure.Repositories
                 return result;
 
 
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
             }
             return new List<IncidentPingStatsCount>();
         }
 
-        public async Task<DataTablePaging> GetIndidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, int RecordStart, int RecordLength, string search,
-             string OrderBy, string OrderDir, int draw, string Filters, string CompanyKey, string Source="WEB")
-        {
-            try
-            {
+        public async Task<DataTablePaging> GetIncidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, string Source, int RecordStart, int RecordLength,
+            string SearchString = "", string OrderBy = "DateAcknowledge", string OrderDir = "asc", string Filters = "", string UniqueKey = "") {
+
+            OrderBy = OrderBy ?? "DateAcknowledge";
+            OrderDir = OrderDir ?? "asc";
+            Source = Source ?? "WEB";
+
+            if (string.IsNullOrEmpty(OrderBy))
+                OrderBy = "PrimaryEmail";
+
+            if (string.IsNullOrEmpty(OrderDir))
+                OrderDir = "asc";
+
+            var propertyInfo = typeof(MessageAcknowledgements).GetProperty(OrderBy);
+            var incidentMessageListDetails = new List<MessageAcknowledgements>();
+            int totalRecord = 0;
+
+            string ig = _DBC.LookupWithKey("INITIALS_GENERATOR_URL");
+
+            if (OrderDir == "desc") {
+                incidentMessageListDetails = GetAcknowledgements(MessageId, MessageAckStatus, MessageSentStatus, RecordStart, RecordLength, SearchString,
+                OrderBy, OrderDir, Filters, UniqueKey, Source).Result.Select(c => {
+                    c.ActiveUser = c.UserStatus == 1 ? true : false;
+                    c.AcknowledgedUser = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                    c.UserMobile = new PhoneNumber { ISD = c.MobileNo != null ? c.ISDCode : "", Number = c.MobileNo != null ? c.MobileNo : "" };
+                    c.UserLandLine = new PhoneNumber { ISD = c.LLISDCode != null ? c.LLISDCode : "", Number = c.Landline != null ? c.Landline : "" };
+                    //if(string.IsNullOrEmpty(c.UserPhoto)) {
+                    c.UserPhoto = ig + "/" + c.UserId.ToString() + "/" + CurrentCompanyID.ToString() + "/" + c.FirstName + " " + c.LastName;
+                    //}
+                    return c;
+                }).OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+
+            } else {
+                incidentMessageListDetails = GetAcknowledgements(MessageId, MessageAckStatus, MessageSentStatus, RecordStart, RecordLength, SearchString,
+                OrderBy, OrderDir, Filters, UniqueKey, Source).Result.Select(c => {
+                    c.ActiveUser = c.UserStatus == 1 ? true : false;
+                    c.AcknowledgedUser = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                    c.UserMobile = new PhoneNumber { ISD = c.MobileNo != null ? c.ISDCode : "", Number = c.MobileNo != null ? c.MobileNo : "" };
+                    c.UserLandLine = new PhoneNumber { ISD = c.LLISDCode != null ? c.LLISDCode : "", Number = c.Landline != null ? c.Landline : "" };
+                    //if(string.IsNullOrEmpty(c.UserPhoto)) {
+                    c.UserPhoto = ig + "/" + c.UserId.ToString() + "/" + CurrentCompanyID.ToString() + "/" + c.FirstName + " " + c.LastName;
+                    //}
+                    return c;
+                }).OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+            }
+
+            if (MessageAckStatus == 0 || MessageAckStatus == 1) {
+                totalRecord = GetAcknowledgements(MessageId, MessageAckStatus, MessageSentStatus, 0, int.MaxValue, "",
+                "U.UserId", "asc", "", UniqueKey, Source).Result.Count();
+            } else {
+                totalRecord = GetAcknowledgements(MessageId, 0, MessageSentStatus, 0, int.MaxValue, "",
+               "U.UserId", "asc", "", UniqueKey, Source).Result.Count();
+            }
+
+            DataTablePaging rtn = new DataTablePaging();
+            rtn.RecordsTotal = totalRecord;
+            rtn.RecordsFiltered = incidentMessageListDetails.Count;
+            rtn.Data = incidentMessageListDetails;
+
+            return rtn;
+        }
+
+        public async Task<List<MessageAcknowledgements>> GetAcknowledgements(int MessageId, int MessageAckStatus, int MessageSentStatus, int RecordStart, int RecordLength, string search,
+             string OrderBy, string OrderDir, string Filters, string CompanyKey, string Source = "WEB") {
+            try {
                 const string ord = "PrimaryEmail";
                 const string dir = "asc";
-                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-                var SearchString = (search != null) ? search: string.Empty;
                 
+                var SearchString = (search != null) ? search : string.Empty;
+
                 if (string.IsNullOrEmpty(OrderBy))
                     OrderBy = ord;
 
@@ -120,7 +170,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 var pMessageId = new SqlParameter("@MessageID", MessageId);
                 var pMessageAckStatus = new SqlParameter("@MessageAckStatus", MessageAckStatus);
                 var pMessageSentStatus = new SqlParameter("@MessageSentStatus", MessageSentStatus);
-                var pUserID = new SqlParameter("@UserID", UserID);
+                var pUserID = new SqlParameter("@UserID", CurrentUserID);
                 var pSource = new SqlParameter("@Source", Source);
                 var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
                 var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
@@ -130,38 +180,25 @@ namespace CrisesControl.Infrastructure.Repositories
                 var pFilters = new SqlParameter("@Filters", Filters);
                 var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                var ackList = await  _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_Message_Acknowledgements @MessageID, @MessageAckStatus, @MessageSentStatus, @UserID,@Source, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@Filters,@UniqueKey",
+                var ackList = await _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_Message_Acknowledgements @MessageID, @MessageAckStatus, @MessageSentStatus, @UserID,@Source, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@Filters,@UniqueKey",
                     pMessageId, pMessageAckStatus, pMessageSentStatus, pUserID, pSource, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pFilters, pUniqueKey).ToListAsync();
-                int totalRecord = 0;
-                totalRecord = ackList.Count;
-
-                DataTablePaging rtn = new DataTablePaging();
-                rtn.Draw = draw;
-                rtn.RecordsTotal = totalRecord;
-                rtn.RecordsFiltered = ackList.Count;
-                rtn.Data = ackList;
 
 
-                return rtn;
-            }
-            catch (Exception ex)
-            {
+                return ackList;
+            } catch (Exception ex) {
                 Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                    ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
                 return null;
             }
         }
 
-        public async Task<List<ResponseSummary>> ResponseSummary(int MessageID)
-        {
+        public async Task<List<ResponseSummary>> ResponseSummary(int MessageID) {
             try {
                 var pMessageID = new SqlParameter("@MessageID", MessageID);
                 var result = await _context.Set<ResponseSummary>().FromSqlRaw("exec Pro_Get_Message_Acknowledgements_Responses @MessageID", pMessageID).ToListAsync();
 
                 return result;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
 
                 Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                    ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
@@ -169,52 +206,46 @@ namespace CrisesControl.Infrastructure.Repositories
             return new List<ResponseSummary>();
         }
 
-        public async Task<List<DataTablePaging>> GetIndidentMessageNoAck(int draw, int IncidentActivationId, int RecordStart, int RecordLength, string? SearchString, string? UniqueKey)
-        {
-            try
-            {
+        public async Task<List<DataTablePaging>> GetIncidentMessageNoAck(int draw, int IncidentActivationId, int RecordStart, int RecordLength, string? SearchString, string? UniqueKey) {
+            try {
                 const string OrderBy = "UserId";
                 const string OrderDir = "asc";
-                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+                
                 var pIncidentActivationId = new SqlParameter("@ActiveIncidentID", IncidentActivationId);
                 var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
                 var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
                 var pSearchString = new SqlParameter("@SearchString", SearchString);
                 var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
                 var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
-                 var pUserID = new SqlParameter("@UserID", UserID);
-                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pUserID = new SqlParameter("@UserID", CurrentUserID);
+                var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
                 var pUniqueKey = new SqlParameter("@UniqueKey", UniqueKey);
 
                 var result = await _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_No_Ack_Users @ActiveIncidentID, @UserID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
                    pIncidentActivationId, pUserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey).ToListAsync();
 
-                 int totalRecord = 0;
+                int totalRecord = 0;
                 totalRecord = result.Count;
 
-               List<DataTablePaging> rtn = new List<DataTablePaging>(await _context.Set<DataTablePaging>().Where(x=>x.Draw== draw).Select(n=>
-                new DataTablePaging() { 
-                Draw = draw,
-                RecordsTotal = totalRecord,
-                RecordsFiltered = result.Count,
-                Data = result
-                }    ).ToListAsync());
+                List<DataTablePaging> rtn = new List<DataTablePaging>(await _context.Set<DataTablePaging>().Where(x => x.Draw == draw).Select(n =>
+                 new DataTablePaging() {
+                     Draw = draw,
+                     RecordsTotal = totalRecord,
+                     RecordsFiltered = result.Count,
+                     Data = result
+                 }).ToListAsync());
                 return rtn;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 Log.Error("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                           ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
-               
+
             }
             return new List<DataTablePaging>();
 
 
         }
 
-        public CurrentIncidentStatsResponse GetCurrentIncidentStats(string timeZoneId, int companyId)
-        {
+        public CurrentIncidentStatsResponse GetCurrentIncidentStats(string timeZoneId, int companyId) {
             DateTimeOffset baseDate = GetLocalTime(timeZoneId, DateTime.Now.Date);
             var today = baseDate;
             var startDate = GetLocalTime(timeZoneId, DateTime.Now.Date.AddDays(1 - DateTime.Now.Day));
@@ -228,9 +259,8 @@ namespace CrisesControl.Infrastructure.Repositories
                 pCompanyID).ToList()?.FirstOrDefault();
             return result;
         }
-        
-        public IncidentData GetIncidentData(int incidentActivationId, int userId, int companyId)
-        {
+
+        public IncidentData GetIncidentData(int incidentActivationId, int userId, int companyId) {
             var pIncidentActivationID = new SqlParameter("@IncidentActivationID", incidentActivationId);
             var pCompanyID = new SqlParameter("@CompanyID", companyId);
             var pUserID = new SqlParameter("@UserID", userId);
@@ -238,8 +268,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 "Pro_Report_GetIncidentData_ByActivationRef @IncidentActivationID, @CompanyID, @UserID",
                 pIncidentActivationID,
                 pCompanyID, pUserID).ToList()?.FirstOrDefault();
-            if (incidentReportData != null)
-            {
+            if (incidentReportData != null) {
                 var pIncidentActivationID2 = new SqlParameter("@IncidentActivationID", incidentActivationId);
                 var pCompanyID2 = new SqlParameter("@CompanyID", companyId);
                 var spKeyContacts = _context.Set<IncidentDataByActivationRefKeyContactsResponse>().FromSqlRaw(
@@ -261,107 +290,80 @@ namespace CrisesControl.Infrastructure.Repositories
             return incidentReportData;
         }
 
-        public async Task<List<PingGroupChartCount>> GetPingReportChart(DateTime StartDate, DateTime EndDate, int GroupID, string MessageType, int ObjectMappingID)
-        {
-            try
-            {
-                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+        public async Task<List<PingGroupChartCount>> GetPingReportChart(DateTime StartDate, DateTime EndDate, int GroupID, string MessageType, int ObjectMappingID) {
+            try {
 
                 var pStartDate = new SqlParameter("@StartDate", StartDate);
-                    var pEndDate = new SqlParameter("@EndDate", EndDate);
-                    var pGroupID = new SqlParameter("@GroupID", GroupID);
-                    var pMessageType = new SqlParameter("@MessageType", MessageType);
-                    var pObjectMappingID = new SqlParameter("@ObjectMappingID", ObjectMappingID);
-                    var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                    var pUserID = new SqlParameter("@UserID", UserID);
+                var pEndDate = new SqlParameter("@EndDate", EndDate);
+                var pGroupID = new SqlParameter("@GroupID", GroupID);
+                var pMessageType = new SqlParameter("@MessageType", MessageType);
+                var pObjectMappingID = new SqlParameter("@ObjectMappingID", ObjectMappingID);
+                var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
+                var pUserID = new SqlParameter("@UserID", CurrentUserID);
 
-                    var result = await _context.Set<PingGroupChartCount>().FromSqlRaw("exec Pro_Report_Ping_Chart @StartDate, @EndDate, @GroupID, @MessageType, @ObjectMappingID, @CompanyID,@UserID",
-                    pStartDate, pEndDate, pGroupID, pMessageType, pObjectMappingID, pCompanyID, pUserID).ToListAsync();
-                   
+                var result = await _context.Set<PingGroupChartCount>().FromSqlRaw("exec Pro_Report_Ping_Chart @StartDate, @EndDate, @GroupID, @MessageType, @ObjectMappingID, @CompanyID,@UserID",
+                pStartDate, pEndDate, pGroupID, pMessageType, pObjectMappingID, pCompanyID, pUserID).ToListAsync();
 
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Error occure while trying to seeding into the database {0},{1},{2}",ex.Message, ex.InnerException, ex.StackTrace);
-                
+
+                return result;
+
+            } catch (Exception ex) {
+                _logger.LogError("Error occure while trying to seeding into the database {0},{1},{2}", ex.Message, ex.InnerException, ex.StackTrace);
+
             }
             return new List<PingGroupChartCount>();
         }
-        
-        public async Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "")
-        {
-            try
-            {
+
+        public async Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "") {
+            try {
                 Key = Key.ToUpper();
 
-                if (CompanyId > 0)
-                {
+                if (CompanyId > 0) {
                     var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
-                    if (LKP != null)
-                    {
+                    if (LKP != null) {
                         Default = LKP.Value;
-                    }
-                    else
-                    {
+                    } else {
 
                         var LPR = await _context.Set<LibCompanyParameter>().Where(CP => CP.Name == Key).FirstOrDefaultAsync();
-                        if (LPR != null)
-                        {
+                        if (LPR != null) {
                             Default = LPR.Value;
-                        }
-                        else
-                        {
+                        } else {
                             Default = await LookupWithKey(Key, Default);
                         }
                     }
                 }
 
-                if (!string.IsNullOrEmpty(CustomerId) || !string.IsNullOrEmpty(Key))
-                {
+                if (!string.IsNullOrEmpty(CustomerId) || !string.IsNullOrEmpty(Key)) {
 
                     var cmp = await _context.Set<Company>().Where(w => w.CustomerId == CustomerId).FirstOrDefaultAsync();
-                    if (cmp != null)
-                    {
+                    if (cmp != null) {
                         var LKP = await _context.Set<CompanyParameter>().Where(CP => CP.Name == Key && CP.CompanyId == CompanyId).FirstOrDefaultAsync();
-                        if (LKP != null)
-                        {
+                        if (LKP != null) {
                             Default = LKP.Value;
                         }
-                    }
-                    else
-                    {
+                    } else {
                         Default = "NOT_EXIST";
                     }
                 }
 
                 return Default;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                       ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
                 return Default;
             }
         }
-                
-        public async Task<List<DeliveryOutput>> GetMessageDeliveryReport(DateTimeOffset StartDate, DateTimeOffset EndDate, int start, int length, string search, string OrderBy, string OrderDir, string CompanyKey)
-        {
-            try
-            {
-           
-                var SearchString = (search != null) ? search : string.Empty;
-                
 
-                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+        public async Task<List<DeliveryOutput>> GetMessageDeliveryReport(DateTimeOffset StartDate, DateTimeOffset EndDate, int start, int length, string search, string OrderBy, string OrderDir, string CompanyKey) {
+            try {
+
+                var SearchString = (search != null) ? search : string.Empty;
+
                 var pStartDate = new SqlParameter("@StartDate", StartDate);
                 var pEndDate = new SqlParameter("@EndDate", EndDate);
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                var pUserID = new SqlParameter("@UserID", UserID);
+                var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
+                var pUserID = new SqlParameter("@UserID", CurrentUserID);
                 var pRecordStart = new SqlParameter("@RecordStart", start);
                 var pRecordLength = new SqlParameter("@RecordLength", length);
                 var pSearchString = new SqlParameter("@SearchString", SearchString);
@@ -373,78 +375,66 @@ namespace CrisesControl.Infrastructure.Repositories
                  pCompanyID, pUserID, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey).ToListAsync();
 
                 return result;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 _logger.LogError("Error occurred while seeding into database {0},{1},{2},{3}", ex.Message, ex.InnerException, ex.StackTrace, ex.Source);
                 return null;
             }
 
         }
-        public async Task<string> GetTimeZoneVal(int UserId)
-        {
+        public async Task<string> GetTimeZoneVal(int UserId) {
             return (await _context.Set<User>()
-                .Include(x=>x.Company)
-               // .Include(x => x.StdTimeZone)
+                .Include(x => x.Company)
+                // .Include(x => x.StdTimeZone)
                 .FirstOrDefaultAsync(x => x.UserId == UserId))?.Company.StdTimeZone?.ZoneLabel ?? "GMT Standard Time";
         }
 
-        public async Task<dynamic> GetMessageDeliverySummary(int MessageID)
-        {
-            try
-            {
+        public async Task<dynamic> GetMessageDeliverySummary(int MessageID) {
+            try {
 
-                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
                 var pMessageID = new SqlParameter("@MessageID", MessageID);
 
-                  
-                    var result = await _context.Set<DeliverySummary>().FromSqlRaw(" exec Pro_Report_Delivery_Summary @MessageID", pMessageID).ToListAsync();
 
-                    List<DeliverySummary> DlvRecs = new List<DeliverySummary>();
-                    string TimeZoneId = await GetTimeZoneVal(UserID);
-                    List<DateTimeOffset> endTimes = new List<DateTimeOffset>();
+                var result = await _context.Set<DeliverySummary>().FromSqlRaw(" exec Pro_Report_Delivery_Summary @MessageID", pMessageID).ToListAsync();
 
-                    foreach (DeliverySummary rec in result)
-                    {
-                        endTimes.Add(rec.EmailEndTime);
-                        endTimes.Add(rec.PhoneEndTime);
-                        endTimes.Add(rec.PushEndTime);
-                        endTimes.Add(rec.TextEndTime);
+                List<DeliverySummary> DlvRecs = new List<DeliverySummary>();
+                string TimeZoneId = await GetTimeZoneVal(CurrentUserID);
+                List<DateTimeOffset> endTimes = new List<DateTimeOffset>();
 
-                        rec.EmailStartTime = rec.EmailStartTime;
-                        rec.EmailEndTime = rec.EmailEndTime;
-                        rec.PhoneStartTime = rec.PhoneStartTime;
-                        rec.PhoneEndTime = rec.PhoneEndTime;
-                        rec.PushStartTime = rec.PushStartTime;
-                        rec.PushEndTime = rec.PushEndTime;
-                        rec.TextStartTime = rec.TextStartTime;
-                        rec.TextEndTime = rec.TextEndTime;
+                foreach (DeliverySummary rec in result) {
+                    endTimes.Add(rec.EmailEndTime);
+                    endTimes.Add(rec.PhoneEndTime);
+                    endTimes.Add(rec.PushEndTime);
+                    endTimes.Add(rec.TextEndTime);
 
-                        DlvRecs.Add(rec);
-                    }
+                    rec.EmailStartTime = rec.EmailStartTime;
+                    rec.EmailEndTime = rec.EmailEndTime;
+                    rec.PhoneStartTime = rec.PhoneStartTime;
+                    rec.PhoneEndTime = rec.PhoneEndTime;
+                    rec.PushStartTime = rec.PushStartTime;
+                    rec.PushEndTime = rec.PushEndTime;
+                    rec.TextStartTime = rec.TextStartTime;
+                    rec.TextEndTime = rec.TextEndTime;
 
-                    var methods = await _context.Set<Message>().Where(M=>M.MessageId == MessageID).Select( M=> new  { M.Phone, M.Text, M.Email, M.Push, M.CreatedOn }).FirstOrDefaultAsync();
-                 
+                    DlvRecs.Add(rec);
+                }
 
-                    endTimes.Add(methods.CreatedOn);
+                var methods = await _context.Set<Message>().Where(M => M.MessageId == MessageID).Select(M => new { M.Phone, M.Text, M.Email, M.Push, M.CreatedOn }).FirstOrDefaultAsync();
 
-                    DateTimeOffset maxEndTimes = endTimes.Max();
 
-                    return Tuple.Create(DlvRecs, methods, maxEndTimes);
-                
-            }
-            catch (Exception ex)
-            {
-                UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-                CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-                throw new MessageNotFoundException(CompanyID, UserID);
+                endTimes.Add(methods.CreatedOn);
+
+                DateTimeOffset maxEndTimes = endTimes.Max();
+
+                return Tuple.Create(DlvRecs, methods, maxEndTimes);
+
+            } catch (Exception ex) {
+                throw new MessageNotFoundException(CurrentCompanyID, CurrentUserID);
 
                 return null;
             }
         }
 
-        public DataTablePaging GetResponseReportByGroup(DataTableAjaxPostModel dtapm, DateTimeOffset startDate, DateTimeOffset endDate, string messageType, int drillOpt, int groupId, int objectMappingId, string companyKey, bool isThisWeek, bool isThisMonth, bool isLastMonth, int companyId)
-        {
+        public DataTablePaging GetResponseReportByGroup(DataTableAjaxPostModel dtapm, DateTimeOffset startDate, DateTimeOffset endDate, string messageType, int drillOpt, int groupId, int objectMappingId, string companyKey, bool isThisWeek, bool isThisMonth, bool isLastMonth, int companyId) {
             DateTime stDate = DateTime.Now;
             DateTime enDate = DateTime.Now;
 
@@ -453,8 +443,8 @@ namespace CrisesControl.Infrastructure.Repositories
             var RecordStart = dtapm.Start == 0 ? 0 : dtapm.Start;
             var RecordLength = dtapm.Length == 0 ? int.MaxValue : dtapm.Length;
             var SearchString = (dtapm.Search != null) ? dtapm.Search.Value : "";
-            string OrderBy = dtapm.Order != null ? dtapm.Order.FirstOrDefault().Column : "DateSent";
-            string OrderDir = dtapm.Order != null ? dtapm.Order.FirstOrDefault().Dir : "desc";
+            string OrderBy = dtapm.Order != null ? dtapm.Order : "DateSent";
+            string OrderDir = dtapm.Dir != null ? dtapm.Dir : "desc";
 
             var returnData = GetPingReport(companyId, stDate, enDate, messageType, drillOpt, groupId, objectMappingId,
                 RecordStart, RecordLength, SearchString, OrderBy, OrderDir, companyKey);
@@ -478,8 +468,7 @@ namespace CrisesControl.Infrastructure.Repositories
             return rtn;
         }
 
-        public List<IncidentMessageAuditResponse> GetIndidentMessagesAudit(int incidentActivationId, int companyId)
-        {
+        public List<IncidentMessageAuditResponse> GetIncidentMessagesAudit(int incidentActivationId, int companyId) {
             var pIncidentActivationId = new SqlParameter("@IncidentActivationId", incidentActivationId);
             var pCompanyId = new SqlParameter("@CompanyID", companyId);
             var incidentMessageDetails = _context.Set<IncidentMessageAuditResponse>().FromSqlRaw(
@@ -489,8 +478,7 @@ namespace CrisesControl.Infrastructure.Repositories
             return incidentMessageDetails;
         }
 
-        public List<IncidentUserLocationResponse> GetIncidentUserLocation(int incidentActivationId, int companyId)
-        {
+        public List<IncidentUserLocationResponse> GetIncidentUserLocation(int incidentActivationId, int companyId) {
             var pIncidentActivationId = new SqlParameter("@IncidentActivationID", incidentActivationId);
             var pCompanyId = new SqlParameter("@CompanyID", companyId);
             var uInfoList = _context.Set<IncidentUserLocationResponse>().FromSqlRaw(
@@ -500,8 +488,7 @@ namespace CrisesControl.Infrastructure.Repositories
             return uInfoList;
         }
 
-        public List<TrackUsers> GetTrackingUsers(string status, int userId, int companyId)
-        {
+        public List<TrackUsers> GetTrackingUsers(string status, int userId, int companyId) {
             var pCompanyID = new SqlParameter("@CompanyID", companyId);
             var pUserID = new SqlParameter("@UserID", userId);
             var pStatus = new SqlParameter("@Status", status);
@@ -513,10 +500,8 @@ namespace CrisesControl.Infrastructure.Repositories
         }
 
 
-        private DateTime GetLocalTime(string timeZoneId, DateTime? paramTime = null)
-        {
-            try
-            {
+        private DateTime GetLocalTime(string timeZoneId, DateTime? paramTime = null) {
+            try {
                 if (string.IsNullOrEmpty(timeZoneId))
                     timeZoneId = "GMT Standard Time";
 
@@ -530,14 +515,12 @@ namespace CrisesControl.Infrastructure.Repositories
                 retDate = TimeZoneInfo.ConvertTimeFromUtc(dateTimeToConvert, cstZone);
 
                 return retDate;
-            }
-            catch (Exception ex) { }
+            } catch (Exception ex) { }
             return DateTime.Now;
         }
 
         private List<PingReportGrid> GetPingReport(int companyId, DateTime startDate, DateTime endDate, string messageType, int drillOpt, int groupId, int objectMappingId,
-                        int recordStart, int recordLength, string searchString, string orderBy, string orderDir, string companyKey)
-        {
+                        int recordStart, int recordLength, string searchString, string orderBy, string orderDir, string companyKey) {
             var pStartDate = new SqlParameter("@StartDate", startDate);
             var pEndDate = new SqlParameter("@EndDate", endDate);
             var pCompanyID = new SqlParameter("@CompanyID", companyId);
@@ -555,8 +538,7 @@ namespace CrisesControl.Infrastructure.Repositories
             var result = new List<PingReportGrid>();
             var propertyInfo = typeof(PingReportGrid).GetProperty(orderBy);
 
-            if (orderDir == "desc")
-            {
+            if (orderDir == "desc") {
                 result = _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Ping @StartDate, @EndDate, @CompanyID, @MessageType, @DrillOption, @GroupID, @ObjectMappingID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
                     pStartDate, pEndDate, pCompanyID, pMessageType, pDrillOption, pGroupID, pObjectMappingID, pRecordStart, pRecordLength,
                     pSearchString, pOrderBy, pOrderDir, pUniqueKey)
@@ -565,9 +547,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         return c;
                     })
                     .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
-            }
-            else
-            {
+            } else {
                 result = _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Ping @StartDate, @EndDate, @CompanyID, @MessageType, @DrillOption, @GroupID, @ObjectMappingID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
                     pStartDate, pEndDate, pCompanyID, pMessageType, pDrillOption, pGroupID, pObjectMappingID, pRecordStart, pRecordLength,
                     pSearchString, pOrderBy, pOrderDir, pUniqueKey)
@@ -580,95 +560,74 @@ namespace CrisesControl.Infrastructure.Repositories
             return result;
         }
 
-        private async Task<string> LookupWithKey(string Key, string Default = "")
-        {
-            try
-            {
+        private async Task<string> LookupWithKey(string Key, string Default = "") {
+            try {
                 Dictionary<string, string> Globals = CCConstants.GlobalVars;
-                if (Globals.ContainsKey(Key))
-                {
+                if (Globals.ContainsKey(Key)) {
                     return Globals[Key];
                 }
 
 
                 var LKP = await _context.Set<SysParameter>().Where(w => w.Name == Key).FirstOrDefaultAsync();
-                if (LKP != null)
-                {
+                if (LKP != null) {
                     Default = LKP.Value;
                 }
                 return Default;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 _logger.LogError("An error occurred while seeding the database  {Error} {StackTrace} {InnerException} {Source}",
                                         ex.Message, ex.StackTrace, ex.InnerException, ex.Source);
                 return Default;
             }
         }
 
-        public void GetStartEndDate(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, ref DateTime stDate, ref DateTime enDate, DateTimeOffset StartDate, DateTimeOffset EndDate)
-        {
-            if (IsThisWeek)
-            {
+        public void GetStartEndDate(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, ref DateTime stDate, ref DateTime enDate, DateTimeOffset StartDate, DateTimeOffset EndDate) {
+            if (IsThisWeek) {
                 int dayofweek = Convert.ToInt32(DateTime.Now.DayOfWeek);
                 stDate = DateTime.Now.AddDays(0 - dayofweek);
                 enDate = DateTime.Now.AddDays(7 - dayofweek);
                 stDate = new DateTime(stDate.Year, stDate.Month, stDate.Day, 0, 0, 0);
                 enDate = new DateTime(enDate.Year, enDate.Month, enDate.Day, 23, 59, 59);
-            }
-            else if (IsThisMonth)
-            {
+            } else if (IsThisMonth) {
                 stDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0);
                 enDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month), 23, 59, 59);
-            }
-            else if (IsLastMonth)
-            {
+            } else if (IsLastMonth) {
                 DateTime currentDate = DateTime.Now;
                 int year = currentDate.Year;
                 int month = currentDate.Month;
 
-                if (month == 1)
-                {
+                if (month == 1) {
                     year = year - 1;
                     month = 12;
-                }
-                else
-                {
+                } else {
                     month = month - 1;
                 }
                 stDate = new DateTime(year, month, 1, 0, 0, 0);
                 enDate = new DateTime(year, month, DateTime.DaysInMonth(year, month), 23, 59, 59);
-            }
-            else
-            {
+            } else {
                 stDate = new DateTime(StartDate.Year, StartDate.Month, StartDate.Day, 0, 0, 0);
                 enDate = new DateTime(EndDate.Year, EndDate.Month, EndDate.Day, 23, 59, 59);
             }
         }
 
 
-        public async Task<List<TrackUserCount>> GetTrackingUserCount(int companyId)
-        {
+        public async Task<List<TrackUserCount>> GetTrackingUserCount(int companyId) {
             try {
 
-                
+
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var tckusr = await _context.Set<TrackUserCount>().FromSqlRaw("exec Pro_Get_Tracking_Users_Count @CompanyID", pCompanyID).ToListAsync();
 
                 return tckusr;
 
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 _logger.LogError("Error occured while seeding the database {0},{1}", ex.Message, ex.InnerException);
-               
+
             }
-            throw new CompanyNotFoundException(companyId, UserID);
+            throw new CompanyNotFoundException(companyId, CurrentUserID);
 
         }
-        public async Task<List<IncidentMessagesRtn>> GetIndidentReportDetails(int IncidentActivationID, int CompanyID, int UserId)
-        {
-            try
-            {
+        public async Task<List<IncidentMessagesRtn>> GetIncidentReportDetails(int IncidentActivationID, int CompanyID, int UserId) {
+            try {
 
                 var pIncidentActivationID = new SqlParameter("@IncidentActivationID", IncidentActivationID);
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
@@ -678,30 +637,25 @@ namespace CrisesControl.Infrastructure.Repositories
                   pIncidentActivationID, pCompanyID, pUserID).ToListAsync();
 
 
-                incimsgs.Select( async c =>
-                  {
-                      c.SentBy = new UserFullName { Firstname = c.SentByFirst, Lastname = c.SentByLast };
-                      c.Notes = await _context.Set<IncidentTaskNote>()
-                                 .Where(N => N.ObjectId == IncidentActivationID && N.NoteType == "TASK"
-                                 || N.ObjectId == IncidentActivationID && N.NoteType == "INCIDENT" && c.MessageType == "Ping"
-                                 ).FirstOrDefaultAsync();
-                                 return c;
-                  }).ToList();                     
-               
+                incimsgs.Select(async c => {
+                    c.SentBy = new UserFullName { Firstname = c.SentByFirst, Lastname = c.SentByLast };
+                    c.Notes = await _context.Set<IncidentTaskNote>()
+                               .Where(N => N.ObjectId == IncidentActivationID && N.NoteType == "TASK"
+                               || N.ObjectId == IncidentActivationID && N.NoteType == "INCIDENT" && c.MessageType == "Ping"
+                               ).FirstOrDefaultAsync();
+                    return c;
+                }).ToList();
 
-               
-                    return incimsgs;
-               
-            }
-            catch (Exception ex)
-            {
+
+
+                return incimsgs;
+
+            } catch (Exception ex) {
                 throw new ReportingNotFoundException(CompanyID, UserId);
             }
         }
-        public async Task<DataTablePaging> GetIncidentReport(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate, int SelectedUserID, int CompanyId)
-        {
-            try
-            {
+        public async Task<DataTablePaging> GetIncidentReport(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate, int SelectedUserID, int CompanyId) {
+            try {
                 DateTime stDate = DateTime.Now;
                 DateTime enDate = DateTime.Now;
                 GetStartEndDate(IsThisWeek, IsThisMonth, IsLastMonth, ref stDate, ref enDate, StartDate, EndDate);
@@ -716,13 +670,12 @@ namespace CrisesControl.Infrastructure.Repositories
                 var incidentReportData = await _context.Set<IncidentReportResponse>().FromSqlRaw(
                     " exec Pro_Report_GetIncidentData @StartDate, @EndDate, @CompanyID, @UserID",
                     pStartDate, pEndDate, pCompanyID, pUserID).ToListAsync();
-                foreach (var incident in incidentReportData)
-                {
+                foreach (var incident in incidentReportData) {
                     var pStartDate2 = new SqlParameter("@StartDate", stDate);
                     var pEndDate2 = new SqlParameter("@EndDate", enDate);
                     var pCompanyID2 = new SqlParameter("@CompanyID", CompanyId);
                     var pIncidentActivationID = new SqlParameter("@IncidentActivationId", incident.IncidentActivationId);
-                    incident.KeyContacts =await _context.Set<IncidentReportKeyContactResponse>().FromSqlRaw(
+                    incident.KeyContacts = await _context.Set<IncidentReportKeyContactResponse>().FromSqlRaw(
                         "exec Pro_Report_GetIncidentData_KeyContacts @StartDate, @EndDate, @CompanyID, @IncidentActivationId",
                         pStartDate2,
                         pEndDate2,
@@ -739,7 +692,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 rtn.RecordsFiltered = Report.Count();
                 rtn.Data = Report;
                 return rtn;
-               
+
 
                 //else
                 //{
@@ -747,16 +700,12 @@ namespace CrisesControl.Infrastructure.Repositories
                 //    ResultDTO.Message = "No record found.";
                 //}
                 //return ResultDTO;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<UserPieChart>> GetUserReportPiechartData(bool IsThisWeek,bool IsThisMonth,bool IsLastMonth,DateTimeOffset StartDate, DateTimeOffset EndDate, int SelectedUserID, int CompanyId)
-        {
-            try
-            {
+        public async Task<List<UserPieChart>> GetUserReportPiechartData(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate, int SelectedUserID, int CompanyId) {
+            try {
                 DateTime stDate = DateTime.Now;
                 DateTime enDate = DateTime.Now;
                 TimeSpan timespan = TimeSpan.FromMinutes(30);
@@ -773,22 +722,17 @@ namespace CrisesControl.Infrastructure.Repositories
                     pUserID,
                     pCompanyID).ToList();
 
-                if (userPieChartData != null)
-                {
+                if (userPieChartData != null) {
                     return userPieChartData;
                 }
                 return null;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
         // REPORTS => User Report
-        public async Task<List<UserIncidentReportResponse>> GetUserIncidentReport(DateTimeOffset startDate, DateTimeOffset endDate, bool isThisWeek, bool isThisMonth, bool isLastMonth, int SelectedUserID)
-        {
-            try
-            {
+        public async Task<List<UserIncidentReportResponse>> GetUserIncidentReport(DateTimeOffset startDate, DateTimeOffset endDate, bool isThisWeek, bool isThisMonth, bool isLastMonth, int SelectedUserID) {
+            try {
                 DateTime stDate = DateTime.Now;
                 DateTime enDate = DateTime.Now;
                 TimeSpan timespan = TimeSpan.FromMinutes(30);
@@ -797,108 +741,91 @@ namespace CrisesControl.Infrastructure.Repositories
                 var pStartDate = new SqlParameter("@StartDate", stDate);
                 var pEndDate = new SqlParameter("@EndDate", enDate);
                 var pUserID = new SqlParameter("@UserID", SelectedUserID);
-                var userReportData = await  _context.Set<UserIncidentReportResponse>().FromSqlRaw(
+                var userReportData = await _context.Set<UserIncidentReportResponse>().FromSqlRaw(
                     " exec Pro_Report_GetUserIncidentReport @StartDate, @EndDate, @UserID",
                     pStartDate,
                     pEndDate,
                     pUserID).ToListAsync();
 
-               
-                    return userReportData;
-                
-            }
-            catch (Exception ex)
-            {
+
+                return userReportData;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-      
 
-        public async Task<List<PingReport>> GetPingReportAnalysis(int MessageID, string MessageType, int _CompanyID)
-        {
-            try
-            {
 
-               
-                    var pMessageID = new SqlParameter("@MessageID", MessageID);
-                    var pMessageType = new SqlParameter("@MessageType", MessageType);
-                    var pCompanyID = new SqlParameter("@CompanyID", _CompanyID);
+        public async Task<List<PingReport>> GetPingReportAnalysis(int MessageID, string MessageType, int _CompanyID) {
+            try {
 
-                    var result = await _context.Set<PingReport>().FromSqlRaw("exec Pro_Report_Ping_Analysis @MessageID, @MessageType, @CompanyID",
-                    pMessageID, pMessageType, pCompanyID).ToListAsync();
 
-                    return result;
-               
-            }
-            catch (Exception ex)
-            {
+                var pMessageID = new SqlParameter("@MessageID", MessageID);
+                var pMessageType = new SqlParameter("@MessageType", MessageType);
+                var pCompanyID = new SqlParameter("@CompanyID", _CompanyID);
+
+                var result = await _context.Set<PingReport>().FromSqlRaw("exec Pro_Report_Ping_Analysis @MessageID, @MessageType, @CompanyID",
+                pMessageID, pMessageType, pCompanyID).ToListAsync();
+
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<IncidentUserMessageResponse>> GetIncidentUserMessage(int IncidentActivationId, int SelectedUserId, int CompanyID)
-        {
-            try
-            {
+        public async Task<List<IncidentUserMessageResponse>> GetIncidentUserMessage(int IncidentActivationId, int SelectedUserId, int CompanyID) {
+            try {
                 var pIncidentActivationID = new SqlParameter("@IncidentActivationID", IncidentActivationId);
                 var pSelectedUserId = new SqlParameter("@UserID", SelectedUserId);
                 var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                var incidentMessageListDetails =await _context.Set<IncidentUserMessageResponse>().FromSqlRaw(
+                var incidentMessageListDetails = await _context.Set<IncidentUserMessageResponse>().FromSqlRaw(
                     "exec Pro_Report_GetIncidentUserMessage @IncidentActivationId,@UserID,@CompanyID",
                     pIncidentActivationID,
                     pSelectedUserId,
                     pCompanyID).ToListAsync();
 
-               
-                    return incidentMessageListDetails;
-                
-          
-            }
-            catch (Exception ex)
-            {
+
+                return incidentMessageListDetails;
+
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<IncidentStatsResponse> GetIncidentStats(int IncidentActivationId, int CompanyId)
-        {
-            try
-            {
+        public async Task<IncidentStatsResponse> GetIncidentStats(int IncidentActivationId, int CompanyId) {
+            try {
                 var pIncidentActivationId = new SqlParameter("@IncidentActivationId", IncidentActivationId);
                 var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
-                var incidentReportData =await _context.Set<IncidentStatsResponse>().FromSqlRaw(
+                var incidentReportData = await _context.Set<IncidentStatsResponse>().FromSqlRaw(
                     "exec Pro_Report_GetIncidentStats @IncidentActivationId,@CompanyID",
                     pIncidentActivationId,
                     pCompanyId).FirstOrDefaultAsync();
-               
-                    var incidentActivationId2 = new SqlParameter("@IncidentActivationId", IncidentActivationId);
-                    var companyId2 = new SqlParameter("@CompanyID", CompanyId);
-                    incidentReportData.IncidentKPI = await  _context.Set<IncidentStat>().FromSqlRaw(
-                        " exec Pro_Report_GetIncidentStats_IncidentKPI @IncidentActivationId,@CompanyID",
-                        incidentActivationId2,
-                        companyId2).FirstOrDefaultAsync();
 
-                    return incidentReportData;
-               
-              
-            }
-            catch (Exception ex)
-            {
+                var incidentActivationId2 = new SqlParameter("@IncidentActivationId", IncidentActivationId);
+                var companyId2 = new SqlParameter("@CompanyID", CompanyId);
+                incidentReportData.IncidentKPI = await _context.Set<IncidentStat>().FromSqlRaw(
+                    " exec Pro_Report_GetIncidentStats_IncidentKPI @IncidentActivationId,@CompanyID",
+                    incidentActivationId2,
+                    companyId2).FirstOrDefaultAsync();
+
+                return incidentReportData;
+
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<PerformanceReport>> GetPerformanceReport(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, bool ShowDeletedGroups, int CurrentUserId,int CompanyId,DateTimeOffset StartDate, DateTimeOffset EndDate, string MessageType)
-        {
-            try
-            {
+        public async Task<List<PerformanceReport>> GetPerformanceReport(bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, bool ShowDeletedGroups, int CurrentUserId, int CompanyId, DateTimeOffset StartDate, DateTimeOffset EndDate, string MessageType) {
+            try {
                 DateTime stDate = DateTime.Now;
                 DateTime enDate = DateTime.Now;
 
-                GetStartEndDate(IsThisWeek, IsThisMonth,IsLastMonth, ref stDate, ref enDate, StartDate, EndDate);
-                var KPIs =  _context.Set<CompanyParameter>().Where(KPI=>KPI.CompanyId == CompanyId).Select(KPI=> new { KPI.Name, KPI.Value });
+                GetStartEndDate(IsThisWeek, IsThisMonth, IsLastMonth, ref stDate, ref enDate, StartDate, EndDate);
+                var KPIs = _context.Set<CompanyParameter>().Where(KPI => KPI.CompanyId == CompanyId).Select(KPI => new { KPI.Name, KPI.Value });
 
                 Dictionary<string, string> KpiD = new Dictionary<string, string>();
 
-                foreach (var kpi in KPIs)
-                {
+                foreach (var kpi in KPIs) {
                     if (!KpiD.Where(s => s.Key == kpi.Name).Any())
                         KpiD.Add(kpi.Name, kpi.Value);
                 }
@@ -914,7 +841,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 var pEndDate = new SqlParameter("@EndDate", enDate);
                 var pGroupType = new SqlParameter("@GroupType", MessageType);
 
-                var PerfData =await _context.Set<PerformanceReport>().FromSqlRaw("exec Pro_Report_Performance @CompanyID, @UserID, @ShowDeleted, @StartDate, @EndDate, @GroupType",
+                var PerfData = await _context.Set<PerformanceReport>().FromSqlRaw("exec Pro_Report_Performance @CompanyID, @UserID, @ShowDeleted, @StartDate, @EndDate, @GroupType",
                     pCompanyID, pUserID, pShowDeleted, pStartDate, pEndDate, pGroupType).ToListAsync();
 
                 if (PerfData != null) {
@@ -922,22 +849,18 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
                 dynamicList.Add(KpiD);
                 return PerfData;
-               
-            }
-            catch (Exception ex)
-            {
+
+            } catch (Exception ex) {
                 throw ex;
             }
 
         }
-        public async Task<DataTablePaging> GetPerformanceReportByGroup(int draw,bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, int CompanyId, int start,int length, string search, string orderby, string dir,int FilterUser,string MessageType,string GroupName,string GroupType, int DrillOpt, DateTimeOffset StartDate, DateTimeOffset EndDate,string CompanyKey="")
-        {
-            try
-            {
+        public async Task<DataTablePaging> GetPerformanceReportByGroup(int draw, bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, int CompanyId, int start, int length, string search, string orderby, string dir, int FilterUser, string MessageType, string GroupName, string GroupType, int DrillOpt, DateTimeOffset StartDate, DateTimeOffset EndDate, string CompanyKey = "") {
+            try {
                 DateTime stDate = DateTime.Now;
                 DateTime enDate = DateTime.Now;
 
-                GetStartEndDate(IsThisWeek, IsThisMonth, IsLastMonth, ref stDate, ref enDate,StartDate, EndDate);
+                GetStartEndDate(IsThisWeek, IsThisMonth, IsLastMonth, ref stDate, ref enDate, StartDate, EndDate);
 
                 DataTablePaging rtn = new DataTablePaging();
 
@@ -949,35 +872,30 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 int totalRecord = 0;
 
-                if (FilterUser > 0)
-                {
-                    var returnData = await GetPerformanceReport(stDate, enDate, MessageType, CompanyId, GroupName, GroupType, 
+                if (FilterUser > 0) {
+                    var returnData = await GetPerformanceReport(stDate, enDate, MessageType, CompanyId, GroupName, GroupType,
                         FilterUser, DrillOpt, RecordStart, RecordLength, SearchString, OrderBy, OrderDir, CompanyKey);
 
                     totalRecord = returnData.Count;
 
-                    List<PingReportGrid> ttodata =await GetPerformanceReport(stDate, enDate, MessageType,CompanyId, GroupName,
+                    List<PingReportGrid> ttodata = await GetPerformanceReport(stDate, enDate, MessageType, CompanyId, GroupName,
                         GroupType, FilterUser, DrillOpt, 0, int.MaxValue, "", OrderBy, OrderDir, CompanyKey);
-                    if (ttodata != null)
-                    {
+                    if (ttodata != null) {
                         totalRecord = ttodata.Count;
                     }
 
                     rtn.RecordsFiltered = returnData.Count;
                     rtn.Data = returnData;
 
-                }
-                else
-                {
-                    var returnData = await GetPerformanceReportByGroup(stDate, enDate,MessageType, CompanyId, GroupName,GroupType,
-                        DrillOpt, RecordStart, RecordLength, SearchString, OrderBy, OrderDir,CompanyKey);
+                } else {
+                    var returnData = await GetPerformanceReportByGroup(stDate, enDate, MessageType, CompanyId, GroupName, GroupType,
+                        DrillOpt, RecordStart, RecordLength, SearchString, OrderBy, OrderDir, CompanyKey);
 
                     totalRecord = returnData.Count;
 
-                    List<PingReportGrid> ttodata =await GetPerformanceReportByGroup(stDate, enDate, MessageType, CompanyId, GroupName, GroupType,
+                    List<PingReportGrid> ttodata = await GetPerformanceReportByGroup(stDate, enDate, MessageType, CompanyId, GroupName, GroupType,
                         DrillOpt, 0, int.MaxValue, "", OrderBy, OrderDir, CompanyKey);
-                    if (ttodata != null)
-                    {
+                    if (ttodata != null) {
                         totalRecord = ttodata.Count;
                     }
                     rtn.RecordsFiltered = returnData.Count;
@@ -987,130 +905,112 @@ namespace CrisesControl.Infrastructure.Repositories
                 rtn.Draw = draw;
                 rtn.RecordsTotal = totalRecord;
 
-               
-                    return rtn;
-                
-            }
-            catch (Exception ex)
-            {
+
+                return rtn;
+
+            } catch (Exception ex) {
                 throw ex;
             }
 
         }
-        public async  Task<List<PingReportGrid>> GetPerformanceReportByGroup(DateTime StartDate, DateTime EndDate, string MessageType,int _CompanyID, string GroupName = "", string GroupType = "", int DrillOpt = 0,
-            int RecordStart = 0, int RecordLength = 100, string SearchString = "", string OrderBy = "DateSent", string OrderDir = "desc", string CompanyKey = "")
-        {
-            try
-            {
-
-               
-                    var pStartDate = new SqlParameter("@StartDate", StartDate);
-                    var pEndDate = new SqlParameter("@EndDate", EndDate);
-                    var pCompanyID = new SqlParameter("@CompanyID", _CompanyID);
-                    var pMessageType = new SqlParameter("@MessageType", MessageType);
-                    var pDrillOption = new SqlParameter("@DrillOption", DrillOpt);
-                    var pGroupName = new SqlParameter("@GroupName", string.IsNullOrEmpty(GroupName) ? null : GroupName);
-                    var pGroupType = new SqlParameter("@GroupType", string.IsNullOrEmpty(GroupType) ? null : GroupType);
-                    var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
-                    var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
-                    var pSearchString = new SqlParameter("@SearchString", SearchString);
-                    var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
-                    var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
-                    var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
+        public async Task<List<PingReportGrid>> GetPerformanceReportByGroup(DateTime StartDate, DateTime EndDate, string MessageType, int _CompanyID, string GroupName = "", string GroupType = "", int DrillOpt = 0,
+            int RecordStart = 0, int RecordLength = 100, string SearchString = "", string OrderBy = "DateSent", string OrderDir = "desc", string CompanyKey = "") {
+            try {
 
 
-                    var result = new List<PingReportGrid>();
-                    var propertyInfo = typeof(PingReportGrid).GetProperty(OrderBy);
+                var pStartDate = new SqlParameter("@StartDate", StartDate);
+                var pEndDate = new SqlParameter("@EndDate", EndDate);
+                var pCompanyID = new SqlParameter("@CompanyID", _CompanyID);
+                var pMessageType = new SqlParameter("@MessageType", MessageType);
+                var pDrillOption = new SqlParameter("@DrillOption", DrillOpt);
+                var pGroupName = new SqlParameter("@GroupName", string.IsNullOrEmpty(GroupName) ? null : GroupName);
+                var pGroupType = new SqlParameter("@GroupType", string.IsNullOrEmpty(GroupType) ? null : GroupType);
+                var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+                var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+                var pSearchString = new SqlParameter("@SearchString", SearchString);
+                var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+                var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                    if (OrderDir == "desc")
-                    {
-                        result =  _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Performance_Groups @StartDate, @EndDate, @CompanyID, @MessageType, @GroupName, @GroupType, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
-                    pStartDate, pEndDate, pCompanyID, pMessageType, pGroupName, pGroupType, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
-                            .ToList().Select(c => {
-                                c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                                return c;
-                            })
-                            .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
-                    }
-                    else
-                    {
-                        result = _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Performance_Groups @StartDate, @EndDate, @CompanyID, @MessageType, @GroupName, @GroupType, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
-                    pStartDate, pEndDate, pCompanyID, pMessageType, pGroupName, pGroupType, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
-                            .ToList().Select(c => {
-                                c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                                return c;
-                            })
-                            .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
-                    }
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                var result = new List<PingReportGrid>();
+                var propertyInfo = typeof(PingReportGrid).GetProperty(OrderBy);
+
+                if (OrderDir == "desc") {
+                    result = _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Performance_Groups @StartDate, @EndDate, @CompanyID, @MessageType, @GroupName, @GroupType, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
+                pStartDate, pEndDate, pCompanyID, pMessageType, pGroupName, pGroupType, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                        .ToList().Select(c => {
+                            c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                            return c;
+                        })
+                        .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+                } else {
+                    result = _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Performance_Groups @StartDate, @EndDate, @CompanyID, @MessageType, @GroupName, @GroupType, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
+                pStartDate, pEndDate, pCompanyID, pMessageType, pGroupName, pGroupType, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                        .ToList().Select(c => {
+                            c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                            return c;
+                        })
+                        .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
         public async Task<List<PingReportGrid>> GetPerformanceReport(DateTime StartDate, DateTime EndDate, string MessageType, int companyId, string GroupName = "", string GroupType = "", int FilterUser = 0,
-                int DrillOpt = 0, int RecordStart = 0, int RecordLength = 100, string SearchString = "", string OrderBy = "DateSent", string OrderDir = "desc", string CompanyKey = "" )
-        {
-            try
-            {
+                int DrillOpt = 0, int RecordStart = 0, int RecordLength = 100, string SearchString = "", string OrderBy = "DateSent", string OrderDir = "desc", string CompanyKey = "") {
+            try {
 
-               
-                    var pStartDate = new SqlParameter("@StartDate", StartDate);
-                    var pEndDate = new SqlParameter("@EndDate", EndDate);
-                    var pCompanyID = new SqlParameter("@CompanyID", companyId);
-                    var pMessageType = new SqlParameter("@MessageType", MessageType);
-                    var pDrillOption = new SqlParameter("@DrillOption", DrillOpt);
-                    var pGroupName = new SqlParameter("@GroupName", string.IsNullOrEmpty(GroupName) ? null : GroupName);
-                    var pGroupType = new SqlParameter("@GroupType", string.IsNullOrEmpty(GroupType) ? null : GroupType);
-                    var pFilterUser = new SqlParameter("@FilterUser", FilterUser);
-                    var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
-                    var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
-                    var pSearchString = new SqlParameter("@SearchString", SearchString);
-                    var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
-                    var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
-                    var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                    var result = new List<PingReportGrid>();
-                    var propertyInfo = typeof(PingReportGrid).GetProperty(OrderBy);
+                var pStartDate = new SqlParameter("@StartDate", StartDate);
+                var pEndDate = new SqlParameter("@EndDate", EndDate);
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pMessageType = new SqlParameter("@MessageType", MessageType);
+                var pDrillOption = new SqlParameter("@DrillOption", DrillOpt);
+                var pGroupName = new SqlParameter("@GroupName", string.IsNullOrEmpty(GroupName) ? null : GroupName);
+                var pGroupType = new SqlParameter("@GroupType", string.IsNullOrEmpty(GroupType) ? null : GroupType);
+                var pFilterUser = new SqlParameter("@FilterUser", FilterUser);
+                var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+                var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+                var pSearchString = new SqlParameter("@SearchString", SearchString);
+                var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+                var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                    if (OrderDir == "desc")
-                    {
+                var result = new List<PingReportGrid>();
+                var propertyInfo = typeof(PingReportGrid).GetProperty(OrderBy);
+
+                if (OrderDir == "desc") {
                     result = await _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Performance_Drill @StartDate, @EndDate, @CompanyID, @MessageType, @GroupName, @GroupType, @FilterUser, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
                 pStartDate, pEndDate, pCompanyID, pMessageType, pGroupName, pGroupType, pFilterUser, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
                         .ToListAsync();
                     result.Select(c => {
-                                c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                                return c;
-                            })
+                        c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        return c;
+                    })
                             .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
-                    }
-                    else
-                    {
+                } else {
                     result = await _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Performance_Drill @StartDate, @EndDate, @CompanyID, @MessageType, @GroupName, @GroupType, @FilterUser, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
                 pStartDate, pEndDate, pCompanyID, pMessageType, pGroupName, pGroupType, pFilterUser, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
                         .ToListAsync();
-                            result.Select(c => {
-                                c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                                return c;
-                            })
-                            .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
-                    }
+                    result.Select(c => {
+                        c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        return c;
+                    })
+                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+                }
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<DataTablePaging> GetResponseCoordinates(int start, int length, int MessageId)
-        {
-            try
-            {
+        public async Task<DataTablePaging> GetResponseCoordinates(int start, int length, int MessageId) {
+            try {
                 var RecordStart = start == 0 ? 0 : start;
                 var RecordLength = length == 0 ? int.MaxValue : length;
 
@@ -1121,8 +1021,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 var response = await _context.Set<ResponseCordinates>().FromSqlRaw("exec Pro_Response_Coordinates @MessageID, @RecordStart, @RecordLength",
                     pMessageId, pRecordStart, pRecordLength).ToListAsync();
-                response.Select(c =>
-                {
+                response.Select(c => {
                     c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
                     c.UserMobile = new PhoneNumber { ISD = c.ISDCode, Number = c.MobileNo };
                     return c;
@@ -1140,17 +1039,12 @@ namespace CrisesControl.Infrastructure.Repositories
                 rtn.Data = response;
 
                 return rtn;
-            }
-
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<TrackingExport>> GetTrackingData(int TrackMeID, int UserDeviceID, DateTimeOffset StartDate, DateTimeOffset EndDate)
-        {
-            try
-            {
+        public async Task<List<TrackingExport>> GetTrackingData(int TrackMeID, int UserDeviceID, DateTimeOffset StartDate, DateTimeOffset EndDate) {
+            try {
                 var pTrackMeID = new SqlParameter("@TrackMeID", TrackMeID);
                 var pUserDeviceID = new SqlParameter("@UserDeviceID", UserDeviceID);
                 var pStartDate = new SqlParameter("@StartDate", StartDate.DateTime.GetDateTimeOffset());
@@ -1159,172 +1053,146 @@ namespace CrisesControl.Infrastructure.Repositories
                 var tckusr = await _context.Set<TrackingExport>().FromSqlRaw("exec Pro_ExportTrackingData @TrackMeID, @UserDeviceID, @StartDate, @EndDate",
                     pTrackMeID, pUserDeviceID, pStartDate, pEndDate).ToListAsync();
                 tckusr.Select(c => {
-                        c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                        return c;
-                    }).ToList();
+                    c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                    return c;
+                }).ToList();
 
-                if (tckusr.Count > 0)
-                {
+                if (tckusr.Count > 0) {
                     MinTrackingDate = tckusr.Select(s => s.CreatedOn).OrderBy(o => o).FirstOrDefault();
                     MaxTrackingDate = tckusr.Select(s => s.CreatedOn).OrderByDescending(o => o).FirstOrDefault();
                     NewMaxTrackingDate = await _context.Set<UserLocation1>().Where(w => w.UserDeviceId == UserDeviceID).Select(s => s.CreatedOn).OrderByDescending(o => o).FirstOrDefaultAsync();
                 }
 
                 return tckusr;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<TaskPerformance> GetTaskPerformance(int companyId, bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate)
-        {
-            try
-            {
-                
-                    DateTime stDate = DateTime.Now;
-                    DateTime enDate = DateTime.Now;
+        public async Task<TaskPerformance> GetTaskPerformance(int companyId, bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate) {
+            try {
 
-                    GetStartEndDate(IsThisWeek, IsThisMonth, IsLastMonth, ref stDate, ref enDate, StartDate, EndDate);
+                DateTime stDate = DateTime.Now;
+                DateTime enDate = DateTime.Now;
 
-                    var pCompanyID = new SqlParameter("@CompanyID", companyId);
-                    var pStartDate = new SqlParameter("@StartDate", stDate);
-                    var pEndDate = new SqlParameter("@EndDate", enDate);
+                GetStartEndDate(IsThisWeek, IsThisMonth, IsLastMonth, ref stDate, ref enDate, StartDate, EndDate);
 
-                    var result = await _context.Set<TaskPerformance>().FromSqlRaw("exec Pro_Report_TaskKPI @CompanyID, @StartDate, @EndDate", pCompanyID, pStartDate, pEndDate).FirstOrDefaultAsync();
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pStartDate = new SqlParameter("@StartDate", stDate);
+                var pEndDate = new SqlParameter("@EndDate", enDate);
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                var result = await _context.Set<TaskPerformance>().FromSqlRaw("exec Pro_Report_TaskKPI @CompanyID, @StartDate, @EndDate", pCompanyID, pStartDate, pEndDate).FirstOrDefaultAsync();
+
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
 
-        public async Task<FailedTaskReport> GetFailedTasks(string ReportType, int companyId, bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate)
-        {
-            try
-            {
-                
-                    DateTime stDate = DateTime.Now;
-                    DateTime enDate = DateTime.Now;
+        public async Task<FailedTaskReport> GetFailedTasks(string ReportType, int companyId, bool IsThisWeek, bool IsThisMonth, bool IsLastMonth, DateTimeOffset StartDate, DateTimeOffset EndDate) {
+            try {
 
-                    GetStartEndDate(IsThisWeek, IsThisMonth, IsLastMonth, ref stDate, ref enDate, StartDate, EndDate);
+                DateTime stDate = DateTime.Now;
+                DateTime enDate = DateTime.Now;
 
-                    var pCompanyID = new SqlParameter("@CompanyID", companyId);
-                    var pReportType = new SqlParameter("@ReportType", ReportType);
-                    var pStartDate = new SqlParameter("@StartDate", stDate);
-                    var pEndDate = new SqlParameter("@EndDate", enDate);
+                GetStartEndDate(IsThisWeek, IsThisMonth, IsLastMonth, ref stDate, ref enDate, StartDate, EndDate);
 
-                    var result = await _context.Set<FailedTaskReport>().FromSqlRaw("exec Pro_Report_TaskKPI_Failed @CompanyID, @ReportType, @StartDate, @EndDate",
-                        pCompanyID, pReportType, pStartDate, pEndDate).FirstOrDefaultAsync();
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pReportType = new SqlParameter("@ReportType", ReportType);
+                var pStartDate = new SqlParameter("@StartDate", stDate);
+                var pEndDate = new SqlParameter("@EndDate", enDate);
 
-                    return result;
-               
-            }
-            catch (Exception ex)
-            {
+                var result = await _context.Set<FailedTaskReport>().FromSqlRaw("exec Pro_Report_TaskKPI_Failed @CompanyID, @ReportType, @StartDate, @EndDate",
+                    pCompanyID, pReportType, pStartDate, pEndDate).FirstOrDefaultAsync();
+
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
 
         public async Task<List<FailedTaskList>> GetFailedTaskList(string ReportType, int RangeMin, int RangeMax, DateTime stDate, DateTime enDate, int RecordStart, int RecordLength,
-            string SearchString, string OrderBy, string OrderDir, string CompanyKey, int _CompanyID)
-        {
-            try
-            {
+            string SearchString, string OrderBy, string OrderDir, string CompanyKey, int _CompanyID) {
+            try {
                 OrderBy = string.IsNullOrEmpty(OrderBy) ? "Name" : OrderBy;
-               
-                    var pCompanyID = new SqlParameter("@CompanyID", _CompanyID);
-                    var pReportType = new SqlParameter("@ReportType", ReportType);
-                    var pRangeMin = new SqlParameter("@RangeMin", RangeMin);
-                    var pRangeMax = new SqlParameter("@RangeMax", RangeMax);
-                    var pStartDate = new SqlParameter("@StartDate", stDate);
-                    var pEndDate = new SqlParameter("@EndDate", enDate);
-                    var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
-                    var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
-                    var pSearchString = new SqlParameter("@SearchString", SearchString);
-                    var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
-                    var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
-                    var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
+
+                var pCompanyID = new SqlParameter("@CompanyID", _CompanyID);
+                var pReportType = new SqlParameter("@ReportType", ReportType);
+                var pRangeMin = new SqlParameter("@RangeMin", RangeMin);
+                var pRangeMax = new SqlParameter("@RangeMax", RangeMax);
+                var pStartDate = new SqlParameter("@StartDate", stDate);
+                var pEndDate = new SqlParameter("@EndDate", enDate);
+                var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+                var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+                var pSearchString = new SqlParameter("@SearchString", SearchString);
+                var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+                var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
 
-                    var result = new List<FailedTaskList>();
-                    var propertyInfo = typeof(FailedTaskList).GetProperty(OrderBy);
+                var result = new List<FailedTaskList>();
+                var propertyInfo = typeof(FailedTaskList).GetProperty(OrderBy);
 
-                    if (OrderDir == "desc")
-                    {
-                    result = await _context.Set<FailedTaskList>().FromSqlRaw(" exec Pro_Report_TaskKPI_Failed_List @CompanyID, @ReportType,@RangeMin,@RangeMax,@StartDate, @EndDate, @RecordStart, @RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
-                    pCompanyID, pReportType, pRangeMin, pRangeMax, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
-                        .ToListAsync();
-                            result.Select(c => {
-                                c.TaskOwner = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                                c.TaskCompletedBy = new UserFullName { Firstname = c.CompleteByFirstName, Lastname = c.CompleteByLastName };
-                                return c;
-                            })
-                            .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
-                    }
-                    else
-                    {
+                if (OrderDir == "desc") {
                     result = await _context.Set<FailedTaskList>().FromSqlRaw(" exec Pro_Report_TaskKPI_Failed_List @CompanyID, @ReportType,@RangeMin,@RangeMax,@StartDate, @EndDate, @RecordStart, @RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
                     pCompanyID, pReportType, pRangeMin, pRangeMax, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
                         .ToListAsync();
                     result.Select(c => {
-                                c.TaskOwner = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                                c.TaskCompletedBy = new UserFullName { Firstname = c.CompleteByFirstName, Lastname = c.CompleteByLastName };
-                                return c;
-                            })
+                        c.TaskOwner = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.TaskCompletedBy = new UserFullName { Firstname = c.CompleteByFirstName, Lastname = c.CompleteByLastName };
+                        return c;
+                    })
+                    .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+                } else {
+                    result = await _context.Set<FailedTaskList>().FromSqlRaw(" exec Pro_Report_TaskKPI_Failed_List @CompanyID, @ReportType,@RangeMin,@RangeMax,@StartDate, @EndDate, @RecordStart, @RecordLength,@SearchString,@OrderBy,@OrderDir,@UniqueKey",
+                    pCompanyID, pReportType, pRangeMin, pRangeMax, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                        .ToListAsync();
+                    result.Select(c => {
+                        c.TaskOwner = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        c.TaskCompletedBy = new UserFullName { Firstname = c.CompleteByFirstName, Lastname = c.CompleteByLastName };
+                        return c;
+                    })
                             .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
-                    }
+                }
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<FailedAttempts>> GetFailedAttempts(int MessageListID, string CommsMethod)
-        {
-            try
-            {
+        public async Task<List<FailedAttempts>> GetFailedAttempts(int MessageListID, string CommsMethod) {
+            try {
 
-                
-                    var pMessageListID = new SqlParameter("@MessageListID", MessageListID);
-                    var pCommsMethod = new SqlParameter("@CommsMethod", CommsMethod);
 
-                    var result =await _context.Set<FailedAttempts>().FromSqlRaw("exec Pro_Report_Failed_Attempts @MessageListID, @CommsMethod",
-                    pMessageListID, pCommsMethod).ToListAsync();
+                var pMessageListID = new SqlParameter("@MessageListID", MessageListID);
+                var pCommsMethod = new SqlParameter("@CommsMethod", CommsMethod);
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                var result = await _context.Set<FailedAttempts>().FromSqlRaw("exec Pro_Report_Failed_Attempts @MessageListID, @CommsMethod",
+                pMessageListID, pCommsMethod).ToListAsync();
+
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<string> DownloadDeliveryReport(int CompanyID, int MessageID, int UserID)
-        {
-            try
-            {
+        public async Task<string> DownloadDeliveryReport(int CompanyID, int MessageID, int UserID) {
+            try {
 
-                string FileName =  "Delivery_Report-" + MessageID + ".csv";
+                string FileName = "Delivery_Report-" + MessageID + ".csv";
 
                 string ResultFilePath = Getconfig("ImportResultPath");
                 string ExportPath = ResultFilePath + CompanyID + "\\DataExport\\";
                 string FilePath = ExportPath + FileName;
 
-                if (!Directory.Exists(ExportPath))
-                {
+                if (!Directory.Exists(ExportPath)) {
                     Directory.CreateDirectory(ExportPath);
-                   await DeleteOldFiles(ExportPath);
+                    await DeleteOldFiles(ExportPath);
                 }
 
-                if (File.Exists(FilePath))
-                {
+                if (File.Exists(FilePath)) {
                     File.Delete(FilePath);
                 }
 
@@ -1332,16 +1200,14 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 var ExportData = await GetMessageDeliveryDetails(CompanyID, MessageID, UserID);
 
-                using (StreamWriter SW = new StreamWriter(FilePath, false))
-                {
+                using (StreamWriter SW = new StreamWriter(FilePath, false)) {
 
                     headerRow = string.Format("\"{0}\",\"{1}\",\"{2}\",\"{3}\",\"{4}\",\"{5}\",\"{6}\",\"{7}\",\"{8}\"",
                    "Recipient", "Address/Destination", "Country Code", "Channel", "Status", "Attempt", "Sent Date", "Error Code", "Error Message");
 
                     SW.WriteLine(headerRow);
 
-                    foreach (var row in ExportData)
-                    {
+                    foreach (var row in ExportData) {
 
                         string rowdata = string.Format("\"{0}\",\"{1}\",\"{2}\",\"{3}\",\"{4}\",\"{5}\",\"{6}\",\"{7}\",\"{8}\"",
                         row.Recipient, row.DeviceAddress, row.ISDCode, row.MethodName, row.Status, row.Attempts, row.MessageStartTime, row.ErrorCode, row.ErrorMessage);
@@ -1350,242 +1216,200 @@ namespace CrisesControl.Infrastructure.Repositories
                     }
                 }
                 return FileName;
-            }
-            catch (Exception)
-            {
+            } catch (Exception) {
 
                 throw;
             }
         }
-        public async Task<List<DeliveryDetails>> GetMessageDeliveryDetails(int CompanyID, int MessageID, int UserID)
-        {
-            try
-            {
+        public async Task<List<DeliveryDetails>> GetMessageDeliveryDetails(int CompanyID, int MessageID, int UserID) {
+            try {
 
-              
-                    var pMessageID = new SqlParameter("@MessageID", MessageID);
-                    var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                    var pUserID = new SqlParameter("@UserID", UserID);
+
+                var pMessageID = new SqlParameter("@MessageID", MessageID);
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pUserID = new SqlParameter("@UserID", UserID);
 
                 var result = await _context.Set<DeliveryDetails>().FromSqlRaw("exec Pro_Report_Customer_Delivery_Details @CompanyID, @MessageID, @UserID", pCompanyID, pMessageID, pUserID)
                     .ToListAsync();
                 result.Select(c => {
-                            if (c.MethodName.ToUpper() == "EMAIL")
-                            {
-                                c.DeviceAddress = c.Recipient;
-                            }
-                            return c;
-                        }).ToList();
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                    if (c.MethodName.ToUpper() == "EMAIL") {
+                        c.DeviceAddress = c.Recipient;
+                    }
+                    return c;
+                }).ToList();
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public string Getconfig(string key, string DefaultVal = "")
-        {
-            try
-            {
+        public string Getconfig(string key, string DefaultVal = "") {
+            try {
                 string value = System.Configuration.ConfigurationManager.AppSettings[key];
-                if (value != null)
-                {
+                if (value != null) {
                     return value;
-                }
-                else
-                {
+                } else {
                     return DefaultVal;
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
-               
+
             }
         }
-        private async Task DeleteOldFiles(string dirName)
-        {
+        private async Task DeleteOldFiles(string dirName) {
             string[] files = Directory.GetFiles(@dirName);
 
-            foreach (string file in files)
-            {
+            foreach (string file in files) {
                 FileInfo fi = new FileInfo(file);
                 if (fi.CreationTime < DateTime.Now.AddDays(-1))
                     fi.Delete();
             }
         }
         public async Task<List<DeliveryOutput>> GetUndeliveredMessage(int MessageID, string CommsMethod, string CountryCode, string ReportType, int RecordStart, int RecordLength,
-            string SearchString, string OrderBy, string OrderDir, string CompanyKey)
-        {
-            try
-            {
+            string SearchString, string OrderBy, string OrderDir, string CompanyKey) {
+            try {
 
-               
-                    var pMessageID = new SqlParameter("@MessageID", MessageID);
-                    var pCommsMethod = new SqlParameter("@CommsMethod", CommsMethod);
-                    var pCountryCode = new SqlParameter("@CountryCode", CountryCode);
-                    var pReportType = new SqlParameter("@ReportType", ReportType);
-                    var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
-                    var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
-                    var pSearchString = new SqlParameter("@SearchString", SearchString);
-                    var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
-                    var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
-                    var pCompanyKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                    var result = await _context.Set<DeliveryOutput>().FromSqlRaw("exec Pro_Report_Undlivered_Message @MessageID, @CommsMethod, @CountryCode, @ReportType, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
-                    pMessageID, pCommsMethod, pCountryCode, pReportType, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey).ToListAsync();
+                var pMessageID = new SqlParameter("@MessageID", MessageID);
+                var pCommsMethod = new SqlParameter("@CommsMethod", CommsMethod);
+                var pCountryCode = new SqlParameter("@CountryCode", CountryCode);
+                var pReportType = new SqlParameter("@ReportType", ReportType);
+                var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+                var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+                var pSearchString = new SqlParameter("@SearchString", SearchString);
+                var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+                var pCompanyKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                var result = await _context.Set<DeliveryOutput>().FromSqlRaw("exec Pro_Report_Undlivered_Message @MessageID, @CommsMethod, @CountryCode, @ReportType, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
+                pMessageID, pCommsMethod, pCountryCode, pReportType, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey).ToListAsync();
+
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<DeliveryOutput>> NoAppUser(int CompanyID, int MessageID, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir, string CompanyKey)
-        {
-            try
-            {
+        public async Task<List<DeliveryOutput>> NoAppUser(int CompanyID, int MessageID, int RecordStart, int RecordLength, string SearchString, string OrderBy, string OrderDir, string CompanyKey) {
+            try {
 
-               
-                    var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                    var pMessageID = new SqlParameter("@MessageID", MessageID);
-                    var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
-                    var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
-                    var pSearchString = new SqlParameter("@SearchString", SearchString.Trim());
-                    var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
-                    var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
-                    var pCompanyKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                    var result = await _context.Set<DeliveryOutput>().FromSqlRaw("exec Users_Without_App @CompanyID, @MessageID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
-                    pCompanyID, pMessageID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey).ToListAsync();
+                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pMessageID = new SqlParameter("@MessageID", MessageID);
+                var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+                var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+                var pSearchString = new SqlParameter("@SearchString", SearchString.Trim());
+                var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+                var pCompanyKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                    return result;
-               
-            }
-            catch (Exception ex)
-            {
+                var result = await _context.Set<DeliveryOutput>().FromSqlRaw("exec Users_Without_App @CompanyID, @MessageID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir,@UniqueKey",
+                pCompanyID, pMessageID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pCompanyKey).ToListAsync();
+
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<UserItems>> OffDutyReport(int CompanyId, int UserID)
-        {
-           
-                try
-                {
-                    
-                        var pCompanyId = new SqlParameter("@CompanyId", CompanyId);
-                        var pUserID = new SqlParameter("@UserId", UserID);
-                        var result =await _context.Set<UserItems>().FromSqlRaw("exec Pro_Report_Off_Duty @CompanyId, @UserId", pCompanyId, pUserID).ToListAsync();
+        public async Task<List<UserItems>> OffDutyReport(int CompanyId, int UserID) {
 
-                        return result;
-                    
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
-           
+            try {
+
+                var pCompanyId = new SqlParameter("@CompanyId", CompanyId);
+                var pUserID = new SqlParameter("@UserId", UserID);
+                var result = await _context.Set<UserItems>().FromSqlRaw("exec Pro_Report_Off_Duty @CompanyId, @UserId", pCompanyId, pUserID).ToListAsync();
+
+                return result;
+
+            } catch (Exception ex) {
+                throw ex;
+            }
+
         }
-        public async Task<string> ExportAcknowledgement(int MessageID, int CompanyID, int UserID, string CompanyKey)
-        {
-            try
-            {
+        public async Task<string> ExportAcknowledgement(int MessageID, int CompanyID, int UserID, string CompanyKey) {
+            try {
                 string FileName = "Ack_Report_" + MessageID + ".csv";
 
                 string ResultFilePath = Getconfig("ImportResultPath");
                 string ExportPath = ResultFilePath + CompanyID + "\\DataExport\\";
                 string FilePath = ExportPath + FileName;
 
-                if (!Directory.Exists(ExportPath))
-                {
+                if (!Directory.Exists(ExportPath)) {
                     Directory.CreateDirectory(ExportPath);
                     await DeleteOldFiles(ExportPath);
                 }
 
-                if (File.Exists(FilePath))
-                {
+                if (File.Exists(FilePath)) {
                     File.Delete(FilePath);
                 }
 
                 string headerRow = string.Empty;
 
-               
 
-                    var pMessageId = new SqlParameter("@MessageID", MessageID);
-                    var pMessageAckStatus = new SqlParameter("@MessageAckStatus", 2);
-                    var pMessageSentStatus = new SqlParameter("@MessageSentStatus", 1);
-                    var pUserID = new SqlParameter("@UserID", UserID);
-                    var pSource = new SqlParameter("@Source", "WEB");
-                    var pRecordStart = new SqlParameter("@RecordStart", "0");
-                    var pRecordLength = new SqlParameter("@RecordLength", int.MaxValue);
-                    var pSearchString = new SqlParameter("@SearchString", "");
-                    var pOrderBy = new SqlParameter("@OrderBy", "ML.DateAcknowledge");
-                    var pOrderDir = new SqlParameter("@OrderDir", "desc");
-                    var pFilters = new SqlParameter("@Filters", ",,");
-                    var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                    var ack_list = await _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_Message_Acknowledgements @MessageID, @MessageAckStatus, @MessageSentStatus, @UserID,@Source, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @Filters, @UniqueKey",
-                       pMessageId, pMessageAckStatus, pMessageSentStatus, pUserID, pSource, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pFilters, pUniqueKey).ToListAsync();
+                var pMessageId = new SqlParameter("@MessageID", MessageID);
+                var pMessageAckStatus = new SqlParameter("@MessageAckStatus", 2);
+                var pMessageSentStatus = new SqlParameter("@MessageSentStatus", 1);
+                var pUserID = new SqlParameter("@UserID", UserID);
+                var pSource = new SqlParameter("@Source", "WEB");
+                var pRecordStart = new SqlParameter("@RecordStart", "0");
+                var pRecordLength = new SqlParameter("@RecordLength", int.MaxValue);
+                var pSearchString = new SqlParameter("@SearchString", "");
+                var pOrderBy = new SqlParameter("@OrderBy", "ML.DateAcknowledge");
+                var pOrderDir = new SqlParameter("@OrderDir", "desc");
+                var pFilters = new SqlParameter("@Filters", ",,");
+                var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
 
-                    using (StreamWriter SW = new StreamWriter(FilePath, false))
-                    {
+                var ack_list = await _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_Message_Acknowledgements @MessageID, @MessageAckStatus, @MessageSentStatus, @UserID,@Source, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @Filters, @UniqueKey",
+                   pMessageId, pMessageAckStatus, pMessageSentStatus, pUserID, pSource, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pFilters, pUniqueKey).ToListAsync();
 
-                        headerRow = string.Format("\"{0}\",\"{1}\",\"{2}\",\"{3}\",\"{4}\",\"{5}\",\"{6}\",\"{7}\"",
-                       "User Name", "Email", "Mobile", "Date Sent", "Ack", "Response", "Response Time", "Ack Method");
+                using (StreamWriter SW = new StreamWriter(FilePath, false)) {
 
-                        SW.WriteLine(headerRow);
+                    headerRow = string.Format("\"{0}\",\"{1}\",\"{2}\",\"{3}\",\"{4}\",\"{5}\",\"{6}\",\"{7}\"",
+                   "User Name", "Email", "Mobile", "Date Sent", "Ack", "Response", "Response Time", "Ack Method");
 
-                        foreach (var row in ack_list)
-                        {
-                            double time_elapsed = (row.MessageAcknowledge.Subtract(row.MessageSent).TotalSeconds);
-                            string time_ack = time_elapsed > 0 ? CrisesControl.SharedKernel.Utils.StringExtensions.SectoTime((int)time_elapsed) : "-";
-                            string acktime = row.MessageAcknowledge.Year > 2000 ? row.MessageAcknowledge.ToString("dd-MMM-yyyy HH:mm:ss") : "-";
-                            string rsplabel = !string.IsNullOrEmpty(row.ResponseLabel) ? row.ResponseLabel : row.MessageAckStatus == 1 ? "Acknowledged" : "-";
-                            string ackmethod = !string.IsNullOrEmpty(row.AckMethod) ? row.AckMethod : "";
+                    SW.WriteLine(headerRow);
 
-                            string rowdata = string.Format("\"{0}\",\"{1}\",\"{2}\",\"{3}\",\"{4}\",\"{5}\",\"{6}\",\"{7}\"",
-                            row.FirstName + " " + row.LastName, row.UserEmail, row.ISDCode + row.MobileNo, row.MessageSent.ToString("dd-MMM-yyyy HH:mm:ss"), acktime, rsplabel, time_ack, ackmethod);
-                            if (!string.IsNullOrEmpty(rowdata))
-                                SW.WriteLine(rowdata);
-                        }
+                    foreach (var row in ack_list) {
+                        double time_elapsed = (row.MessageAcknowledge.Subtract(row.MessageSent).TotalSeconds);
+                        string time_ack = time_elapsed > 0 ? CrisesControl.SharedKernel.Utils.StringExtensions.SectoTime((int)time_elapsed) : "-";
+                        string acktime = row.MessageAcknowledge.Year > 2000 ? row.MessageAcknowledge.ToString("dd-MMM-yyyy HH:mm:ss") : "-";
+                        string rsplabel = !string.IsNullOrEmpty(row.ResponseLabel) ? row.ResponseLabel : row.MessageAckStatus == 1 ? "Acknowledged" : "-";
+                        string ackmethod = !string.IsNullOrEmpty(row.AckMethod) ? row.AckMethod : "";
+
+                        string rowdata = string.Format("\"{0}\",\"{1}\",\"{2}\",\"{3}\",\"{4}\",\"{5}\",\"{6}\",\"{7}\"",
+                        row.FirstName + " " + row.LastName, row.UserEmail, row.ISDCode + row.MobileNo, row.MessageSent.ToString("dd-MMM-yyyy HH:mm:ss"), acktime, rsplabel, time_ack, ackmethod);
+                        if (!string.IsNullOrEmpty(rowdata))
+                            SW.WriteLine(rowdata);
                     }
-                    return FileName;
-               
+                }
+                return FileName;
 
 
-            }
-            catch (Exception ex)
-            {
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<IncidentResponseSummary>> IncidentResponseSummary(int ActiveIncidentID)
-        {
-            try
-            {
+        public async Task<List<IncidentResponseSummary>> IncidentResponseSummary(int ActiveIncidentID) {
+            try {
 
-               
-                    var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
-                    var result = await _context.Set<IncidentResponseSummary>().FromSqlRaw("exec Message_Response_Summary @ActiveIncidentID", pActiveIncidentID).ToListAsync();
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", ActiveIncidentID);
+                var result = await _context.Set<IncidentResponseSummary>().FromSqlRaw("exec Message_Response_Summary @ActiveIncidentID", pActiveIncidentID).ToListAsync();
+
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public DataTable GetReportData(int ActiveIncidentID, out string rFilePath, out string rFileName)
-        {
+        public DataTable GetReportData(int ActiveIncidentID, out string rFilePath, out string rFileName) {
             DataTable dt = new DataTable();
             rFilePath = string.Empty;
             rFileName = string.Empty;
-            try
-            {
+            try {
 
                 string ResultFilePath = Getconfig("ImportResultPath");
                 string ExportPath = ResultFilePath + "DataExport\\";
@@ -1599,29 +1423,24 @@ namespace CrisesControl.Infrastructure.Repositories
                 rFilePath = FilePath;
                 rFileName = FileName;
 
-                if (!Directory.Exists(ExportPath))
-                {
+                if (!Directory.Exists(ExportPath)) {
                     Directory.CreateDirectory(ExportPath);
                     DeleteOldFiles(ExportPath);
                 }
 
-                if (File.Exists(FilePath))
-                {
+                if (File.Exists(FilePath)) {
                     File.Delete(FilePath);
                 }
 
                 string constr = configuration.GetConnectionString("CrisesControlDatabase");
-                using (SqlConnection con = new SqlConnection(constr))
-                {
+                using (SqlConnection con = new SqlConnection(constr)) {
                     ReportSP += " ";
                     ReportSP += "@ActiveIncidentID";
 
-                    using (SqlCommand cmd = new SqlCommand(ReportSP))
-                    {
+                    using (SqlCommand cmd = new SqlCommand(ReportSP)) {
                         cmd.Parameters.AddWithValue("@ActiveIncidentID", ActiveIncidentID);
 
-                        using (SqlDataAdapter sda = new SqlDataAdapter())
-                        {
+                        using (SqlDataAdapter sda = new SqlDataAdapter()) {
                             cmd.Connection = con;
                             con.Open();
                             sda.SelectCommand = cmd;
@@ -1630,29 +1449,21 @@ namespace CrisesControl.Infrastructure.Repositories
                     }
                 }
                 return dt;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
                 return dt;
             }
         }
 
-        public async Task AppInvitation(int CompanyID)
-        {
-            try
-            {
-               //await _queueService.AppInvitationQueue(CompanyID);
-            }
-            catch (Exception ex)
-            {
+        public async Task AppInvitation(int CompanyID) {
+            try {
+                //await _queueService.AppInvitationQueue(CompanyID);
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<bool> connectUNCPath(string UNCPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "")
-        {
-            try
-            {
+        public async Task<bool> connectUNCPath(string UNCPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "") {
+            try {
                 if (!string.IsNullOrEmpty(UNCPath))
                     UNCPath = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UNCPath"]);
                 if (!string.IsNullOrEmpty(UseUNC))
@@ -1662,41 +1473,31 @@ namespace CrisesControl.Infrastructure.Repositories
                 if (!string.IsNullOrEmpty(strUncPassword))
                     strUncPassword = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["UncPassword"]);
 
-                if (UseUNC == "true")
-                {
+                if (UseUNC == "true") {
                     UNCAccessWithCredentials.disconnectRemote(@UNCPath);
-                    if (string.IsNullOrEmpty(UNCAccessWithCredentials.connectToRemote(@UNCPath, strUncUsername, strUncPassword)))
-                    {
+                    if (string.IsNullOrEmpty(UNCAccessWithCredentials.connectToRemote(@UNCPath, strUncUsername, strUncPassword))) {
                         return true;
-                    }
-                    else
-                    {
+                    } else {
                         return false;
                     }
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
                 return false;
             }
             return true;
         }
-        public async Task<string> ToCSVHighPerformance(DataTable dataTable, bool includeHeaderAsFirstRow = true, string separator = ",")
-        {
-        
+        public async Task<string> ToCSVHighPerformance(DataTable dataTable, bool includeHeaderAsFirstRow = true, string separator = ",") {
+
             StringBuilder csvRows = new StringBuilder();
             string row = "";
             int columns;
-            try
-            {
+            try {
                 //dataTable.Load(dataReader);
                 columns = dataTable.Columns.Count;
                 //Create Header
-                if (includeHeaderAsFirstRow)
-                {
-                    for (int index = 0; index < columns; index++)
-                    {
+                if (includeHeaderAsFirstRow) {
+                    for (int index = 0; index < columns; index++) {
                         row += (dataTable.Columns[index]);
                         if (index < columns - 1)
                             row += (separator);
@@ -1706,17 +1507,14 @@ namespace CrisesControl.Infrastructure.Repositories
                 csvRows.Append(row);
 
                 //Create Rows
-                for (int rowIndex = 0; rowIndex < dataTable.Rows.Count; rowIndex++)
-                {
+                for (int rowIndex = 0; rowIndex < dataTable.Rows.Count; rowIndex++) {
                     row = "";
                     //Row
-                    for (int index = 0; index < columns; index++)
-                    {
+                    for (int index = 0; index < columns; index++) {
                         string value = dataTable.Rows[rowIndex][index].ToString();
 
                         //If type of field is string
-                        if (dataTable.Rows[rowIndex][index] is string)
-                        {
+                        if (dataTable.Rows[rowIndex][index] is string) {
                             //If double quotes are used in value, ensure each are replaced by double quotes.
                             if (value.IndexOf("\"") >= 0)
                                 value = value.Replace("\"", "\"\"");
@@ -1726,12 +1524,10 @@ namespace CrisesControl.Infrastructure.Repositories
                                 value = "\"" + value + "\"";
 
                             //If string contain new line character
-                            while (value.Contains("\r"))
-                            {
+                            while (value.Contains("\r")) {
                                 value = value.Replace("\r", "");
                             }
-                            while (value.Contains("\n"))
-                            {
+                            while (value.Contains("\n")) {
                                 value = value.Replace("\n", "");
                             }
                         }
@@ -1743,18 +1539,14 @@ namespace CrisesControl.Infrastructure.Repositories
                     row += Environment.NewLine;
                     csvRows.Append(row);
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
             dataTable.Dispose();
             return csvRows.ToString();
         }
-        public async Task<DataTablePaging> GetMessageAnslysisResponse(int companyId, int MessageId, string MessageType,int DrillOpt, int start, int length, string search, string orderBy, string orderDir, string CompanyKey, int draw)
-        {
-            try
-            {
+        public async Task<DataTablePaging> GetMessageAnslysisResponse(int companyId, int MessageId, string MessageType, int DrillOpt, int start, int length, string search, string orderBy, string orderDir, string CompanyKey, int draw) {
+            try {
 
                 var RecordStart = start == 0 ? 0 : start;
                 var RecordLength = length == 0 ? int.MaxValue : length;
@@ -1762,14 +1554,14 @@ namespace CrisesControl.Infrastructure.Repositories
                 string OrderBy = orderBy != null ? orderBy.FirstOrDefault().ToString() : "DateSent";
                 string OrderDir = orderDir != null ? orderDir.FirstOrDefault().ToString() : "desc";
 
-                var returnData = await GetMessageAnalysis(companyId,MessageId, MessageType, DrillOpt, RecordStart, RecordLength, SearchString, OrderBy, OrderDir,CompanyKey);
+                var returnData = await GetMessageAnalysis(companyId, MessageId, MessageType, DrillOpt, RecordStart, RecordLength, SearchString, OrderBy, OrderDir, CompanyKey);
 
                 int totalRecord = 0;
 
                 if (returnData != null)
                     totalRecord = returnData.Count;
 
-                List<PingReportGrid> ttodata = await GetMessageAnalysis(companyId,MessageId, MessageType, DrillOpt, 0, int.MaxValue, "", "MessageListId", OrderDir, CompanyKey);
+                List<PingReportGrid> ttodata = await GetMessageAnalysis(companyId, MessageId, MessageType, DrillOpt, 0, int.MaxValue, "", "MessageListId", OrderDir, CompanyKey);
 
                 if (ttodata != null)
                     totalRecord = ttodata.Count;
@@ -1781,139 +1573,112 @@ namespace CrisesControl.Infrastructure.Repositories
                 rtn.RecordsFiltered = returnData.Count();
                 rtn.Data = returnData;
 
-               
-                    return rtn;
-                
-             
-            }
-            catch (Exception ex)
-            {
+
+                return rtn;
+
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
         public async Task<List<PingReportGrid>> GetMessageAnalysis(int _CompanyID, int MessageId, string MessageType, int DrillOpt, int RecordStart, int RecordLength, string SearchString,
-            string OrderBy, string OrderDir, string CompanyKey)
-        {
-            try
-            {
-
-               
-                    var pMessageId = new SqlParameter("@MessageID", MessageId);
-                    var pCompanyID = new SqlParameter("@CompanyID", _CompanyID);
-                    var pMessageType = new SqlParameter("@MessageType", MessageType);
-                    var pDrillOption = new SqlParameter("@DrillOption", DrillOpt);
-                    var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
-                    var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
-                    var pSearchString = new SqlParameter("@SearchString", SearchString);
-                    var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
-                    var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
-                    var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
-
-                    var result = new List<PingReportGrid>();
-                    var propertyInfo = typeof(PingReportGrid).GetProperty(OrderBy);
-
-                    if (OrderDir == "desc")
-                    {
-                        result = await _context.Set<PingReportGrid>().FromSqlRaw(" exec Pro_Report_Ping_Analysis_Response @MessageID, @CompanyID, @MessageType, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
-                            pMessageId, pCompanyID, pMessageType, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
-                            .ToListAsync();
-                            result.Select(c => {
-                                c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                                return c;
-                            })
-                            .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
-                    }
-                    else
-                    {
-                        result = await _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Ping_Analysis_Response @MessageID, @CompanyID, @MessageType, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
-                            pMessageId, pCompanyID, pMessageType, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
-                            .ToListAsync();
-                            result.Select(c => {
-                                c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                                return c;
-                            })
-                            .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
-                    }
+            string OrderBy, string OrderDir, string CompanyKey) {
+            try {
 
 
-                    return result;
-              
-            }
-            catch (Exception ex)
-            {
+                var pMessageId = new SqlParameter("@MessageID", MessageId);
+                var pCompanyID = new SqlParameter("@CompanyID", _CompanyID);
+                var pMessageType = new SqlParameter("@MessageType", MessageType);
+                var pDrillOption = new SqlParameter("@DrillOption", DrillOpt);
+                var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
+                var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
+                var pSearchString = new SqlParameter("@SearchString", SearchString);
+                var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
+                var pUniqueKey = new SqlParameter("@UniqueKey", CompanyKey);
+
+                var result = new List<PingReportGrid>();
+                var propertyInfo = typeof(PingReportGrid).GetProperty(OrderBy);
+
+                if (OrderDir == "desc") {
+                    result = await _context.Set<PingReportGrid>().FromSqlRaw(" exec Pro_Report_Ping_Analysis_Response @MessageID, @CompanyID, @MessageType, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                        pMessageId, pCompanyID, pMessageType, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                        .ToListAsync();
+                    result.Select(c => {
+                        c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        return c;
+                    })
+                    .OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
+                } else {
+                    result = await _context.Set<PingReportGrid>().FromSqlRaw("exec Pro_Report_Ping_Analysis_Response @MessageID, @CompanyID, @MessageType, @DrillOption, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                        pMessageId, pCompanyID, pMessageType, pDrillOption, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey)
+                        .ToListAsync();
+                    result.Select(c => {
+                        c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                        return c;
+                    })
+                    .OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
+                }
+
+
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
                 return null;
             }
         }
 
-        public async Task<CompanyCountReturn> GetCompanyCommunicationReport(int companyId)
-        {
+        public async Task<CompanyCountReturn> GetCompanyCommunicationReport(int companyId) {
             var recCompanyCountReturn = new CompanyCountReturn();
-            try
-            {
+            try {
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
-                recCompanyCountReturn =await _context.Set<CompanyCountReturn>().FromSqlRaw("EXEC Pro_Report_GetCompanyCommunicationReport @CompanyID", pCompanyID).FirstOrDefaultAsync();
-                if (recCompanyCountReturn != null)
-                {
+                recCompanyCountReturn = await _context.Set<CompanyCountReturn>().FromSqlRaw("EXEC Pro_Report_GetCompanyCommunicationReport @CompanyID", pCompanyID).FirstOrDefaultAsync();
+                if (recCompanyCountReturn != null) {
                     var companyID2 = new SqlParameter("@CompanyID", companyId);
                     recCompanyCountReturn.CompanyUserCountReturn = _context.Set<CompanyUserCountReturn>().FromSqlRaw("EXEC Pro_Report_GetCompanyUserCommunicationReport @CompanyID", companyID2).ToList();
-                }
-                else
-                {
+                } else {
                     recCompanyCountReturn.ErrorId = 110;
                     recCompanyCountReturn.Message = "No record found.";
                 }
                 return recCompanyCountReturn;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
 
         }
 
-        public async Task<List<TrackingExport>> GetUserTracking(string source, int userId, int activeIncidentId)
-        {
-            try
-            {
+        public async Task<List<TrackingExport>> GetUserTracking(string source, int userId, int activeIncidentId) {
+            try {
                 var pSource = new SqlParameter("@Source", source);
                 var pUserID = new SqlParameter("@UserID", userId);
                 var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", activeIncidentId);
 
                 var tckusr = await _context.Set<TrackingExport>().FromSqlRaw("EXEC Pro_Get_User_Tracking @Source, @UserID,  @ActiveIncidentID",
                     pSource, pUserID, pActiveIncidentID).ToListAsync();
-                var res = tckusr.Select(c =>
-               {
-                   c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                   return c;
-               }).ToList();
+                var res = tckusr.Select(c => {
+                    c.UserName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                    return c;
+                }).ToList();
 
                 return res;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
 
-        public async Task<TaskOverview> CMD_TaskOverView(int activeIncidentId)
-        {
-            try
-            {
+        public async Task<TaskOverview> CMD_TaskOverView(int activeIncidentId) {
+            try {
                 var pActiveIncidentID = new SqlParameter("@ActiveIncidentID", activeIncidentId);
                 var result = await _context.Set<TaskOverview>().FromSqlRaw("EXEC Pro_ICC_Task_Overview @ActiveIncidentID", pActiveIncidentID).FirstOrDefaultAsync();
                 return result!;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
 
-        public async Task<DataTablePaging> GetUserInvitationReport(UserInvitationModel userInvitation)
-        {
-            try
-            {
+        public async Task<DataTablePaging> GetUserInvitationReport(UserInvitationModel userInvitation) {
+            try {
                 var tablePaging = new DataTablePaging();
 
                 DateTime stDate = DateTime.Now;
@@ -1924,8 +1689,8 @@ namespace CrisesControl.Infrastructure.Repositories
                 var RecordStart = userInvitation.Start == 0 ? 0 : userInvitation.Start;
                 var RecordLength = userInvitation.Length == 0 ? int.MaxValue : userInvitation.Length;
                 var SearchString = (userInvitation.Search != null) ? userInvitation.Search.Value : "";
-                string OrderBy = userInvitation.Order != null ? userInvitation.Order.FirstOrDefault().Column : "DateSent";
-                string OrderDir = userInvitation.Order != null ? userInvitation.Order.FirstOrDefault().Dir : "desc";
+                string OrderBy = userInvitation.Order != null ? userInvitation.Order : "DateSent";
+                string OrderDir = userInvitation.Dir != null ? userInvitation.Dir : "desc";
 
                 var returnData = await GetUserInvitationData(userInvitation.CompanyId, userInvitation.CurrentUserId, stDate, enDate, RecordStart, RecordLength, SearchString, OrderBy, OrderDir, userInvitation.CompanyKey);
 
@@ -1946,63 +1711,51 @@ namespace CrisesControl.Infrastructure.Repositories
                 rtn.RecordsFiltered = returnData.Count;
                 rtn.Data = returnData;
 
-                if (rtn == null)
-                {
+                if (rtn == null) {
                     tablePaging.ErrorId = 110;
                     tablePaging.Message = "No record found.";
                 }
                 return tablePaging;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 return null;
             }
         }
 
-        public async Task<List<UserInvitationResult>> GetUserInvitationData(int companyId, int userId, DateTime startDate, DateTime endDate, int recordStart, int recordLength, string searchString, string orderBy, string orderDir, string companyKey)
-        {
-            try
-            {
-                    var pStartDate = new SqlParameter("@StartDate", startDate);
-                    var pEndDate = new SqlParameter("@EndDate", endDate);
-                    var pCompanyId = new SqlParameter("@CompanyId", companyId);
-                    var pUserId = new SqlParameter("@UserId", userId);
-                    var pRecordStart = new SqlParameter("@RecordStart", recordStart);
-                    var pRecordLength = new SqlParameter("@RecordLength", recordLength);
-                    var pSearchString = new SqlParameter("@SearchString", searchString);
-                    var pOrderBy = new SqlParameter("@OrderBy", orderBy);
-                    var pOrderDir = new SqlParameter("@OrderDir", orderDir);
-                    var pUniqueKey = new SqlParameter("@UniqueKey", companyKey);
+        public async Task<List<UserInvitationResult>> GetUserInvitationData(int companyId, int userId, DateTime startDate, DateTime endDate, int recordStart, int recordLength, string searchString, string orderBy, string orderDir, string companyKey) {
+            try {
+                var pStartDate = new SqlParameter("@StartDate", startDate);
+                var pEndDate = new SqlParameter("@EndDate", endDate);
+                var pCompanyId = new SqlParameter("@CompanyId", companyId);
+                var pUserId = new SqlParameter("@UserId", userId);
+                var pRecordStart = new SqlParameter("@RecordStart", recordStart);
+                var pRecordLength = new SqlParameter("@RecordLength", recordLength);
+                var pSearchString = new SqlParameter("@SearchString", searchString);
+                var pOrderBy = new SqlParameter("@OrderBy", orderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", orderDir);
+                var pUniqueKey = new SqlParameter("@UniqueKey", companyKey);
 
-                    var result = new List<UserInvitationResult>();
-                    var propertyInfo = typeof(UserInvitationResult).GetProperty(orderBy);
+                var result = new List<UserInvitationResult>();
+                var propertyInfo = typeof(UserInvitationResult).GetProperty(orderBy);
 
-                    if (orderDir == "desc")
-                    {
-                        result = await _context.Set<UserInvitationResult>().FromSqlRaw("EXEC Pro_Get_User_Invitation @CompanyID, @UserId,@StartDate,@EndDate, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
-                            pCompanyId, pUserId, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey).OrderByDescending(o => propertyInfo.GetValue(o, null)).ToListAsync();
-                    }
-                    else
-                    {
-                        result = await _context.Set<UserInvitationResult>().FromSqlRaw("EXEC Pro_Get_User_Invitation @CompanyID, @UserId,@StartDate,@EndDate, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
-                            pCompanyId, pUserId, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey).OrderBy(o => propertyInfo.GetValue(o, null)).ToListAsync();
-                    }
+                if (orderDir == "desc") {
+                    result = await _context.Set<UserInvitationResult>().FromSqlRaw("EXEC Pro_Get_User_Invitation @CompanyID, @UserId,@StartDate,@EndDate, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                        pCompanyId, pUserId, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey).OrderByDescending(o => propertyInfo.GetValue(o, null)).ToListAsync();
+                } else {
+                    result = await _context.Set<UserInvitationResult>().FromSqlRaw("EXEC Pro_Get_User_Invitation @CompanyID, @UserId,@StartDate,@EndDate, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
+                        pCompanyId, pUserId, pStartDate, pEndDate, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pUniqueKey).OrderBy(o => propertyInfo.GetValue(o, null)).ToListAsync();
+                }
 
-                    return result;
-            }
-            catch (Exception ex)
-            {
+                return result;
+            } catch (Exception ex) {
                 return null;
             }
         }
 
-        public DataTable GetUserInvitationReportData(UserInvitationModel inputModel, out string rFilePath, out string rFileName)
-        {
+        public DataTable GetUserInvitationReportData(UserInvitationModel inputModel, out string rFilePath, out string rFileName) {
             DataTable dt = new DataTable();
             rFilePath = string.Empty;
             rFileName = string.Empty;
-            try
-            {
+            try {
 
                 string ResultFilePath = _DBC.Getconfig("ImportResultPath");
                 string ExportPath = ResultFilePath + inputModel.CompanyId.ToString() + "\\DataExport\\";
@@ -2016,14 +1769,12 @@ namespace CrisesControl.Infrastructure.Repositories
                 rFilePath = FilePath;
                 rFileName = FileName;
 
-                if (!Directory.Exists(ExportPath))
-                {
+                if (!Directory.Exists(ExportPath)) {
                     Directory.CreateDirectory(ExportPath);
                     _DBC.DeleteOldFiles(ExportPath);
                 }
 
-                if (File.Exists(FilePath))
-                {
+                if (File.Exists(FilePath)) {
                     File.Delete(FilePath);
                 }
 
@@ -2035,17 +1786,16 @@ namespace CrisesControl.Infrastructure.Repositories
                 var RecordStart = inputModel.Start == 0 ? 0 : inputModel.Start;
                 var RecordLength = inputModel.Length == 0 ? int.MaxValue : inputModel.Length;
                 var SearchString = (inputModel.Search != null) ? inputModel.Search.Value : "";
-                string OrderBy = inputModel.Order != null ? inputModel.Order.FirstOrDefault().Column : "DateSent";
-                string OrderDir = inputModel.Order != null ? inputModel.Order.FirstOrDefault().Dir : "desc";
+                string OrderBy = inputModel.Order != null ? inputModel.Order : "DateSent";
+                string OrderDir = inputModel.Dir != null ? inputModel.Dir : "desc";
+
 
                 string constr = _context.Database.GetConnectionString()!;
-                using (SqlConnection con = new SqlConnection(constr))
-                {
+                using (SqlConnection con = new SqlConnection(constr)) {
                     ReportSP += " ";
                     ReportSP += "@CompanyID, @UserId, @StartDate,@EndDate, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey";
 
-                    using (SqlCommand cmd = new SqlCommand(ReportSP))
-                    {
+                    using (SqlCommand cmd = new SqlCommand(ReportSP)) {
                         cmd.Parameters.AddWithValue("@CompanyID", inputModel.CompanyId);
                         cmd.Parameters.AddWithValue("@UserId", inputModel.CurrentUserId);
                         cmd.Parameters.AddWithValue("@StartDate", stDate);
@@ -2057,8 +1807,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         cmd.Parameters.AddWithValue("@OrderDir", OrderDir);
                         cmd.Parameters.AddWithValue("@UniqueKey", inputModel.CompanyId);
 
-                        using (SqlDataAdapter sda = new SqlDataAdapter())
-                        {
+                        using (SqlDataAdapter sda = new SqlDataAdapter()) {
                             cmd.Connection = con;
                             con.Open();
                             sda.SelectCommand = cmd;
@@ -2067,9 +1816,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     }
                 }
                 return dt;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 return dt;
             }
         }

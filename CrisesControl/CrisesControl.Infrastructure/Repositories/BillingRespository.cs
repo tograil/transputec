@@ -474,7 +474,6 @@ namespace CrisesControl.Infrastructure.Repositories
                             cp.OnTrial = false;
                             cpp.ContractStartDate = order.ContractStartDate;
                             cpp.ContractAnniversary = order.ContractStartDate.AddMonths(order.ContractDuration ?? 0).AddDays(-1);
-
                             await _context.SaveChangesAsync();
                         }
 

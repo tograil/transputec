@@ -24,7 +24,7 @@ using CrisesControl.Api.Application.Commands.Incidents.GetIncidentMessage;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentRecipientEntity;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentSOSRequest;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTaskNotes;
-using CrisesControl.Api.Application.Commands.Incidents.GetIndidentTimeline;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTimeline;
 using CrisesControl.Api.Application.Commands.Incidents.GetSOSIncident;
 using CrisesControl.Api.Application.Commands.Incidents.IncidentStatusUpdate;
 using CrisesControl.Api.Application.Commands.Incidents.SaveIncidentJob;
@@ -98,20 +98,18 @@ public class IncidentQuery : IIncidentQuery
         return _incidentRepository.GetIncidentById(companyId, _currentUser.UserId, incidentId, userStatus);
     }
 
-    public DataTablePaging GetAllActiveCompanyIncident(string? status, DataTableAjaxPostModel pagedRequest)
+    public DataTablePaging GetAllActiveCompanyIncident(string? status)
     {
-        var RecordStart = pagedRequest.Start == 0 ? 0 : pagedRequest.Start;
-        var RecordLength = pagedRequest.Length == 0 ? int.MaxValue : pagedRequest.Length;
-        var SearchString = (pagedRequest.Search != null) ? pagedRequest.Search.Value : "";
-        string OrderBy = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().Column : "Name";
-        string OrderDir = pagedRequest.Order != null ? pagedRequest.Order.FirstOrDefault().Dir : "asc";
+        string OrderBy = _paging.Order != null ? _paging.Order : "Name";
+        string OrderDir = _paging.Dir != null ? _paging.Dir : "asc";
+        
         string Status = status != null ? status : "1,2,3,4";
 
         int totalRecord = 0;
         DataTablePaging rtn = new DataTablePaging();
-        rtn.Draw = pagedRequest.Draw;
+        rtn.Draw = _paging.Draw;
 
-        var ActIncidentDtl = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, RecordStart, RecordLength, SearchString, OrderBy, OrderDir);
+        var ActIncidentDtl = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, _paging.Start, _paging.Length, _paging.Search, OrderBy, OrderDir);
 
         if (ActIncidentDtl != null)
         {
@@ -272,13 +270,13 @@ public class IncidentQuery : IIncidentQuery
         }
     }
 
-    public async Task<GetIndidentTimelineResponse> GetIndidentTimeline(GetIndidentTimelineRequest request)
+    public async Task<GetIncidentTimelineResponse> GetIncidentTimeline(GetIncidentTimelineRequest request)
     {
         try
         {
-            var groups = await _incidentRepository.GetIndidentTimeline(request.IncidentActivationId, _currentUser.CompanyId, _currentUser.UserId);
+            var groups = await _incidentRepository.GetIncidentTimeline(request.IncidentActivationId, _currentUser.CompanyId, _currentUser.UserId);
             var result = _mapper.Map<List<IncidentMessagesRtn>>(groups);
-            var response = new GetIndidentTimelineResponse();
+            var response = new GetIncidentTimelineResponse();
             if (result != null)
             {
                 response.Data = result;

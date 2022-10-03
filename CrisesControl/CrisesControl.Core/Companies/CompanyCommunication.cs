@@ -15,12 +15,17 @@ namespace CrisesControl.Core.Companies
         public List<PriorityInterval> Priority { get; set; }
         
         public List<PriorityMethod> PriorityMethod { get; set; }
+        public List<CommsObjects> ObjectInfo { get; set; }
+       
+        [NotMapped]
+        public object BillUsers { get; set; }
+        public string HasLowBalance { get; set; }
+    }
+
+    public class CommsObjects {
         public int MethodId { get; set; }
         public bool ServiceStatus { get; set; }
         public int Status { get; set; }
         public string MethodName { get; set; }
-        [NotMapped]
-        public object BillUsers { get; set; }
-        public string HasLowBalance { get; set; }
     }
 }

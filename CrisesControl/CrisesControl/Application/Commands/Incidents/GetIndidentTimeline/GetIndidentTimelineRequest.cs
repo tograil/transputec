@@ -1,8 +1,8 @@
 ﻿using MediatR;
 
-namespace CrisesControl.Api.Application.Commands.Incidents.GetIndidentTimeline
+namespace CrisesControl.Api.Application.Commands.Incidents.GetIncidentTimeline
 {
-    public class GetIndidentTimelineRequest:IRequest<GetIndidentTimelineResponse>
+    public class GetIncidentTimelineRequest:IRequest<GetIncidentTimelineResponse>
     {
         public int IncidentActivationId { get; set; }
     }

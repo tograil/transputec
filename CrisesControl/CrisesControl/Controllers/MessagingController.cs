@@ -23,6 +23,7 @@ using CrisesControl.Api.Application.Commands.Messaging.SaveMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.SendPublicAlert;
 using CrisesControl.Api.Application.Commands.Messaging.StartConference;
 using CrisesControl.Api.Application.Commands.Messaging.UploadAttachment;
+using CrisesControl.Api.Application.Query;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,9 +34,11 @@ namespace CrisesControl.Api.Controllers {
     [Authorize]
     public class MessagingController : Controller {
         private readonly IMediator _mediator;
+        private readonly IMessageQuery _messageQuery;
 
-        public MessagingController(IMediator mediator) {
+        public MessagingController(IMediator mediator, IMessageQuery messageQuery) {
             _mediator = mediator;
+            _messageQuery = messageQuery;
         }
 
         /// <summary>
@@ -165,10 +168,10 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetReplies/{MessageId}")]
+        [Route("GetReplies/{ParentId:int}")]
         public async Task<IActionResult> GetReplies([FromRoute] GetRepliesRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _messageQuery.GetReplies(request);
 
             return Ok(result);
         }
@@ -232,10 +235,10 @@ namespace CrisesControl.Api.Controllers {
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetPingInfo/{MessageId}")]
+        [Route("GetPingInfo/{MessageId:int}")]
         public async Task<IActionResult> GetPingInfo([FromRoute] GetPingInfoRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _messageQuery.GetPingInfo(request);
             return Ok(result);
         }
         /// <summary>

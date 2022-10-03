@@ -295,20 +295,12 @@ public class CompanyQuery : ICompanyQuery {
     {
         try
         {
-            var comms = await _companyRepository.GetCompanyComms(_currentUser.CompanyId, _currentUser.UserId);
+            var comms = await _companyRepository.GetCompanyComms(request.CompanyId, _currentUser.UserId);
             var result = _mapper.Map<CompanyCommunication>(comms);
             var response = new GetCompanyCommsResponse();
-            if (result != null)
-            {
-                response.Comms = result;
-               
+            response.Data = result;
+            response.ErrorCode = System.Net.HttpStatusCode.OK;
 
-            }
-            else
-            {
-
-                response.Comms = result;
-            }
             return response;
 
         }
@@ -499,7 +491,8 @@ public class CompanyQuery : ICompanyQuery {
         try
         {
             var check = _companyRepository.GetCompanyObject(_currentUser.CompanyId, request.ObjectName);
-            var result = _mapper.Map<CompanyObject>(check);
+            var result = _mapper.Map<List<CompanyObject>>(check);
+
             var response = new GetCompanyObjectResponse();
             if (result!=null)
             {

@@ -5,6 +5,7 @@ using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
+using CrisesControl.Api.Application.Commands.Messaging.GetPingInfo;
 using CrisesControl.Api.Application.Commands.Messaging.GetReplies;
 using CrisesControl.Api.Application.Commands.Messaging.StartConference;
 using CrisesControl.Api.Application.Helpers;
@@ -60,8 +61,7 @@ namespace CrisesControl.Api.Application.Query {
             return result;
         }
 
-        public async Task<GetMessageDetailsResponse> GetMessageDetails(GetMessageDetailsRequest request)
-        {
+        public async Task<GetMessageDetailsResponse> GetMessageDetails(GetMessageDetailsRequest request) {
             var msgresponse = await _messageRepository.GetMessageDetails(request.CloudMsgId, request.MessageId);
             var response = _mapper.Map<IncidentMessageDetails>(msgresponse);
             var result = new GetMessageDetailsResponse();
@@ -70,25 +70,16 @@ namespace CrisesControl.Api.Application.Query {
             return result;
         }
 
-        public async Task<GetRepliesResponse> GetReplies(GetRepliesRequest request)
-        {
-            var replies = await _messageRepository.GetReplies(request.MessageId);
-            var result =  _mapper.Map<List<MessageDetails>>(replies);
-            var response = new GetRepliesResponse();
-            if (result != null) {
-            response.data = result;
-                response.Message = "Data loaded";
-                     }
-            else
-            {
-                response.data = null;
-                response.Message = "No data found";
-            }
-            return response;
+        public async Task<GetRepliesResponse> GetReplies(GetRepliesRequest request) {
+            var replies = await _messageRepository.GetReplies(request.ParentId);
+            var response = _mapper.Map<List<MessageDetails>>(replies);
+            var result = new GetRepliesResponse();
+            result.Data = response;
+            result.ErrorCode = System.Net.HttpStatusCode.OK;
+            return result;
         }
 
-        public async Task<GetMessageGroupListResponse> GetMessageGroupList(GetMessageGroupListRequest request)
-        {
+        public async Task<GetMessageGroupListResponse> GetMessageGroupList(GetMessageGroupListRequest request) {
             var msgresponse = await _messageRepository.GetMessageGroupList(request.MessageID);
             var response = _mapper.Map<List<MessageGroupObject>>(msgresponse);
             var result = new GetMessageGroupListResponse();
@@ -97,21 +88,25 @@ namespace CrisesControl.Api.Application.Query {
             return result;
         }
 
-        public async Task<StartConferenceResponse> StartConference(StartConferenceRequest request)
-        {
+        public async Task<StartConferenceResponse> StartConference(StartConferenceRequest request) {
             var conference = await _messageRepository.StartConference(request.UserList, request.ObjectID, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone); ;
             var result = _mapper.Map<bool>(conference);
             var response = new StartConferenceResponse();
-            if (result != null)
-            {
+            if (result != null) {
                 response.Status = result;
                 response.Message = "Conference service is enabled";
-            }
-            else
-            {
+            } else {
                 response.Status = false;
                 response.Message = "Conference service not enabled";
             }
+            return response;
+        }
+
+        public async Task<GetPingInfoResponse> GetPingInfo(GetPingInfoRequest request) {
+            var result = await _messageRepository.GetPingInfo(request.MessageId, _currentUser.UserId, _currentUser.CompanyId);
+            var response = new GetPingInfoResponse();
+            response.Data = result;
+            response.ErrorCode = System.Net.HttpStatusCode.OK;
             return response;
         }
     }

@@ -23,7 +23,8 @@ public class DataTableAjaxPostModel
     public List<Column>? Columns { get; set; }
     [NotMapped]
     public Search? Search { get; set; }
-    public List<Order>? Order { get; set; }
+    public string Order { get; set; }
+    public string Dir { get; set; }
     public string UniqueKey { get; set; }
     public string Filters { get; set; }
 }

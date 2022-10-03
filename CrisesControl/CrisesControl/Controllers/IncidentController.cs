@@ -27,7 +27,7 @@ using CrisesControl.Api.Application.Commands.Incidents.GetIncidentMessage;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentRecipientEntity;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentSOSRequest;
 using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTaskNotes;
-using CrisesControl.Api.Application.Commands.Incidents.GetIndidentTimeline;
+using CrisesControl.Api.Application.Commands.Incidents.GetIncidentTimeline;
 using CrisesControl.Api.Application.Commands.Incidents.GetSOSIncident;
 using CrisesControl.Api.Application.Commands.Incidents.IncidentStatusUpdate;
 using CrisesControl.Api.Application.Commands.Incidents.InitiateAndLaunchIncident;
@@ -141,9 +141,9 @@ public class IncidentController : Controller
     /// <returns></returns>
     [HttpGet]
     [Route("[action]/{Status}")]
-    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? status, [FromQuery] DataTableAjaxPostModel paging)
+    public IActionResult GetAllActiveCompanyIncident([FromRoute] string? status, CancellationToken cancellationToken)
     {
-        var result = _incidentQuery.GetAllActiveCompanyIncident(status, paging);
+        var result = _incidentQuery.GetAllActiveCompanyIncident(status);
         return Ok(result);
     }
 
@@ -297,7 +297,7 @@ public class IncidentController : Controller
     }
     [HttpGet]
     [Route("[action]/{IncidentActivationId}")]
-    public async Task<IActionResult> GetIndidentTimeline([FromRoute] GetIndidentTimelineRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetIncidentTimeline([FromRoute] GetIncidentTimelineRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(request, cancellationToken);
         return Ok(result);

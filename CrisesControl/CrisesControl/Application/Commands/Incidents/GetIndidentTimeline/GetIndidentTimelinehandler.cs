@@ -1,20 +1,20 @@
 ﻿using CrisesControl.Api.Application.Query;
 using MediatR;
 
-namespace CrisesControl.Api.Application.Commands.Incidents.GetIndidentTimeline
+namespace CrisesControl.Api.Application.Commands.Incidents.GetIncidentTimeline
 {
-    public class GetIndidentTimelinehandler : IRequestHandler<GetIndidentTimelineRequest, GetIndidentTimelineResponse>
+    public class GetIncidentTimelinehandler : IRequestHandler<GetIncidentTimelineRequest, GetIncidentTimelineResponse>
     {
         private readonly IIncidentQuery _incidentQuery;
-        private readonly ILogger<GetIndidentTimelinehandler> _logger;
-        public GetIndidentTimelinehandler(ILogger<GetIndidentTimelinehandler> logger, IIncidentQuery incidentQuery)
+        private readonly ILogger<GetIncidentTimelinehandler> _logger;
+        public GetIncidentTimelinehandler(ILogger<GetIncidentTimelinehandler> logger, IIncidentQuery incidentQuery)
         {
             _logger = logger;
             _incidentQuery = incidentQuery;
         }
-        public async Task<GetIndidentTimelineResponse> Handle(GetIndidentTimelineRequest request, CancellationToken cancellationToken)
+        public async Task<GetIncidentTimelineResponse> Handle(GetIncidentTimelineRequest request, CancellationToken cancellationToken)
         {
-            var result = await _incidentQuery.GetIndidentTimeline(request);
+            var result = await _incidentQuery.GetIncidentTimeline(request);
             return result;
         }
     }
