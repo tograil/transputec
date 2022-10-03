@@ -472,7 +472,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         if (order.ContractType == "NEW" || order.ContractType == "RENEW")
                         {
                             cp.OnTrial = false;
-                            cpp.ContractStartDate = (DateTimeOffset)order.ContractStartDate ;
+                            cpp.ContractStartDate = order.ContractStartDate;
                             cpp.ContractAnniversary = order.ContractStartDate.AddMonths(order.ContractDuration ?? 0).AddDays(-1);
 
                             await _context.SaveChangesAsync();
