@@ -26,45 +26,48 @@ namespace CrisesControl.Infrastructure.Services;
 
 public class MessageService : IMessageService
 {
-    private readonly IMessageRepository _messageRepository;
+    //private readonly IMessageRepository _messageRepository;
     private readonly CrisesControlContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IDBCommonRepository _DBC;
-    //private readonly Messaging _MSG;
-    private readonly ISenderEmailService _SDE;
-    public bool _textUsed = false;
-    public bool _phoneUsed = false;
-    public bool _emailUsed = false;
-    public bool _pushUsed = false;
-    public string _timeZoneId = "GMT Standard Time";
-    public int _cascadePlanID = 0;
-    public string _messageSourceAction = "";
+   // private readonly ISenderEmailService _SDE;
+    bool _textUsed = false;
+    bool _phoneUsed = false;
+    bool _emailUsed = false;
+    bool _pushUsed = false;
+    string _timeZoneId = "GMT Standard Time";
+    int _cascadePlanID = 0;
+    string _messageSourceAction = "";
+    public MessageService(/*IMessageRepository messageRepository,*/ CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC/*, ISenderEmailService SDE*/)
+    {
+      //  _messageRepository = messageRepository;
+        _context = context;
+        _httpContextAccessor = httpContextAccessor;
+        _DBC = DBC;
+        //_SDE = SDE;
+    }
 
-    bool IMessageService.TextUsed
+    public bool TextUsed
     {
         get => _textUsed;
         set => _textUsed = value;
     }
-    bool IMessageService.PhoneUsed {
+    public bool PhoneUsed {
         get => _phoneUsed;
         set => _phoneUsed = value;
     }
-    bool IMessageService.EmailUsed { get => _emailUsed; set => _emailUsed = value; }
-    bool IMessageService.PushUsed { get => _pushUsed; set => _pushUsed = value; }
-
-    string IMessageService.TimeZoneId { get => _timeZoneId; set => _timeZoneId = value; }
-
-    int IMessageService.CascadePlanID { get => _cascadePlanID; set => _cascadePlanID = value; }
-    string IMessageService.MessageSourceAction { get => _messageSourceAction; set => _messageSourceAction =value; }
-
-    public MessageService(IMessageRepository messageRepository, CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, ISenderEmailService SDE)
-    {
-        _messageRepository = messageRepository;
-        _context = context;
-        _httpContextAccessor = httpContextAccessor;
-        _DBC = DBC;
-        _SDE = SDE;
+    public bool EmailUsed
+    { 
+        get => _emailUsed; 
+        set => _emailUsed = value;
     }
+    public bool PushUsed { get => _pushUsed; set => _pushUsed = value; }
+
+    public string TimeZoneId { get => _timeZoneId; set => _timeZoneId = value; }
+
+    public int CascadePlanID { get => _cascadePlanID; set => _cascadePlanID = value; }
+    public string MessageSourceAction { get => _messageSourceAction; set => _messageSourceAction =value; }
+  
 
     //public Task ProcessMessageMethod(int messageId, int[] messageMethod, int incidentActivationId, bool trackUser = false)
     //{
@@ -312,7 +315,7 @@ public class MessageService : IMessageService
                        await _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
                     }
 
-                    FileHandler FH = new FileHandler(_context, _httpContextAccessor);
+                    FileHandler FH = new FileHandler(_context, _httpContextAccessor,_DBC);
                     foreach (MediaAttachment ma in mediaAttachments)
                     {
 
@@ -394,7 +397,7 @@ public class MessageService : IMessageService
                 var asset = await _context.Set<CrisesControl.Core.Assets.Assets>().Where(A => A.AssetId == assetId).FirstOrDefaultAsync();
                 if (asset != null)
                 {
-                    FileHandler FH = new FileHandler(_context, _httpContextAccessor);
+                    FileHandler FH = new FileHandler(_context, _httpContextAccessor,_DBC);
                     string portal = await _DBC.LookupWithKey("PORTAL");
                     string file_url = "uploads/" + companyId + "/assets/" + asset.AssetType.ToLower() + "/" + asset.AssetPath;
                     string DirectoryPath = AttachmentSavePath + companyId.ToString() + "\\2\\";
@@ -1628,7 +1631,7 @@ public class MessageService : IMessageService
 
            await _DBC.connectUNCPath();
 
-            FileHandler FH = new FileHandler(_context, _httpContextAccessor);
+            FileHandler FH = new FileHandler(_context, _httpContextAccessor,_DBC);
 
             if (FH.FileExists(recordingSid + ".mp3", AzureAPIShare, SavePath))
             {
@@ -1680,8 +1683,8 @@ public class MessageService : IMessageService
                                 var result = FH.UploadToAzure(AzureAPIShare, SavePath, recordingSid + ".mp3", filestream).Result;
                                 if (FH.FileExists(recordingSid + ".mp3", AzureAPIShare, SavePath))
                                 {
-                                    CommsHelper CH = new CommsHelper(_context, _httpContextAccessor);
-                                    CH.DeleteRecording(recordingSid);
+                                    
+                                    await _DBC.DeleteRecording(recordingSid);
                                 }
                             }
                             else
@@ -1690,8 +1693,8 @@ public class MessageService : IMessageService
 
                                 if (File.Exists(SavePath + recordingSid + ".mp3"))
                                 {
-                                    CommsHelper CH = new CommsHelper(_context, _httpContextAccessor);
-                                    CH.DeleteRecording(recordingSid);
+                                  
+                                   await _DBC.DeleteRecording(recordingSid);
                                 }
                             }
                         }

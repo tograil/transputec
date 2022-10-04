@@ -18,7 +18,7 @@ namespace CrisesControl.Api.Application.Commands.Import.InsImpDept
         {
             Guard.Against.Null(request, nameof(InsImpDeptRequest));
             var response = new InsImpDeptResponse();
-            response.Result = _importRepository.CreateTempDepartment(request.Data, request.SessionId, request.CompanyId, request.UserId, request.TimeZoneId);
+            response.Result =await _importRepository.CreateTempDepartment(request.Data, request.SessionId, request.CompanyId, request.UserId, request.TimeZoneId);
             return response;
         }
     }

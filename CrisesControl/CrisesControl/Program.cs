@@ -144,7 +144,7 @@ builder.Services.AddScoped<IPaging, Paging>();
 builder.Services.AddControllers(o =>
 {
     o.Filters.Add<PagedGetResourceFilter>();
-    o.Filters.Add<PagedGetResultFilter>();
+    //o.Filters.Add<PagedGetResultFilter>();
     o.Filters.Add<ErrorFilter>();
 });
 

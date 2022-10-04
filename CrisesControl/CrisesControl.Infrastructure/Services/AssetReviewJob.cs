@@ -1,7 +1,7 @@
-﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.Assets;
+﻿using CrisesControl.Core.Assets;
 using CrisesControl.Core.Assets.Respositories;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Core.DBCommon.Repositories;
 using Microsoft.AspNetCore.Http;
 using Quartz;
 using System;
@@ -15,15 +15,18 @@ namespace CrisesControl.Infrastructure.Services
     public class AssetReviewJob : IJob
     {
         private readonly CrisesControlContext _context;
-        private readonly DBCommon DBC;
+        private readonly IDBCommonRepository DBC;
+        private readonly ISenderEmailService _SDE;
         private readonly IAssetRepository _assetRepository;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AssetReviewJob(CrisesControlContext context, IAssetRepository assetRepository, IHttpContextAccessor httpContextAccessor)
+        public AssetReviewJob(CrisesControlContext context, IAssetRepository assetRepository, IHttpContextAccessor httpContextAccessor, ISenderEmailService SDE, IDBCommonRepository _DBC)
         {
+            _assetRepository = assetRepository;
             this._context = context;            
             this._httpContextAccessor = httpContextAccessor;
-            this.DBC = new DBCommon(_context, _httpContextAccessor);
+            this.DBC = _DBC;
+            _SDE = SDE;
         }
         public async Task Execute(IJobExecutionContext context)
         {
@@ -37,25 +40,25 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     if (asset.Status == 1)
                     {
-                        SendEmail SE = new SendEmail(_context, DBC);
-                       await  SE.SendAssetReviewAlert(AssetId, asset.CompanyId);
+                        
+                       await  _SDE.SendAssetReviewAlert(AssetId, asset.CompanyId);
 
                         asset.ReminderCount = Counter;
                         _context.Update(asset);
                        await _context.SaveChangesAsync();
 
                       
-                        _assetRepository.CreateAssetReviewReminder(AssetId, asset.CompanyId, (DateTimeOffset)asset.ReviewDate, asset.ReviewFrequency, Counter);
+                       await _assetRepository.CreateAssetReviewReminder(AssetId, asset.CompanyId, (DateTimeOffset)asset.ReviewDate, asset.ReviewFrequency, Counter);
 
                     }
                     else
                     {
-                        DBC.DeleteScheduledJob("ASSET_REVIEW_" + AssetId, "REVIEW_REMINDER");
+                      await  DBC.DeleteScheduledJob("ASSET_REVIEW_" + AssetId, "REVIEW_REMINDER");
                     }
                 }
                 else
                 {
-                    DBC.DeleteScheduledJob("ASSET_REVIEW_" + AssetId, "REVIEW_REMINDER");
+                  await  DBC.DeleteScheduledJob("ASSET_REVIEW_" + AssetId, "REVIEW_REMINDER");
                 }
                 await Task.WhenAll();
             }

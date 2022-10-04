@@ -1,9 +1,10 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Sop.Respositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Repositories;
+using CrisesControl.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Quartz;
 using System;
@@ -19,13 +20,15 @@ namespace CrisesControl.Infrastructure.Jobs
         private readonly CrisesControlContext db;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ISopRepository _sopRepository;
-        private readonly DBCommon DBC;
-        public SOPReviewJob(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ISopRepository sopRepository)
+        private readonly IDBCommonRepository DBC;
+        private readonly ISenderEmailService _SDE;
+        public SOPReviewJob(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ISopRepository sopRepository, IDBCommonRepository _DBC, ISenderEmailService SDE)
         {
             db = context;
             _httpContextAccessor = httpContextAccessor;
             _sopRepository = sopRepository;
-            DBC = new DBCommon(db, _httpContextAccessor);
+            DBC = _DBC;
+            _SDE = SDE;
         }
         public async Task Execute(IJobExecutionContext context)
         {
@@ -44,8 +47,8 @@ namespace CrisesControl.Infrastructure.Jobs
                 {
                     if (incident.I.Status == 1 && incident.SH.Status == 1)
                     {
-                        SendEmail SE = new SendEmail(db,DBC);
-                        SE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, "SOP");
+                       
+                       await _SDE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, "SOP");
 
                         incident.SH.ReminderCount = Counter;
                         db.SaveChanges();
@@ -56,7 +59,7 @@ namespace CrisesControl.Infrastructure.Jobs
                     }
                     else
                     {
-                        DBC.DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
+                       await DBC.DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
                     }
                 }
                 await Task.WhenAll();

@@ -29,7 +29,7 @@ using System.Text;
 using IncidentMessagesRtn = CrisesControl.Core.Reports.IncidentMessagesRtn;
 using FailedTaskList = CrisesControl.Core.Reports.FailedTaskList;
 using CrisesControl.Core.Import;
-using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.DBCommon.Repositories;
 
 namespace CrisesControl.Infrastructure.Repositories {
     public class ReportsRepository : IReportsRepository {
@@ -108,7 +108,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             var incidentMessageListDetails = new List<MessageAcknowledgements>();
             int totalRecord = 0;
 
-            string ig = _DBC.LookupWithKey("INITIALS_GENERATOR_URL");
+            string ig =await _DBC.LookupWithKey("INITIALS_GENERATOR_URL");
 
             if (OrderDir == "desc") {
                 incidentMessageListDetails = GetAcknowledgements(MessageId, MessageAckStatus, MessageSentStatus, RecordStart, RecordLength, SearchString,
@@ -1766,10 +1766,10 @@ namespace CrisesControl.Infrastructure.Repositories {
             rFileName = string.Empty;
             try {
 
-                string ResultFilePath = _DBC.Getconfig("ImportResultPath");
+                string ResultFilePath =  _DBC.Getconfig("ImportResultPath").ToString();
                 string ExportPath = ResultFilePath + inputModel.CompanyId.ToString() + "\\DataExport\\";
 
-                _DBC.connectUNCPath();
+               _DBC.connectUNCPath();
 
                 var ReportSP = "Pro_Get_User_Invitation";
                 string FileName = "User_Invitation_Report" + DateTime.Now.ToString("ddmmyyyyhhss") + ".csv";

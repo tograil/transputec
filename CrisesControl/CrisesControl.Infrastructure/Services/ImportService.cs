@@ -1,10 +1,11 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Common;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Departments;
 using CrisesControl.Core.Departments.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Groups.Repositories;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Import;
 using CrisesControl.Core.Import.Services;
 using CrisesControl.Core.Locations;
@@ -43,8 +44,8 @@ namespace CrisesControl.Infrastructure.Services
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly UserImportJob _UIK;
-        private static DBCommon _DBC;
-        private static SendEmail _SDE;
+        private static IDBCommonRepository _DBC;
+        private static ISenderEmailService _SDE;
         private readonly ILocationRepository _locationRepository;
         private readonly IUserRepository _userRepository;
         private readonly IGroupRepository _groupRepository;
@@ -67,8 +68,8 @@ namespace CrisesControl.Infrastructure.Services
 
         public ImportService(CrisesControlContext context,
             IHttpContextAccessor httpContextAccessor,
-            DBCommon DBC,
-            SendEmail SDE,
+            IDBCommonRepository DBC,
+            ISenderEmailService SDE,
             UserImportJob UIK,
             ILocationRepository locationRepository,
             IUserRepository userRepository,
@@ -131,7 +132,8 @@ namespace CrisesControl.Infrastructure.Services
                     if (!string.IsNullOrEmpty(str))
                     {
                         str = str.Trim();
-                        bool lengthCheck = _DBC.verifyLength(str, minLength, maxLength);
+                        string length = _DBC.verifyLength(str, minLength, maxLength).ToString();
+                        bool lengthCheck = bool.Parse(length);
                         if (!lengthCheck)
                         {
                             mandatoryError = dataError = true;
@@ -505,7 +507,7 @@ namespace CrisesControl.Infrastructure.Services
                             if (UploadData.Action.ToUpper() == "DELETE")
                             {
                                 var chkdept = _groupRepository.DeleteGroup((int)UploadData.GroupId, CancellationToken.None);
-                                if (_DBC.IsPropertyExist(chkdept, "ErrorId"))
+                                if (await _DBC.IsPropertyExist(chkdept, "ErrorId"))
                                 {
                                     UpdateActionMessage += "Group associated with incident task and cannot be deleted." + Environment.NewLine;
                                     UploadData.ActionCheck = SkipCheck;
@@ -527,7 +529,7 @@ namespace CrisesControl.Infrastructure.Services
                                 {
                                     depatUpdate.Status = Status;
                                     depatUpdate.UpdatedBy = CurrentUserId;
-                                    depatUpdate.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                                    depatUpdate.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                                     await _context.SaveChangesAsync();
                                     NewAddedGroupId = depatUpdate.GroupId;
                                     UploadData.ActionCheck = OverrideCheck;
@@ -762,7 +764,7 @@ namespace CrisesControl.Infrastructure.Services
                         if (uploadData.LocationCheck.ToUpper() == "NEW" &&
                             (uploadData.Action.ToUpper() == "ADD" || uploadData.Action.ToUpper() == "UPDATE"))
                         {
-                            LatLng LL = _DBC.GetCoordinates(uploadData.LocationAddress);
+                            LatLng LL = await _DBC.GetCoordinates(uploadData.LocationAddress);
 
                             string TZone = Convert.ToString((from c in _context.Set<Company>() where c.CompanyId == uploadData.CompanyId select c.TimeZone).FirstOrDefault());
                             Core.Locations.Location newLocation = new Core.Locations.Location();
@@ -791,7 +793,7 @@ namespace CrisesControl.Infrastructure.Services
                             else if (uploadData.Action.ToUpper() == "UPDATE" || uploadData.Action.ToUpper() == "ADD")
                             {  //update an existing location
 
-                                LatLng LL = _DBC.GetCoordinates(uploadData.LocationAddress);
+                                LatLng LL = await _DBC.GetCoordinates(uploadData.LocationAddress);
 
                                 var locUpdate = (from L in _context.Set<Location>()
                                                  where L.LocationId == uploadData.LocationId
@@ -803,7 +805,7 @@ namespace CrisesControl.Infrastructure.Services
                                     locUpdate.Lat = _DBC.Left(LL.Lat, 15);
                                     locUpdate.Long = _DBC.Left(LL.Lng, 15);
                                     locUpdate.UpdatedBy = CurrentUserId;
-                                    locUpdate.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                                    locUpdate.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                                     await _context.SaveChangesAsync(cancellationToken);
                                     uploadData.ActionCheck = OverrideCheck;
                                     UpdateActionMessage += "Location details updated" + Environment.NewLine;
@@ -867,7 +869,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void ImportToDump(int UserId, int CompanyId, string SessionId,
+        public async Task ImportToDump(int UserId, int CompanyId, string SessionId,
            string FirstName, string Surname, string Email, string ISD, string Phone, string LLISD, string Landline, string UserRole, string Status, string Action,
            string Group, string GroupStatus,
            string Department, string DepartmentStatus,
@@ -937,10 +939,10 @@ namespace CrisesControl.Infrastructure.Services
                 IMPDump.Action = Action;
                 if (createdUpdatedBy > 0)
                     IMPDump.CreatedBy = createdUpdatedBy;
-                IMPDump.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                IMPDump.CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                 if (createdUpdatedBy > 0)
                     IMPDump.UpdatedBy = createdUpdatedBy;
-                IMPDump.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                IMPDump.UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                 _context.Set<ImportDump>().Add(IMPDump);
                 _context.SaveChanges();
@@ -948,7 +950,7 @@ namespace CrisesControl.Infrastructure.Services
             catch (Exception ex) { throw ex; }
         }
 
-        public static DataTable ReadCSVFile(string filePath, string columnDelimiter, string columnMappingFilePath, string columnMappingFileType, bool fileHasHeader)
+        public static async Task<DataTable> ReadCSVFile(string filePath, string columnDelimiter, string columnMappingFilePath, string columnMappingFileType, bool fileHasHeader)
         {
             DataTable csvData = new DataTable();
             try
@@ -1010,7 +1012,7 @@ namespace CrisesControl.Infrastructure.Services
                                 }
                                 else
                                 {
-                                    dtvalue = _DBC.PureAscii(fieldData[column.ColumnIndex], true);
+                                    dtvalue =await _DBC.PureAscii(fieldData[column.ColumnIndex], true);
                                 }
                             }
                             //int dtIntVal = 0;
@@ -1101,11 +1103,11 @@ namespace CrisesControl.Infrastructure.Services
             return dc;
         }
 
-        public void CheckDataSegregation(int CompanyId, int UserId)
+        public async Task  CheckDataSegregation(int CompanyId, int UserId)
         {
-            showAllLoc = _DBC.GetCompanyParameter("SHOW_ALL_LOCATIONS_TO_STAFF", CompanyId);
-            showAllDep = _DBC.GetCompanyParameter("SHOW_ALL_GROUPS_TO_STAFF", CompanyId);
-            updateRole = _DBC.GetCompanyParameter("ALLOW_KEYHOLDER_DEMOTE", CompanyId);
+            showAllLoc = await _DBC.GetCompanyParameter("SHOW_ALL_LOCATIONS_TO_STAFF", CompanyId);
+            showAllDep =await _DBC.GetCompanyParameter("SHOW_ALL_GROUPS_TO_STAFF", CompanyId);
+            updateRole =await _DBC.GetCompanyParameter("ALLOW_KEYHOLDER_DEMOTE", CompanyId);
 
             if (showAllLoc == "false" || showAllDep == "false")
             {
@@ -1226,7 +1228,7 @@ namespace CrisesControl.Infrastructure.Services
 
                             IsNew = true;
 
-                            string newPwd = _DBC.RandomPassword();
+                            string newPwd =await _DBC.RandomPassword();
 
 
                             //DBC.CreateLog("INFO", "ImportHelper: Inserting the user to db", null, "ImportHelper", "ImportUsers", CompanyId);
@@ -1308,30 +1310,30 @@ namespace CrisesControl.Infrastructure.Services
                                     if (!string.IsNullOrEmpty(UploadData.Isd))
                                         userUpdate.Isdcode = _DBC.Left(UploadData.Isd, 1) != "+" ? "+" + UploadData.Isd : UploadData.Isd;
 
-                                    string DummyNumber = _DBC.GetCompanyParameter("DUMMY_PHONE_NUMBER", UploadData.CompanyId);
+                                    string DummyNumber = await _DBC.GetCompanyParameter("DUMMY_PHONE_NUMBER", UploadData.CompanyId);
                                     if (string.IsNullOrEmpty(UploadData.Phone) || UploadData.Phone == DummyNumber)
                                     { // when source is empty or dummy
                                         if (string.IsNullOrWhiteSpace(userUpdate.MobileNo) || userUpdate.MobileNo == DummyNumber)
                                         {
-                                            userUpdate.MobileNo = _DBC.FixMobileZero(DummyNumber);
+                                            userUpdate.MobileNo =await _DBC.FixMobileZero(DummyNumber);
                                         }
                                     }
                                     else
                                     { //When the source has valid number
-                                        string OverridePhone = _DBC.GetCompanyParameter("OVERRIDE_PHONE_NUMBER", UploadData.CompanyId);
-                                        string OverrideDummy = _DBC.GetCompanyParameter("OVERRIDE_DUMMY_NUMBER_ONLY", UploadData.CompanyId);
+                                        string OverridePhone =await _DBC.GetCompanyParameter("OVERRIDE_PHONE_NUMBER", UploadData.CompanyId);
+                                        string OverrideDummy =await _DBC.GetCompanyParameter("OVERRIDE_DUMMY_NUMBER_ONLY", UploadData.CompanyId);
                                         if (OverridePhone == "true")
                                         {
                                             if (OverrideDummy == "true")
                                             { //only update dummy numbers when turned on.
                                                 if (string.IsNullOrEmpty(userUpdate.MobileNo) || userUpdate.MobileNo == DummyNumber)
                                                 {
-                                                    userUpdate.MobileNo = _DBC.FixMobileZero(UploadData.Phone);
+                                                    userUpdate.MobileNo =await _DBC.FixMobileZero(UploadData.Phone);
                                                 }
                                             }
                                             else
                                             { // update the non number for all customers.
-                                                userUpdate.MobileNo = _DBC.FixMobileZero(UploadData.Phone);
+                                                userUpdate.MobileNo =await _DBC.FixMobileZero(UploadData.Phone);
                                             }
                                         } // skip mobile number update.
                                     }
@@ -1340,13 +1342,13 @@ namespace CrisesControl.Infrastructure.Services
                                         userUpdate.Llisdcode = _DBC.Left(UploadData.Llisd, 1) != "+" ? "+" + UploadData.Llisd : UploadData.Llisd;
 
                                     if (!string.IsNullOrEmpty(UploadData.Landline))
-                                        userUpdate.Landline = _DBC.FixMobileZero(UploadData.Landline);
+                                        userUpdate.Landline =await _DBC.FixMobileZero(UploadData.Landline);
 
                                     if (!userUpdate.RegisteredUser)
                                     {
                                         if (!string.IsNullOrEmpty(UploadData.UserRole))
                                         {
-                                            var roles = _DBC.CCRoles();
+                                            var roles =await _DBC.CCRoles();
                                             if (updateRole == "true" && roles.Contains(userRole))
                                             {
                                                 userUpdate.UserRole = UploadData.UserRole.ToUpper().Replace("STAFF", "USER");
@@ -1373,13 +1375,13 @@ namespace CrisesControl.Infrastructure.Services
                                             userUpdate.Status = Status;
 
                                         if (Status == 0 && !string.IsNullOrEmpty(UploadData.Status))
-                                            _DBC.RemoveUserDevice(userUpdate.UserId);
+                                           await _DBC.RemoveUserDevice(userUpdate.UserId);
                                     }
 
                                     if (CurrentUserId > 0)
                                         userUpdate.UpdatedBy = CurrentUserId;
 
-                                    userUpdate.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                                    userUpdate.UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                                     _context.SaveChanges();
 
                                     await _userRepository.CreateUserSearch(userUpdate.UserId, userUpdate.FirstName, userUpdate.LastName, userUpdate.Isdcode, userUpdate.MobileNo, userUpdate.PrimaryEmail, CompanyId);
@@ -1419,7 +1421,7 @@ namespace CrisesControl.Infrastructure.Services
                                     int LocStatus = (UploadData.LocationStatus == "INACTIVE" ? 0 : 1);
                                     if (string.IsNullOrEmpty(UploadData.LocLat) && string.IsNullOrEmpty(UploadData.LocLng))
                                     {
-                                        LL = _DBC.GetCoordinates(UploadData.LocationAddress);
+                                        LL =await _DBC.GetCoordinates(UploadData.LocationAddress);
                                     }
                                     else
                                     {
@@ -1459,7 +1461,7 @@ namespace CrisesControl.Infrastructure.Services
                                     }
 
                                     if (UploadData.LocationCheck.ToUpper() != "ERROR")
-                                        _DBC.CreateObjectRelationship(UserIdToUpdate, LocationToUpdate, "LOCATION", UploadData.CompanyId, CurrentUserId, TimeZoneId);
+                                       await _DBC.CreateObjectRelationship(UserIdToUpdate, LocationToUpdate, "LOCATION", UploadData.CompanyId, CurrentUserId, TimeZoneId);
                                 }
                             }
 
@@ -1470,7 +1472,7 @@ namespace CrisesControl.Infrastructure.Services
                                 UploadData.GroupCheck.ToUpper() == "DUPLICATE")
                                 {
                                     //Remove the user from the location assignment
-                                    _DBC.RemoveUserObjectRelation("GROUP", UserIdToUpdate, (int)UploadData.GroupId, CompanyId, CurrentUserId, TimeZoneId);
+                                   await _DBC.RemoveUserObjectRelation("GROUP", UserIdToUpdate, (int)UploadData.GroupId, CompanyId, CurrentUserId, TimeZoneId);
                                     UpdateActionMessage += "Group removed from user profile" + Environment.NewLine;
 
                                 }
@@ -1543,20 +1545,20 @@ namespace CrisesControl.Infrastructure.Services
                                     }
 
                                     if (UploadData.DepartmentCheck.ToUpper() != "ERROR")
-                                        _DBC.CreateObjectRelationship(UserIdToUpdate, DepartmentToUpdate, "DEPARTMENT", UploadData.CompanyId, CurrentUserId, TimeZoneId);
+                                      await  _DBC.CreateObjectRelationship(UserIdToUpdate, DepartmentToUpdate, "DEPARTMENT", UploadData.CompanyId, CurrentUserId, TimeZoneId);
                                 }
                             }
 
                             //Security Group handeling
                             if (!string.IsNullOrEmpty(UploadData.SecurityCheck))
                             {
-                                var roles = _DBC.CCRoles(true);
+                                var roles = await _DBC.CCRoles(true);
                                 if (UploadData.SecurityCheck.ToUpper() == "DUPLICATE" && roles.Contains(userRole))
                                 {
 
                                     if (UploadData.EmailCheck.ToUpper() == "NEW")
                                     {
-                                        _userRepository.CreateUserSecurityGroup(UserIdToUpdate, (int)UploadData.SecurityGroupId, CurrentUserId, CompanyId, "Standard");
+                                      await  _userRepository.CreateUserSecurityGroup(UserIdToUpdate, (int)UploadData.SecurityGroupId, CurrentUserId, CompanyId, "Standard");
                                     }
                                     else
                                     {
@@ -1603,15 +1605,15 @@ namespace CrisesControl.Infrastructure.Services
 
                             if (SendInvite && UploadData.EmailCheck.ToUpper() == "NEW")
                             {
-                                _SDE.NewUserAccount(UploadData.Email, UploadData.FirstName + " " + UploadData.Surname, UploadData.CompanyId, UniqId);
+                               await _SDE.NewUserAccount(UploadData.Email, UploadData.FirstName + " " + UploadData.Surname, UploadData.CompanyId, UniqId);
                             }
                         } // 
                         UploadData.ValidationMessage = UpdateActionMessage;
 
                         UploadData.ImportAction = "Imported";
                         UploadData.UserId = UserIdToUpdate;
-
-                        _context.SaveChanges();
+                        _context.Update(UploadData);
+                       await  _context.SaveChangesAsync();
                         Result.ErrorId = 0;
                         Result.Message = UpdateActionMessage;
                         importUserId = UserIdToUpdate;

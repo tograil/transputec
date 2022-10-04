@@ -1,12 +1,13 @@
-﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.Administrator;
+﻿using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Administrator.Repositories;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Payments;
 using CrisesControl.Core.Payments.Repositories;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -24,12 +25,14 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly ILogger<PaymentRepository> _logger;
         private readonly IAdminRepository _adminRepository;
         private readonly IDBCommonRepository DBC;
-        public PaymentRepository(CrisesControlContext context, ILogger<PaymentRepository> logger, IDBCommonRepository _DBC, IAdminRepository adminRepository)
+        private readonly ISenderEmailService _SDE;
+        public PaymentRepository(CrisesControlContext context, ILogger<PaymentRepository> logger, IDBCommonRepository _DBC, IAdminRepository adminRepository, ISenderEmailService SDE)
         {
             this._context = context;
             this._logger = logger;
             this.DBC = _DBC;
             this._adminRepository = adminRepository;
+            this._SDE = SDE;
         }
         public async Task<dynamic> GetCompanyByKey(string activationKey, int outUserCompanyId)
         {
@@ -76,8 +79,8 @@ namespace CrisesControl.Infrastructure.Repositories
                     double DaysExceeding = Contractstart.Subtract(contractStartDate).TotalDays;
                     if (DaysExceeding > 30)
                     {
-                        SendEmail SDE = new SendEmail(_context,DBC);
-                        await SDE.ContractStartDaysExceeded(companyId, DaysExceeding);
+                        
+                        await _SDE.ContractStartDaysExceeded(companyId, DaysExceeding);
                     }
                 }
 
@@ -139,7 +142,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 if (maxTransactionLimit > 0)
                     c_pp.MaxTransactionLimit = maxTransactionLimit;
                 c_pp.UpdatedBy = currntUserId;
-                c_pp.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                c_pp.UpdatedOn =await DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 await _context.SaveChangesAsync();
             }
         }
@@ -237,7 +240,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         }
                         else
                         {
-                            comp.OnTrial = DBC.OnTrialStatus(ip.CompanyProfile, comp.OnTrial);
+                            comp.OnTrial =await DBC.OnTrialStatus(ip.CompanyProfile, comp.OnTrial);
                         }
 
                        await _context.SaveChangesAsync();
@@ -246,8 +249,8 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 if (ip.AgreementRegistered)
                 {
-                    SendEmail SDE = new SendEmail(_context,DBC);
-                    SDE.WorldPayAgreementSubscribe(outUserCompanyId, ip.AgreementNo);
+                    
+                   await _SDE.WorldPayAgreementSubscribe(outUserCompanyId, ip.AgreementNo);
                 }
 
                 var Data = await _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == outUserCompanyId).FirstOrDefaultAsync();
@@ -287,12 +290,12 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
                 else
                 {
-                    transaction.NextRunDate = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    transaction.NextRunDate =await DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 }
                 transaction.CreatedBy = currntUserId;
-                transaction.CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                transaction.CreatedOn =await DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 transaction.UpdatedBy = currntUserId;
-                transaction.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                transaction.UpdatedOn =await DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
                 if (!string.IsNullOrEmpty(paymentMethod) && paymentMethod != "UNKNOWN")
                     transaction.PaymentMethod = paymentMethod;
@@ -320,7 +323,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         newCompanyTranscationType.NextRunDate = (DateTimeOffset)nextRunDate;
                     }
                     newCompanyTranscationType.UpdatedBy = currntUserId;
-                    newCompanyTranscationType.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    newCompanyTranscationType.UpdatedOn =await DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                      _context.Update(newCompanyTranscationType);
                     await _context.SaveChangesAsync();
                     CTTId = newCompanyTranscationType.CompanyTranscationTypeId;
@@ -339,11 +342,11 @@ namespace CrisesControl.Infrastructure.Repositories
                           ).FirstOrDefaultAsync();
                 if (cp != null)
                 {
-                    DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    DateTimeOffset dtNow =await DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
                     cp.Company.CompanyProfile = IP.CompanyProfile;
-                    cp.Company.OnTrial = DBC.OnTrialStatus(IP.CompanyProfile, false);
-                    cp.Company.AnniversaryDate = DBC.GetDateTimeOffset(DateTime.Now.AddYears(1).AddDays(-1), timeZoneId);
+                    cp.Company.OnTrial =await DBC.OnTrialStatus(IP.CompanyProfile, false);
+                    cp.Company.AnniversaryDate =await DBC.GetDateTimeOffset(DateTime.Now.AddYears(1).AddDays(-1), timeZoneId);
                     cp.AgreementNo = IP.AgreementNo;
                     cp.BillingAddress1 = IP.BillingAddress1;
                     cp.BillingAddress2 = IP.BillingAddress2;
@@ -353,7 +356,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     cp.Country = IP.Country;
                     cp.Ipaddress = IP.IPAddress;
                     cp.PaymentPeriod = IP.PaymentPeriod;
-                    cp.ContractAnniversary = DBC.GetDateTimeOffset(DateTime.Now.AddYears(1).AddDays(-1), timeZoneId);
+                    cp.ContractAnniversary =await DBC.GetDateTimeOffset(DateTime.Now.AddYears(1).AddDays(-1), timeZoneId);
                     cp.ContractStartDate = dtNow;
                     cp.CardFailed = false;
                     cp.CardHolderName = IP.CardHolderName;
@@ -442,8 +445,8 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     if (IP.AgreementRegistered)
                     {
-                        SendEmail SDE = new SendEmail(_context,DBC);
-                        SDE.WorldPayAgreementSubscribe(outUserCompanyId, IP.AgreementNo);
+                      
+                       await _SDE.WorldPayAgreementSubscribe(outUserCompanyId, IP.AgreementNo);
                     }
                     return true;
                 }

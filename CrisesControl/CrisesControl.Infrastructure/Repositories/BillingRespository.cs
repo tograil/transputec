@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Billing;
 using CrisesControl.Core.Billing.Repositories;
@@ -30,15 +29,17 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly UsageHelper _usage;
         private readonly IDBCommonRepository _DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ISenderEmailService _SDE;
         private readonly int companyId;
 
-        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC) {
+        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, ISenderEmailService senderEmail) {
             _context = context;
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
             _DBC = DBC;
-            _usage = new UsageHelper(context);
+            _SDE = senderEmail;
+            _usage = new UsageHelper(context,_DBC,_SDE);
         }
 
         public async Task<BillingPaymentProfile> GetPaymentProfile(int companyID)
@@ -666,7 +667,23 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-
+        public async Task AddUserRoleChange(int CompanyID, int UserID, string UserRole, string TimeZoneId)
+        {
+            try
+            {
+                UserRoleChange URC = new UserRoleChange();
+                URC.CompanyId = CompanyID;
+                URC.UserId = UserID;
+                URC.UserRole = UserRole.ToUpper();
+                URC.CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                await _context.AddAsync(URC);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         private void CreateSchedule(int orderItemId, double totalAmount, int period, DateTime contractStartDate, string chargeType)
         {
             try

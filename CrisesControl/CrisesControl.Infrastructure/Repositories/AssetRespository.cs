@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Assets;
 using CrisesControl.Core.Assets.Respositories;
 using CrisesControl.Core.DBCommon.Repositories;

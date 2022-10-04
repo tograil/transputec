@@ -6,7 +6,6 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Billing;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
@@ -51,6 +50,7 @@ public class UserRepository : IUserRepository
     private readonly ILogger<UserRepository> _logger;
     const string action = "ADD";
 
+    public bool isValidMobile = true;
 
     public UserRepository(
         CrisesControlContext context,
@@ -73,9 +73,14 @@ public class UserRepository : IUserRepository
         _locationRepository = locationRepository;
         _groupRepository = groupRepository;
         _MSG = MSG;
-        _usage = new UsageHelper(_context);
+        _usage = new UsageHelper(_context,_DBC,_SDE);
     }
-
+    public bool IsValidMobile
+    { 
+        get => isValidMobile;
+        set => isValidMobile = value; 
+    
+    }
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
     {
         await _context.AddAsync(user, cancellationToken);
@@ -2890,10 +2895,10 @@ public class UserRepository : IUserRepository
                     return message;
                 }
 
-                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
+                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor,_SDE,_DBC,_MSG);
                 string UserMobile = await _DBC.FormatMobile(user.U.Isdcode, user.U.MobileNo);
 
-                string Code = CH.SendOTP(user.U.Isdcode, UserMobile, otpMessage);
+                string Code =await CH.SendOTP(user.U.Isdcode, UserMobile, otpMessage);
 
                 if (!string.IsNullOrEmpty(Code))
                 {
@@ -3053,7 +3058,7 @@ public class UserRepository : IUserRepository
             {
 
                 //AccountHelper AH = new AccountHelper();
-                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
+                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor,_SDE,_DBC,_MSG);
 
                 if (action.ToUpper() == "CONFIRM")
                 {
@@ -3069,7 +3074,7 @@ public class UserRepository : IUserRepository
 
                         string UserMobile =await _DBC.FormatMobile(user.Isdcode, user.MobileNo);
 
-                        string Code = CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method);
+                        string Code =await CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method);
 
                         if (!string.IsNullOrEmpty(Code))
                         {
@@ -3119,7 +3124,7 @@ public class UserRepository : IUserRepository
 
                         if (pwdTrue)
                         {
-                            CommsStatus otpcheck = CH.TwilioVerifyCheck(UserMobile, otpCode);
+                            CommsStatus otpcheck =await CH.TwilioVerifyCheck(UserMobile, otpCode);
 
                             if (otpcheck.CurrentAction.ToUpper() == "APPROVED")
                             {
@@ -3170,7 +3175,7 @@ public class UserRepository : IUserRepository
                     CH.GUserId = user.UserId;
                     CH.GTimezoneId = timeZoneId;
 
-                    string Code = CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method, user.PrimaryEmail);
+                    string Code = await CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method, user.PrimaryEmail);
 
                     if (!string.IsNullOrEmpty(Code))
                     {
@@ -3207,7 +3212,7 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            BillingHelper _billing = new BillingHelper(_context);
+            BillingHelper _billing = new BillingHelper(_context,_DBC,_SDE);
             int AdminCount = 0, KeyHolderCount = 0, StaffCount = 0, PendingUserCount = 0, ActiveUserCount = 0;
 
             await _billing.GetCompanyUserCount(companyId, currentUserId,  AdminCount,  KeyHolderCount,  StaffCount,  ActiveUserCount,  PendingUserCount);
@@ -3249,6 +3254,163 @@ public class UserRepository : IUserRepository
             }
 
             return Rslt;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task UsageAlert(int CompanyId)
+    {
+        try
+        {
+
+            var company = (from C in _context.Set<Company>()
+                           join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                           where C.CompanyId == companyId
+                           select new { C, CP }).FirstOrDefault();
+            if (company != null)
+            {
+                string bill_status = company.C.CompanyProfile;
+                string templatename = string.Empty;
+                if (bill_status == "STOP_MESSAGING")
+                {
+                    templatename = "STOP_MESSAGE_ALERT";
+                }
+                else if (bill_status == "LOW_BALANCE" || bill_status == "ON_CREDIT")
+                {
+                    templatename = "LOW_BALANCE_ALERT";
+                }
+
+                string Subject = string.Empty;
+                string message = Convert.ToString(await _DBC.ReadHtmlFile(templatename, "DB", company.C.CompanyId, Subject));
+
+                string Website = await _DBC.LookupWithKey("DOMAIN");
+                string Portal = await _DBC.LookupWithKey("PORTAL");
+                string hostname = await _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = await _DBC.LookupWithKey("ALERT_EMAILFROM");
+
+                string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+
+                if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                {
+                    CompanyLogo = await _DBC.LookupWithKey("CCLOGO");
+                }
+
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+                    string messagebody = message;
+
+                    string billing_email = await _DBC.LookupWithKey("BILLING_EMAIL");
+
+                    //Get company billing email list.
+                    string billing_users = await _DBC.GetCompanyParameter("BILLING_USERS", company.C.CompanyId);
+
+                    List<string> emaillist = new List<string>();
+
+                    if (!string.IsNullOrEmpty(billing_users))
+                    {
+                        var user_ids = billing_users.Split(',').Select(Int32.Parse).ToList();
+                        if (user_ids.Count > 0)
+                        {
+                            var get_user = await (from U in _context.Set<User>()
+                                                  where user_ids.Contains(U.UserId) && U.Status != 3
+                                                  select new
+                                                  {
+                                                      U.PrimaryEmail
+                                                  }).ToListAsync();
+                            foreach (var bill_user in get_user)
+                            {
+                                emaillist.Add(bill_user.PrimaryEmail);
+                            }
+                        }
+                    }
+
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                    messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
+                    messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                    messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                    messagebody = messagebody.Replace("{CREDIT_BALANCE}", await _DBC.ToCurrency(company.CP.CreditBalance));
+                    messagebody = messagebody.Replace("{MINIMUM_BALANCE}", await _DBC.ToCurrency(company.CP.MinimumBalance));
+                    messagebody = messagebody.Replace("{CREDIT_LIMIT}", await _DBC.ToCurrency(company.CP.CreditLimit));
+
+                    List<string> allowed_comms = new List<string>();
+                    List<string> stopped_comms = new List<string>();
+
+                    var subscribed_method = (from CM in _context.Set<CompanyComm>()
+                                             join CO in _context.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
+                                             where CM.CompanyId == CompanyId
+                                             select new { CO, CM }).Select(s => new {
+                                                 MethodCode = s.CO.MethodCode,
+                                                 MethodName = s.CO.MethodName,
+                                                 ServiceStats = s.CM.ServiceStatus
+                                             }).ToList();
+                    foreach (var method in subscribed_method)
+                    {
+                        if (method.MethodCode == "EMAIL")
+                        {
+                            if (company.CP.MinimumEmailRate > 0 && method.ServiceStats == false)
+                            {
+                                stopped_comms.Add(method.MethodName);
+                            }
+                            else
+                            {
+                                allowed_comms.Add(method.MethodName);
+                            }
+                        }
+                        if (method.MethodCode == "PUSH")
+                        {
+                            if (company.CP.MinimumPushRate > 0 && method.ServiceStats == false)
+                            {
+                                stopped_comms.Add(method.MethodName);
+                            }
+                            else
+                            {
+                                allowed_comms.Add(method.MethodName);
+                            }
+                        }
+                        if (method.MethodCode == "TEXT")
+                        {
+                            if (company.CP.MinimumTextRate > 0 && method.ServiceStats == false)
+                            {
+                                stopped_comms.Add(method.MethodName);
+                            }
+                            else
+                            {
+                                allowed_comms.Add(method.MethodName);
+                            }
+                        }
+                        if (method.MethodCode == "PHONE")
+                        {
+                            if (company.CP.MinimumPhoneRate > 0 && method.ServiceStats == false)
+                            {
+                                stopped_comms.Add(method.MethodName);
+                            }
+                            else
+                            {
+                                allowed_comms.Add(method.MethodName);
+                            }
+                        }
+                    }
+
+                    messagebody = messagebody.Replace("{STOPPED_COMMS}", string.Join(",", stopped_comms));
+                    messagebody = messagebody.Replace("{ALLOWED_COMMS}", string.Join(",", allowed_comms));
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+
+                    Subject = Subject + " " + company.C.CompanyName;
+                    string[] toEmails = emaillist.ToArray();
+
+                    string[] adm_email = { billing_email };
+
+                    await _SDE.Email(adm_email, messagebody, fromadd, hostname, Subject);
+
+                    string cust_usage_alert = await _DBC.LookupWithKey("SEND_USAGE_ALERT_TO_CUSTOMER");
+                    if (cust_usage_alert == "true")
+                        await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                }
+            }
         }
         catch (Exception ex)
         {

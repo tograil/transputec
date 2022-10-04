@@ -10,11 +10,6 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.Companies;
-using CrisesControl.Core.CompanyParameters.Repositories;
-using CrisesControl.Core.Compatibility.Jobs;
-using CrisesControl.Core.Departments;
 using CrisesControl.Core.Import;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Locations;
@@ -52,8 +47,8 @@ public class MessageRepository : IMessageRepository
     private readonly ILogger<MessageRepository> _logger;
     private readonly IDBCommonRepository _DBC;
     private readonly ISenderEmailService _SDE;
-    private CommsHelper _CH;
-    private  PingHelper _PH;
+    private readonly CommsHelper _CH;
+    private readonly PingHelper _PH;
     private readonly IMessageService _MSG;
    
 
@@ -74,8 +69,8 @@ public class MessageRepository : IMessageRepository
         _DBC =  DBC;
         _MSG =MSG;
         _SDE = SDE;
-        _CH = new CommsHelper(_context,_httpContextAccessor);
-        _PH = new PingHelper(_context, _httpContextAccessor);
+        _CH = new CommsHelper(_context,_httpContextAccessor, _SDE, _DBC,_MSG);
+        _PH = new PingHelper(_context, _httpContextAccessor, _DBC, _MSG);
         
     }
 
@@ -1327,11 +1322,11 @@ GO
         }
     }
 
-    public dynamic ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId)
+    public async Task<dynamic> ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId)
     {
         try
         {
-            return _PH.ProcessPAFile(userListFile, hasHeader, emailColIndex, phoneColIndex, postcodeColIndex, latColIndex, longColIndex, sessionId);
+            return await _PH.ProcessPAFile(userListFile, hasHeader, emailColIndex, phoneColIndex, postcodeColIndex, latColIndex, longColIndex, sessionId);
         }
         catch (Exception ex)
         {

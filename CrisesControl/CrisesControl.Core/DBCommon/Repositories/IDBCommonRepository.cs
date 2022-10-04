@@ -14,6 +14,7 @@ namespace CrisesControl.Core.DBCommon.Repositories
 {
     public interface IDBCommonRepository
     {
+        public bool IsValidPhone { get; set; }
         Task<StringBuilder> ReadHtmlFile(string fileCode, string source, int companyId, string subject, string provider = "AWSSES");
         Task AddTrackingDevice(int companyID, int userDeviceID, string deviceAddress, string deviceType, int messageListID = 0);
         Task<string> LookupWithKey(string key, string Default = "");
@@ -83,8 +84,11 @@ namespace CrisesControl.Core.DBCommon.Repositories
         Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0);
         Task UpdateUserDepartment(int userId, int departmentId, int createdUpdatedBy, int companyId, string timeZoneId);
         Task<string> RetrieveFormatedAddress(string lat, string lng);
+        Task GetFormatedNumber(string inputNumber, string isdCode, string phoneNum, string defaultISD = "44");
+        Task AddUserInvitationLog(int companyId, int userID, string actionType, int currentUserId, string timeZoneId);
 
-
+        string LogWrite(string str, string strType = "I");
+        Task DeleteRecording(string recordingID);
 
 
 

@@ -1,8 +1,9 @@
 ﻿using Azure.Storage.Files.Shares;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Reports.SP_Response;
@@ -35,17 +36,16 @@ namespace CrisesControl.Infrastructure.Services
         public int CascadePlanID = 0;
         public string MessageSourceAction = "";
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon _DBC;
-        //private readonly Messaging _MSG;
-        private readonly SendEmail _SDE;
-        public Messaging(CrisesControlContext _db, IHttpContextAccessor httpContextAccessor)
+        private readonly IDBCommonRepository _DBC;
+        private readonly IMessageService _MSG;
+        private readonly ISenderEmailService _SDE;
+        public Messaging(CrisesControlContext _db, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, ISenderEmailService SDE, IMessageService MSG)
         {
-            db = _db;
+             db = _db;
             _httpContextAccessor = httpContextAccessor;
-            _DBC = new DBCommon(db,_httpContextAccessor);
-            //_MSG = new Messaging(db,_httpContextAccessor,DBC);
-            _DBC = new DBCommon(db, _httpContextAccessor);
-            _SDE = new SendEmail(db, _DBC);
+            _DBC = DBC;
+            _SDE = SDE;
+            _MSG = MSG;
         }
  
 
@@ -97,7 +97,7 @@ namespace CrisesControl.Infrastructure.Services
                     Priority = priority,
                     Status = status,
                     CreatedBy = currentUserId,
-                    CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                    CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
                     UpdatedBy = currentUserId,
                     UpdatedOn = localTime,
                     Source = source,
@@ -163,7 +163,7 @@ namespace CrisesControl.Infrastructure.Services
 
                     if (source == 3)
                     {
-                        string comms_method = _DBC.GetCompanyParameter("TASK_SYSTEM_COMMS_METHOD", companyId);
+                        string comms_method =await _DBC.GetCompanyParameter("TASK_SYSTEM_COMMS_METHOD", companyId);
                         commsmethod = comms_method.Split(',').Select(int.Parse).ToList().ToArray();
                     }
                     else
@@ -243,14 +243,14 @@ namespace CrisesControl.Infrastructure.Services
         {
             try
             {
-                string AttachmentSavePath = _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
-                string AttachmentUncUser = _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
-                string AttachmentUncPwd = _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
-                string AttachmentUseUnc = _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
-                string ServerUploadFolder = _DBC.LookupWithKey("UPLOAD_PATH");
+                string AttachmentSavePath =await _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
+                string AttachmentUncUser = await _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
+                string AttachmentUncPwd = await _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
+                string AttachmentUseUnc = await _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
+                string ServerUploadFolder = await _DBC.LookupWithKey("UPLOAD_PATH");
 
-                string hostingEnv = _DBC.Getconfig("HostingEnvironment");
-                string apiShare = _DBC.Getconfig("AzureAPIShare");
+                string hostingEnv = await _DBC.Getconfig("HostingEnvironment");
+                string apiShare = await _DBC.Getconfig("AzureAPIShare");
 
                 int Count = 0;
                 if (mediaAttachments != null)
@@ -262,7 +262,7 @@ namespace CrisesControl.Infrastructure.Services
                             _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
                         }
 
-                        FileHandler FH = new FileHandler(db, _httpContextAccessor);
+                        FileHandler FH = new FileHandler(db, _httpContextAccessor,_DBC);
                         foreach (MediaAttachment ma in mediaAttachments)
                         {
 
@@ -327,14 +327,14 @@ namespace CrisesControl.Infrastructure.Services
         {
             try
             {
-                string AttachmentSavePath = _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
-                string AttachmentUncUser = _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
-                string AttachmentUncPwd = _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
-                string AttachmentUseUnc = _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
-                string ServerUploadFolder = _DBC.LookupWithKey("UPLOAD_PATH");
-                string AzureAPIShare = _DBC.Getconfig("AzureAPIShare");
-                string AzurePortalShare = _DBC.Getconfig("AzurePortalShare");
-                string HostingEnvironment = _DBC.Getconfig("HostingEnvironment");
+                string AttachmentSavePath = await _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
+                string AttachmentUncUser = await _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
+                string AttachmentUncPwd = await _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
+                string AttachmentUseUnc = await _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
+                string ServerUploadFolder = await _DBC.LookupWithKey("UPLOAD_PATH");
+                string AzureAPIShare = await _DBC.Getconfig("AzureAPIShare");
+                string AzurePortalShare = await _DBC.Getconfig("AzurePortalShare");
+                string HostingEnvironment = await _DBC.Getconfig("HostingEnvironment");
 
                 //string SaveStorage = DBC.LookupWithKey("ATTACHMENT_STORAGE");
                 int Count = 0;
@@ -344,8 +344,8 @@ namespace CrisesControl.Infrastructure.Services
                     var asset =await db.Set<CrisesControl.Core.Assets.Assets>().Where(A=> A.AssetId == assetId).FirstOrDefaultAsync();
                     if (asset != null)
                     {
-                        FileHandler FH = new FileHandler(db, _httpContextAccessor);
-                        string portal = _DBC.LookupWithKey("PORTAL");
+                        FileHandler FH = new FileHandler(db, _httpContextAccessor,_DBC);
+                        string portal = await _DBC.LookupWithKey("PORTAL");
                         string file_url = "uploads/" + companyId + "/assets/" + asset.AssetType.ToLower() + "/" + asset.AssetPath;
                         string DirectoryPath = AttachmentSavePath + companyId.ToString() + "\\2\\";
 
@@ -353,7 +353,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         if (HostingEnvironment.ToUpper() == "AZURE")
                         {
-                            string connectionString = _DBC.Getconfig("AzureFileShareConnection");
+                            string connectionString = await _DBC.Getconfig("AzureFileShareConnection");
 
                             ShareClient desti_share = new ShareClient(connectionString, AzureAPIShare);
                             ShareDirectoryClient desti_directory = desti_share.GetDirectoryClient(DirectoryPath.Replace("\\", "/"));
@@ -495,7 +495,7 @@ namespace CrisesControl.Infrastructure.Services
                 CreatedBy = currentUserId,
                 CreatedOn = DateTime.Now,
                 UpdatedBy = currentUserId,
-                UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
             };
            await  db.AddAsync(tblIncidentNotiLst);
             await db.SaveChangesAsync();
@@ -510,7 +510,7 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     AttachmentType = attachmentType,
                     CreatedBy = createdBy,
-                    CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                    CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
                     FilePath = filePath,
                     FileSize = fileSize,
                     MessageId = messageId,
@@ -679,7 +679,7 @@ namespace CrisesControl.Infrastructure.Services
                     ProcessQueue INPQ = new ProcessQueue
                     {
                         MessageId = messageId,
-                        CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now),
+                        CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now),
                         Priority = priority,
                         MessageType = messageType,
                         Method = method,
@@ -803,7 +803,7 @@ namespace CrisesControl.Infrastructure.Services
         
             try
             {
-                string ConServiceEnable = _DBC.GetCompanyParameter("CONCIERGE_SERVICE", companyId);
+                string ConServiceEnable = await _DBC.GetCompanyParameter("CONCIERGE_SERVICE", companyId);
 
                 var phone_method = await db.Set<CompanyComm>().Include(CO=>CO.CommsMethod)
                                     .Where(CM=> CM.CompanyId == companyId && CM.CommsMethod.MethodCode == "PHONE" && CM.Status == 1 && CM.ServiceStatus == true
@@ -854,11 +854,11 @@ namespace CrisesControl.Infrastructure.Services
             {
 
                 //Get the selected conferance api for the company and set the requrest api params.
-                string CONF_API = _DBC.GetCompanyParameter("CONFERANCE_API", companyId);
+                string CONF_API = await _DBC.GetCompanyParameter("CONFERANCE_API", companyId);
                 bool RecordConf = Convert.ToBoolean(_DBC.GetCompanyParameter("RECORD_CONFERENCE", companyId));
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                bool SendInDirect = await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
-                TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                TwilioRoutingApi = await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 //Create instance of CommsApi choosen by company
                 dynamic CommsAPI = _DBC.InitComms(CONF_API);
@@ -870,12 +870,12 @@ namespace CrisesControl.Infrastructure.Services
 
                 //FromNumber = DBC.LookupWithKey(CONF_API + "_FROM_NUMBER");
                 //Get API configraiton from sysparameters
-                string RetryNumberList = _DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", companyId, FromNumber);
+                string RetryNumberList = await _DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", companyId, FromNumber);
                 List<string> FromNumberList = RetryNumberList.Split(',').ToList();
 
                 FromNumber = FromNumberList.FirstOrDefault();
-                CallBackUrl = _DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
-                MessageXML = _DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
+                CallBackUrl = await _DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
+                MessageXML = await _DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
 
                 //Get the user list to fetch their mobile numbers
                 List<int> nUList = new List<int>();
@@ -903,8 +903,8 @@ namespace CrisesControl.Infrastructure.Services
                 //Loop through with each user and their phone number to make the call
                 foreach (var uItem in tmpUserList)
                 {
-                    string Mobile = _DBC.FormatMobile(uItem.ISD, uItem.PhoneNumber);
-                    string Landline = _DBC.FormatMobile(uItem.Llisdcode, uItem.Landline);
+                    string Mobile = await _DBC.FormatMobile(uItem.ISD, uItem.PhoneNumber);
+                    string Landline = await _DBC.FormatMobile(uItem.Llisdcode, uItem.Landline);
 
                     if (!string.IsNullOrEmpty(uItem.PhoneNumber))
                     {
@@ -1495,7 +1495,7 @@ namespace CrisesControl.Infrastructure.Services
                     TargetObjectName = objectType,
                     CompanyId = companyId,
                     CreatedBy = createdBy,
-                    CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                    CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
                     InitiatedBy = createdBy,
                     MessageId = messageId,
                     ConfRoomName = confRoom,
@@ -1529,7 +1529,7 @@ namespace CrisesControl.Infrastructure.Services
                     ConferenceCallId = conferenceCallId,
                     UserId = userId,
                     PhoneNumber = phoneNumber,
-                    CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                    CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
                     SuccessCallId = successCallId,
                     Status = status,
                     ConfJoined = (DateTime)SqlDateTime.MinValue,
@@ -1563,7 +1563,7 @@ namespace CrisesControl.Infrastructure.Services
         public async Task AddUserLocation(int userID, int userDeviceID, double latitude, double longitude, string locationAddress,
             DateTimeOffset userDeviceTime, string timeZoneId, int companyID)
         {
-            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+         
             try
             {
                 if (latitude != 0 && longitude != 0)
@@ -1572,18 +1572,18 @@ namespace CrisesControl.Infrastructure.Services
                     {
                         UserId = userID,
                         UserDeviceId = userDeviceID,
-                        Lat = DBC.Left(latitude.ToString().Replace(",", "."), 15),
-                        Long = DBC.Left(longitude.ToString().Replace(",", "."), 15),
+                        Lat = _DBC.Left(latitude.ToString().Replace(",", "."), 15),
+                        Long = _DBC.Left(longitude.ToString().Replace(",", "."), 15),
                         LocationName = locationAddress,
-                        CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                        CreatedOnGMT = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                        UserDeviceTime = userDeviceTime != null ? userDeviceTime : DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                        CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        CreatedOnGMT = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        UserDeviceTime = userDeviceTime != null ? userDeviceTime : await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
                     };
                     ;
                    await db.AddAsync(UL);
                    await db.SaveChangesAsync();
 
-                  await  DBC.UpdateUserLocation(userID, companyID, latitude.ToString(), longitude.ToString(), TimeZoneId);
+                  await  _DBC.UpdateUserLocation(userID,  latitude.ToString(), longitude.ToString(), TimeZoneId);
                 }
 
 
@@ -1592,7 +1592,7 @@ namespace CrisesControl.Infrastructure.Services
                                 TM.TrackMeStopped.Value.Year < 2000).ToListAsync();
                 foreach (var tm in track_me)
                 {
-                    tm.LastUpdate = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    tm.LastUpdate = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                 }
                 db.SaveChanges();
 
@@ -1737,7 +1737,7 @@ namespace CrisesControl.Infrastructure.Services
                         option.MessageType = messageType;
                         option.Status = status;
                         option.UpdatedBy = currentUserId;
-                        option.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                        option.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                         await db.SaveChangesAsync();
                         return responseId;
                     }
@@ -1770,7 +1770,7 @@ namespace CrisesControl.Infrastructure.Services
                 option.Status = status;
                 option.UpdatedBy = currentUserId;
                 option.CompanyId = companyId;
-                option.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                option.UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                 db.Set<CompanyMessageResponse>().Add(option);
                 await db.SaveChangesAsync();
                 return option.ResponseId;
@@ -1843,7 +1843,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 double DistanceToAlert = 100;
 
-                double.TryParse(_DBC.GetCompanyParameter("TRACKME_DISTANCE_TO_ALERT", companyId), out DistanceToAlert);
+                double.TryParse(await _DBC.GetCompanyParameter("TRACKME_DISTANCE_TO_ALERT", companyId), out DistanceToAlert);
 
                 double distancetokm = DistanceToAlert / 1000;
 
@@ -1900,7 +1900,7 @@ namespace CrisesControl.Infrastructure.Services
                 if (pricing.Count > 0)
                 {
                     int SMSSegment = 1;
-                    SMSSegment = _DBC.ChunkString(MessageText, 160);
+                    SMSSegment = await _DBC.ChunkString(MessageText, 160);
 
                     var cpp = await db.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == companyId).FirstOrDefaultAsync();
 
@@ -2005,17 +2005,17 @@ namespace CrisesControl.Infrastructure.Services
             {
             }
         }
-        public AcknowledgeReturn AcknowledgeMessage(int userID, int messageID, int messageListID, string latitude, string longitude, string ackMethod, int ResponseID, string timeZoneId)
+        public async Task<AcknowledgeReturn> AcknowledgeMessage(int userID, int messageID, int messageListID, string latitude, string longitude, string ackMethod, int ResponseID, string timeZoneId)
         {
-            DBCommon DBC = new DBCommon(db,_httpContextAccessor);
+          
             try
             {
-                DateTimeOffset dtNow = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                DateTimeOffset dtNow = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 var pUserID = new SqlParameter("@UserID", userID);
                 var pMessageID = new SqlParameter("@MessageID", messageID);
                 var pMessageListID = new SqlParameter("@MessageListID", messageListID);
-                var pLatitude = new SqlParameter("@Latitude", DBC.Left(latitude, 15));
-                var pLongitude = new SqlParameter("@Longitude", DBC.Left(longitude, 15));
+                var pLatitude = new SqlParameter("@Latitude", _DBC.Left(latitude, 15));
+                var pLongitude = new SqlParameter("@Longitude", _DBC.Left(longitude, 15));
                 var pMode = new SqlParameter("@Mode", ackMethod);
                 var pTimestamp = new SqlParameter("@Timestamp", dtNow);
                 var pResponseID = new SqlParameter("@ResponseID", ResponseID);
@@ -2038,12 +2038,12 @@ namespace CrisesControl.Infrastructure.Services
         }
 
         #region Social Integration
-        public void SocialPosting(int messageId, List<string> socialHandle, int companyId)
+        public async Task SocialPosting(int messageId, List<string> socialHandle, int companyId)
         {
             try
             {
 
-                var social_int = _DBC.GetSocialIntegration(companyId, "");
+                var social_int = await _DBC.GetSocialIntegration(companyId, "");
 
                 var msg = (from M in db.Set<Message>() where M.MessageId == messageId select M).FirstOrDefault();
 
@@ -2159,23 +2159,23 @@ namespace CrisesControl.Infrastructure.Services
 
         #endregion Social Integration
 
-        public void DownloadRecording(string recordingSid, int companyId, string recordingUrl)
+        public async Task DownloadRecording(string recordingSid, int companyId, string recordingUrl)
         {
          
             try
             {
                 int RetryCount = 2;
                 string ServerUploadFolder = _httpContextAccessor.HttpContext.GetServerVariable("../../tmp/");
-                string hostingEnv = _DBC.Getconfig("HostingEnvironment");
-                string AzureAPIShare = _DBC.Getconfig("AzureAPIShare");
+                string hostingEnv = await  _DBC.Getconfig("HostingEnvironment");
+                string AzureAPIShare = await _DBC.Getconfig("AzureAPIShare");
 
-                string RecordingPath = _DBC.LookupWithKey("RECORDINGS_PATH");
-                int.TryParse(_DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT"), out RetryCount);
+                string RecordingPath = await _DBC.LookupWithKey("RECORDINGS_PATH");
+                int.TryParse(await _DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT"), out RetryCount);
                 string SavePath = @RecordingPath + companyId + "\\";
 
                 _DBC.connectUNCPath();
 
-                FileHandler FH = new FileHandler(db,_httpContextAccessor);
+                FileHandler FH = new FileHandler(db,_httpContextAccessor,_DBC);
 
                 if (FH.FileExists(recordingSid + ".mp3", AzureAPIShare, SavePath))
                 {
@@ -2192,8 +2192,8 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     WebClient Client = new WebClient();
                     bool confdownloaded = false;
-                    bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
-                    string RoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                    bool SendInDirect = await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                    string RoutingApi = await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                     for (int i = 0; i < RetryCount; i++)
                     {
@@ -2227,8 +2227,8 @@ namespace CrisesControl.Infrastructure.Services
                                     var result = FH.UploadToAzure(AzureAPIShare, SavePath, recordingSid + ".mp3", filestream).Result;
                                     if (FH.FileExists(recordingSid + ".mp3", AzureAPIShare, SavePath))
                                     {
-                                        CommsHelper CH = new CommsHelper(db, _httpContextAccessor);
-                                        CH.DeleteRecording(recordingSid);
+                                        CommsHelper CH = new CommsHelper(db, _httpContextAccessor,_SDE,_DBC,_MSG);
+                                        await CH.DeleteRecording(recordingSid);
                                     }
                                 }
                                 else
@@ -2237,8 +2237,8 @@ namespace CrisesControl.Infrastructure.Services
 
                                     if (File.Exists(SavePath + recordingSid + ".mp3"))
                                     {
-                                        CommsHelper CH = new CommsHelper(db, _httpContextAccessor);
-                                        CH.DeleteRecording(recordingSid);
+                                        CommsHelper CH = new CommsHelper(db, _httpContextAccessor, _SDE, _DBC, _MSG);
+                                        await CH.DeleteRecording(recordingSid);
                                     }
                                 }
                             }

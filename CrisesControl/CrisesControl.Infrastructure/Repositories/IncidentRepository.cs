@@ -4,7 +4,6 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
@@ -62,9 +61,9 @@ public class IncidentRepository : IIncidentRepository
 
         _DBC = DBC;
         _SDE = SDE;
-        queueConsumer = new QueueConsumer(_context,_httpContextAccessor);
+        queueConsumer = new QueueConsumer(_context,_httpContextAccessor,DBC, service);
         _activeIncidentTaskService = activeIncidentTaskService;
-        _queueHelper = new QueueHelper(_context);
+        _queueHelper = new QueueHelper(_context,DBC, service);
     }
 
     public async Task<bool> CheckDuplicate(int companyId, string incidentName, int incidentId)
@@ -1244,13 +1243,13 @@ public class IncidentRepository : IIncidentRepository
     {
         try
         {
-            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+          
             var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
             var pIncidentActivationId = new SqlParameter("@IncidentActivationID", IncidentActivationId);
             var incidentStatus =  _context.Set<UpdateIncident>().FromSqlRaw("exec Pro_Get_Active_Incident_Basic @CompanyID, @IncidentActivationID", pCompanyId, pIncidentActivationId).AsEnumerable();
 
            
-            incidentStatus.FirstOrDefault().Status = DBC.LookupWithKey("IncidentStatus");
+            incidentStatus.FirstOrDefault().Status =await _DBC.LookupWithKey("IncidentStatus");
 
             return incidentStatus;
         }
@@ -1586,13 +1585,13 @@ public class IncidentRepository : IIncidentRepository
       UpdIncidentKeyHldLst[] UpdIncidentKeyHldLst, int AudioAssetId, bool TrackUser, bool SilentMessage, List<AckOption> AckOptions,
       int[] MessageMethod, int CascadePlanID, int[] Groups, int[] Keyholders)
     {
-        DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+       
         var Incidt = await _context.Set<Incident>()
                       .Where(inc=> inc.CompanyId == CompanyId && inc.IncidentId == IncidentId).FirstOrDefaultAsync();
 
         if (Incidt != null)
         {
-            string allow_nominated_kh = DBC.GetCompanyParameter("ALLOW_KEYHOLDER_NOMINATION", CompanyId);
+            string allow_nominated_kh =await _DBC.GetCompanyParameter("ALLOW_KEYHOLDER_NOMINATION", CompanyId);
             Incidt.IncidentIcon = IncidentIcon;
             Incidt.Name = Name;
             Incidt.Description = Description;
@@ -1635,10 +1634,10 @@ public class IncidentRepository : IIncidentRepository
 
                 if (CascadePlanID <= 0)
                 {
-                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                   
                     foreach (int Method in MessageMethod)
                     {
-                       await MSG.CreateMessageMethod(0, Method, 0, IncidentId);
+                       await _service.CreateMessageMethod(0, Method, 0, IncidentId);
                     }
                 }
             }
@@ -1815,8 +1814,8 @@ public class IncidentRepository : IIncidentRepository
     {
         try
         {
-            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
-            string webpath = DBC.LookupWithKey("PORTAL");
+           
+            string webpath =await  _DBC.LookupWithKey("PORTAL");
             //string nophoto = webpath + "/uploads/userphoto/no-photo.jpg";
             string company_path = CompanyId.ToString();
 
@@ -1824,9 +1823,9 @@ public class IncidentRepository : IIncidentRepository
             bool ShowSilentMessage = false;
             bool ShowMessageMethod = false;
 
-            bool.TryParse(DBC.GetCompanyParameter("SHOW_TRACK_USER_FIELD", CompanyId), out ShowTrackUser);
-            bool.TryParse(DBC.GetCompanyParameter("SHOW_SILENT_MESSAGE_FIELD", CompanyId), out ShowSilentMessage);
-            bool.TryParse(DBC.GetCompanyParameter("SHOW_MESSAGE_METHOD_FIELD", CompanyId), out ShowMessageMethod);
+            bool.TryParse(await _DBC.GetCompanyParameter("SHOW_TRACK_USER_FIELD", CompanyId), out ShowTrackUser);
+            bool.TryParse(await _DBC.GetCompanyParameter("SHOW_SILENT_MESSAGE_FIELD", CompanyId), out ShowSilentMessage);
+            bool.TryParse(await _DBC.GetCompanyParameter("SHOW_MESSAGE_METHOD_FIELD", CompanyId), out ShowMessageMethod);
 
             //bool iskc = (from AKC in db.ActiveIncidentKeyContact where AKC.UserId == CurrentUserID && AKC.IncidentActivationId == IncidentActivationId select AKC).Any();
             var pCompanyID = new SqlParameter("CompanyID", CompanyId);
@@ -1844,7 +1843,7 @@ public class IncidentRepository : IIncidentRepository
             activeincident.MessageMethod =await _context.Set<Core.Messages.MessageMethod>().Include(x => x.CommsMethod)
                                          .Where(MM => MM.ActiveIncidentId == activeincident.IncidentActivationId)
                                          .Select(MM => new CommsMethods { MethodId = MM.MethodId, MethodName = MM.CommsMethod.MethodName }).ToListAsync();
-            activeincident.Status = DBC.LookupWithKey("IncidentStatus");
+            activeincident.Status =await _DBC.LookupWithKey("IncidentStatus");
             var pIncidentActivationID2 = new SqlParameter("IncidentActivationID", activeincident.IncidentActivationId);
             activeincident.IncNotificationLst = await _context.Set<IIncNotificationLst>().FromSqlRaw("exec Pro_Get_IIncNotificationLst @CompanyID,@IncidentActivationID", pCompanyID, pIncidentActivationID2).ToListAsync();
                        activeincident.ActionLst = await _context.Set<IncidentAction>()
@@ -1875,7 +1874,7 @@ public class IncidentRepository : IIncidentRepository
                                                 }).ToList();
                                 
 
-            activeincident.SegregationWarning = await DBC.SegregationWarning(CompanyId, CurrentUserID, activeincident.IncidentId);
+            activeincident.SegregationWarning = await _DBC.SegregationWarning(CompanyId, CurrentUserID, activeincident.IncidentId);
 
             var pCompanyId = new SqlParameter("@CompanyID", CompanyId);
             var pIncidentActivationId = new SqlParameter("@IncidentActivationId", IncidentActivationId);
@@ -1897,7 +1896,7 @@ public class IncidentRepository : IIncidentRepository
             }
             else
             {
-                var socialprovider =await DBC.GetSocialServiceProviders();
+                var socialprovider =await _DBC.GetSocialServiceProviders();
                 List<string> selectedpro = activeincident.SocialHandle.Split(',').ToList();
                 activeincident.SocialHandles = socialprovider.Where(w => selectedpro.Contains(w.ProviderCode)).ToList();
             }
@@ -1933,7 +1932,7 @@ public class IncidentRepository : IIncidentRepository
     }
     public async Task<int> CopyIncident(int CompanyId, int LibIncidentId, int OutUserCompanyId, int OutLoginUserId, int CurrentUserId, string TimeZoneId)
     {
-        DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+      
         var IncidentDtl = await _context.Set<LibIncident>()
                            .Where(LI=> LI.LibIncidentId == LibIncidentId)
                            .FirstOrDefaultAsync();
@@ -1979,7 +1978,7 @@ public class IncidentRepository : IIncidentRepository
                 CreatedBy = CurrentUserId,
                 UpdatedBy = CurrentUserId,
                 CreatedOn = System.DateTime.Now,
-                UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
             };
             await _context.AddAsync(newIncident);
             await _context.SaveChangesAsync();
@@ -2039,7 +2038,7 @@ public class IncidentRepository : IIncidentRepository
     }
     public async Task<List<IncidentAssets>> IncidentAsset(int CompanyId, int IncidentId, string Source = "WEB")
     {
-        DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+       
         var pCompanyID = new SqlParameter("@CompanyID", CompanyId);
         var pIncidentID = new SqlParameter("@IncidentID", IncidentId);
         var pSource = new SqlParameter("@Source", Source);
@@ -2264,10 +2263,10 @@ public class IncidentRepository : IIncidentRepository
 
                 int mPriority = SharedKernel.Utils.Common.GetPriority(verifyInci.Severity);
 
-                Messaging MSG = new Messaging(_context,_httpContextAccessor)
-                {
-                    TimeZoneId = TimeZoneId
-                };
+                //Messaging MSG = new Messaging(_context,_httpContextAccessor)
+                //{
+                //    TimeZoneId = TimeZoneId
+                //};
 
                 bool MultiResponse = false;
                 var pIncidentID = new SqlParameter("@IncidentID", IncidentId);
@@ -2289,14 +2288,14 @@ public class IncidentRepository : IIncidentRepository
                     //await _context.Set<IncidentMethod>().FromSqlRaw("exec Pro_Incident_GetMessageMethods @CompanyID,@IncidentID", pCompanyId, pIncidentID).ToArrayAsync();
 
                 //Create Message Records in the Message Table
-                MSG.CascadePlanID = verifyInci.CascadePlanId;
-                MSG.MessageSourceAction = SourceAction.IncidentTest;
-                int tblmessageid =await MSG.CreateMessage(CompanyId, tblIncidenActivation.IncidentDescription, "Incident",
-                    tblIncidenActivation.IncidentActivationId, mPriority, CurrentUserId, 1, DateTime.Now.GetDateTimeOffset(TimeZoneId),
+                _service.CascadePlanID = verifyInci.CascadePlanId;
+                _service.MessageSourceAction = SourceAction.IncidentTest;
+                int tblmessageid =await _service.CreateMessage(CompanyId, tblIncidenActivation.IncidentDescription, "Incident",
+                    tblIncidenActivation.IncidentActivationId, mPriority, CurrentUserId, 1,await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
                     MultiResponse, ackoption, 99, verifyInci.AudioAssetId, 0, (bool)verifyInci.TrackUser, (bool)verifyInci.SilentMessage,
                     MessageMethod);
 
-                MSG.AddUserToNotify(tblmessageid, new int[] { CurrentUserId }.ToList(), tblIncidenActivation.IncidentActivationId);
+                await _service.AddUserToNotify(tblmessageid, new int[] { CurrentUserId }.ToList(), tblIncidenActivation.IncidentActivationId);
 
                 if (verifyInci.HasTask)
                 {
@@ -2318,12 +2317,12 @@ public class IncidentRepository : IIncidentRepository
                     int RowsCount = await _context.Database.ExecuteSqlRawAsync("Pro_Create_Launch_Incident_Message_List @IncidentActivationID,@MessageID,@CustomerTime",
                        pIncidentActivationId, pMessageId, pCustomerTime);
 
-                    IsFundAvailable =await MSG.CalculateMessageCost(CompanyId, tblmessageid, tblIncidenActivation.IncidentDescription);
+                    IsFundAvailable =await _service.CalculateMessageCost(CompanyId, tblmessageid, tblIncidenActivation.IncidentDescription);
 
                     await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, verifyInci.CascadePlanId));
 
                     //QueueHelper.MessageDevicePublish(tblmessageid, 1);
-                    queueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
+                    await queueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
 
                 }
                 catch (Exception ex)
@@ -2443,7 +2442,6 @@ public class IncidentRepository : IIncidentRepository
         {
             var OldNotifyList = await _context.Set<IncidentNotificationList>().Where(ONL=> ONL.CompanyId == CompanyId && ONL.IncidentActivationId == IncidentActivationId).ToListAsync();
 
-            Messaging MSG = new Messaging(_context,_httpContextAccessor);
 
             List<int> LINOList = new List<int>();
             List<IncidentNotificationObjLst> LstIncNotiLst = new List<IncidentNotificationObjLst>(LaunchIncidentNotificationObjLst);
@@ -2456,7 +2454,7 @@ public class IncidentRepository : IIncidentRepository
                         && s.SourceObjectPrimaryId == INotiLst.SourceObjectPrimaryId && s.Status == 1);
                     if (ISExist == null)
                     {
-                       await MSG.CreateIncidentNotificationList(tblmessageid, IncidentActivationId, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CurrentUserId, CompanyId, TimeZoneId);
+                       await _service.CreateIncidentNotificationList(tblmessageid, IncidentActivationId, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CurrentUserId, CompanyId, TimeZoneId);
                     }
                     else
                     {
@@ -2580,7 +2578,7 @@ public class IncidentRepository : IIncidentRepository
       bool MultiResponse, List<AckOption> AckOptions, int AssetId = 0, bool TrackUser = false, bool SilentMessage = false, int[] MessageMethod = null,
       List<AffectedLocation> AffectedLocations = null, int[] UsersToNotify = null, List<string> SocialHandle = null)
     {
-        DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
+        
         var inci = await _context.Set<IncidentActivation>().Where(I=> I.IncidentActivationId == IncidentActivationId && I.CompanyId == CompanyId).FirstOrDefaultAsync();
 
         if (inci != null)
@@ -2591,7 +2589,7 @@ public class IncidentRepository : IIncidentRepository
             inci.TrackUser = TrackUser;
             inci.SilentMessage = SilentMessage;
             inci.UpdatedBy = CurrentUserId;
-            inci.UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+            inci.UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
             inci.AssetId = AssetId;
             inci.SocialHandle = string.Join(",", SocialHandle);
             _context.Update(inci);
@@ -2610,30 +2608,30 @@ public class IncidentRepository : IIncidentRepository
                         pushmethodid = await _context.Set<CommsMethod>().Where(w => w.MethodCode == "PUSH").Select(s => s.CommsMethodId).FirstOrDefaultAsync();
                     }
 
-                    Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                   
                     foreach (int Method in MessageMethod)
                     {
-                       await  MSG.CreateMessageMethod(0, Method, inci.IncidentActivationId);
+                       await  _service.CreateMessageMethod(0, Method, inci.IncidentActivationId);
                         if (pushmethodid == Method)
                             pushadded = true;
                     }
                     if (TrackUser && !pushadded)
                     {
-                       await MSG.CreateMessageMethod(0, pushmethodid, inci.IncidentActivationId);
+                       await _service.CreateMessageMethod(0, pushmethodid, inci.IncidentActivationId);
                     }
                 }
             }
 
             if (UsersToNotify != null)
             {
-                Messaging MSG = new Messaging(_context, _httpContextAccessor);
-                MSG.AddUserToNotify(0, UsersToNotify.ToList(), inci.IncidentActivationId);
+               
+               await _service.AddUserToNotify(0, UsersToNotify.ToList(), inci.IncidentActivationId);
             }
 
             if (MultiResponse)
             {
-                Messaging MSG = new Messaging(_context, _httpContextAccessor);
-                await MSG.SaveActiveMessageResponse(0, AckOptions, inci.IncidentActivationId);
+               
+                await _service.SaveActiveMessageResponse(0, AckOptions, inci.IncidentActivationId);
             }
 
             //Process impacted location
@@ -2653,9 +2651,9 @@ public class IncidentRepository : IIncidentRepository
                         IncidentId = IncidentId,
                         UserId = IKeyHld.UserId.Value,
                         CreatedBy = CurrentUserId,
-                        CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
                         UpdatedBy = CurrentUserId,
-                        UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                        UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
                     };
                     await _context.AddAsync(tblIncKeyContact);
                     await _context.SaveChangesAsync();
@@ -2676,9 +2674,9 @@ public class IncidentRepository : IIncidentRepository
                         MessageId = 0,
                         Status = 1,
                         CreatedBy = CurrentUserId,
-                        CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
                         UpdatedBy = CurrentUserId,
-                        UpdatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                        UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
                     };
                     await _context.AddAsync(tblIncidentNotiLst);
                     await _context.SaveChangesAsync();

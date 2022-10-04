@@ -11,6 +11,7 @@ namespace CrisesControl.Core.Users.Repositories;
 
 public interface IUserRepository
 {
+    public bool IsValidMobile { get; set; }
     Task<int> CreateUser(User user, CancellationToken cancellationToken);
     bool EmailExists(string email);
     Task<User?> GetUserById(int id);
@@ -85,5 +86,6 @@ public interface IUserRepository
     Task<dynamic> SendPasswordOTP(int userID, string action, string password, string oldPassword, string otpCode = "", string Return = "bool",
            string otpMessage = "", string source = "RESET", string method = "TEXT", string timeZoneId = "GMT Standard Time");
     Task<BillingSummaryModel> GetUserCount(int companyId, int currentUserId);
+    Task UsageAlert(int companyId);
     Task<LicenseCheckResult> CheckUserLicense(string sessionId, List<UserRoles> userList, int companyId, int currentUserId);
 }

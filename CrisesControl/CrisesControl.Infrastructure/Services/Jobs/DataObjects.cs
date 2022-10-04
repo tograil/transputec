@@ -1,6 +1,7 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.AspNetCore.Http;
@@ -17,13 +18,13 @@ namespace CrisesControl.Infrastructure.Services.Jobs
     public class DataObjects
     {
 
-        private DBCommon DBC;
+        private readonly IDBCommonRepository DBC;
         private readonly CrisesControlContext db;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public DataObjects(CrisesControlContext _db)
+        public DataObjects(CrisesControlContext _db, IDBCommonRepository _DBC)
         {
             db = _db;
-            DBC = new DBCommon(db, _httpContextAccessor);
+            DBC = _DBC;
             _httpContextAccessor = new HttpContextAccessor();
         }
 

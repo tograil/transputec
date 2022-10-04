@@ -17,7 +17,7 @@ namespace CrisesControl.Api.Application.Commands.Import.InsImpUser
         {
             Guard.Against.Null(request, nameof(InsImpUserRequest));
             var response = new InsImpUserResponse();
-            response.Result = _importRepository.CreateTempUsers(request.UserData, request.SessionId, request.CompanyId, request.JobType, request.UserId, request.TimeZoneId);
+            response.Result = await _importRepository.CreateTempUsers(request.UserData, request.SessionId, request.CompanyId, request.JobType, request.UserId, request.TimeZoneId);
             return response;
         }
     }

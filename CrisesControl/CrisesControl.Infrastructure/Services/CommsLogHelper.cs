@@ -1,4 +1,4 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Communication;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.System;
@@ -19,15 +19,17 @@ using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
-using static CrisesControl.Api.Application.Helpers.DBCommon;
 using Twilio.Base;
+using static CrisesControl.Infrastructure.Repositories.DBCommonRepository;
+using CrisesControl.Core.DBCommon.Repositories;
+using CrisesControl.Core.Messages.Services;
 
 namespace CrisesControl.Infrastructure.Services
 {
     public class CommsLogsHelper
     {
         private readonly CrisesControlContext db;
-        private readonly DBCommon DBC;
+        private readonly IDBCommonRepository DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         private string PHONESID = string.Empty;
@@ -40,29 +42,30 @@ namespace CrisesControl.Infrastructure.Services
         public event UpdateHandler EntityUpdate;
         private string CM_CLIENTID = string.Empty;
         private readonly QueueHelper _queueHelper;
-
-        public CommsLogsHelper(CrisesControlContext db, IHttpContextAccessor httpContextAccessor)
+        private readonly IMessageService _MSG;
+        public CommsLogsHelper(CrisesControlContext db, IHttpContextAccessor httpContextAccessor, IDBCommonRepository _DBC, IMessageService MSG)
         {
             this.db = db;
             this._httpContextAccessor = httpContextAccessor;
-            this.DBC = new DBCommon(db,_httpContextAccessor);
-            _queueHelper = new QueueHelper(db);
+            this.DBC = _DBC;
+            this._MSG = MSG;
+            _queueHelper = new QueueHelper(db,DBC,_MSG);
         }
 
         public CommsLogsHelper()
         {
-            PHONESID = DBC.LookupWithKey("PHONESID");
-            PHONETOKEN = DBC.LookupWithKey("PHONETOKEN");
-            CM_CLIENTID = DBC.LookupWithKey("CM_CLIENTID");
+            PHONESID = DBC.LookupWithKey("PHONESID").ToString();
+            PHONETOKEN = DBC.LookupWithKey("PHONETOKEN").ToString();
+            CM_CLIENTID =DBC.LookupWithKey("CM_CLIENTID").ToString();
             //bool log_age = Double.TryParse(DBC.LookupWithKey("COMMS_LOG_AGE_HOURS"), out COMMS_LOG_AGE_HOURS);
             //RECORDING_URL = DBC.LookupWithKey("RECORDING_URL");
 
-            TwilioRoutingApi = DBC.LookupWithKey("TWILIO_ROUTING_API");
+            TwilioRoutingApi = DBC.LookupWithKey("TWILIO_ROUTING_API").ToString();
 
-            int.TryParse(DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT"), out RetryCount);
-            string sendDirect = DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION");
-
-            SendInDirect = DBC.IsTrue(sendDirect, false);
+            int.TryParse( DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT").ToString(), out RetryCount);
+            string sendDirect = DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION").ToString();
+            string indirect = DBC.IsTrue(sendDirect, false).ToString();
+            SendInDirect = Convert.ToBoolean(indirect);
 
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
@@ -93,7 +96,7 @@ namespace CrisesControl.Infrastructure.Services
             ForceLogCollection();
         }
 
-        public void ForceLogCollection()
+        public async Task ForceLogCollection()
         {
             try
             {
@@ -101,7 +104,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 TwilioClient.Init(PHONESID, PHONETOKEN);
 
-                DateTimeOffset checkTime = DBC.GetDateTimeOffset(DateTime.Now.AddHours(-2));
+                DateTimeOffset checkTime = await  DBC.GetDateTimeOffset(DateTime.Now.AddHours(-2));
 
                 var getSMSList = (from MT in db.Set<MessageTransaction>()
                                   where MT.CloudMessageId != null && (MT.MethodName == "TEXT" || MT.MethodName == "PHONE") &&
@@ -1029,7 +1032,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void GetCallRecordingLog(CallResource call)
+        public async Task GetCallRecordingLog(CallResource call)
         {
             try
             {
@@ -1055,7 +1058,7 @@ namespace CrisesControl.Infrastructure.Services
                         DateTimeOffset StartTime = call.StartTime == null ? (DateTimeOffset)SqlDateTime.MinValue.Value : (DateTimeOffset)call.StartTime;
                         DateTimeOffset EndTime = call.EndTime == null ? (DateTimeOffset)SqlDateTime.MinValue.Value : (DateTimeOffset)call.EndTime;
 
-                        CreateCommsLogAsync(recording.Sid, "RECORDING", "COMPLETED", call.From, call.To, call.Direction, Price, "", "USD", 0, "",
+                       await CreateCommsLogAsync(recording.Sid, "RECORDING", "COMPLETED", call.From, call.To, call.Direction, Price, "", "USD", 0, "",
                             Duration, (DateTimeOffset)recording.DateCreated, (DateTimeOffset)recording.DateUpdated, StartTime, EndTime, CommsProvider: "TWILIO");
                     }
                 }
@@ -1077,17 +1080,17 @@ namespace CrisesControl.Infrastructure.Services
                     var checksid = await db.Set<CommsLog>().Where(L=> L.Sid == Sid).FirstOrDefaultAsync();
                     if (checksid != null)
                     {
-                        checksid.DateCreated = DBC.ToNullIfTooEarlyForDb(DateCreated);
+                        checksid.DateCreated =await DBC.ToNullIfTooEarlyForDb(DateCreated);
                         checksid.Price = Price;
                         checksid.Status = Status;
                         checksid.Duration = Duration;
-                        checksid.DateUpdated = DBC.ToNullIfTooEarlyForDb(DateUpdated);
-                        checksid.EndTime = EndTime != null ? DBC.ToNullIfTooEarlyForDb(EndTime) : DateUpdated;
+                        checksid.DateUpdated =await DBC.ToNullIfTooEarlyForDb(DateUpdated);
+                        checksid.EndTime = EndTime != null ? await DBC.ToNullIfTooEarlyForDb(EndTime) : DateUpdated;
                         checksid.CommType = CommType;
                         checksid.NumSegments = NumSegments;
                         checksid.Body = Body;
-                        checksid.DateSent = StartTime != null ? DBC.ToNullIfTooEarlyForDb(StartTime) : DateUpdated;
-                        checksid.StartTime = EndTime != null ? DBC.ToNullIfTooEarlyForDb(EndTime) : DateUpdated;
+                        checksid.DateSent = StartTime != null ?await DBC.ToNullIfTooEarlyForDb(StartTime) : DateUpdated;
+                        checksid.StartTime = EndTime != null ?await DBC.ToNullIfTooEarlyForDb(EndTime) : DateUpdated;
                         checksid.ErrorCode = !string.IsNullOrEmpty(ErrorCode) ? ErrorCode : "";
                         checksid.ErrorMessage = !string.IsNullOrEmpty(ErrorMessage) ? ErrorMessage : "";
                         db.SaveChanges();
@@ -1096,16 +1099,16 @@ namespace CrisesControl.Infrastructure.Services
                     {
                         CommsLog CL = new CommsLog();
                         CL.Sid = Sid;
-                        CL.DateCreated = DBC.ToNullIfTooEarlyForDb(DateCreated);
-                        CL.DateUpdated = DBC.ToNullIfTooEarlyForDb(DateUpdated);
-                        CL.DateSent = DBC.ToNullIfTooEarlyForDb(StartTime);
+                        CL.DateCreated =await DBC.ToNullIfTooEarlyForDb(DateCreated);
+                        CL.DateUpdated =await DBC.ToNullIfTooEarlyForDb(DateUpdated);
+                        CL.DateSent = await DBC.ToNullIfTooEarlyForDb(StartTime);
                         CL.Body = Body;
                         CL.NumSegments = NumSegments;
                         CL.ToFormatted = To;
                         CL.FromFormatted = From;
                         CL.Status = Status;
-                        CL.StartTime = StartTime != null ? DBC.ToNullIfTooEarlyForDb(StartTime) : DateUpdated;
-                        CL.EndTime = EndTime != null ? DBC.ToNullIfTooEarlyForDb(EndTime) : DateUpdated;
+                        CL.StartTime = StartTime != null ? await DBC.ToNullIfTooEarlyForDb(StartTime) : DateUpdated;
+                        CL.EndTime = EndTime != null ? await DBC.ToNullIfTooEarlyForDb(EndTime) : DateUpdated;
                         CL.Duration = Duration;
                         CL.Price = Price;
                         CL.PriceUnit = PriceUnit;
@@ -1164,7 +1167,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async void GetVoicePricing(string ISO2Code, string CountryCode)
+        public async Task GetVoicePricing(string ISO2Code, string CountryCode)
         {
             try
             {
@@ -1486,7 +1489,7 @@ namespace CrisesControl.Infrastructure.Services
             return null;
         }
 
-        public async void CreateCommsLog(string sid, string commType, string status, string from, string to, string direction, decimal price, string answeredBy, string priceUnit,
+        public async Task CreateCommsLog(string sid, string commType, string status, string from, string to, string direction, decimal price, string answeredBy, string priceUnit,
             int numSegments, string body, int duration, DateTimeOffset dateCreated, DateTimeOffset dateUpdated, DateTimeOffset startTime, DateTimeOffset endTime,
             string errorCode = "", string errorMessage = "", string commsProvider = "")
         {
@@ -1497,35 +1500,35 @@ namespace CrisesControl.Infrastructure.Services
                     var checksid = await (from L in db.Set<CommsLog>() where L.Sid == sid select L).FirstOrDefaultAsync();
                     if (checksid != null)
                     {
-                        checksid.DateCreated = DBC.ToNullIfTooEarlyForDb(dateCreated);
+                        checksid.DateCreated =await DBC.ToNullIfTooEarlyForDb(dateCreated);
                         checksid.Price = price;
                         checksid.Status = status;
                         checksid.Duration = duration;
-                        checksid.DateUpdated = DBC.ToNullIfTooEarlyForDb(dateUpdated);
-                        checksid.EndTime = endTime != null ? DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
+                        checksid.DateUpdated =await DBC.ToNullIfTooEarlyForDb(dateUpdated);
+                        checksid.EndTime = endTime != null ? await DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
                         checksid.CommType = commType;
                         checksid.NumSegments = numSegments;
                         checksid.Body = body;
-                        checksid.DateSent = startTime != null ? DBC.ToNullIfTooEarlyForDb(startTime) : dateUpdated;
-                        checksid.StartTime = endTime != null ? DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
+                        checksid.DateSent = startTime != null ? await DBC.ToNullIfTooEarlyForDb(startTime) : dateUpdated;
+                        checksid.StartTime = endTime != null ?await DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
                         checksid.ErrorCode = !string.IsNullOrEmpty(errorCode) ? errorCode : "";
                         checksid.ErrorMessage = !string.IsNullOrEmpty(errorMessage) ? errorMessage : "";
-                        db.SaveChanges();
+                        await db.SaveChangesAsync();
                     }
                     else
                     {
                         CommsLog CL = new CommsLog();
                         CL.Sid = sid;
-                        CL.DateCreated = DBC.ToNullIfTooEarlyForDb(dateCreated);
-                        CL.DateUpdated = DBC.ToNullIfTooEarlyForDb(dateUpdated);
-                        CL.DateSent = DBC.ToNullIfTooEarlyForDb(startTime);
+                        CL.DateCreated =await DBC.ToNullIfTooEarlyForDb(dateCreated);
+                        CL.DateUpdated =await  DBC.ToNullIfTooEarlyForDb(dateUpdated);
+                        CL.DateSent = await DBC.ToNullIfTooEarlyForDb(startTime);
                         CL.Body = body;
                         CL.NumSegments = numSegments;
                         CL.ToFormatted = to;
                         CL.FromFormatted = from;
                         CL.Status = status;
-                        CL.StartTime = startTime != null ? DBC.ToNullIfTooEarlyForDb(startTime) : dateUpdated;
-                        CL.EndTime = endTime != null ? DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
+                        CL.StartTime = startTime != null ?await  DBC.ToNullIfTooEarlyForDb(startTime) : dateUpdated;
+                        CL.EndTime = endTime != null ?await  DBC.ToNullIfTooEarlyForDb(endTime) : dateUpdated;
                         CL.Duration = duration;
                         CL.Price = price;
                         CL.PriceUnit = priceUnit;

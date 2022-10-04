@@ -9,14 +9,14 @@ namespace CrisesControl.Core.Messages.Services;
 
 public interface IMessageService
 {
-     bool TextUsed { get; set; }
-    
-     bool PhoneUsed { get; set; }
-     bool EmailUsed { get; set; }
-     bool PushUsed { get; set; }
-     string TimeZoneId { get; set; }
-     int CascadePlanID { get; set; }
-     string MessageSourceAction { get; set; }
+    public bool TextUsed { get; set; }
+
+    public bool PhoneUsed { get; set; }
+    public bool EmailUsed { get; set; }
+    public bool PushUsed { get; set; }
+    public string TimeZoneId { get; set; }
+    public int CascadePlanID { get; set; }
+    public string MessageSourceAction { get; set; }
     Task ProcessMessageMethod(int messageId, int[] messageMethod, int incidentActivationId, bool trackUser = false);
     Task CreateMessageMethod(int MessageID, int MethodID, int ActiveIncidentID = 0, int IncidentID = 0);
     Task AddUserLocation(int userID, int userDeviceID, double latitude, double longitude, string locationAddress,

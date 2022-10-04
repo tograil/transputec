@@ -1,4 +1,4 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
@@ -81,7 +81,7 @@ namespace CrisesControl.Core.Import
             }
         }
 
-        public void ImportWithCSVFile()
+        public async Task ImportWithCSVFile()
         {
             try
             {
@@ -92,7 +92,7 @@ namespace CrisesControl.Core.Import
                 }
                 else
                 {
-                    DataTable importData = ImportService.ReadCSVFile(this.FilePath, this.ColumnDelimiter, this.ColumnMappingFilePath, this.ColumnMappingFileType,
+                    DataTable importData =await ImportService.ReadCSVFile(this.FilePath, this.ColumnDelimiter, this.ColumnMappingFilePath, this.ColumnMappingFileType,
                         this.FileHasHeader);
                     StartImport(importData, ImportType);
                 }
@@ -135,7 +135,7 @@ namespace CrisesControl.Core.Import
         {
             try
             {
-                DataTable importData = ImportService.ReadCSVFile(this.FilePath, this.ColumnDelimiter, this.ColumnMappingFilePath, this.ColumnMappingFileType, this.FileHasHeader);
+                DataTable importData = await ImportService.ReadCSVFile(this.FilePath, this.ColumnDelimiter, this.ColumnMappingFilePath, this.ColumnMappingFileType, this.FileHasHeader);
 
 
                 List<ImportDumpData> userlist = new List<ImportDumpData>();

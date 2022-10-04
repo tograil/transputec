@@ -1,5 +1,6 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
@@ -17,8 +18,8 @@ namespace CrisesControl.Infrastructure.Services
     {
         private readonly CrisesControlContext db;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon DBC;
-        private readonly SendEmail SDE;
+        private readonly IDBCommonRepository DBC;
+        private readonly ISenderEmailService SDE;
         private decimal VATRate = 0M;
         private readonly BillingHelper _billing;
 
@@ -28,12 +29,12 @@ namespace CrisesControl.Infrastructure.Services
         private string SMSStatusToCharge = "";
         private string PhoneStatusToCharge = "";
 
-        public UsageCalculation()
+        public UsageCalculation(IDBCommonRepository _DBC, ISenderEmailService _SDE)
         {
             _httpContextAccessor = new HttpContextAccessor();
-            DBC = new DBCommon(db, _httpContextAccessor);
-            SDE = new SendEmail(db, DBC);
-            _usage= new UsageHelper(db);
+            DBC = _DBC;
+            SDE = _SDE;
+            _usage= new UsageHelper(db,DBC,SDE);
         }
         public async Task update_company_balance(int CompanyId, decimal TransactionValue)
         {
@@ -188,8 +189,8 @@ namespace CrisesControl.Infrastructure.Services
                         }
                         else
                         {
-                            SendEmail SDE = new SendEmail(db, DBC);
-                            SDE.InvoicePaymentAlert(CompanyId, monthly_payment);
+                            
+                            await SDE.InvoicePaymentAlert(CompanyId, monthly_payment);
                         }
 
                         //Get the messages transactions from MessageTransaction Tables
@@ -228,7 +229,7 @@ namespace CrisesControl.Infrastructure.Services
                                          UserRole = string.IsNullOrEmpty(U.UserRole) ? "USER" : U.UserRole
                                      }).ToListAsync();
 
-                        var roles = DBC.CCRoles(true);
+                        var roles = await DBC.CCRoles(true);
 
                         int StaffLimit = Convert.ToInt16(DBC.GetPackageItem("USER_LIMIT", CompanyId));
                         int TotalAdmin = Users.Where(w => roles.Contains(w.UserRole.ToUpper())).Select(s => s.UserRole).Count();

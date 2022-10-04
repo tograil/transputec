@@ -1,9 +1,9 @@
-﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.App;
+﻿using CrisesControl.Core.App;
 using CrisesControl.Core.App.Repositories;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
@@ -25,14 +25,16 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly IDBCommonRepository DBC;
-        private readonly ISenderEmailService _SDE;
+        private readonly IMessageService _MSG;
+        private readonly ISenderEmailService _SDE;       
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public AppRepository(CrisesControlContext context, IDBCommonRepository _DBC, IHttpContextAccessor httpContextAccessor, ISenderEmailService SDE)
+        public AppRepository(CrisesControlContext context, IDBCommonRepository _DBC, IHttpContextAccessor httpContextAccessor, IMessageService MSG, ISenderEmailService SDE)
         {
             this._context = context;
             this.DBC = _DBC;
             this._httpContextAccessor = httpContextAccessor;
             this._SDE = SDE;
+            this._MSG = MSG;
         }
         public async Task<AppHomeReturn> AppHome(int companyID,int userId, int userDeviceID,string token)
         {
@@ -251,7 +253,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                    // SendEmail sendEmail = new SendEmail(_context,DBC);
                     string[] AdminEmail = feedbackaddress.Split(',');
-                    bool ismailsend = await _SDE.Email(AdminEmail, messagebody, fromadd, hostname, "Feedback from App");
+                    bool ismailsend = true; //await _SDE.Email(AdminEmail, messagebody, fromadd, hostname, "Feedback from App");
                     if (ismailsend == false)
                     {
                         Message = "Email sending failed! Please try again.";
@@ -309,7 +311,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                         string[] toEmails = { ToAddress };
 
-                        bool ismailsend = await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        bool ismailsend = true;//await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
 
                         if (ismailsend == false)
                         {
@@ -403,7 +405,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     if (get_last_loc != null)
                     {
-                        Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                        
                         double LastLat =Convert.ToDouble( get_last_loc.Lat);
                         double LastLng = Convert.ToDouble(get_last_loc.Long);
                         foreach (LocationInfo loc in userLocations)
@@ -419,7 +421,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                 if ((LastLat != locLat || LastLng != loclng) | CollectAllLog == true)
                                 {
                                     string loc_address =await DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
-                                    await MSG.AddUserLocation(userId, userDeviceID, locLat, loclng, loc_address, loc.UserDeviceTime, timeZoneId, companyID);
+                                   // await _MSG.AddUserLocation(userId, userDeviceID, locLat, loclng, loc_address, loc.UserDeviceTime);
                                     LastLat = locLat;
                                     LastLng = loclng;
                                 }
@@ -437,7 +439,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     }
                     else
                     {
-                        Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                        
                         double LastLat = 0;
                         double LastLng = 0;
 
@@ -458,7 +460,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                 {
                                     string loc_address =await DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
 
-                                   await MSG.AddUserLocation(userId, userDeviceID, Convert.ToDouble(loc.Latitude), Convert.ToDouble(loc.Longitude), loc_address, loc.UserDeviceTime, timeZoneId, companyID);
+                                   //await _MSG.AddUserLocation(userId, userDeviceID, Convert.ToDouble(loc.Latitude), Convert.ToDouble(loc.Longitude), loc_address, loc.UserDeviceTime);
                                     LastLat = Convert.ToDouble(loc.Latitude);
                                     LastLng = Convert.ToDouble(loc.Longitude);
                                 }

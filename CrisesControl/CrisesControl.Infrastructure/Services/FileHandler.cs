@@ -3,8 +3,8 @@ using Azure.Storage;
 using Azure.Storage.Files.Shares;
 using Azure.Storage.Files.Shares.Models;
 using Azure.Storage.Sas;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.AuditLog.Services;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -21,25 +21,25 @@ namespace CrisesControl.Infrastructure.Services
         private string connectionString;
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon DBC;
+        private readonly IDBCommonRepository DBC;
         private string hostingEnv;
         private readonly IAuditLogService _auditLogService;
-        public FileHandler(CrisesControlContext context,  IHttpContextAccessor httpContextAccessor)
+        public FileHandler(CrisesControlContext context,  IHttpContextAccessor httpContextAccessor, IDBCommonRepository _DBC)
         {
            
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            DBC = new DBCommon(_context, _httpContextAccessor);
-            connectionString = DBC.Getconfig("AzureFileShareConnection");
-            hostingEnv = DBC.Getconfig("HostingEnvironment");
+            DBC =  _DBC;
+            connectionString = DBC.Getconfig("AzureFileShareConnection").ToString();
+            hostingEnv = DBC.Getconfig("HostingEnvironment").ToString();
         }
 
-        public Uri GetFileSasUri(string shareName, string filePath, DateTime expiration, ShareFileSasPermissions permissions)
+        public async Task<Uri> GetFileSasUri(string shareName, string filePath, DateTime expiration, ShareFileSasPermissions permissions)
         {
             // Get the account details from app settings
 
-            string accountName = DBC.Getconfig("StorageAccountName");
-            string accountKey = DBC.Getconfig("StorageAccountKey");
+            string accountName = await  DBC.Getconfig("StorageAccountName");
+            string accountKey =await  DBC.Getconfig("StorageAccountKey");
 
             ShareSasBuilder fileSAS = new ShareSasBuilder()
             {
@@ -70,7 +70,7 @@ namespace CrisesControl.Infrastructure.Services
         public async Task CopyFileAsync(string sourceShareName, string sourceFilePath, string destiShareName, string destFilePath)
         {
             // Get the connection string from app settings
-            string connectionString = DBC.Getconfig("AzureFileShareConnection");
+            string connectionString = await DBC.Getconfig("AzureFileShareConnection");
 
             // Get a reference to the file we created previously
             ShareFileClient sourceFile = new ShareFileClient(connectionString, sourceShareName, sourceFilePath);
@@ -159,7 +159,7 @@ namespace CrisesControl.Infrastructure.Services
         {
             try
             {
-                string connectionString = DBC.Getconfig("AzureFileShareConnection");
+                string connectionString =await DBC.Getconfig("AzureFileShareConnection");
 
                 const int uploadLimit = 4194304;
 

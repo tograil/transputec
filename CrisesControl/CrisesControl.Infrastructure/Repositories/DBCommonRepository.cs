@@ -16,6 +16,7 @@ using System.Data;
 using Newtonsoft.Json;
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Core.Users.Repositories;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Text;
@@ -32,9 +33,10 @@ using System.Security.Cryptography;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.Core.Exceptions.InvalidOperation;
 using System.Text.RegularExpressions;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Infrastructure.Services;
 using Microsoft.Data.SqlClient;
+using Twilio;
+using Twilio.Rest.Lookups.V1;
 
 namespace CrisesControl.Infrastructure.Repositories
 {
@@ -45,19 +47,20 @@ namespace CrisesControl.Infrastructure.Repositories
         private int companyId;
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly ISenderEmailService _SDE;
+        // private readonly ISenderEmailService _SDE;
+        //private readonly IUserRepository _userRepository;
         ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
         bool isretry = false;
         public delegate void UpdateHandler(object sender, UpdateEventArgs e);
+        public bool isValidPhone = false;
 
-        public DBCommonRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ISenderEmailService SDE)
+        public DBCommonRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor /*,ISenderEmailService SDE*/)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            _SDE = SDE;
-            //userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-            //companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            //_SDE = SDE;
         }
+
         public class UpdateEventArgs : EventArgs
         {
             public UpdateEventArgs(string _Msg)
@@ -65,6 +68,11 @@ namespace CrisesControl.Infrastructure.Repositories
                 Message = _Msg;
             }
             public string Message { get; }
+        }
+        public bool IsValidPhone
+        {
+            get => isValidPhone;
+            set => isValidPhone = value;
         }
 
         public async Task<StringBuilder> ReadHtmlFile(string fileCode, string source, int companyId,  string subject, string provider = "AWSSES")
@@ -644,7 +652,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         if (sendAlert && CommsDebug == "false")
                         {
                            
-                           await _SDE.UsageAlert(companyId);
+                         // await _userRepository.UsageAlert(companyId);
                         }
 
                     }
@@ -1794,6 +1802,85 @@ namespace CrisesControl.Infrastructure.Repositories
             }
 
         }
+        public async Task GetFormatedNumber(string inputNumber,  string isdCode, string phoneNum, string defaultISD = "44")
+        {
+
+            phoneNum = Regex.Replace(inputNumber, @"\D", string.Empty);
+            isdCode = defaultISD;
+            IsValidPhone = false;
+
+            if (Left(inputNumber, 1) != "+")
+                inputNumber = isdCode + inputNumber;
+
+            try
+            {
+                string ClientId =await LookupWithKey("TWILIO_CLIENTID");
+                string ClientSecret =await LookupWithKey("TWILIO_CLIENT_SECRET");
+                TwilioClient.Init(ClientId, ClientSecret);
+
+                var phoneNumber = PhoneNumberResource.Fetch(pathPhoneNumber: new Twilio.Types.PhoneNumber(inputNumber));
+                if (phoneNumber != null)
+                {
+                    string countryCode = phoneNumber.CountryCode;
+                    phoneNum = Regex.Replace(phoneNumber.NationalFormat, @"\D", string.Empty).TrimStart('0');
+                    IsValidPhone = true;
+                    var isd_rec =await  _context.Set<Country>().Where(w => w.Iso2code == countryCode).FirstOrDefaultAsync();
+                    if (isd_rec != null)
+                    {
+                        isdCode = Left(isd_rec.CountryPhoneCode, 1) != "+" ? "+" + isd_rec.CountryPhoneCode : isd_rec.CountryPhoneCode;
+                    }
+                }
+                else
+                {
+                    phoneNum = Regex.Replace(inputNumber, @"\D", string.Empty);
+                    IsValidPhone = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                IsValidPhone = false;
+            }
+        }
+        public async Task AddUserInvitationLog(int companyId, int userID, string actionType, int currentUserId, string timeZoneId)
+        {
+            try
+            {
+                DateTimeOffset dtNow =await GetDateTimeOffset(DateTime.Now, timeZoneId);
+
+                var pCompanyId = new SqlParameter("@CompanyID", companyId);
+                var pUserID = new SqlParameter("@UserID", userID);
+                var pActionType = new SqlParameter("@ActionType", actionType);
+                var pActionDate = new SqlParameter("@ActionDate", dtNow);
+                var pCreatedBy = new SqlParameter("@CreatedBy", currentUserId);
+
+               await _context.Database.ExecuteSqlRawAsync("Pro_Add_User_InviationLog @CompanyID,@UserID,@ActionType,@ActionDate,@CreatedBy", pCompanyId, pUserID, pActionType, pActionDate, pCreatedBy);
+
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task DeleteRecording(string recordingID)
+        {
+            try
+            {
+                bool SendInDirect = await IsTrue(await LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string TwilioRoutingApi = await LookupWithKey("TWILIO_ROUTING_API");
+
+                dynamic CommsAPI = this.InitComms("TWILIO");
+                CommsAPI.SendInDirect = SendInDirect;
+                CommsAPI.TwilioRoutingApi = TwilioRoutingApi;
+
+                CommsAPI.DeleteRecording(recordingID);
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
 
     }
 }

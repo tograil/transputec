@@ -1,4 +1,4 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Administrator.Repositories;
 using CrisesControl.Core.Billing.Repositories;
@@ -57,8 +57,9 @@ namespace CrisesControl.Infrastructure.Repositories
           this._context = context;
           this._httpContextAccessor = httpContextAccessor;
           this._DBC =DBC;
-          this._billingHelper = new BillingHelper(_context);
-          this._SDE = SDE;
+            this._SDE = SDE;
+            this._billingHelper = new BillingHelper(_context,_DBC,_SDE);
+          
         }
         public async Task<List<Registration>> GetAllRegistrations()
         {

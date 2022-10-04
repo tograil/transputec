@@ -1,4 +1,4 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CrisesControl.Core.DBCommon.Repositories;
 
 namespace CrisesControl.Infrastructure.Services
 {
@@ -22,11 +23,13 @@ namespace CrisesControl.Infrastructure.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly CrisesControlContext _context;
         private readonly IActiveIncidentRepository _activeIncidentRepository;
-        public TaskScheduleJob(CrisesControlContext controlContext, IHttpContextAccessor httpContextAccessor, IActiveIncidentRepository activeIncidentRepository)
+        private readonly IDBCommonRepository _DBC;
+        public TaskScheduleJob(CrisesControlContext controlContext, IHttpContextAccessor httpContextAccessor, IActiveIncidentRepository activeIncidentRepository, IDBCommonRepository DBC)
         {
             this._context = controlContext;
             this._httpContextAccessor = httpContextAccessor;
             this._activeIncidentRepository = activeIncidentRepository;
+            this._DBC = DBC;
         }
         //ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
         //private static IScheduler _scheduler;
@@ -36,7 +39,7 @@ namespace CrisesControl.Infrastructure.Services
             int ActiveIncidentTaskID = context.JobDetail.JobDataMap.GetInt("ActiveIncidentTaskID");
             string Action = context.JobDetail.JobDataMap.GetString("ACTION");
             string escalation_type = string.Empty;
-            DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
+           
             try
             {
                 var task = await  _context.Set<TaskActiveIncident>().Include(AI=>AI.IncidentActivation)
@@ -46,7 +49,7 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     if (task.TaskStatus != 7)
                     {
-                        string TimeZoneId = DBC.GetTimeZoneByCompany(task.CompanyId);
+                        string TimeZoneId =await _DBC.GetTimeZoneByCompany(task.CompanyId);
                         DateTimeOffset checkTime = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                         if (task.TaskStatus == 1 && task.TaskEscalatedDate.Year < 2000 && task.TaskStatus != 6)
                         {
@@ -87,7 +90,7 @@ namespace CrisesControl.Infrastructure.Services
                             string task_action = "Task has been escalated because it was " + escalation_type;
                            await  _activeIncidentRepository.AddTaskAction(ActiveIncidentTaskID, task_action, task.UpdatedBy, 6, TimeZoneId);
 
-                            string comms_method = DBC.GetCompanyParameter("TASK_SYSTEM_COMMS_METHOD", task.CompanyId);
+                            string comms_method =await _DBC.GetCompanyParameter("TASK_SYSTEM_COMMS_METHOD", task.CompanyId);
                             List<int> commslist = comms_method.Split(',').Select(int.Parse).ToList();
 
                             int[] CommsMethod = null;
@@ -107,8 +110,8 @@ namespace CrisesControl.Infrastructure.Services
                     else
                     {
                         //Delete Scheduled jobs for the incident
-                        DBC.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
-                        DBC.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
+                       await _DBC.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
+                       await _DBC.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
                     }
                 }
                  await Task.WhenAll();

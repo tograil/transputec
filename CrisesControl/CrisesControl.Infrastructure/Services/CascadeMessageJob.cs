@@ -1,5 +1,7 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Jobs;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
@@ -24,10 +26,14 @@ namespace CrisesControl.Infrastructure.Services
     {
         private readonly CrisesControlContext _controlContext;
         private readonly QueueHelper _queueHelper;
-        public CascadeMessageJob(CrisesControlContext controlContext)
+        private readonly IMessageService _MSG;
+        private readonly IDBCommonRepository _DBC;
+        public CascadeMessageJob(CrisesControlContext controlContext, IDBCommonRepository DBC, IMessageService MSG)
         {
             this._controlContext = controlContext;
-            this._queueHelper = new QueueHelper(_controlContext);
+            this._DBC = DBC;
+            this._MSG = MSG;
+            this._queueHelper = new QueueHelper(_controlContext, _DBC, _MSG);
         }
         //DBCommon DBC = new DBCommon();
 
@@ -64,15 +70,15 @@ namespace CrisesControl.Infrastructure.Services
     {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon DBC;
-        public SOSCascadeMessageJob(CrisesControlContext controlContext, IHttpContextAccessor httpContextAccessor)
+        private readonly IDBCommonRepository DBC;
+        public SOSCascadeMessageJob(CrisesControlContext controlContext, IHttpContextAccessor httpContextAccessor, IDBCommonRepository _DBC)
         {
             this._context = controlContext;
             this._httpContextAccessor = httpContextAccessor;
-            DBC = new DBCommon(_context, _httpContextAccessor);
+            DBC = _DBC;
         }
         
-        public Task Execute(IJobExecutionContext context)
+        public async Task Execute(IJobExecutionContext context)
         {
 
             try
@@ -85,7 +91,7 @@ namespace CrisesControl.Infrastructure.Services
                     var pMessageID = new SqlParameter("@MessageID", MessageID);
                     var users = _context.Set<UnAckUsers>().FromSqlRaw("exec Pro_Get_Unack_User @MessageID", pMessageID).ToList();
 
-                    string APIBaseURL = DBC.LookupWithKey("APIBASEURL");
+                    string APIBaseURL =await  DBC.LookupWithKey("APIBASEURL");
                     foreach (var user in users)
                     {
                         LaunchSOS(CompanyId, user.UserId, APIBaseURL);
@@ -96,7 +102,7 @@ namespace CrisesControl.Infrastructure.Services
             {
                 throw ex;
             }
-            return Task.WhenAll();
+            await Task.WhenAll();
         }
 
         public void LaunchSOS(int CompanyId, int UserId, string BaseURL)
