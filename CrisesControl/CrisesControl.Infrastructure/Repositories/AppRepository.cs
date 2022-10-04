@@ -254,7 +254,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                    // SendEmail sendEmail = new SendEmail(_context,DBC);
                     string[] AdminEmail = feedbackaddress.Split(',');
-                    bool ismailsend = true; //await _SDE.Email(AdminEmail, messagebody, fromadd, hostname, "Feedback from App");
+                    bool ismailsend =await _SDE.Email(AdminEmail, messagebody, fromadd, hostname, "Feedback from App");
                     if (ismailsend == false)
                     {
                         Message = "Email sending failed! Please try again.";
@@ -312,7 +312,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                         string[] toEmails = { ToAddress };
 
-                        bool ismailsend = true;//await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        bool ismailsend = await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
 
                         if (ismailsend == false)
                         {
@@ -422,7 +422,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                 if ((LastLat != locLat || LastLng != loclng) | CollectAllLog == true)
                                 {
                                     string loc_address =await DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
-                                   // await _MSG.AddUserLocation(userId, userDeviceID, locLat, loclng, loc_address, loc.UserDeviceTime);
+                                    await _MSG.AddUserLocation(userId, userDeviceID, locLat, loclng, loc_address, loc.UserDeviceTime);
                                     LastLat = locLat;
                                     LastLng = loclng;
                                 }
@@ -461,7 +461,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                 {
                                     string loc_address =await DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
 
-                                   //await _MSG.AddUserLocation(userId, userDeviceID, Convert.ToDouble(loc.Latitude), Convert.ToDouble(loc.Longitude), loc_address, loc.UserDeviceTime);
+                                   await _MSG.AddUserLocation(userId, userDeviceID, Convert.ToDouble(loc.Latitude), Convert.ToDouble(loc.Longitude), loc_address, loc.UserDeviceTime);
                                     LastLat = Convert.ToDouble(loc.Latitude);
                                     LastLng = Convert.ToDouble(loc.Longitude);
                                 }
