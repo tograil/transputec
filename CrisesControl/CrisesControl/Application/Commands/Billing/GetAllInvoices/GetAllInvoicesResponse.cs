@@ -1,10 +1,11 @@
 ﻿using CrisesControl.Api.Application.Commands.Shared;
+using CrisesControl.Core.Billing;
 
 namespace CrisesControl.Api.Application.Commands.Billing.GetAllInvoices
 {
     public class GetAllInvoicesResponse : CommonModel
     {
-        public List<AllInvoices> AllInvoices { get; set; }
+        public GetCompanyInvoicesReturn AllInvoices { get; set; }
     }
 
     public class AllInvoices

@@ -19,8 +19,8 @@ namespace CrisesControl.Core.Models
         public bool ReceiveOnly { get; set; }
         public string FirstName { get; set; } = null!;
         public string? LastName { get; set; }
-        public DateTimeOffset CreatedOn { get; set; }
-        public DateTimeOffset CreatedOnGMT { get; set; }
-        public DateTimeOffset UserDeviceTime { get; set; }
+        //public DateTimeOffset CreatedOn { get; set; }
+        //public DateTimeOffset CreatedOnGMT { get; set; }
+        //public DateTimeOffset UserDeviceTime { get; set; }
     }
 }

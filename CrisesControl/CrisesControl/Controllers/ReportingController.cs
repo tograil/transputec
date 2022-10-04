@@ -378,7 +378,7 @@ namespace CrisesControl.Api.Controllers
         [Route("PingReportAnalysis/{MessageId:int}/{MessageType}")]
         public async Task<IActionResult> PingReportAnalysis([FromRoute] GetPingReportAnalysisRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _reportQuery.PingReportAnalysis(request);
             return Ok(result);
         }
         [HttpGet]

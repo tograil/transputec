@@ -24,12 +24,12 @@ namespace CrisesControl.Api.Controllers
     public class BillingController : Controller
     {
         private readonly IMediator _mediator;
-        private readonly IBillingQuery _billingQuery;
+        //private readonly IBillingQuery _billingQuery;
 
-        public BillingController(IMediator mediator, IBillingQuery billingQuery)
+        public BillingController(IMediator mediator)
         {
             _mediator = mediator;
-            _billingQuery = billingQuery;
+           // _billingQuery = billingQuery;
         }
         /// <summary>
         /// Get payment profile information
@@ -39,9 +39,9 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{CompanyId:int}/PaymentProfile")]
-        public async Task<IActionResult> GetPaymentProfile([FromRoute] GetPaymentProfileRequest request)
+        public async Task<IActionResult> GetPaymentProfile([FromRoute] GetPaymentProfileRequest request, CancellationToken cancellationToken)
         {
-            var result = await _billingQuery.GetPaymentProfile(request);
+            var result = await _mediator.Send(request,cancellationToken );
             return Ok(result);
         }
         /// <summary>
@@ -51,10 +51,10 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetBillingSummary")]
-        public async Task<IActionResult> GetBillingSummary(GetBillingSummaryRequest request)
+        [Route("GetBillingSummary/{OutUserCompanyId}/{ChkUserId}")]
+        public async Task<IActionResult> GetBillingSummary([FromRoute] GetBillingSummaryRequest request, CancellationToken cancellationToken)
         {
-            var result = await _billingQuery.GetBillingSummary(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>
@@ -65,9 +65,9 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("GetAllInvoices")]
-        public async Task<IActionResult> GetAllInvoices(GetAllInvoicesRequest request)
+        public async Task<IActionResult> GetAllInvoices([FromRoute] GetAllInvoicesRequest request, CancellationToken cancellationToken)
         {
-            var result = await _billingQuery.GetAllInvoices(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>
@@ -77,10 +77,10 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetInvSchedule")]
-        public async Task<IActionResult> GetInvSchedule(GetInvScheduleRequest request, CancellationToken cancellationToken)
+        [Route("GetInvSchedule/{OrderId}/{MonthVal}/{YearVal}")]
+        public async Task<IActionResult> GetInvSchedule([FromRoute] GetInvScheduleRequest request, CancellationToken cancellationToken)
         {
-            var result = await _billingQuery.GetInvSchedule(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>
@@ -90,10 +90,10 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetOrders")]
-        public async Task<IActionResult> GetOrders(GetOrdersRequest request, CancellationToken cancellationToken)
+        [Route("GetOrders/{OrderId}")]
+        public async Task<IActionResult> GetOrders([FromRoute] GetOrdersRequest request, CancellationToken cancellationToken)
         {
-            var result = await _billingQuery.GetOrders(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>
@@ -104,7 +104,7 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("CreateOrder")]
-        public async Task<IActionResult> CreateOrder(CreateOrderRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
@@ -117,7 +117,7 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("SaveCompanyModules")]
-        public async Task<IActionResult> SaveCompanyModules(SaveCompanyModulesRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> SaveCompanyModules([FromBody]SaveCompanyModulesRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
@@ -130,7 +130,7 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("CreateInvoiceSchedule")]
-        public async Task<IActionResult> CreateInvoiceSchedule(CreateInvoiceScheduleRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateInvoiceSchedule([FromBody] CreateInvoiceScheduleRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
@@ -142,10 +142,10 @@ namespace CrisesControl.Api.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetInvoicesById")]
-        public async Task<IActionResult> GetInvoicesById(GetInvoicesByIdRequest request)
+        [Route("GetInvoicesById/{TransactionHeaderId}/{ShowPayments}")]
+        public async Task<IActionResult> GetInvoicesById([FromRoute] GetInvoicesByIdRequest request, CancellationToken cancellationToken)
         {
-            var result = await _billingQuery.GetInvoicesById(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>
@@ -154,10 +154,10 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetTransactionDetails")]
-        public async Task<IActionResult> GetTransactionDetails(GetTransactionDetailsRequest request)
+        [Route("GetTransactionDetails/{messageId}")]
+        public async Task<IActionResult> GetTransactionDetails([FromQuery] GetTransactionDetailsRequest request, CancellationToken cancellationToken)
         {
-            var result = await _billingQuery.GetTransactionDetails(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>
@@ -166,10 +166,10 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetUsageGraph")]
-        public async Task<IActionResult> GetUsageGraph(GetUsageGraphRequest request)
+        [Route("GetUsageGraph/{ReportType}/{LastMonth}")]
+        public async Task<IActionResult> GetUsageGraph([FromRoute] GetUsageGraphRequest request, CancellationToken cancellationToken)
         {
-            var result = await _billingQuery.GetUsageGraph(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>
@@ -178,10 +178,10 @@ namespace CrisesControl.Api.Controllers
         /// <param name="request"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("GetUnbilledSummary")]
-        public async Task<IActionResult> GetUnbilledSummary(GetUnbilledSummaryRequest request)
+        [Route("GetUnbilledSummary/{MessageId}/{StartMonth}/{StartYear}/{ReportType}")]
+        public async Task<IActionResult> GetUnbilledSummary([FromRoute] GetUnbilledSummaryRequest request, CancellationToken cancellationToken)
         {
-            var result = await _billingQuery.GetUnbilledSummary(request);
+            var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
 

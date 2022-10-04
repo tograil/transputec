@@ -108,7 +108,8 @@ namespace CrisesControl.Infrastructure.Repositories
                 string Portal = await DBC.LookupWithKey("PORTAL");
                 string InviteUrl = await DBC.LookupWithKey("INVITE_URL");
                 string webpath = await DBC.LookupWithKey("PORTAL");
-                int ScrollThreashold = Convert.ToInt16(await DBC.LookupWithKey("PING_LIST_THRESHOLD"));
+                string THRESHOLD = DBC.LookupWithKey("PING_LIST_THRESHOLD");
+                int ScrollThreashold = Convert.ToInt16(THRESHOLD);
                 int PingListLimit = Convert.ToInt16(await DBC.GetCompanyParameter("PING_LIST_LIMIT", companyID));
 
                 bool HasTask = false;
@@ -206,19 +207,19 @@ namespace CrisesControl.Infrastructure.Repositories
                 var pCompanyId = new SqlParameter("@CompanyID", companyId);
 
                 var IncidentPingStarVal = _context.Set<AppHomeRatings>().FromSqlRaw("exec Pro_Get_Incident_Ping_Rating @UserID, @CompanyID",
-                    pUserID, pCompanyId).FirstOrDefault();
-
+                    pUserID, pCompanyId).AsEnumerable();
+                 IncidentPingStarVal.FirstOrDefault();
                 if (IncidentPingStarVal != null)
                 {
-                    totalPingSentForUser = Convert.ToInt32(IncidentPingStarVal.TotalPingSent > 0 ? IncidentPingStarVal.TotalPingSent : 1);
-                    totalPingInKPIForUser = Convert.ToInt32(IncidentPingStarVal.TotalPingInKPI);
-                    totalPingUnACKForUser = Convert.ToInt32(IncidentPingStarVal.TotalPingSent - IncidentPingStarVal.TotalPingACK);
+                    totalPingSentForUser = Convert.ToInt32(IncidentPingStarVal.FirstOrDefault().TotalPingSent > 0 ? IncidentPingStarVal.FirstOrDefault().TotalPingSent : 1);
+                    totalPingInKPIForUser = Convert.ToInt32(IncidentPingStarVal.FirstOrDefault().TotalPingInKPI);
+                    totalPingUnACKForUser = Convert.ToInt32(IncidentPingStarVal.FirstOrDefault().TotalPingSent - IncidentPingStarVal.FirstOrDefault().TotalPingACK);
                     
-                    totalIncidentSentForUser = Convert.ToInt32(IncidentPingStarVal.TotalIncidentSent > 0 ? IncidentPingStarVal.TotalIncidentSent : 1);
-                    totalIncidentInKPIForUser = Convert.ToInt32(IncidentPingStarVal.TotalIncidentInKPI);
-                    totalIncidentUnACKForUser = Convert.ToInt32(IncidentPingStarVal.TotalIncidentUnAck);
+                    totalIncidentSentForUser = Convert.ToInt32(IncidentPingStarVal.FirstOrDefault().TotalIncidentSent > 0 ? IncidentPingStarVal.FirstOrDefault().TotalIncidentSent : 1);
+                    totalIncidentInKPIForUser = Convert.ToInt32(IncidentPingStarVal.FirstOrDefault().TotalIncidentInKPI);
+                    totalIncidentUnACKForUser = Convert.ToInt32(IncidentPingStarVal.FirstOrDefault().TotalIncidentUnAck);
                     
-                    taskCount = IncidentPingStarVal.PendingTask;
+                    taskCount = IncidentPingStarVal.FirstOrDefault().PendingTask;
                 }
             }
             catch (Exception ex)

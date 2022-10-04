@@ -136,7 +136,7 @@ public class IncidentQuery : IIncidentQuery
         DataTablePaging rtn = new DataTablePaging();
         rtn.Draw = _paging.Draw;
 
-        var ActIncidentDtl = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, RecordStart, RecordLength, SearchString, OrderBy, OrderDir);
+        var ActIncidentDtl = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, _paging.Start, _paging.Length, _paging.Search, OrderBy, OrderDir);
 
         if (ActIncidentDtl != null)
         {

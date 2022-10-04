@@ -725,7 +725,7 @@ namespace CrisesControl.Api.Application.Query {
             try {
                 DateTime stDate = DateTime.Now;
                 DateTime enDate = DateTime.Now;
-                List<PingReport> result = await _reportRepository.GetPingReportAnalysis(request.MessageId, request.MessageType.ToDbString(), _currentUser.CompanyId);
+                List<PingReport> result = await _reportRepository.GetPingReportAnalysis(request.MessageId, request.MessageType.ToString(), _currentUser.CompanyId);
 
                 var response = new GetPingReportAnalysisResponse();
 

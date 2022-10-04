@@ -13,11 +13,11 @@ namespace CrisesControl.Api.Application.Query {
         Task<GetPaymentProfileResponse> GetPaymentProfile(GetPaymentProfileRequest request);
         Task<List<GetBillingSummaryResponse>> GetBillingSummary(GetBillingSummaryRequest request);
         Task<GetAllInvoicesResponse> GetAllInvoices(GetAllInvoicesRequest request);
-        Task<List<GetInvScheduleResponse>> GetInvSchedule(GetInvScheduleRequest request);
-        Task<List<GetOrdersResponse>> GetOrders(GetOrdersRequest request);
+        Task<GetInvScheduleResponse> GetInvSchedule(GetInvScheduleRequest request);
+        Task<GetOrdersResponse> GetOrders(GetOrdersRequest request);
         Task<GetInvoicesByIdResponse> GetInvoicesById(GetInvoicesByIdRequest request);
-        Task<List<GetTransactionDetailsResponse>> GetTransactionDetails(GetTransactionDetailsRequest request);
-        Task<List<GetUsageGraphResponse>> GetUsageGraph(GetUsageGraphRequest request);
-        Task<List<GetUnbilledSummaryResponse>> GetUnbilledSummary(GetUnbilledSummaryRequest request);
+        Task<GetTransactionDetailsResponse> GetTransactionDetails(GetTransactionDetailsRequest request);
+        Task<GetUsageGraphResponse> GetUsageGraph(GetUsageGraphRequest request);
+        Task<GetUnbilledSummaryResponse> GetUnbilledSummary(GetUnbilledSummaryRequest request);
     }
 }

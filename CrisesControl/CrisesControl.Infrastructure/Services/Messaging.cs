@@ -1575,9 +1575,9 @@ namespace CrisesControl.Infrastructure.Services
                         Lat = _DBC.Left(latitude.ToString().Replace(",", "."), 15),
                         Long = _DBC.Left(longitude.ToString().Replace(",", "."), 15),
                         LocationName = locationAddress,
-                        CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                        CreatedOnGMT = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                        UserDeviceTime = userDeviceTime != null ? userDeviceTime : await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                        //CreatedOn = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        //CreatedOnGMT = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
+                        //UserDeviceTime = userDeviceTime != null ? userDeviceTime : DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
                     };
                     ;
                    await db.AddAsync(UL);
