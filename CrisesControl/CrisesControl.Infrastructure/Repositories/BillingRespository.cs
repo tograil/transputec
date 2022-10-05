@@ -36,9 +36,7 @@ namespace CrisesControl.Infrastructure.Repositories
             _context = context;
             _mapper = mapper;            
             _httpContextAccessor = httpContextAccessor;
-            _DBC = new DBCommon(_context,_httpContextAccessor);
-            _usage = new UsageHelper(_context);
-            companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
             _DBC = DBC;
             _SDE = senderEmail;
             _usage = new UsageHelper(context,_DBC,_SDE);

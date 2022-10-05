@@ -108,7 +108,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 string Portal = await DBC.LookupWithKey("PORTAL");
                 string InviteUrl = await DBC.LookupWithKey("INVITE_URL");
                 string webpath = await DBC.LookupWithKey("PORTAL");
-                string THRESHOLD = DBC.LookupWithKey("PING_LIST_THRESHOLD");
+                string THRESHOLD =await DBC.LookupWithKey("PING_LIST_THRESHOLD");
                 int ScrollThreashold = Convert.ToInt16(THRESHOLD);
                 int PingListLimit = Convert.ToInt16(await DBC.GetCompanyParameter("PING_LIST_LIMIT", companyID));
 

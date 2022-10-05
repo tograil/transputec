@@ -68,12 +68,7 @@ namespace CrisesControl.Infrastructure
         private void RegisterCommonDependencies(ContainerBuilder builder)
         {
             builder.RegisterAutoMapper(ThisAssembly);
-            builder.RegisterType<MessageService>()
-                    .InstancePerLifetimeScope()
-                    .PropertiesAutowired(PropertyWiringOptions.AllowCircularDependencies);
-            builder.RegisterType<MessageRepository>()
-                      .InstancePerLifetimeScope()
-                      .PropertiesAutowired(PropertyWiringOptions.AllowCircularDependencies);
+           
             builder.RegisterType<DBCommonRepository>().As<IDBCommonRepository>(); 
             builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<MemoryCache>().As<IMemoryCache>().SingleInstance();

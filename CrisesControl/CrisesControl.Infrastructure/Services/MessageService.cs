@@ -1091,9 +1091,9 @@ public class MessageService : IMessageService
                     Lat = _DBC.Left(latitude.ToString().Replace(",", "."), 15),
                     Long = _DBC.Left(longitude.ToString().Replace(",", "."), 15),
                     LocationName = locationAddress,
-                    CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
-                    CreatedOnGMT = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
-                    UserDeviceTime = userDeviceTime != null ? userDeviceTime : await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId)
+                    //CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
+                   // CreatedOnGMT = await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId),
+                   // UserDeviceTime = userDeviceTime != null ? userDeviceTime : await _DBC.GetDateTimeOffset(DateTime.Now, _timeZoneId)
                 };
                 ;
                 await _context.AddAsync(UL);
