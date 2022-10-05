@@ -1179,8 +1179,9 @@ namespace CrisesControl.Infrastructure.Repositories
                                     if (currentUserId > 0)
                                         userUpdate.UpdatedBy = currentUserId;
 
-                                    userUpdate.IsValidNumber = ValidPhone;
+                                   // userUpdate.IsValidNumber = ValidPhone;
                                     userUpdate.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                                    _context.Update(userUpdate);
                                     await _context.SaveChangesAsync();
 
                                    await _userRepository.CreateUserSearch(userUpdate.UserId, userUpdate.FirstName, userUpdate.LastName, userUpdate.Isdcode, userUpdate.MobileNo, userUpdate.PrimaryEmail, companyId);

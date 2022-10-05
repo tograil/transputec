@@ -561,11 +561,10 @@ public class TaskRepository : ITaskRepository
     
     private async Task FixTaskOrder(int incidentId, int taskHeaderId, CancellationToken cancellationToken)
     {
-        var rearrangeTasks = (from IT in _context.Set<TaskIncident>().AsEnumerable()
-                               where IT.IncidentId == incidentId &&
-                                IT.TaskHeaderId == taskHeaderId
-                               orderby IT.TaskSequence
-                               select IT).ToList();
+        var rearrangeTasks = await _context.Set<TaskIncident>()
+                               .Where(IT=> IT.IncidentId == incidentId &&
+                                IT.TaskHeaderId == taskHeaderId)
+                               .OrderBy(IT=> IT.TaskSequence).ToListAsync();
         int newseq = 1;
         foreach (var rtask in rearrangeTasks)
         {
@@ -575,7 +574,7 @@ public class TaskRepository : ITaskRepository
         }
         await _context.SaveChangesAsync(cancellationToken);
 
-        var inci = (from I in _context.Set<Incident>().AsEnumerable() where I.IncidentId == incidentId select I).FirstOrDefault();
+        var inci = await _context.Set<Incident>().Where(I=> I.IncidentId == incidentId).FirstOrDefaultAsync();
         if (inci != null)
         {
             if (rearrangeTasks.Count <= 0)
@@ -586,6 +585,7 @@ public class TaskRepository : ITaskRepository
             {
                 inci.HasTask = true;
             }
+            _context.Update(inci);
             await _context.SaveChangesAsync(cancellationToken);
         }
     }

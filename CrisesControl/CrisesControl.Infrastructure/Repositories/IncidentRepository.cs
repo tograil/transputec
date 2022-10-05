@@ -2230,7 +2230,7 @@ public class IncidentRepository : IIncidentRepository
                     CompanyId = CompanyId,
                     IncidentId = IncidentId,
                     IncidentDescription = verifyInci.Description.Trim(),
-                    Severity = verifyInci.Severity,
+                    Severity = verifyInci.Severity ?? 0,
                     ImpactedLocationId = ImpactedLocations.FirstOrDefault(),
                     InitiatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId),
                     InitiatedBy = CurrentUserId,
@@ -2248,7 +2248,7 @@ public class IncidentRepository : IIncidentRepository
                     AssetId = 0,
                     HasTask = verifyInci.HasTask,
                     LaunchMode = 3,
-                    CascadePlanId = verifyInci.CascadePlanId
+                    CascadePlanId = verifyInci.CascadePlanId ?? 0
                 };
                 await _context.AddAsync(tblIncidenActivation);
                 await _context.SaveChangesAsync();
@@ -2261,7 +2261,7 @@ public class IncidentRepository : IIncidentRepository
 
                 await CreateActiveKeyContact(tblIncidenActivation.IncidentActivationId, IncidentId, KCList, CurrentUserId, CompanyId, TimeZoneId);
 
-                int mPriority = SharedKernel.Utils.Common.GetPriority(verifyInci.Severity);
+                int mPriority = SharedKernel.Utils.Common.GetPriority(verifyInci.Severity ?? 0);
 
                 //Messaging MSG = new Messaging(_context,_httpContextAccessor)
                 //{
@@ -2288,11 +2288,11 @@ public class IncidentRepository : IIncidentRepository
                     //await _context.Set<IncidentMethod>().FromSqlRaw("exec Pro_Incident_GetMessageMethods @CompanyID,@IncidentID", pCompanyId, pIncidentID).ToArrayAsync();
 
                 //Create Message Records in the Message Table
-                _service.CascadePlanID = verifyInci.CascadePlanId;
+                _service.CascadePlanID = verifyInci.CascadePlanId ?? 0;
                 _service.MessageSourceAction = SourceAction.IncidentTest;
                 int tblmessageid =await _service.CreateMessage(CompanyId, tblIncidenActivation.IncidentDescription, "Incident",
                     tblIncidenActivation.IncidentActivationId, mPriority, CurrentUserId, 1,await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId),
-                    MultiResponse, ackoption, 99, verifyInci.AudioAssetId, 0, (bool)verifyInci.TrackUser, (bool)verifyInci.SilentMessage,
+                    MultiResponse, ackoption, 99, verifyInci.AudioAssetId ?? 0, 0, (bool)verifyInci.TrackUser, (bool)verifyInci.SilentMessage,
                     MessageMethod);
 
                 await _service.AddUserToNotify(tblmessageid, new int[] { CurrentUserId }.ToList(), tblIncidenActivation.IncidentActivationId);
@@ -2319,10 +2319,10 @@ public class IncidentRepository : IIncidentRepository
 
                     IsFundAvailable =await _service.CalculateMessageCost(CompanyId, tblmessageid, tblIncidenActivation.IncidentDescription);
 
-                    await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, verifyInci.CascadePlanId));
+                    await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, verifyInci.CascadePlanId ?? 0));
 
                     //QueueHelper.MessageDevicePublish(tblmessageid, 1);
-                    await queueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
+                    await queueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId ?? 0, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
 
                 }
                 catch (Exception ex)
