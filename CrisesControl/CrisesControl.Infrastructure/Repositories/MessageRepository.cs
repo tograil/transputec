@@ -579,7 +579,7 @@ public class MessageRepository : IMessageRepository
         }
     }
 
-    public async void SendConfirmationText(int CompanyId, int UserId, int MessageListId) {
+    public async Task SendConfirmationText(int CompanyId, int UserId, int MessageListId) {
         
         try {
             var user = (from U in _context.Set<User>() where U.UserId == UserId && U.CompanyId == CompanyId select U).FirstOrDefault();
