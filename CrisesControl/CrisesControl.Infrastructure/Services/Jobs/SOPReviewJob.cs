@@ -42,12 +42,12 @@ namespace CrisesControl.Infrastructure.Services.Jobs
                     if (incident.I.Status == 1 && incident.SH.Status == 1)
                     {
                         
-                        SDE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, "SOP");
+                        SDE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, (int)incident.I.CompanyId, "SOP");
 
                         incident.SH.ReminderCount = Counter;
                         db.SaveChanges();
                        
-                        await DBC.CreateSOPReviewReminder(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, incident.SH.ReviewDate, incident.SH.ReviewFrequency, Counter);
+                        await DBC.CreateSOPReviewReminder(IncidentID, incident.SH.SopheaderId, (int)incident.I.CompanyId, incident.SH.ReviewDate, incident.SH.ReviewFrequency, Counter);
 
                     }
                     else

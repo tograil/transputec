@@ -79,7 +79,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         }
 
                        
-                        await _SDE.NotifyKeyContactForSOPAttach(incident.IncidentId, CompanyID);
+                        await _SDE.NotifyKeyContactForSOPAttach((int)incident.IncidentId, CompanyID);
                         return true;
                     }
                 }

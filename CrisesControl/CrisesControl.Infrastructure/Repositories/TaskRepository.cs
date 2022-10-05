@@ -1,5 +1,7 @@
 ﻿using CrisesControl.Core.Common;
+using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Messages;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Tasks;
 using CrisesControl.Core.Tasks.Repositories;
@@ -160,9 +162,9 @@ public class TaskRepository : ITaskRepository
         var pIncidentTaskID = new SqlParameter("@IncidentTaskID", incidentTaskId);
         var pCompanyID = new SqlParameter("@CompanyID", companyId);
         var pUserID = new SqlParameter("@UserID", userId);
-        var qResult = _context.Set<JsonResult>().FromSqlRaw("Pro_Get_TaskCheckList @IncidentTaskID, @CompanyID, @UserID", pIncidentTaskID, pCompanyID, pUserID).ToList()?.FirstOrDefault();
+        var qResult = _context.Set<Results>().FromSqlRaw("exec Pro_Get_TaskCheckList @IncidentTaskID, @CompanyID, @UserID", pIncidentTaskID, pCompanyID, pUserID).ToList()?.FirstOrDefault();
         return qResult?.Result != null ?
-            JsonConvert.DeserializeObject<List<CheckListUpsert>>(qResult.Result)
+            JsonConvert.DeserializeObject<List<CheckListUpsert>>(qResult.Result.ToString())
             : new List<CheckListUpsert>();
     }
 

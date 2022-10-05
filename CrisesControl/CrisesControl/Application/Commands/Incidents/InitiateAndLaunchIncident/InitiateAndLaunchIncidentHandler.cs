@@ -69,7 +69,7 @@ public class InitiateAndLaunchIncidentHandler
                 UpdatedBy = _currentUser.UserId,
                 UpdatedOn = DateTime.Now.GetDateTimeOffset(),
                 AssetId = request.AudioAssetId,
-                HasTask = incidentToVerify.HasTask,
+                HasTask = (bool)incidentToVerify.HasTask,
                 LaunchMode = request.LaunchMode,
                 SocialHandle = string.Join(",", request.SocialHandle),
                 CascadePlanId = request.CascadePlanId
@@ -89,7 +89,7 @@ public class InitiateAndLaunchIncidentHandler
                 AudioAssetId = request.AudioAssetId,
                 SilentMessage = request.SilentMessage,
                 InitiateIncidentNotificationObjLst = request.InitiateIncidentNotificationObjLst,
-                HasTask = incidentToVerify.HasTask
+                HasTask = (bool)incidentToVerify.HasTask
             };
 
             await _incidentService.InitiateAndLaunchIncident(incidentActivation, incidentSubset, cancellationToken);

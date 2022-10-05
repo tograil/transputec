@@ -1052,7 +1052,7 @@ namespace CrisesControl.Infrastructure.Services
                         sendbody = sendbody.Replace("{RECIPIENT_NAME}",await _DBC.UserName(kc.UserName));
                         sendbody = sendbody.Replace("{RECIPIENT_EMAIL}", kc.PrimaryEmail);
                         sendbody = sendbody.Replace("{INCIDENT_NAME}", kc.IncidentName);
-                        sendbody = sendbody.Replace("{SOP_LAST_UPDATED}", kc.UpdatedOn.ToString("dd-MMM-yy HH:mm"));
+                        sendbody = sendbody.Replace("{SOP_LAST_UPDATED}", ((DateTimeOffset)kc.UpdatedOn).ToString());
                         sendbody = sendbody.Replace("{INCIDENT_ICON}", kc.IncidentIcon == null || kc.IncidentIcon == "" ? "" : LoginLink + "/assets/images/incident-icons/" + kc.IncidentIcon);
 
                         string[] toEmails = { kc.PrimaryEmail };

@@ -93,7 +93,7 @@ public class TaskController : Controller
     /// <param name="incidentTaskId"></param>
     /// <returns></returns>
     [HttpGet]
-    [Route("[action]/{incidentTaskID}")]
+    [Route("[action]/{incidentTaskId}")]
     public IActionResult GetTaskCheckList([FromRoute] int incidentTaskId)
     {
         var result = _taskQuery.GetTaskCheckList(incidentTaskId);

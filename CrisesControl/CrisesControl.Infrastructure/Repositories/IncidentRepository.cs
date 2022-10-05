@@ -88,7 +88,7 @@ public class IncidentRepository : IIncidentRepository
 
         await _context.SaveChangesAsync();
 
-        return incident.IncidentId;
+        return (int)incident.IncidentId;
     }
 
     public async Task AddIncidentActivation(IncidentActivation incidentActivation, CancellationToken cancellationToken)
@@ -595,7 +595,7 @@ public class IncidentRepository : IIncidentRepository
                 await AttachKeyContactsToIncident(incidentId, UserID, CompanyID, KeyHolderList, TimeZoneID);
                 return incidentId;
             }
-            return check_incident.IncidentId;
+            return (int)check_incident.IncidentId;
 
         }
         catch (Exception ex)
@@ -665,16 +665,16 @@ public class IncidentRepository : IIncidentRepository
                 }
             }
 
-            await ProcessKeyholders(CompanyId, tblIncident.IncidentId, CurrentUserId, Keyholders);
+            await ProcessKeyholders(CompanyId, (int)tblIncident.IncidentId, CurrentUserId, Keyholders);
 
             if (AckOptions != null)
             {
-                await SaveIncidentMessageResponse(AckOptions, tblIncident.IncidentId);
+                await SaveIncidentMessageResponse(AckOptions, (int)tblIncident.IncidentId);
             }
 
             if (Groups != null)
             {
-                await AddIncidentGroup(tblIncident.IncidentId, Groups, CompanyId);
+                await AddIncidentGroup((int)tblIncident.IncidentId, Groups, CompanyId);
             }
 
             if (MessageMethod != null && CascadePlanID <= 0)
@@ -684,14 +684,14 @@ public class IncidentRepository : IIncidentRepository
 
                     foreach (int Method in MessageMethod)
                     {
-                        await _service.CreateMessageMethod(0, Method, 0, tblIncident.IncidentId);
+                        await _service.CreateMessageMethod(0, Method, 0, (int)tblIncident.IncidentId);
                     }
                 }
             }
             //Create incident segregation links
-            await CreateIncidentSegLinks(tblIncident.IncidentId, CurrentUserId, CompanyId);
+            await CreateIncidentSegLinks((int)tblIncident.IncidentId, CurrentUserId, CompanyId);
 
-            return tblIncident.IncidentId;
+            return (int)tblIncident.IncidentId;
         }
         return 0;
     }
@@ -1645,7 +1645,7 @@ public class IncidentRepository : IIncidentRepository
 
         await DeleteEmptyTaskHeader(IncidentId);
 
-        return Incidt.IncidentId;
+        return (int)Incidt.IncidentId;
     }
 
     private async Task ProcessKeyContacts(int CompanyId, int IncidentId, int CurrentUserId, string TimeZoneId, UpdIncidentKeyHldLst[] UpdIncidentKeyHldLst)
@@ -1982,7 +1982,7 @@ public class IncidentRepository : IIncidentRepository
             };
             await _context.AddAsync(newIncident);
             await _context.SaveChangesAsync();
-            RetIncidentId = newIncident.IncidentId;
+            RetIncidentId = (int)newIncident.IncidentId;
         }
         return RetIncidentId;
     }
@@ -2237,8 +2237,8 @@ public class IncidentRepository : IIncidentRepository
                     LaunchedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId),
                     LaunchedBy = CurrentUserId,
                     Status = 2,
-                    TrackUser = verifyInci.TrackUser,
-                    SilentMessage = verifyInci.SilentMessage,
+                    TrackUser =(bool) verifyInci.TrackUser,
+                    SilentMessage = (bool)verifyInci.SilentMessage,
                     CreatedBy = CurrentUserId,
                     CreatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId),
                     DeactivatedOn = (DateTime)SqlDateTime.Null,
@@ -2246,7 +2246,7 @@ public class IncidentRepository : IIncidentRepository
                     UpdatedBy = CurrentUserId,
                     UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId),
                     AssetId = 0,
-                    HasTask = verifyInci.HasTask,
+                    HasTask = (bool)verifyInci.HasTask,
                     LaunchMode = 3,
                     CascadePlanId = verifyInci.CascadePlanId ?? 0
                 };
@@ -2297,7 +2297,7 @@ public class IncidentRepository : IIncidentRepository
 
                 await _service.AddUserToNotify(tblmessageid, new int[] { CurrentUserId }.ToList(), tblIncidenActivation.IncidentActivationId);
 
-                if (verifyInci.HasTask)
+                if ((bool)verifyInci.HasTask)
                 {
 
                    await _activeIncidentTaskService.StartTaskAllocation(tblIncidenActivation.IncidentId, tblIncidenActivation.IncidentActivationId, CurrentUserId, CompanyId);

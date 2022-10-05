@@ -8,6 +8,6 @@ namespace CrisesControl.Core.Messages
 {
     public class Results
     {
-        public int Result { get; set; }
+        public int? Result { get; set; }
     }
 }
