@@ -1,9 +1,10 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Administrator.Repositories;
 using CrisesControl.Core.Billing.Repositories;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Locations;
@@ -40,25 +41,25 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly ILogger<RegisterRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon _DBC;
-        private readonly SendEmail _SDE;
+        private readonly IDBCommonRepository _DBC;
+        private readonly ISenderEmailService _SDE;
         private readonly BillingHelper _billingHelper;
 
         private int UserID;
         private int CompanyId;
         public RegisterRepository(  
             CrisesControlContext context, IHttpContextAccessor httpContextAccessor,
-            ILogger<RegisterRepository> logger
-            
+            ILogger<RegisterRepository> logger,
+            ISenderEmailService SDE, IDBCommonRepository DBC
             )
         {
-            this._logger = logger;
+           this._logger = logger;
           this._context = context;
           this._httpContextAccessor = httpContextAccessor;
-           _DBC = new DBCommon(_context,_httpContextAccessor);
-            _billingHelper = new BillingHelper(_context);
-           //_BH = BH;
-            _SDE = new SendEmail(_context,_DBC);
+          this._DBC =DBC;
+            this._SDE = SDE;
+            this._billingHelper = new BillingHelper(_context,_DBC,_SDE);
+          
         }
         public async Task<List<Registration>> GetAllRegistrations()
         {
@@ -89,11 +90,11 @@ namespace CrisesControl.Infrastructure.Repositories
             {
                 CommsStatus textrslt = new CommsStatus();
                 string TwilioRoutingApi = string.Empty;
-                string FromNumber = _DBC.LookupWithKey(KeyType.TWILIOFROMNUMBER.ToDbKeyString());
+                string FromNumber =await _DBC.LookupWithKey(KeyType.TWILIOFROMNUMBER.ToDbKeyString());
 
-                bool SendInDirect = _DBC.IsTrue( _DBC.LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
+                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
 
-                TwilioRoutingApi = _DBC.LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
+                TwilioRoutingApi =await _DBC.LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
 
                 var Confs = await  _context.Set<SysParameter>().Where(L=> L.Name ==KeyType.USEMESSAGINGCOPILOT.ToDbKeyString() || L.Name == KeyType.MESSAGINGCOPILOTSID.ToDbKeyString()).ToListAsync();
 
@@ -141,12 +142,12 @@ namespace CrisesControl.Infrastructure.Repositories
             try
             {
 
-                string validation_method = _DBC.LookupWithKey(KeyType.PHONEVALIDATIONMETHOD.ToDbKeyString());
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
-                string TwilioRoutingApi =  _DBC.LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
+                string validation_method = await _DBC.LookupWithKey(KeyType.PHONEVALIDATIONMETHOD.ToDbKeyString());
+                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey(KeyType.TWILIOUSEINDIRECTCONNECTION.ToDbKeyString()), false);
+                string TwilioRoutingApi = await _DBC.LookupWithKey(KeyType.TWILIOROUTINGAPI.ToDbKeyString());
 
                 if (string.IsNullOrEmpty(message))
-                    message = _DBC.LookupWithKey(KeyType.PHONEVALIDATIONMSG.ToDbKeyString());
+                    message = await _DBC.LookupWithKey(KeyType.PHONEVALIDATIONMSG.ToDbKeyString());
 
                 message = message.Replace("{OTP}", code).Replace("{CODE}", code);
 
@@ -175,8 +176,8 @@ namespace CrisesControl.Infrastructure.Repositories
             try
             {
 
-                string FromNumber = _DBC.LookupWithKey("TWILIO_FROM_NUMBER");
-                string MsgXML = _DBC.LookupWithKey("TWILIO_PHONE_VALIDATION_XML");
+                string FromNumber = await _DBC.LookupWithKey("TWILIO_FROM_NUMBER");
+                string MsgXML = await _DBC.LookupWithKey("TWILIO_PHONE_VALIDATION_XML");
                 // TODO: still going to investigate this
                // MsgXML = MsgXML + "?Body=" + _httpContextAccessor.HttpContext.Server.UrlEncode(message);
 
@@ -364,22 +365,22 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 
                 string Subject = string.Empty;
-                string message = Convert.ToString(_DBC.ReadHtmlFile("NEW_ACCOUNT_CONFIRMED", "DB", CompanyId,  out Subject));
+                string message = Convert.ToString(_DBC.ReadHtmlFile("NEW_ACCOUNT_CONFIRMED", "DB", CompanyId,   Subject));
 
                 var CompanyInfo =await  _context.Set<Company>().Where(C=> C.CompanyId == CompanyId ).FirstOrDefaultAsync();
-                string Website = _DBC.LookupWithKey("DOMAIN");
-                string Portal = _DBC.LookupWithKey("PORTAL");
-                string ValdiateURL = _DBC.LookupWithKey("EMAIL_VALIDATE_URL");
-                string hostname = _DBC.LookupWithKey("SMTPHOST");
-                string fromadd = _DBC.LookupWithKey("EMAILFROM");
-                string sso_login = _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
+                string Website = await _DBC.LookupWithKey("DOMAIN");
+                string Portal = await _DBC.LookupWithKey("PORTAL");
+                string ValdiateURL =await _DBC.LookupWithKey("EMAIL_VALIDATE_URL");
+                string hostname =await _DBC.LookupWithKey("SMTPHOST");
+                string fromadd =await _DBC.LookupWithKey("EMAILFROM");
+                string sso_login =await _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
 
                 string Verifylink = Portal + ValdiateURL + CompanyId + "/" + guid;
                 string CompanyLogo = Portal + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
 
                 if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
                 {
-                    CompanyLogo = _DBC.LookupWithKey("CCLOGO");
+                    CompanyLogo = await _DBC.LookupWithKey("CCLOGO");
                 }
 
                 if (!string.IsNullOrEmpty(sso_login))
@@ -399,16 +400,16 @@ namespace CrisesControl.Infrastructure.Repositories
                     messagebody = messagebody.Replace("{PORTAL}", Portal);
                     messagebody = messagebody.Replace("{CUSTOMER_ID}", CompanyInfo.CustomerId);
 
-                    messagebody = messagebody.Replace("{TWITTER_LINK}", _DBC.LookupWithKey("CC_TWITTER_PAGE"));
-                    messagebody = messagebody.Replace("{TWITTER_ICON}", _DBC.LookupWithKey("CC_TWITTER_ICON"));
-                    messagebody = messagebody.Replace("{FACEBOOK_LINK}", _DBC.LookupWithKey("CC_FB_PAGE"));
-                    messagebody = messagebody.Replace("{FACEBOOK_ICON}", _DBC.LookupWithKey("CC_FB_ICON"));
-                    messagebody = messagebody.Replace("{LINKEDIN_LINK}", _DBC.LookupWithKey("CC_LINKEDIN_PAGE"));
-                    messagebody = messagebody.Replace("{LINKEDIN_ICON}", _DBC.LookupWithKey("CC_LINKEDIN_ICON"));
+                    messagebody = messagebody.Replace("{TWITTER_LINK}",await _DBC.LookupWithKey("CC_TWITTER_PAGE"));
+                    messagebody = messagebody.Replace("{TWITTER_ICON}",await _DBC.LookupWithKey("CC_TWITTER_ICON"));
+                    messagebody = messagebody.Replace("{FACEBOOK_LINK}",await _DBC.LookupWithKey("CC_FB_PAGE"));
+                    messagebody = messagebody.Replace("{FACEBOOK_ICON}",await _DBC.LookupWithKey("CC_FB_ICON"));
+                    messagebody = messagebody.Replace("{LINKEDIN_LINK}",await _DBC.LookupWithKey("CC_LINKEDIN_PAGE"));
+                    messagebody = messagebody.Replace("{LINKEDIN_ICON}",await _DBC.LookupWithKey("CC_LINKEDIN_ICON"));
 
                     string[] toEmails = { emailId };
 
-                    bool ismailsend = _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                    bool ismailsend =await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
             }
             catch (Exception ex)
@@ -492,13 +493,13 @@ namespace CrisesControl.Infrastructure.Repositories
 
 
                 var Company = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyId).FirstOrDefaultAsync();
-                string Website = _DBC.LookupWithKey("DOMAIN");
-                string Portal = _DBC.LookupWithKey("PORTAL");
-                string AdminPortal = _DBC.LookupWithKey("ADMIN_SITE_URL");
-                string hostname = _DBC.LookupWithKey("SMTPHOST");
-                string fromadd = _DBC.LookupWithKey("EMAILFROM");
+                string Website =await _DBC.LookupWithKey("DOMAIN");
+                string Portal =await _DBC.LookupWithKey("PORTAL");
+                string AdminPortal =await _DBC.LookupWithKey("ADMIN_SITE_URL");
+                string hostname =await _DBC.LookupWithKey("SMTPHOST");
+                string fromadd =await _DBC.LookupWithKey("EMAILFROM");
 
-                string message = Convert.ToString( _DBC.ReadHtmlFile(template, "DB", CompanyId,  out Subject));
+                string message = Convert.ToString(await _DBC.ReadHtmlFile(template, "DB", CompanyId,   Subject));
 
                 if ((hostname != null) && (fromadd != null))
                 {
@@ -513,9 +514,9 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     adminMsg.AppendLine("<p style=\"color:#ff0000;font-size:18px\"><strong><a href=\"" + AdminPortal + "\">Click here to login to admin portal to view company details</a></p>");
 
-                    string[] AdminEmail = (_DBC.LookupWithKey("BILLING_EMAIL")).Split(',');
+                    string[] AdminEmail = (await _DBC.LookupWithKey("BILLING_EMAIL")).Split(',');
 
-                    _SDE.Email(AdminEmail, adminMsg.ToString(), fromadd, hostname, "Crises Control: " + Company.CompanyName + " requsted for an upgrade");
+                    await _SDE.Email(AdminEmail, adminMsg.ToString(), fromadd, hostname, "Crises Control: " + Company.CompanyName + " requsted for an upgrade");
 
 
                     return true;
@@ -778,7 +779,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     messagebody = messagebody.Replace("{LINKEDIN_ICON}", sysparms.Where(w => w.Name == "CC_LINKEDIN_ICON").Select(s => s.Value).FirstOrDefault());
 
                     string[] toEmails = { emailId };
-                    bool ismailsend = _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                    bool ismailsend =await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
             }
             catch (Exception ex)
@@ -811,19 +812,19 @@ namespace CrisesControl.Infrastructure.Repositories
                 string message = Convert.ToString(ReadHtmlFile("SEND_CREDENTIAL", "DB", CompanyId, out Subject));
 
                 var CompanyInfo = await _context.Set<Company>().Where(C=> C.CompanyId == CompanyId).FirstOrDefaultAsync();
-                string Website =_DBC.LookupWithKey("DOMAIN");
-                string Portal = _DBC.LookupWithKey("PORTAL");
-                string ValdiateURL = _DBC.LookupWithKey("EMAIL_VALIDATE_URL");
-                string hostname = _DBC.LookupWithKey("SMTPHOST");
-                string fromadd = _DBC.LookupWithKey("EMAILFROM");
-                string sso_login = _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
+                string Website =await _DBC.LookupWithKey("DOMAIN");
+                string Portal =await _DBC.LookupWithKey("PORTAL");
+                string ValdiateURL =await _DBC.LookupWithKey("EMAIL_VALIDATE_URL");
+                string hostname =await _DBC.LookupWithKey("SMTPHOST");
+                string fromadd =await _DBC.LookupWithKey("EMAILFROM");
+                string sso_login =await _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", CompanyId);
 
                 string Verifylink = Portal + ValdiateURL + CompanyId + "/" + guid;
                 string CompanyLogo = Portal + "/uploads/" + CompanyInfo.CompanyId + "/companylogos/" + CompanyInfo.CompanyLogoPath;
 
                 if (string.IsNullOrEmpty(CompanyInfo.CompanyLogoPath))
                 {
-                    CompanyLogo = _DBC.LookupWithKey("CCLOGO");
+                    CompanyLogo = await _DBC.LookupWithKey("CCLOGO");
                 }
 
                 if (!string.IsNullOrEmpty(sso_login))
@@ -845,7 +846,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     string[] toEmails = { emailId };
 
-                    bool ismailsend = _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                    bool ismailsend = await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
                 }
             }
             catch (Exception ex)
@@ -901,7 +902,7 @@ namespace CrisesControl.Infrastructure.Repositories
             if (CompanyStatus != null)
             {
                 CompanyStatus.CompanyProfile = companyModel.CompanyProfile;
-                CompanyStatus.OnTrial = _DBC.OnTrialStatus(companyModel.CompanyProfile, CompanyStatus.OnTrial);
+                CompanyStatus.OnTrial = await _DBC.OnTrialStatus(companyModel.CompanyProfile, CompanyStatus.OnTrial);
                 CompanyStatus.Status = companyModel.Status;
                 await _context.SaveChangesAsync();
                 return true;
@@ -919,15 +920,15 @@ namespace CrisesControl.Infrastructure.Repositories
             TblComp.CompanyName = companyName;
             TblComp.Status = status;
             TblComp.CompanyProfile = companyProfile;
-            TblComp.OnTrial = _DBC.OnTrialStatus(companyProfile, false);
+            TblComp.OnTrial = await _DBC.OnTrialStatus(companyProfile, false);
             TblComp.Isdcode = isd;
             TblComp.SwitchBoardPhone = switshBoardPhone;
             TblComp.RegistrationDate = registrationDate;
             TblComp.AnniversaryDate = anniversary;
             TblComp.CompanyLogoPath = "";
             TblComp.PackagePlanId = packagePlanId;
-            TblComp.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now);
-            TblComp.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now);
+            TblComp.CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now);
+            TblComp.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now);
             TblComp.TimeZone = timeZone;
             TblComp.CreatedBy = 0;
             TblComp.UpdatedBy = 0;
@@ -945,7 +946,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                DateTimeOffset CreatedNow = _DBC.GetDateTimeOffset(DateTime.Now);
+                DateTimeOffset CreatedNow = await _DBC.GetDateTimeOffset(DateTime.Now);
 
                 var pRegID = new SqlParameter("@RegistrationID", regId);
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
@@ -990,7 +991,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     IP.LineValue = PaymentProfile.CreditBalance;
                     IP.Vat = PaymentProfile.CreditBalance * 0;
                     IP.Total = PaymentProfile.CreditBalance;
-                    IP.TransactionDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    IP.TransactionDate = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                     IP.TransactionReference = "FREE CREDIT";
                     IP.TransactionDetailsId = 0;
                     IP.TransactionStatus = 1;
@@ -1002,13 +1003,13 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public bool InsertCompanyApi(int companyId, string companyName, string customerId, string invitationCode)
+        public async Task<bool> InsertCompanyApi(int companyId, string companyName, string customerId, string invitationCode)
         {
             try
             {
-                string CompanyApi = _DBC.LookupWithKey("COMPANY_API_MGMT_URL");
-                string Host = _DBC.LookupWithKey("CRISES_CONTROL_HOST");
-                string ApiMode = _DBC.LookupWithKey("CRISES_CONTROL_API_MODE");
+                string CompanyApi = await _DBC.LookupWithKey("COMPANY_API_MGMT_URL");
+                string Host =await _DBC.LookupWithKey("CRISES_CONTROL_HOST");
+                string ApiMode =await _DBC.LookupWithKey("CRISES_CONTROL_API_MODE");
 
                 HttpClient client = new HttpClient();
                 client.BaseAddress = new Uri(CompanyApi);
@@ -1043,11 +1044,11 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public bool DeleteCompanyApi(int companyId, string customerId)
+        public async Task<bool> DeleteCompanyApi(int companyId, string customerId)
         {
             try
             {
-                string CompanyApi = _DBC.LookupWithKey("COMPANY_API_MGMT_URL");
+                string CompanyApi = await _DBC.LookupWithKey("COMPANY_API_MGMT_URL");
 
                 HttpClient client = new HttpClient();
                 client.BaseAddress = new Uri(CompanyApi);
@@ -1122,10 +1123,10 @@ namespace CrisesControl.Infrastructure.Repositories
                                 //Send the activation email link
                                 string Plan = await _context.Set<PackagePlan>().Where(w => w.PackagePlanId == reg.PackagePlanId).Select(s => s.PlanName).FirstOrDefaultAsync();
 
-                                string TimeZoneId = _DBC.GetTimeZoneByCompany(CompanyID);
+                                string TimeZoneId = await _DBC.GetTimeZoneByCompany(CompanyID);
 
                                 //Create default location "ALL" and assgin to user to it.
-                                LatLng LL = _DBC.GetCoordinates(reg.City + ", " + reg.Postcode);
+                                LatLng LL = await _DBC.GetCoordinates(reg.City + ", " + reg.Postcode);
                                 try
                                 {
                                     RegRet err = await CreateRegistrationData(reg.Id, CompanyID, NewUserId, LL.Lat, LL.Lng);
@@ -1152,7 +1153,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                         _context.SaveChanges();
 
                                         //Confirm the account and send the account details to the user.
-                                        _SDE.CompanySignUpConfirm(reg.Email, reg.FirstName + " " + reg.LastName, reg.MobileIsd + reg.MobileNo, reg.PaymentMethod, Plan, reg.Password, CompanyID);
+                                        await _SDE.CompanySignUpConfirm(reg.Email, reg.FirstName + " " + reg.LastName, reg.MobileIsd + reg.MobileNo, reg.PaymentMethod, Plan, reg.Password, CompanyID);
 
                                         UserDTO.companyid = CompanyID;
                                         UserDTO.userid = NewUserId;
@@ -1167,11 +1168,11 @@ namespace CrisesControl.Infrastructure.Repositories
 
                                         try
                                         {
-                                            InsertCompanyApi(CompanyID, companyname, reg.CustomerId, InvitationCode);
+                                           await InsertCompanyApi(CompanyID, companyname, reg.CustomerId, InvitationCode);
                                         }
                                         catch (Exception ex)
                                         {
-                                            DeleteCompanyApi(CompanyID, CustomerId);
+                                           await DeleteCompanyApi(CompanyID, CustomerId);
                                         }
                                     }
                                     scope.Complete();
@@ -1193,7 +1194,7 @@ namespace CrisesControl.Infrastructure.Repositories
             catch (Exception ex)
             {
 
-                DeleteCompanyApi(CompanyID, CustomerId);
+               await DeleteCompanyApi(CompanyID, CustomerId);
                 return null;
             }
         }
@@ -1260,16 +1261,16 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
 
                 if (!string.IsNullOrEmpty(mobileNo))
-                    NewUsers.MobileNo = _DBC.FixMobileZero(mobileNo);
+                    NewUsers.MobileNo =await _DBC.FixMobileZero(mobileNo);
 
                 if (!string.IsNullOrEmpty(llIsdCode))
                     NewUsers.Llisdcode = _DBC.Left(llIsdCode, 1) != "+" ? "+" + llIsdCode : llIsdCode;
 
                 if (!string.IsNullOrEmpty(landLine))
-                    NewUsers.Landline = _DBC.FixMobileZero(landLine);
+                    NewUsers.Landline =await _DBC.FixMobileZero(landLine);
 
                 NewUsers.PrimaryEmail = primaryEmail.ToLower();
-                NewUsers.UserHash = _DBC.PWDencrypt(primaryEmail.ToLower());
+                NewUsers.UserHash = await _DBC.PWDencrypt(primaryEmail.ToLower());
 
                 if (!string.IsNullOrEmpty(secondaryEmail))
                     NewUsers.SecondaryEmail = secondaryEmail;
@@ -1301,7 +1302,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 if (!string.IsNullOrEmpty(lng))
                     NewUsers.Lng = _DBC.Left(lng, 15);
 
-                string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", companyId);
+                string CompExpirePwd =await _DBC.GetCompanyParameter("EXPIRE_PASSWORD", companyId);
 
                 if (CompExpirePwd == "true")
                 {
@@ -1313,20 +1314,20 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
 
                 NewUsers.UserLanguage = userLanguage;
-                NewUsers.PasswordChangeDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                NewUsers.PasswordChangeDate = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 NewUsers.FirstLogin = firstLogin;
 
                 NewUsers.CreatedBy = createdUpdatedBy;
-                NewUsers.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                NewUsers.CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 NewUsers.UpdatedBy = createdUpdatedBy;
-                NewUsers.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                NewUsers.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 NewUsers.TrackingStartTime = SqlDateTime.MinValue.Value;
                 NewUsers.TrackingEndTime = SqlDateTime.MinValue.Value;
                 NewUsers.LastLocationUpdate = SqlDateTime.MinValue.Value;
                 NewUsers.DepartmentId = departmentId;
                 NewUsers.Otpexpiry = SqlDateTime.MinValue.Value;
 
-                var roles = _DBC.CCRoles(true);
+                var roles = await _DBC.CCRoles(true);
                 NewUsers.Smstrigger = (roles.Contains(NewUsers.UserRole.ToUpper()) ? smsTrigger : false);
 
                 await _context.Set<User>().AddAsync(NewUsers);
@@ -1445,12 +1446,12 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
                 else
                 {
-                    transaction.NextRunDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    transaction.NextRunDate = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 }
                 transaction.CreatedBy = currntUserId;
-                transaction.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                transaction.CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 transaction.UpdatedBy = currntUserId;
-                transaction.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                transaction.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
                 if (!string.IsNullOrEmpty(paymentMethod) && paymentMethod != "UNKNOWN")
                     transaction.PaymentMethod = paymentMethod;
@@ -1478,7 +1479,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         newCompanyTranscationType.NextRunDate = (DateTimeOffset)nextRunDate;
                     }
                     newCompanyTranscationType.UpdatedBy = currntUserId;
-                    newCompanyTranscationType.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    newCompanyTranscationType.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                     await _context.SaveChangesAsync();
                     CTTId = newCompanyTranscationType.CompanyTranscationTypeId;
                 }

@@ -20,8 +20,8 @@ namespace CrisesControl.Api.Application.Commands.Incidents.GetIncidentEntityReci
         {
             Guard.Against.Null(request, nameof(GetIncidentEntityRecipientRequest));
             //await _getIncidentRecipientEntityValidator.ValidateAndThrowAsync(request, cancellationToken);
-            var result = await _incidentQuery.GetIncidentEntityRecipient(request);
-            return result;
+            //var result = await _incidentQuery.GetIncidentEntityRecipient(request);
+            return null;
         }
     }
 }

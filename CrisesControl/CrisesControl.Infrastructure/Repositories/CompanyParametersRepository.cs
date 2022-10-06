@@ -1,9 +1,10 @@
-﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.Companies;
+﻿using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Messages.Repositories;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
@@ -25,19 +26,20 @@ namespace CrisesControl.Infrastructure.Repositories {
     public class CompanyParametersRepository : ICompanyParametersRepository {
         private readonly CrisesControlContext _context;
         private readonly ILogger<CompanyParametersRepository> _logger;
-        private readonly DBCommon _DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly Messaging _MSG;
-        private readonly SendEmail _SDE;
-        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, IHttpContextAccessor httpContextAccessor)
+        private readonly IDBCommonRepository _DBC;
+        private readonly IMessageService _MSG;
+        private readonly ISenderEmailService _SDE;
+
+        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG, ISenderEmailService _SDE)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
-
-            _DBC = new DBCommon(context, _httpContextAccessor);
-            _MSG = new Messaging(context, _httpContextAccessor);
-            _SDE = new SendEmail(context, _DBC);
+            _DBC = DBC;
+            _MSG = MSG;
+            _SDE = _SDE;
+            
         }
         public async Task<IEnumerable<CascadingPlanReturn>> GetCascading(int planID, string planType, int companyId, bool getDetails = false)
         {
@@ -142,7 +144,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         }
                         else
                         {
-                            Default = _DBC.LookupWithKey(key, Default);
+                            Default = await _DBC.LookupWithKey(key, Default);
                         }
                     }
                 }
@@ -616,12 +618,11 @@ namespace CrisesControl.Infrastructure.Repositories {
                     if (reg_user.RegisteredUser)
                     {
 
-                        string OTPMessage = _DBC.LookupWithKey("SEGREGATION_CODE_MSG");
+                        string OTPMessage =await _DBC.LookupWithKey("SEGREGATION_CODE_MSG");
 
-                        CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
-                    
+                        CommsHelper CH = new CommsHelper(_context, _httpContextAccessor, _SDE, _DBC, _MSG);
 
-                        result.Data =  CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
+                        result.Data = await CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
                     }
                     else
                     {
@@ -638,36 +639,6 @@ namespace CrisesControl.Infrastructure.Repositories {
         }
 
 
-
-        //public int AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
-        //{
-        //    try
-        //    {
-        //        var comp_param = (from CP in db.CompanyParameters where CP.CompanyId == CompanyId && CP.Name == Name select CP).Any();
-        //        if (!comp_param)
-        //        {
-        //            CompanyParameters NewCompanyParameters = new CompanyParameters()
-        //            {
-        //                CompanyId = CompanyId,
-        //                Name = Name,
-        //                Value = Value,
-        //                Status = 1,
-        //                CreatedBy = CurrentUserId,
-        //                UpdatedBy = CurrentUserId,
-        //                CreatedOn = DateTime.Now,
-        //                UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId)
-        //            };
-        //            db.CompanyParameters.Add(NewCompanyParameters);
-        //            db.SaveChanges(CurrentUserId, CompanyId);
-        //            return NewCompanyParameters.CompanyParametersId;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        catchException(ex);
-        //    }
-        //    return 0;
-        //}
 
 
     }

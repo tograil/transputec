@@ -1,5 +1,6 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Import;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
@@ -16,7 +17,7 @@ namespace CrisesControl.Infrastructure.Services
 {
     public class UserImportJob
     {
-        private DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         private readonly CrisesControlContext _context;
         private int recordProcessError = 0;
         private int sessionProcessError = 0;
@@ -24,9 +25,9 @@ namespace CrisesControl.Infrastructure.Services
         private bool autoForceVerify = false;
         private string timeZoneId = "GMT Standard Time";
         private ImportService _importService;
-        private SendEmail _SDE;
+        private readonly ISenderEmailService _SDE;
 
-        public UserImportJob(DBCommon DBC, ImportService importService, CrisesControlContext context, SendEmail SDE)
+        public UserImportJob(IDBCommonRepository DBC, ImportService importService, CrisesControlContext context, ISenderEmailService SDE)
         {
             _DBC = DBC;
             _importService = importService;
@@ -341,7 +342,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        internal void SendInvitation(int ImportDumpId)
+        public async Task  SendInvitation(int ImportDumpId)
         {
             try
             {
@@ -354,7 +355,7 @@ namespace CrisesControl.Infrastructure.Services
                     if (!string.IsNullOrEmpty(result.ToEMail))
                     {
                         string[] ToEmail = { result.ToEMail };
-                        bool issent = _SDE.Email(ToEmail, result.MessageBody, result.FromEMail, result.HostName, result.Subject);
+                        bool issent =await  _SDE.Email(ToEmail, result.MessageBody, result.FromEMail, result.HostName, result.Subject);
                     }
                 }
             }
@@ -363,7 +364,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void SendReportToEmail(string SessionId, int CompanyId, int CreatedBy)
+        public async void SendReportToEmail(string SessionId, int CompanyId, int CreatedBy)
         {
             try
             {
@@ -373,7 +374,7 @@ namespace CrisesControl.Infrastructure.Services
                     string Subject = string.Empty;
                     string ParamsInfo = "";
 
-                    string message = Convert.ToString(_DBC.ReadHtmlFile("IMPORT_PROCESS_EMAIL", "DB", CompanyId, out Subject));
+                    string message = Convert.ToString(await _DBC.ReadHtmlFile("IMPORT_PROCESS_EMAIL", "DB", CompanyId,  Subject));
 
 
                     string ReportEmail = (from U in _context.Set<User>() where U.UserId == CreatedBy && U.Status == 1 select U.PrimaryEmail).FirstOrDefault();
@@ -390,8 +391,8 @@ namespace CrisesControl.Infrastructure.Services
                         {
                             if (import_type.ActionType == "USERIMPORTCOMPLETE")
                             {
-                                string override_phone = _DBC.GetCompanyParameter("OVERRIDE_PHONE_NUMBER", CompanyId);
-                                string override_dummy = _DBC.GetCompanyParameter("OVERRIDE_DUMMY_NUMBER_ONLY", CompanyId);
+                                string override_phone =await _DBC.GetCompanyParameter("OVERRIDE_PHONE_NUMBER", CompanyId);
+                                string override_dummy = await _DBC.GetCompanyParameter("OVERRIDE_DUMMY_NUMBER_ONLY", CompanyId);
 
                                 if (override_phone == "false")
                                 {
@@ -415,10 +416,10 @@ namespace CrisesControl.Infrastructure.Services
                     if (sendEmailTo.Length > 0 && !string.IsNullOrEmpty(message))
                     {
 
-                        string FromEmail = _DBC.LookupWithKey("EMAILFROM");
-                        string HostName = _DBC.LookupWithKey("SMTPHOST");
-                        string CCLogo = _DBC.LookupWithKey("CCLOGO");
-                        string Portal = _DBC.LookupWithKey("PORTAL");
+                        string FromEmail =await _DBC.LookupWithKey("EMAILFROM");
+                        string HostName =await _DBC.LookupWithKey("SMTPHOST");
+                        string CCLogo =await _DBC.LookupWithKey("CCLOGO");
+                        string Portal =await  _DBC.LookupWithKey("PORTAL");
                         string ReportLink = Portal + "dataimport/downloadresult/" + SessionId;
 
                         var CompanyInfo = (from C in _context.Set<Company>() where C.CompanyId == CompanyId select C).FirstOrDefault();
@@ -431,7 +432,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         string messagebody = message;
 
-                        messagebody = messagebody.Replace("{RECIPIENT_NAME}", _DBC.UserName(Summary.UserName));
+                        messagebody = messagebody.Replace("{RECIPIENT_NAME}", await _DBC.UserName(Summary.UserName));
                         messagebody = messagebody.Replace("{COMPANY_NAME}", Summary.CompanyName);
                         messagebody = messagebody.Replace("{CUSTOMER_ID}", Summary.CustomerId);
                         messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
@@ -442,7 +443,7 @@ namespace CrisesControl.Infrastructure.Services
                         messagebody = messagebody.Replace("{REPORT_LINK}", ReportLink);
                         messagebody = messagebody.Replace("{IMPORT_PARAMS}", ParamsInfo);
 
-                        _SDE.Email(sendEmailTo, messagebody, FromEmail, HostName, Subject, null);
+                        await _SDE.Email(sendEmailTo, messagebody, FromEmail, HostName, Subject, null);
 
                     }
             }

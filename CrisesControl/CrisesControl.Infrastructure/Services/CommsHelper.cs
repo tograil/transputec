@@ -1,4 +1,5 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using CrisesControl.Core.DBCommon.Repositories;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Users;
@@ -15,24 +16,24 @@ namespace CrisesControl.Infrastructure.Services
 {
     public class CommsHelper
     {
-        private readonly DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly Messaging _MSG;
-        private readonly SendEmail _SDE;
+        private readonly IMessageService _MSG;
+        private readonly ISenderEmailService _SDE;
 
         public int GCompanyId;
         public int GUserId;
         public string GTimezoneId = "GMT Standard Time";
 
-        public CommsHelper( CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+        public CommsHelper( CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ISenderEmailService SDE, IDBCommonRepository DBC, IMessageService MSG)
         {
            
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            _DBC = new DBCommon(_context, _httpContextAccessor);
-            _MSG = new Messaging(_context,_httpContextAccessor);
-            _SDE = new SendEmail(_context, _DBC); ;
+            _DBC = DBC;
+            _MSG = MSG;
+            _SDE = SDE ;
         }
 
         public async Task<string> StartConference(int companyId, int userId, List<int> userList, string timeZoneId, int activeIncidentId = 0, int messageId = 0, string objectType = "Incident")
@@ -50,11 +51,11 @@ namespace CrisesControl.Infrastructure.Services
             {
 
                 //Get the selected conferance api for the company and set the requrest api params.
-                string CONF_API = _DBC.GetCompanyParameter("CONFERANCE_API", companyId);
-                bool RecordConf = Convert.ToBoolean(_DBC.GetCompanyParameter("RECORD_CONFERENCE", companyId));
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string CONF_API =await _DBC.GetCompanyParameter("CONFERANCE_API", companyId);
+                bool RecordConf = Convert.ToBoolean(await _DBC.GetCompanyParameter("RECORD_CONFERENCE", companyId));
+                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
-                TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                TwilioRoutingApi =await  _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 dynamic CommsAPI = this.InitComms(CONF_API);
                 CommsAPI.IsConf = true;
@@ -62,12 +63,12 @@ namespace CrisesControl.Infrastructure.Services
                 CommsAPI.SendInDirect = SendInDirect;
                 CommsAPI.TwilioRoutingApi = TwilioRoutingApi;
 
-                FromNumber = _DBC.LookupWithKey(CONF_API + "_FROM_NUMBER");
-                CallBackUrl = _DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
-                MessageXML = _DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
+                FromNumber =await _DBC.LookupWithKey(CONF_API + "_FROM_NUMBER");
+                CallBackUrl = await _DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
+                MessageXML = await _DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
 
-                int confMobOrder = Convert.ToInt16(_DBC.LookupWithKey("CONF_MOBILE_ORDER"));
-                int confgLLOrder = Convert.ToInt16(_DBC.LookupWithKey("CONF_LANDLINE_ORDER"));
+                int confMobOrder = Convert.ToInt16(await _DBC.LookupWithKey("CONF_MOBILE_ORDER"));
+                int confgLLOrder = Convert.ToInt16(await _DBC.LookupWithKey("CONF_LANDLINE_ORDER"));
 
                 //Get the user list to fetch their mobile numbers
                 var tmpUserList = (from U in _context.Set<User>() where U.CompanyId == companyId && userList.Contains(U.UserId) && U.Status == 1 select U).Distinct().ToList();
@@ -76,7 +77,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 var FinalPhoneList = mobileList.Union(landlineList).OrderBy(o => o.UserId).ThenBy(o => o.Order).ToList();
 
-                int ConfHeaderId = _MSG.CreateConferenceHeader(companyId, userId, timeZoneId, CommsAPI.ConfRoom, RecordConf, activeIncidentId, messageId, objectType);
+                int ConfHeaderId =await _MSG.CreateConferenceHeader(companyId, userId, CommsAPI.ConfRoom, RecordConf, activeIncidentId, messageId, objectType);
 
                 string CallId = string.Empty;
 
@@ -87,7 +88,7 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     string Status = string.Empty;
 
-                    string toMobile = _DBC.FormatMobile(uItem.ISD, uItem.PhoneNumber);
+                    string toMobile =await _DBC.FormatMobile(uItem.ISD, uItem.PhoneNumber);
 
                     if (!string.IsNullOrEmpty(uItem.PhoneNumber))
                     {
@@ -147,11 +148,11 @@ namespace CrisesControl.Infrastructure.Services
             {
 
                 //Get the selected conferance api for the company and set the requrest api params.
-                string CONF_API = _DBC.GetCompanyParameter("CONFERANCE_API", companyId);
+                string CONF_API =await _DBC.GetCompanyParameter("CONFERANCE_API", companyId);
                 bool RecordConf = Convert.ToBoolean(_DBC.GetCompanyParameter("RECORD_CONFERENCE", companyId));
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
-                TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                TwilioRoutingApi = await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 //Create instance of CommsApi choosen by company
                 dynamic CommsAPI = this.InitComms(CONF_API);
@@ -163,12 +164,12 @@ namespace CrisesControl.Infrastructure.Services
 
                 //FromNumber = DBC.LookupWithKey(CONF_API + "_FROM_NUMBER");
                 //Get API configraiton from sysparameters
-                string RetryNumberList = _DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", companyId, FromNumber);
+                string RetryNumberList =await _DBC.GetCompanyParameter("PHONE_RETRY_NUMBER_LIST", companyId, FromNumber);
                 List<string> FromNumberList = RetryNumberList.Split(',').ToList();
 
                 FromNumber = FromNumberList.FirstOrDefault();
-                CallBackUrl = _DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
-                MessageXML = _DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
+                CallBackUrl = await _DBC.LookupWithKey(CONF_API + "_CONF_STATUS_CALLBACK_URL");
+                MessageXML =await _DBC.LookupWithKey(CONF_API + "_CONF_XML_URL");
 
                 //Get the user list to fetch their mobile numbers
                 List<int> nUList = new List<int>();
@@ -185,7 +186,7 @@ namespace CrisesControl.Infrastructure.Services
 
 
                 //Create conference header
-                int ConfHeaderId = _MSG.CreateConferenceHeader(companyId, userId, timeZoneId, CommsAPI.ConfRoom, RecordConf, activeIncidentId, messageId, objectType);
+                int ConfHeaderId =await _MSG.CreateConferenceHeader(companyId, userId, CommsAPI.ConfRoom, RecordConf, activeIncidentId, messageId, objectType);
 
                 string CallId = string.Empty;
                 int ModeratorCDId = 0;
@@ -196,8 +197,8 @@ namespace CrisesControl.Infrastructure.Services
                 //Loop through with each user and their phone number to make the call
                 foreach (var uItem in tmpUserList)
                 {
-                    string Mobile = _DBC.FormatMobile(uItem.ISD, uItem.PhoneNumber);
-                    string Landline = _DBC.FormatMobile(uItem.Llisdcode, uItem.Landline);
+                    string Mobile =await _DBC.FormatMobile(uItem.ISD, uItem.PhoneNumber);
+                    string Landline =await _DBC.FormatMobile(uItem.Llisdcode, uItem.Landline);
 
                     if (!string.IsNullOrEmpty(uItem.PhoneNumber))
                     {
@@ -269,7 +270,7 @@ namespace CrisesControl.Infrastructure.Services
             return CallStatus;
         }
 
-        public string SendOTP(string iSD, string mobileNo, string message, string source = "RESET", string method = "TEXT", string userEmail = "")
+        public async Task<string> SendOTP(string iSD, string mobileNo, string message, string source = "RESET", string method = "TEXT", string userEmail = "")
         {
             try
             {
@@ -297,23 +298,23 @@ namespace CrisesControl.Infrastructure.Services
 
                 if (method == "TEXT")
                 { //Send Verificaiton Code Text
-                    msgstatus = TwilioVerify(mobileNo, "sms");
+                    msgstatus =await TwilioVerify(mobileNo, "sms");
                     status = msgstatus.CurrentAction;
                 }
                 else if (method == "PHONE")
                 { // Send verification code by Phone
 
-                    msgstatus = TwilioVerify(mobileNo, "call");
+                    msgstatus =await TwilioVerify(mobileNo, "call");
                     status = msgstatus.CurrentAction;
 
                 }
                 else if (method == "EMAIL")
                 { //Send Verification code by Email
-                    string FromEmail = _DBC.LookupWithKey("EMAILFROM");
-                    string SMTPHost = _DBC.LookupWithKey("SMTPHOST");
+                    string FromEmail =await _DBC.LookupWithKey("EMAILFROM");
+                    string SMTPHost =await _DBC.LookupWithKey("SMTPHOST");
 
                     string[] Email = { userEmail };
-                    bool sent = _SDE.Email(Email, message, FromEmail, SMTPHost, "Crises Control Verification Code");
+                    bool sent =await _SDE.Email(Email, message, FromEmail, SMTPHost, "Crises Control Verification Code");
                     msgstatus.CommsId = "EMAIL";
                     status = "SENT";
                 }
@@ -340,7 +341,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async void LogTwoFactorAuth(int companyId, int userId, string toNumber, string cloudMessageId, string status, string timeZoneId)
+        public async Task LogTwoFactorAuth(int companyId, int userId, string toNumber, string cloudMessageId, string status, string timeZoneId)
         {
             try
             {
@@ -353,7 +354,7 @@ namespace CrisesControl.Infrastructure.Services
                 TFA.LogCollected = false;
                 TFA.IsBilled = false;
                 TFA.Status = status;
-                TFA.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                TFA.CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 _context.Set<TwoFactorAuthLog>().Add(TFA);
                 await _context.SaveChangesAsync();
             }
@@ -362,17 +363,17 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public CommsStatus SendText(string iSD, string toNumber, string message, string callbackUrl = "")
+        public async Task<CommsStatus> SendText(string iSD, string toNumber, string message, string callbackUrl = "")
         {
             CommsStatus textrslt = new CommsStatus();
             try
             {
                 string TwilioRoutingApi = string.Empty;
-                string FromNumber = _DBC.LookupWithKey("TWILIO_FROM_NUMBER");
+                string FromNumber =await _DBC.LookupWithKey("TWILIO_FROM_NUMBER");
 
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
-                TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                TwilioRoutingApi =await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 var Confs = (from L in _context.Set<SysParameter>() where L.Name == "USE_MESSAGING_COPILOT" || L.Name == "MESSAGING_COPILOT_SID" select L).ToList();
 
@@ -395,7 +396,7 @@ namespace CrisesControl.Infrastructure.Services
                     FromNumber = FromNum.FromNumber;
                 }
 
-                toNumber = _DBC.FixMobileZero(toNumber);
+                toNumber = await _DBC.FixMobileZero(toNumber);
 
                 textrslt = CommsAPI.Text(FromNumber, toNumber, message, callbackUrl);
                 if (textrslt != null)
@@ -412,18 +413,18 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public CommsStatus TwilioVerify(string toNumber, string method)
+        public async Task<CommsStatus> TwilioVerify(string toNumber, string method)
         {
             CommsStatus textrslt = new CommsStatus();
             try
             {
                 string TwilioRoutingApi = string.Empty;
 
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
-                TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                TwilioRoutingApi =await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
-                string TWILIO_VERIFY_SERVICEID = _DBC.LookupWithKey("TWILIO_VERIFY_SERVICEID");
+                string TWILIO_VERIFY_SERVICEID =await _DBC.LookupWithKey("TWILIO_VERIFY_SERVICEID");
 
                 dynamic CommsAPI = this.InitComms("TWILIO");
                 CommsAPI.VERIFY_SERVICE_ID = TWILIO_VERIFY_SERVICEID;
@@ -433,7 +434,7 @@ namespace CrisesControl.Infrastructure.Services
                 string ClMessageId = string.Empty;
                 string istextsend = "NOTSENT";
 
-                toNumber = _DBC.FormatMobile("", _DBC.FixMobileZero(toNumber));
+                toNumber =await _DBC.FormatMobile("", await _DBC.FixMobileZero(toNumber));
 
                 textrslt = CommsAPI.Verify(toNumber, method);
 
@@ -451,18 +452,18 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public CommsStatus TwilioVerifyCheck(string toNumber, string code)
+        public async Task<CommsStatus> TwilioVerifyCheck(string toNumber, string code)
         {
             CommsStatus textrslt = new CommsStatus();
             try
             {
                 string TwilioRoutingApi = string.Empty;
 
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
 
-                TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                TwilioRoutingApi =await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
-                string TWILIO_VERIFY_SERVICEID = _DBC.LookupWithKey("TWILIO_VERIFY_SERVICEID");
+                string TWILIO_VERIFY_SERVICEID =await  _DBC.LookupWithKey("TWILIO_VERIFY_SERVICEID");
 
                 dynamic CommsAPI = this.InitComms("TWILIO");
                 CommsAPI.VERIFY_SERVICE_ID = TWILIO_VERIFY_SERVICEID;
@@ -472,7 +473,7 @@ namespace CrisesControl.Infrastructure.Services
                 string ClMessageId = string.Empty;
                 string istextsend = "NOTSENT";
 
-                toNumber = _DBC.FormatMobile("", _DBC.FixMobileZero(toNumber));
+                toNumber =await _DBC.FormatMobile("", await _DBC.FixMobileZero(toNumber));
 
                 textrslt = CommsAPI.VerifyCheck(toNumber, code);
 
@@ -490,12 +491,12 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void DeleteRecording(string recordingID)
+        public async Task DeleteRecording(string recordingID)
         {
             try
             {
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
-                string TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                bool SendInDirect =await  _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string TwilioRoutingApi =await  _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 dynamic CommsAPI = this.InitComms("TWILIO");
                 CommsAPI.SendInDirect = SendInDirect;
@@ -509,30 +510,30 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public string VerifyPhone(string code, string iSD, string mobileNo, string message = "")
+        public async Task<string> VerifyPhone(string code, string iSD, string mobileNo, string message = "")
         {
             try
             {
 
-                string validation_method = _DBC.LookupWithKey("PHONE_VALIDATION_METHOD");
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
-                string TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                string validation_method =await _DBC.LookupWithKey("PHONE_VALIDATION_METHOD");
+                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string TwilioRoutingApi =await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 if (string.IsNullOrEmpty(message))
-                    message = _DBC.LookupWithKey("PHONE_VALIDATION_MSG");
+                    message =await  _DBC.LookupWithKey("PHONE_VALIDATION_MSG");
 
                 message = message.Replace("{OTP}", code).Replace("{CODE}", code);
 
-                mobileNo = _DBC.FixMobileZero(mobileNo);
+                mobileNo =await _DBC.FixMobileZero(mobileNo);
 
                 if (validation_method == "TEXT")
                 {
-                    CommsStatus status = SendText(iSD, mobileNo, message);
+                    CommsStatus status =await SendText(iSD, mobileNo, message);
                     return status.CurrentAction;
                 }
                 else
                 {
-                    CommsStatus status = VerificationCall(mobileNo, message, SendInDirect, TwilioRoutingApi);
+                    CommsStatus status = await VerificationCall(mobileNo, message, SendInDirect, TwilioRoutingApi);
                     return status.CommsId;
                 }
             }
@@ -542,13 +543,13 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        internal CommsStatus VerificationCall(string mobileNo, string message, bool sendInDirect, string twilioRoutingApi)
+        public async Task<CommsStatus> VerificationCall(string mobileNo, string message, bool sendInDirect, string twilioRoutingApi)
         {
             try
             {
 
-                string FromNumber = _DBC.LookupWithKey("TWILIO_FROM_NUMBER");
-                string MsgXML = _DBC.LookupWithKey("TWILIO_PHONE_VALIDATION_XML");
+                string FromNumber =await _DBC.LookupWithKey("TWILIO_FROM_NUMBER");
+                string MsgXML =await _DBC.LookupWithKey("TWILIO_PHONE_VALIDATION_XML");
                 MsgXML = MsgXML + "?Body=" + HttpUtility.UrlEncode(message);
 
                 dynamic CommsAPI = this.InitComms("TWILIO");
@@ -566,16 +567,16 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public string CallMe(string ISD, string mobileNo)
+        public async Task<string> CallMe(string ISD, string mobileNo)
         {
             try
             {
 
-                string FromNumber = _DBC.LookupWithKey("TWILIO_FROM_NUMBER");
-                string MsgXML = _DBC.LookupWithKey("TWILIO_CALLME_XML");
-                string SALES_SUPPORT_NO = _DBC.LookupWithKey("SALES_NUMBER");
-                bool SendInDirect = _DBC.IsTrue(_DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
-                string TwilioRoutingApi = _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                string FromNumber =await _DBC.LookupWithKey("TWILIO_FROM_NUMBER");
+                string MsgXML = await _DBC.LookupWithKey("TWILIO_CALLME_XML");
+                string SALES_SUPPORT_NO = await _DBC.LookupWithKey("SALES_NUMBER");
+                bool SendInDirect = await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string TwilioRoutingApi = await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 MsgXML = MsgXML + "?ConfRoom=CALLME_" + DateTime.Now.ToString("ddMMyyHHmm");
                 string CustomerURL = MsgXML + "&IsCustomer=true";
@@ -585,7 +586,7 @@ namespace CrisesControl.Infrastructure.Services
                 CommsAPI.SendInDirect = SendInDirect;
                 CommsAPI.TwilioRoutingApi = TwilioRoutingApi;
 
-                mobileNo = _DBC.FixMobileZero(mobileNo);
+                mobileNo =await _DBC.FixMobileZero(mobileNo);
 
                 Task<dynamic> trhtask = Task.Factory.StartNew(() => CommsAPI.Call(FromNumber, mobileNo, CustomerURL, CustomerURL));
                 CommsStatus callrsltcustomer = trhtask.Result;
@@ -601,22 +602,22 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public dynamic InitComms(string API_CLASS, string APIClass = "", string clientId = "", string clientSecret = "", string dataCenter = "dublin")
+        public async Task<dynamic> InitComms(string API_CLASS, string APIClass = "", string clientId = "", string clientSecret = "", string dataCenter = "dublin")
         {
             try
             {
 
                 int RetryCount = 2;
-                int.TryParse(_DBC.LookupWithKey(API_CLASS + "_MESSAGE_RETRY_COUNT"), out RetryCount);
+                int.TryParse(await _DBC.LookupWithKey(API_CLASS + "_MESSAGE_RETRY_COUNT"), out RetryCount);
 
                 if (string.IsNullOrEmpty(APIClass))
-                    APIClass = _DBC.LookupWithKey(API_CLASS + "_API_CLASS");
+                    APIClass =await _DBC.LookupWithKey(API_CLASS + "_API_CLASS");
 
                 if (string.IsNullOrEmpty(clientId))
-                    clientId = _DBC.LookupWithKey(API_CLASS + "_CLIENTID");
+                    clientId =await _DBC.LookupWithKey(API_CLASS + "_CLIENTID");
 
                 if (string.IsNullOrEmpty(clientSecret))
-                    clientSecret = _DBC.LookupWithKey(API_CLASS + "_CLIENT_SECRET");
+                    clientSecret =await _DBC.LookupWithKey(API_CLASS + "_CLIENT_SECRET");
 
                 string[] TmpClass = APIClass.Trim().Split('|');
 

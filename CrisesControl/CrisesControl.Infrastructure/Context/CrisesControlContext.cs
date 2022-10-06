@@ -286,7 +286,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ConferenceUser>().HasNoKey();
             modelBuilder.Entity<FailedDeviceQueue>().HasNoKey();
             modelBuilder.Entity<UserParams>().HasNoKey();
-            //modelBuilder.Entity<MessageMethod>().HasNoKey();
+            modelBuilder.Entity<CmdMessage>().HasNoKey();
+            modelBuilder.Entity<UpdateIncident>().HasNoKey();
 
         }
 

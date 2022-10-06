@@ -6,11 +6,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Register.Repositories;
@@ -33,23 +33,16 @@ public class CompanyRepository : ICompanyRepository {
     private readonly IGlobalParametersRepository _globalParametersRepository;
     private readonly ILogger<CompanyRepository> _logger;
     private readonly ISenderEmailService _senderEmailService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    //private readonly ICompanyParametersRepository _companyParametersRepository;
-    // private readonly IUserRepository _userRepository;
-    private readonly DBCommon _DBC;
+    private readonly IDBCommonRepository _DBC;
 
-    public CompanyRepository(CrisesControlContext context, ISenderEmailService senderEmailService, IGlobalParametersRepository globalParametersRepository,
-        IHttpContextAccessor httpContextAccessor,
-        ILogger<CompanyRepository> logger) {
+    public CompanyRepository(CrisesControlContext context, IDBCommonRepository DBC, ISenderEmailService senderEmailService, IGlobalParametersRepository globalParametersRepository, ILogger<CompanyRepository> logger)
+    {
         _context = context;
         _globalParametersRepository = globalParametersRepository;
         _logger = logger;
         _senderEmailService = senderEmailService;
-        _httpContextAccessor = httpContextAccessor;
-        // _companyParametersRepository = companyParametersRepository;
-        //_userRepository = userRepository;
-        _DBC = new DBCommon(_context, _httpContextAccessor);
-    }
+        _DBC = DBC;
+     }
 
     public async Task<IEnumerable<Company>> GetAllCompanies() {
         return await _context.Set<Company>().AsNoTracking().ToArrayAsync();
@@ -884,7 +877,7 @@ public class CompanyRepository : ICompanyRepository {
                 CompanyToDelete.Status = 3;
                 CompanyToDelete.CompanyProfile = "MEMBERSHIP_CANCELLED";
                 CompanyToDelete.UpdatedBy = CurrentUserID;
-                CompanyToDelete.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                CompanyToDelete.UpdatedOn = await  _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                 await _context.SaveChangesAsync();
 
                 var AllUserOfDeletedCompany = await _context.Set<User>().Where(U => U.CompanyId == TargetCompanyID).ToListAsync();
@@ -900,8 +893,8 @@ public class CompanyRepository : ICompanyRepository {
                     //item.TOKEN = "";
                     await _context.SaveChangesAsync();
                 }
-                SendEmail SDE = new SendEmail(_context, _DBC);
-                SDE.RegistrationCancelled(CompanyToDelete.CompanyName, (int)CompanyToDelete.PackagePlanId, CompanyToDelete.RegistrationDate, primaryUserName, primaryUserEmail, primaryUserMobile);
+               
+               await _senderEmailService.RegistrationCancelled(CompanyToDelete.CompanyName, (int)CompanyToDelete.PackagePlanId, CompanyToDelete.RegistrationDate, primaryUserName, primaryUserEmail, primaryUserMobile);
 
                 try {
                     await Task.Factory.StartNew(async () => { await DeleteCompanyApi(CompanyID, CompanyToDelete.CustomerId); });
@@ -982,9 +975,11 @@ public class CompanyRepository : ICompanyRepository {
 
     }
 
-    public async Task<CompanyScimProfile> SaveScimProfileAsync(CompanyScim IP, int CurrentUserId, int CompanyId, string TimezoneId) {
-        try {
-            DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, TimezoneId);
+    public async Task<CompanyScimProfile> SaveScimProfileAsync(CompanyScim IP, int CurrentUserId, int CompanyId, string TimezoneId)
+    {
+        try
+        {
+            DateTimeOffset dtNow = await _DBC.GetDateTimeOffset(DateTime.Now, TimezoneId);
 
             List<SqlParameter> parameters = new List<SqlParameter>();
             parameters.Add(new SqlParameter("@CompanyId", CompanyId));

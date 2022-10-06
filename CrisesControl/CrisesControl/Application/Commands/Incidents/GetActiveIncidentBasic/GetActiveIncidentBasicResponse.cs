@@ -4,6 +4,6 @@ namespace CrisesControl.Api.Application.Commands.Incidents.GetActiveIncidentBasi
 {
     public class GetActiveIncidentBasicResponse
     {
-        public UpdateIncidentStatusReturn result { get; set; }
+        public List<UpdateIncident> result { get; set; }
     }
 }

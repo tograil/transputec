@@ -405,7 +405,7 @@ public class QueueService : IQueueService
                     var emailitem = new EmailMessage();
 
                     bool.TryParse(await _companyRepository.LookupWithKey("COMMS_DEBUG_MODE"), out CommsDebug);
-                    emailitem = ParamsHelper.GetEmailParams();
+                    emailitem =await ParamsHelper.GetEmailParams();
 
                     List<string> RoutingKeys = new List<string>();
                     string routingKey = "app_invitation" + "_" + CompanyID; ;

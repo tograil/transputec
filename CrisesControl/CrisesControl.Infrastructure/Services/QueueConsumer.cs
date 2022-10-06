@@ -1,7 +1,8 @@
-﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.AuditLog.Services;
+﻿
 using CrisesControl.Core.Common;
 using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.DBCommon.Repositories;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Context.Misc;
@@ -33,17 +34,17 @@ namespace CrisesControl.Infrastructure.Services
         public ushort RabbitMQHeartBeat = 60;
         private  readonly IHttpContextAccessor _httpContextAccessor;    
         private  readonly CrisesControlContext _db;
-        private  readonly DBCommon _DBC;
-        private  readonly Messaging _MSG;
+        private  readonly IDBCommonRepository _DBC;
+        private  readonly IMessageService _MSG;
         private readonly QueueHelper _queueHelper;
 
-        public QueueConsumer(CrisesControlContext db, IHttpContextAccessor httpContextAccessor)
+        public QueueConsumer(CrisesControlContext db, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG)
         {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
-            _DBC = new DBCommon(_db, _httpContextAccessor);
-            _MSG = new Messaging(_db, _httpContextAccessor);
-            _queueHelper = new QueueHelper(db);
+            _DBC = DBC;
+            _MSG = MSG;
+            _queueHelper = new QueueHelper(db,_DBC, _MSG);
         }
         public  async Task<int> CreateMessageList(int MessageID, string ReplyTo = "")
         {
@@ -68,10 +69,10 @@ namespace CrisesControl.Infrastructure.Services
                         string TimeZoneId = await _DBC.GetTimeZoneVal(msg.CreatedBy);
 
                         bool notifySender = false;
-                        bool.TryParse(_DBC.GetCompanyParameter("INC_SENDER_INCIDENT_UPDATE", msg.CompanyId), out notifySender);
+                        bool.TryParse(await _DBC.GetCompanyParameter("INC_SENDER_INCIDENT_UPDATE", msg.CompanyId), out notifySender);
 
                         bool NotifyKeyholders = false;
-                        bool.TryParse(_DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", msg.CompanyId), out NotifyKeyholders);
+                        bool.TryParse(await _DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", msg.CompanyId), out NotifyKeyholders);
 
                         MessageType = msg.MessageType.ToUpper();
                         Priority = msg.Priority;
@@ -205,9 +206,9 @@ namespace CrisesControl.Infrastructure.Services
             }
             return QueueSize;
         }
-        public  async void CreateCascadingJobs(int PlanID, int MessageID, int ActiveIncidentID, int CompanyID, string TimeZoneId)
+        public  async Task CreateCascadingJobs(int PlanID, int MessageID, int ActiveIncidentID, int CompanyID, string TimeZoneId)
         {
-            DBCommon DBC = new DBCommon(_db, _httpContextAccessor);
+           
             try
             {
                 if (PlanID > 0)
@@ -221,7 +222,7 @@ namespace CrisesControl.Infrastructure.Services
                         ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                         IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
-                        DateTimeOffset StartMessageTime = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                        DateTimeOffset StartMessageTime =await  _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                         int LastPriority = 1;
 
                         foreach (var step in steps)
@@ -267,9 +268,9 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public  void CreateCascadeJobStep(int MessageID, int PlanID, int ActiveIncidentID, string MessageType, int Priority, int Interval, ref DateTimeOffset StartMessageTime, string TimeZoneId)
+        public   void CreateCascadeJobStep(int MessageID, int PlanID, int ActiveIncidentID, string MessageType, int Priority, int Interval, ref DateTimeOffset StartMessageTime, string TimeZoneId)
         {
-            DBCommon DBC = new DBCommon(_db,_httpContextAccessor);
+           
             try
             {
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
@@ -284,10 +285,12 @@ namespace CrisesControl.Infrastructure.Services
                 jobDetail.JobDataMap["MessageId"] = MessageID;
                 jobDetail.JobDataMap["Priority"] = Priority;
                 jobDetail.JobDataMap["MessageType"] = MessageType;
-
-                if (!DBC.IsDayLightOn(StartMessageTime.DateTime))
+                string dayLight = _DBC.IsDayLightOn(StartMessageTime.DateTime).ToString();
+                bool isDayLightOn = Convert.ToBoolean(dayLight);
+                if (!isDayLightOn)
                 {
-                    StartMessageTime = DBC.ConvertToLocalTime("GMT Standard Time", StartMessageTime.ToUniversalTime().DateTime);
+                    string date = _DBC.ConvertToLocalTime("GMT Standard Time", StartMessageTime.ToUniversalTime().DateTime).ToString();
+                    StartMessageTime =DateTimeOffset.Parse(date);
                 }
 
                 string CronExpressionStr = StartMessageTime.Second + " " + StartMessageTime.Minute + " " + StartMessageTime.Hour + " " + StartMessageTime.Day + " " + StartMessageTime.Month + " ? " + StartMessageTime.Year;
@@ -310,7 +313,7 @@ namespace CrisesControl.Infrastructure.Services
 
         public  void SOSSchedule(int MessageID, int CompanyID, int Priority, DateTimeOffset StartTime, string TimeZoneId, int ActiveIncidentID)
         {
-            DBCommon DBC = new DBCommon(_db, _httpContextAccessor);
+            
             try
             {
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
@@ -326,12 +329,15 @@ namespace CrisesControl.Infrastructure.Services
                     jobDetail.JobDataMap["MessageID"] = MessageID;
                     jobDetail.JobDataMap["CompanyID"] = CompanyID;
 
-                    if (!DBC.IsDayLightOn(StartTime.DateTime))
-                    {
-                        StartTime = DBC.ConvertToLocalTime("GMT Standard Time", StartTime.ToUniversalTime().DateTime);
-                    }
+                string dayLight = _DBC.IsDayLightOn(StartTime.DateTime).ToString();
+                bool isDayLightOn = Convert.ToBoolean(dayLight);
+                if (!isDayLightOn)
+                {
+                    string date = _DBC.ConvertToLocalTime("GMT Standard Time", StartTime.ToUniversalTime().DateTime).ToString();
+                    StartTime = DateTimeOffset.Parse(date);
+                }
 
-                    string CronExpressionStr = StartTime.Second + " " + StartTime.Minute + " " + StartTime.Hour + " " + StartTime.Day + " " + StartTime.Month + " ? " + StartTime.Year;
+                string CronExpressionStr = StartTime.Second + " " + StartTime.Minute + " " + StartTime.Hour + " " + StartTime.Day + " " + StartTime.Month + " ? " + StartTime.Year;
 
                     var trigger = TriggerBuilder.Create()
                                                  .WithIdentity(taskTrigger, "MESSAGE_CASCADE_" + ActiveIncidentID)

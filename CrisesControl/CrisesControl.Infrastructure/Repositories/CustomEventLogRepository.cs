@@ -1,7 +1,7 @@
-﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.Common;
+﻿using CrisesControl.Core.Common;
 using CrisesControl.Core.CustomEventLog;
 using CrisesControl.Core.CustomEventLog.Repositories;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -16,8 +16,9 @@ namespace CrisesControl.Infrastructure.Repositories
     public class CustomEventLogRepository : ICustomEventLogRepository
     {
         private readonly CrisesControlContext _context;
-        private readonly DBCommon _DBC;
-        public CustomEventLogRepository(CrisesControlContext context, DBCommon DBC)
+        private readonly IDBCommonRepository _DBC;
+       
+        public CustomEventLogRepository(CrisesControlContext context, IDBCommonRepository DBC)
         {
             _context = context;
             _DBC = DBC;
@@ -110,7 +111,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                DateTimeOffset dtNow = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
                 var pEventLogID = new SqlParameter("@EventLogID", eventLogEntry.EventLogID);
                 var pEventLogHeaderID = new SqlParameter("@EventLogHeaderID", eventLogEntry.EventLogHeaderId);
@@ -151,7 +152,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                DateTimeOffset dtNow = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
                 var pActiveIncidentID = new SqlParameter("@activeIncidentId", activeIncidentId);
                 var pPermittedDepartment = new SqlParameter("@permittedDepartment", permittedDepartment);
@@ -173,7 +174,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                DateTimeOffset dtNow = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                DateTimeOffset dtNow = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
                 var pEventLogID = new SqlParameter("@eventLogId", eventLogId);
                 var pMessageID = new SqlParameter("@messageId", messageId);

@@ -1,10 +1,9 @@
-﻿
-using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.Administrator;
+﻿using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Administrator.Repositories;
 using CrisesControl.Core.Assets.Respositories;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Jobs.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
@@ -32,21 +31,21 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly ILogger<AdminRepository> _logger;
-        private readonly SendEmail _SDE;
-        private readonly DBCommon DBC;
+        private readonly ISenderEmailService _SDE;
+        private readonly IDBCommonRepository DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private static IScheduler _scheduler;
         private static ISchedulerFactory schedulerFactory;
         private readonly IJobRepository _jobRepository;
         private readonly IAssetRepository _assetRepository;
-        public AdminRepository(CrisesControlContext context, ILogger<AdminRepository> logger, SendEmail SDE, IJobRepository jobRepository, IHttpContextAccessor httpContextAccessor, IAssetRepository assetRepository)
+        public AdminRepository(CrisesControlContext context, ILogger<AdminRepository> logger, ISenderEmailService SDE, IJobRepository jobRepository, IHttpContextAccessor httpContextAccessor, IDBCommonRepository _DBC, IAssetRepository assetRepository)
         {
             this._context=context;
             this._logger=logger;
             this._SDE = SDE;
             this._httpContextAccessor = httpContextAccessor;
             this._jobRepository = jobRepository;
-            this.DBC =new DBCommon(_context, _httpContextAccessor);
+            this.DBC =_DBC;
             this._assetRepository = assetRepository;
         }
         public async Task<List<LibIncident>> GetAllLibIncident()
@@ -794,7 +793,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                 if (IP.PaymentMethod == "SELFTOPUP")
                                 {
 
-                                    _SDE.SendPaymentTransactionAlert(CompanyId, IP.Total, TimeZoneId);
+                                  await  _SDE.SendPaymentTransactionAlert(CompanyId, IP.Total, TimeZoneId);
                                 }
                             }
 
@@ -1790,11 +1789,13 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     if (!_scheduler.CheckExists(jobKey).Result)
                     {
-                        string TimeZoneId = DBC.GetTimeZoneByCompany(ast.CompanyId);
-                        if ((DateTimeOffset)ast.ReviewDate > DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId).Date && !string.IsNullOrEmpty(ast.ReviewFrequency))
+                       
+                        string TimeZoneId =await DBC.GetTimeZoneByCompany(ast.CompanyId);
+                        DateTimeOffset timeOffset = await DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                        if ((DateTimeOffset)ast.ReviewDate > timeOffset.Date && !string.IsNullOrEmpty(ast.ReviewFrequency))
                         {
-                            DateTimeOffset DateCheck = DBC.GetNextReviewDate((DateTimeOffset)ast.ReviewDate, ast.CompanyId, 0, out Counter);
-                            _assetRepository.CreateAssetReviewReminder(ast.AssetId, ast.CompanyId, (DateTimeOffset)ast.ReviewDate, ast.ReviewFrequency, Counter);
+                            DateTimeOffset DateCheck =await DBC.GetNextReviewDate((DateTimeOffset)ast.ReviewDate, ast.CompanyId, 0, Counter);
+                            await _assetRepository.CreateAssetReviewReminder(ast.AssetId, ast.CompanyId, (DateTimeOffset)ast.ReviewDate, ast.ReviewFrequency, Counter);
                         }
                     }
                 }
@@ -1820,8 +1821,8 @@ namespace CrisesControl.Infrastructure.Repositories
 
                foreach (var od in offdutyusers)
                 {
-                    if (DBC.ConvertToLocalTime("GMT Standard Time", od.StartDateTime) <= DBC.GetDateTimeOffset(DateTime.Now) &&
-                            DBC.ConvertToLocalTime("GMT Standard Time", od.EndDateTime) >= DBC.GetDateTimeOffset(DateTime.Now))
+                    if (await DBC.ConvertToLocalTime("GMT Standard Time", od.StartDateTime) <= await DBC.GetDateTimeOffset(DateTime.Now) &&
+                            await DBC.ConvertToLocalTime("GMT Standard Time", od.EndDateTime) >=await DBC.GetDateTimeOffset(DateTime.Now))
                     {
                     }
                     else
@@ -2050,7 +2051,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                DataObjects DBJ = new DataObjects(_context);
+                DataObjects DBJ = new DataObjects(_context,DBC);
                 var CompanyDetails =await  DBJ.GetCompanyDetails(CompanyID);
                 CompanyDetails.ContractOffer =await DBJ.GetContractOffer(CompanyID);
                 CompanyDetails.TransactionTypes = await DBJ.GetTransactionTypes(CompanyID);
@@ -2085,7 +2086,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
             try
             {
-                DataObjects DBJ = new DataObjects(_context);
+                DataObjects DBJ = new DataObjects(_context,DBC);
                 var cpmstats = await DBJ.GetCompanyGlobalReport();
 
                 return cpmstats;

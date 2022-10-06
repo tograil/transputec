@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Assets;
 using CrisesControl.Core.Assets.Respositories;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
@@ -23,8 +23,8 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly IMapper _mapper;
-        private readonly DBCommon DBC;
-        public AssetRespository(CrisesControlContext context, IMapper mapper, DBCommon _DBC)
+        private readonly IDBCommonRepository  DBC;
+        public AssetRespository(CrisesControlContext context, IMapper mapper, IDBCommonRepository _DBC)
         {
             _context = context;
             _mapper = mapper;
@@ -48,7 +48,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 Assetsdata.Status = 3;
                 Assetsdata.UpdatedBy = currentUserId;
-                Assetsdata.UpdatedOn = DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
+                Assetsdata.UpdatedOn =await DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
                 await _context.SaveChangesAsync();
 
                await  DBC.DeleteScheduledJob("ASSET_REVIEW_" + assetId, "REVIEW_REMINDER");
@@ -125,12 +125,12 @@ namespace CrisesControl.Infrastructure.Repositories
                 jobDetail.JobDataMap["AssetId"] = assetId;
 
                 int Counter = 0;
-                DateTimeOffset DateCheck = DBC.GetNextReviewDate(nextReviewDate, companyID, reminderCount, out Counter);
+                DateTimeOffset DateCheck =await DBC.GetNextReviewDate(nextReviewDate, companyID, reminderCount,  Counter);
                 jobDetail.JobDataMap["Counter"] = Counter;
 
-                string TimeZoneVal = DBC.GetTimeZoneByCompany(companyID);
+                string TimeZoneVal =await DBC.GetTimeZoneByCompany(companyID);
 
-                if (DateTimeOffset.Compare(DateCheck, DBC.GetDateTimeOffset(DateTime.Now, TimeZoneVal)) >= 0)
+                if (DateTimeOffset.Compare(DateCheck, await DBC.GetDateTimeOffset(DateTime.Now, TimeZoneVal)) >= 0)
                 {
 
                     if (DateCheck < DateTime.Now)
@@ -145,7 +145,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
                 else
                 {
-                    DateTimeOffset NewReviewDate = DBC.GetNextReviewDate(nextReviewDate, reviewFrequency);
+                    DateTimeOffset NewReviewDate = await DBC.GetNextReviewDate(nextReviewDate, reviewFrequency);
                     var asset = _context.Set<Assets>().Where(A=> A.AssetId == assetId).FirstOrDefault();
                     if (asset != null)
                     {

@@ -4,7 +4,6 @@ using System.Data.SqlTypes;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Common;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
@@ -25,6 +24,8 @@ using Newtonsoft.Json;
 using CrisesControl.Core.Reports;
 using Location = CrisesControl.Core.Locations.Location;
 using Object = CrisesControl.Core.Models.Object;
+using CrisesControl.Core.Messages.Services;
+using CrisesControl.Core.DBCommon.Repositories;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -36,20 +37,20 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     private string MessageSourceAction = string.Empty;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private IConfiguration _configuration;
-    private readonly Messaging _MSG;
-    private readonly DBCommon _DBC;
+    private readonly IMessageService _MSG;
+    private readonly IDBCommonRepository _DBC;
     private readonly QueueConsumer queueConsumer;
     private readonly QueueHelper _queueHelper;
 
-    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration)
+    public ActiveIncidentRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor,  IConfiguration configuration, IDBCommonRepository DBC, IMessageService MSG)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _configuration = configuration;
-        _MSG = new Messaging(_context, _httpContextAccessor);
-        _DBC = new DBCommon(_context, _httpContextAccessor);
-        queueConsumer = new QueueConsumer(_context, _httpContextAccessor);
-        _queueHelper = new QueueHelper(_context);
+        _MSG = MSG;
+        _DBC = DBC;
+        queueConsumer = new QueueConsumer(_context, _httpContextAccessor,_DBC,_MSG);
+        _queueHelper = new QueueHelper(_context, _DBC, _MSG);
     }
 
     public async Task ProcessKeyHolders(int companyId, int incidentId, int activeIncidentId, int currentUserId,
@@ -663,7 +664,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     {
         try
         {
-            DBCommon DBC = new DBCommon(_context, _httpContextAccessor); ;
+            
             List<NotificationUserList> TaskPtcpntList = new List<NotificationUserList>();
             if (includeKeyContact)
             {
@@ -675,14 +676,14 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 }
             }
 
-            TaskPtcpntList = await DBC.GetUniqueUsers(TaskPtcpntList, userToNotify);
+            TaskPtcpntList = await _DBC.GetUniqueUsers(TaskPtcpntList, userToNotify);
 
             _MSG.TimeZoneId = timeZoneId;
             _MSG.CascadePlanID = cascadePlanId;
             _MSG.MessageSourceAction = MessageSourceAction;
 
             int tblmessageid = await _MSG.CreateMessage(companyId, message, "Incident", activeIncidentId, 999, currentUserId, source,
-                       DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), false, null, 99, 0, activeIncidentTaskId, false, false, messageMetod);
+                      await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), false, null, 99, 0, activeIncidentTaskId, false, false, messageMetod);
 
             if (tblmessageid > 0)
             {
@@ -967,7 +968,6 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     {
         try
         {
-            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
             MessageSourceAction = SourceAction.TaskReassigned;
             var task = await GetTaskActiveIncidentById(activeIncidentTaskId, companyId);
             if (task != null)
@@ -1012,7 +1012,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" is available for action." + Environment.NewLine + " Comment: " + taskActionReason;
 
                 bool NotifyKeyContact = false;
-                bool.TryParse(await GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", companyId), out NotifyKeyContact);
+                bool.TryParse(await _DBC.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", companyId), out NotifyKeyContact);
                 await notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, currentUserId, companyId, timeZoneId, NotifyKeyContact, 3);
 
                 return task;
@@ -1092,7 +1092,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     {
         try
         {
-            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+          
             var tasks = await _context.Set<TaskActiveIncident>()
                          .Where(AIT => AIT.ActiveIncidentId == activeIncidentId && AIT.TaskStatus != 7 && AIT.CompanyId == companyId)
                          .ToListAsync();
@@ -1118,8 +1118,8 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                     await AddTaskAction(task.ActiveIncidentTaskId, task_action, currentUserId, task.TaskStatus, timeZoneId);
 
                     //Delete Scheduled jobs for the incident
-                    DBC.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
-                    DBC.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
+                   await _DBC.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
+                   await _DBC.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
 
                 }
                 catch (Exception ex)
@@ -1833,7 +1833,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         {
             TaskIncidentAction TIA = new TaskIncidentAction
             {
-                ActionDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId),
+                ActionDate = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId),
                 ActionDescription = attachmentTitle,
                 ActiveIncidentTaskId = activeIncidentTaskId,
                 TaskActionBy = userId,

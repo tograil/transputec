@@ -32,6 +32,7 @@ using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Administrator.Repositories;
 using CrisesControl.Core.Models;
+using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Utils;
 using System.Data;
 
@@ -43,13 +44,14 @@ namespace CrisesControl.Api.Application.Query
         private readonly ILogger<AdminQuery> _logger;
         private readonly IAdminRepository _adminRepository;
         private readonly ICurrentUser _currentUser;
-        private readonly SendEmail SDE;
-        public AdminQuery(IMapper mapper, ILogger<AdminQuery> logger, IAdminRepository administratorRepository, ICurrentUser currentUser)
+        private readonly ISenderEmailService SDE;
+        public AdminQuery(IMapper mapper, ILogger<AdminQuery> logger, IAdminRepository administratorRepository, ICurrentUser currentUser, ISenderEmailService _SDE)
         {
             this._logger=logger;
             this._mapper=mapper;
             this._adminRepository=administratorRepository;
             this._currentUser = currentUser;
+            this.SDE = _SDE;
         }
 
         public async Task<AddLibIncidentResponse> AddLibIncident(AddLibIncidentRequest request)
@@ -436,7 +438,7 @@ namespace CrisesControl.Api.Application.Query
                 string SMTPHost = await _adminRepository.LookupWithKey("SMTPHOST");
                 string FromAddress = await _adminRepository.LookupWithKey("ALERT_EMAILFROM");
 
-                var result = SDE.Email(request.ExtraEmailList.ToArray(), request.EmailContent, FromAddress, SMTPHost, request.EmailSubject);
+                var result =await SDE.Email(request.ExtraEmailList.ToArray(), request.EmailContent, FromAddress, SMTPHost, request.EmailSubject);
 
 
                 var response = new TestTemplateResponse();

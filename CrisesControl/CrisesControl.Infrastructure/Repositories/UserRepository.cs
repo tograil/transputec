@@ -6,26 +6,29 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Billing;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Groups.Repositories;
 using CrisesControl.Core.Locations;
 using CrisesControl.Core.Locations.Services;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.Users;
 using CrisesControl.Core.Users.Repositories;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
+using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Quartz;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -34,11 +37,11 @@ public class UserRepository : IUserRepository
     private readonly CrisesControlContext _context;
     private readonly string timeZoneId = "GMT Standard Time";
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private  SendEmail _SDE;
-    private  DBCommon _DBC;
+    private readonly ISenderEmailService _SDE;
+    private readonly IDBCommonRepository _DBC;
     private readonly ILocationRepository _locationRepository;
     private readonly IGroupRepository _groupRepository;
-    private Messaging _MSG;
+    private readonly IMessageService _MSG;
     private UsageHelper _usage;
 
 
@@ -47,14 +50,17 @@ public class UserRepository : IUserRepository
     private readonly ILogger<UserRepository> _logger;
     const string action = "ADD";
 
+    public bool isValidMobile = true;
 
     public UserRepository(
         CrisesControlContext context,
         IHttpContextAccessor httpContextAccessor,
         ILogger<UserRepository> logger,
         ILocationRepository locationRepository,
-        IGroupRepository groupRepository
-        
+        IGroupRepository groupRepository,
+        IDBCommonRepository DBC,
+        IMessageService MSG,
+        ISenderEmailService SDE
         )
     {
         _context = context;
@@ -62,14 +68,19 @@ public class UserRepository : IUserRepository
         userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
         companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         _logger = logger;        
-        _DBC = new DBCommon(_context,_httpContextAccessor);
-        _SDE = new SendEmail(_context,_DBC);
+        _DBC = DBC;
+        _SDE = SDE;
         _locationRepository = locationRepository;
         _groupRepository = groupRepository;
-        _MSG = new Messaging(_context,_httpContextAccessor);
-        _usage = new UsageHelper(_context);
+        _MSG = MSG;
+        _usage = new UsageHelper(_context,_DBC,_SDE);
     }
-
+    public bool IsValidMobile
+    { 
+        get => isValidMobile;
+        set => isValidMobile = value; 
+    
+    }
     public async Task<int> CreateUser(User user, CancellationToken cancellationToken)
     {
         await _context.AddAsync(user, cancellationToken);
@@ -180,9 +191,9 @@ public class UserRepository : IUserRepository
                 userToBeDeleted.Status = 3;
                 //tblUser.TOKEN = "";
                 userToBeDeleted.PrimaryEmail = "DEL-" + user.PrimaryEmail;
-                userToBeDeleted.UserHash = _DBC.PWDencrypt(user.PrimaryEmail);
+                userToBeDeleted.UserHash =await _DBC.PWDencrypt(user.PrimaryEmail);
                 userToBeDeleted.UpdatedBy = userId;
-                userToBeDeleted.UpdatedOn = _DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
+                userToBeDeleted.UpdatedOn =await _DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
                 await _context.SaveChangesAsync(cancellationToken);
 
                 await CheckUserAssociation(user.UserId, user.CompanyId, cancellationToken);
@@ -1257,7 +1268,7 @@ public class UserRepository : IUserRepository
         try
         {
             bool ShowAllGroups = true;
-            bool.TryParse(_DBC.GetCompanyParameter("SHOW_ALL_GROUPS_TO_USERS", companyId), out ShowAllGroups);
+            bool.TryParse(await _DBC.GetCompanyParameter("SHOW_ALL_GROUPS_TO_USERS", companyId), out ShowAllGroups);
             UR.ShowAllGroups = ShowAllGroups;
 
             if (!ShowAllGroups)
@@ -1281,7 +1292,7 @@ public class UserRepository : IUserRepository
                 newLocation.PostCode = " ";
                 newLocation.Status = 1;
                 newLocation.CreatedBy = userId;
-                newLocation.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                newLocation.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 int newLocaionId = await _locationRepository.CreateLocation(newLocation, cancellationToken);
                 var newGroup = new Core.Groups.Group();
                 newGroup.CompanyId = companyId;
@@ -1289,8 +1300,8 @@ public class UserRepository : IUserRepository
                 newGroup.Status = 1;
                 newGroup.CreatedBy = userId;
                 newGroup.UpdatedBy = userId;
-                newGroup.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
-                newGroup.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                newGroup.CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                newGroup.UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 int newGroupId = await _groupRepository.CreateGroup(newGroup, cancellationToken);
 
                 UR.Groups = userRelations;
@@ -1306,9 +1317,9 @@ public class UserRepository : IUserRepository
                         continue;
                     }
 
-                    var getuser = (from UOR in _context.Set<ObjectRelation>()
-                                   where UOR.ObjectMappingId == relation.ObjectMappingId && UOR.SourceObjectPrimaryId == relation.SourceObjectPrimaryId
-                                   select UOR).ToList();
+                    var getuser = await _context.Set<ObjectRelation>()
+                                   .Where(UOR=> UOR.ObjectMappingId == relation.ObjectMappingId && UOR.SourceObjectPrimaryId == relation.SourceObjectPrimaryId
+                                   ).ToListAsync();
                     foreach (var user in getuser)
                     {
                         relatedUserId.Add(user.TargetObjectPrimaryId);
@@ -1472,7 +1483,7 @@ public class UserRepository : IUserRepository
                                 var IsExist = queryRec.FirstOrDefault(s => s.TargetObjectPrimaryId == userId && s.SourceObjectPrimaryId == SourceId.SourceId && s.ObjectMappingId == OBjs);
                                 if (IsExist == null)
                                 {
-                                    _DBC.CreateNewObjectRelation(SourceId.SourceId, userId, OBjs, currentUserId, timeZoneId, companyId);
+                                   await _DBC.CreateNewObjectRelation(SourceId.SourceId, userId, OBjs, currentUserId, timeZoneId, companyId);
                                 }
                                 else
                                 {
@@ -1542,25 +1553,25 @@ public class UserRepository : IUserRepository
                         user.FirstLogin = true;
                         await _context.SaveChangesAsync(cancellationToken);
                         //Assign the user to the default location and depeartment and send the account details
-                        _DBC.CreateObjectRelationship(user.UserId, 0, "Location", user.CompanyId, request.CurrentUserId, timeZoneId, "ALL");
-                        _DBC.CreateObjectRelationship(user.UserId, 0, "Group", user.CompanyId, request.CurrentUserId, timeZoneId, "ALL");
+                       await _DBC.CreateObjectRelationship(user.UserId, 0, "Location", user.CompanyId, request.CurrentUserId, timeZoneId, "ALL");
+                       await _DBC.CreateObjectRelationship(user.UserId, 0, "Group", user.CompanyId, request.CurrentUserId, timeZoneId, "ALL");
 
                         if (request.SendInvite)
-                            _SDE.NewUserAccountConfirm(user.PrimaryEmail, user.FirstName + " " + user.LastName, user.Password, user.CompanyId, user.UniqueGuiId);
+                          await  _SDE.NewUserAccountConfirm(user.PrimaryEmail, user.FirstName + " " + user.LastName, user.Password, user.CompanyId, user.UniqueGuiId);
 
                     }
                 }
                 else if (request.Action == "CREDENTIAL")
                 {
-                    _SDE.NewUserAccountConfirm(user.PrimaryEmail, user.FirstName + " " + user.LastName, user.Password, user.CompanyId, user.UniqueGuiId);
+                    await _SDE.NewUserAccountConfirm(user.PrimaryEmail, user.FirstName + " " + user.LastName, user.Password, user.CompanyId, user.UniqueGuiId);
                     user.FirstLogin = true;
-                    _context.SaveChanges();
+                   await _context.SaveChangesAsync();
                 }
                 else if (request.Action == "INVITE")
                 {
                     if (user.Status == 2)
                     {
-                        _SDE.NewUserAccount(user.PrimaryEmail, user.FirstName + " " + user.LastName, user.CompanyId, user.UniqueGuiId);
+                       await _SDE.NewUserAccount(user.PrimaryEmail, user.FirstName + " " + user.LastName, user.CompanyId, user.UniqueGuiId);
                     }
                 }
                 else if (request.Action == "EDIT")
@@ -1580,7 +1591,7 @@ public class UserRepository : IUserRepository
                         {
                             //_billing.AddUserRoleChange(CompanyId, user.UserId, InputModel.UserRole.ToUpper(), TimeZoneId);
                             // ToDo: implement billing
-                            ResetUserDeviceToken(user.UserId);
+                           await ResetUserDeviceToken(user.UserId);
                         }
 
                         if (request.Status == 0 && request.SetStatus == "1")
@@ -1595,15 +1606,15 @@ public class UserRepository : IUserRepository
                             user.UserRole = request.UserRole.ToUpper();
                         }
                         user.UpdatedBy = request.CurrentUserId;
-                        user.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                        user.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                         await CreateUserSearch(user.UserId, user.FirstName, user.LastName, user.Isdcode, user.MobileNo, user.PrimaryEmail, companyId);
 
                         if (request.SetSecurityGroups == "1")
                         {
                             string[] totSecGroup = request.SecurityGroups.Split(',');
-                            UserSecurityGroup(user.UserId, totSecGroup, request.CurrentUserId, companyId);
+                          await  UserSecurityGroup(user.UserId, totSecGroup, request.CurrentUserId, companyId);
                         }
 
                         if (request.SetDepartment == "1")
@@ -1613,11 +1624,11 @@ public class UserRepository : IUserRepository
 
                         if (request.SetLocation == "1" || request.SetGroup == "1")
                         {
-                            UserObjectRelation(user.UserId, ObjFilters, request.CurrentUserId, companyId, timeZoneId, request.GroupActionGroup, request.GroupActionLocation);
+                           await UserObjectRelation(user.UserId, ObjFilters, request.CurrentUserId, companyId, timeZoneId, request.GroupActionGroup, request.GroupActionLocation);
 
-                            _DBC.CreateObjectRelationship(user.UserId, 0, "Location", companyId, user.UserId, timeZoneId, "ALL");
+                           await _DBC.CreateObjectRelationship(user.UserId, 0, "Location", companyId, user.UserId, timeZoneId, "ALL");
 
-                            _DBC.CreateObjectRelationship(user.UserId, 0, "Group", companyId, user.UserId, timeZoneId, "ALL");
+                          await  _DBC.CreateObjectRelationship(user.UserId, 0, "Group", companyId, user.UserId, timeZoneId, "ALL");
                         }
 
                         if (request.SetPingMethod == "1")
@@ -1666,15 +1677,15 @@ public class UserRepository : IUserRepository
             {
                 if (saveHistory)
                 {
-                    int ChngId = _DBC.AddPwdChangeHistory(userId, newPassword);
+                    int ChngId =await _DBC.AddPwdChangeHistory(userId, newPassword);
                 }
             }
 
             var delPwd = _context.Set<PasswordChangeHistory>().OrderByDescending(t => t.Id).Skip(lastNPwdCheck).ToList();
             if (delPwd.Count > 0)
             {
-                _context.Set<PasswordChangeHistory>().RemoveRange(delPwd);
-                _context.SaveChanges();
+                _context.RemoveRange(delPwd);
+                await _context.SaveChangesAsync();
             }
 
 
@@ -1811,16 +1822,16 @@ public class UserRepository : IUserRepository
                 oc.AllowPhone = request.AllowPhone;
                 oc.AllowPush = request.AllowPush;
                 oc.AllowText = request.AllowText;
-                oc.StartDateTime = _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime);
-                oc.EndDateTime = _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime);
+                oc.StartDateTime = await _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime);
+                oc.EndDateTime = await _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime);
                 oc.UserId = userId;
 
                 await _context.AddAsync(oc, cancellationToken);
 
                 await _context.SaveChangesAsync(cancellationToken);
 
-                if (_DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime) <= _DBC.GetDateTimeOffset(DateTime.Now) &&
-                    _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime) >= _DBC.GetDateTimeOffset(DateTime.Now))
+                if (await _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime) <=await _DBC.GetDateTimeOffset(DateTime.Now) &&
+                    await _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime) >=await  _DBC.GetDateTimeOffset(DateTime.Now))
                 {
                     user.ActiveOffDuty = 1;
 
@@ -1832,12 +1843,12 @@ public class UserRepository : IUserRepository
                 else
                 {
                     user.ActiveOffDuty = 0;
-                    CreateOffDutyJob(userId, _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime), companyId, "START");
+                    CreateOffDutyJob(userId, await _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime), companyId, "START");
                 }
 
-                CreateOffDutyJob(userId, _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime),companyId, "END");
+                CreateOffDutyJob(userId, await _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime),companyId, "END");
 
-                _context.SaveChangesAsync();
+               await _context.SaveChangesAsync();
 
                 RTO.Data = oc;
                 RTO.Status = true;
@@ -1910,7 +1921,7 @@ public class UserRepository : IUserRepository
                 user.ActiveOffDuty = 0;
                 await _context.SaveChangesAsync();
 
-                _DBC.DeleteScheduledJob("OFF_DUTY_END_" +userId, "OFF_DUTY_JOB_END");
+                await _DBC.DeleteScheduledJob("OFF_DUTY_END_" +userId, "OFF_DUTY_JOB_END");
 
                 if (notifyFront == true)
                 {
@@ -2047,8 +2058,8 @@ public class UserRepository : IUserRepository
                             await _context.SaveChangesAsync(cancellationToken);
                         }
 
-                        _DBC.DeleteScheduledJob("OFF_DUTY_END_" + userId, "OFF_DUTY_JOB_END");
-                        _DBC.DeleteScheduledJob("OFF_DUTY_START_" +userId, "OFF_DUTY_JOB_START");
+                       await _DBC.DeleteScheduledJob("OFF_DUTY_END_" + userId, "OFF_DUTY_JOB_END");
+                       await _DBC.DeleteScheduledJob("OFF_DUTY_START_" +userId, "OFF_DUTY_JOB_START");
 
                         if (request.OffDutyAction.ToUpper() == "END" && NotifyFront == true)
                         {
@@ -2089,13 +2100,13 @@ public class UserRepository : IUserRepository
                 OC.AllowPhone = request.AllowPhone;
                 OC.AllowPush = request.AllowPush;
                 OC.AllowText = request.AllowText;
-                OC.StartDateTime = _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime);
-                OC.EndDateTime = _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime);
+                OC.StartDateTime = await _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime);
+                OC.EndDateTime =await _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime);
                 OC.UserId = userId;
                 await _context.Set<OffDuty>().AddAsync(OC);
 
-                if (_DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime) <= _DBC.GetDateTimeOffset(DateTime.Now) &&
-                    _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime) >= _DBC.GetDateTimeOffset(DateTime.Now))
+                if (await _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime) <= await _DBC.GetDateTimeOffset(DateTime.Now) &&
+                    await _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime) >= await _DBC.GetDateTimeOffset(DateTime.Now))
                 {
                     user.ActiveOffDuty = 1;
 
@@ -2107,10 +2118,10 @@ public class UserRepository : IUserRepository
                 else
                 {
                     user.ActiveOffDuty = 0;
-                    CreateOffDutyJob(userId, _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime), companyId, "START");
+                    CreateOffDutyJob(userId, await _DBC.ConvertToLocalTime("GMT Standard Time", request.StartDateTime), companyId, "START");
                 }
 
-                CreateOffDutyJob(userId, _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime), companyId, "END");
+                CreateOffDutyJob(userId, await _DBC.ConvertToLocalTime("GMT Standard Time", request.EndDateTime), companyId, "END");
                 await _context.SaveChangesAsync(cancellationToken);
 
                 RTO.Data = OC;
@@ -2130,7 +2141,7 @@ public class UserRepository : IUserRepository
         {
             if (action.ToUpper() == "ADD" && objMapId > 0)
             {
-                _DBC.CreateNewObjectRelation(targetId, userId, objMapId, currentUserId, timeZoneId, companyId);
+                await _DBC.CreateNewObjectRelation(targetId, userId, objMapId, currentUserId, timeZoneId, companyId);
             }
             else if (objMapId > 0)
             {
@@ -2158,34 +2169,34 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public void CreateOffDutyJob(int userId, DateTimeOffset offDutyDate, int companyId, string action = "START", string timeZoneId = "GMT Standard Time")
+    public async Task  CreateOffDutyJob(int userId, DateTimeOffset offDutyDate, int companyId, string action = "START", string timeZoneId = "GMT Standard Time")
     {
         try
         {
-            //string job_name = "OFF_DUTY_" + action + "_" + userId;
+            string job_name = "OFF_DUTY_" + action + "_" + userId;
 
-            ////DBC.DeleteScheduledJob(job_name, "OFF_DUTY_JOB_" + Action);
+            //DBC.DeleteScheduledJob(job_name, "OFF_DUTY_JOB_" + Action);
 
-            //ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
-            //IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+            ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+            IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
-            //var jobDetail = new Quartz.Impl.JobDetailImpl(job_name, "OFF_DUTY_JOB_" + Action, typeof(OffDutyJob));
-            //jobDetail.JobDataMap["UserID"] = UserID;
-            //jobDetail.JobDataMap["Action"] = Action;
-            //jobDetail.JobDataMap["CompanyID"] = CompanyID;
+            var jobDetail = new Quartz.Impl.JobDetailImpl(job_name, "OFF_DUTY_JOB_" + action, typeof(OffDutyJob));
+            jobDetail.JobDataMap["UserID"] = userId;
+            jobDetail.JobDataMap["Action"] = action;
+            jobDetail.JobDataMap["CompanyID"] = companyId;
 
-            //string CronExpressionStr = "0 " + OffDutyDate.Minute + " " + OffDutyDate.Hour + " " + OffDutyDate.Day + " " + OffDutyDate.Month + " ? " + OffDutyDate.Year;
+            string CronExpressionStr = "0 " + offDutyDate.Minute + " " + offDutyDate.Hour + " " + offDutyDate.Day + " " + offDutyDate.Month + " ? " + offDutyDate.Year;
 
-            //var trigger = TriggerBuilder.Create()
-            //                             .WithIdentity(job_name, "OFF_DUTY_JOB_" + Action)
-            //                             .WithCronSchedule(CronExpressionStr,
-            //                              x => x.InTimeZone(TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId))
-            //                             .WithMisfireHandlingInstructionDoNothing()
-            //                             ).ForJob(jobDetail)
-            //                             .Build();
+            var trigger = TriggerBuilder.Create()
+                                         .WithIdentity(job_name, "OFF_DUTY_JOB_" + action)
+                                         .WithCronSchedule(CronExpressionStr,
+                                          x => x.InTimeZone(TimeZoneInfo.FindSystemTimeZoneById(timeZoneId))
+                                         .WithMisfireHandlingInstructionDoNothing()
+                                         ).ForJob(jobDetail)
+                                         .Build();
 
-            //var run = _scheduler.ScheduleJob(jobDetail, trigger);
-            //_DBC.CreateLog("INFO", action + trigger.GetNextFireTimeUtc().ToString());
+            var run = _scheduler.ScheduleJob(jobDetail, trigger);
+            await _DBC.CreateLog("INFO", action + trigger.GetNextFireTimeUtc().ToString());
 
         }
         catch (Exception ex)
@@ -2222,16 +2233,16 @@ public class UserRepository : IUserRepository
             }
 
             if (!string.IsNullOrEmpty(MobileNo))
-                NewUsers.MobileNo = _DBC.FixMobileZero(MobileNo);
+                NewUsers.MobileNo =await _DBC.FixMobileZero(MobileNo);
 
             if (!string.IsNullOrEmpty(LLIsdCode))
                 NewUsers.Llisdcode = _DBC.Left(LLIsdCode, 1) != "+" ? "+" + LLIsdCode : LLIsdCode;
 
             if (!string.IsNullOrEmpty(LandLine))
-                NewUsers.Landline = _DBC.FixMobileZero(LandLine);
+                NewUsers.Landline =await _DBC.FixMobileZero(LandLine);
 
             NewUsers.PrimaryEmail = PrimaryEmail.ToLower();
-            NewUsers.UserHash = _DBC.PWDencrypt(PrimaryEmail.ToLower());
+            NewUsers.UserHash =await _DBC.PWDencrypt(PrimaryEmail.ToLower());
 
             if (!string.IsNullOrEmpty(SecondaryEmail))
                 NewUsers.SecondaryEmail = SecondaryEmail;
@@ -2263,7 +2274,7 @@ public class UserRepository : IUserRepository
             if (!string.IsNullOrEmpty(Lng))
                 NewUsers.Lng = _DBC.Left(Lng, 15);
 
-            string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", CompanyId);
+            string CompExpirePwd = await _DBC.GetCompanyParameter("EXPIRE_PASSWORD", CompanyId);
 
             if (CompExpirePwd == "true")
             {
@@ -2275,20 +2286,20 @@ public class UserRepository : IUserRepository
             }
 
             NewUsers.UserLanguage = UserLanguage;
-            NewUsers.PasswordChangeDate = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+            NewUsers.PasswordChangeDate =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
             NewUsers.FirstLogin = FirstLogin;
 
             NewUsers.CreatedBy = CreatedUpdatedBy;
-            NewUsers.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+            NewUsers.CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
             NewUsers.UpdatedBy = CreatedUpdatedBy;
-            NewUsers.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+            NewUsers.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
             NewUsers.TrackingStartTime = SqlDateTime.MinValue.Value;
             NewUsers.TrackingEndTime = SqlDateTime.MinValue.Value;
             NewUsers.LastLocationUpdate = SqlDateTime.MinValue.Value;
             NewUsers.DepartmentId = DepartmentId;
             NewUsers.Otpexpiry = SqlDateTime.MinValue.Value;
 
-            var roles = _DBC.CCRoles(true);
+            var roles = await _DBC.CCRoles(true);
             NewUsers.Smstrigger = (roles.Contains(NewUsers.UserRole.ToUpper()) ? SMSTrigger : false);
 
             await _context.Set<User>().AddAsync(NewUsers);
@@ -2329,9 +2340,9 @@ public class UserRepository : IUserRepository
                 tblUser.Status = 3;
                 //tblUser.TOKEN = "";
                 tblUser.PrimaryEmail = "DEL-" + tblUser.PrimaryEmail;
-                tblUser.UserHash = _DBC.PWDencrypt(tblUser.PrimaryEmail);
+                tblUser.UserHash =await _DBC.PWDencrypt(tblUser.PrimaryEmail);
                 tblUser.UpdatedBy = userId;
-                tblUser.UpdatedOn = _DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
+                tblUser.UpdatedOn =await _DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
                await _context.SaveChangesAsync(cancellationToken);
 
                 await CheckUserAssociation(userId, companyId);
@@ -2369,7 +2380,7 @@ public class UserRepository : IUserRepository
                     sb.AppendLine("<tr><td>" + item.Module + "</td><td>" + item.ModuleItem + "</td></tr>");
                 }
                 sb.AppendLine("</table>");
-                _SDE.SendUserAssociationsToAdmin(sb.ToString(), userId, companyId);
+                await _SDE.SendUserAssociationsToAdmin(sb.ToString(), userId, companyId);
             }
 
             return sendemail;
@@ -2381,7 +2392,7 @@ public class UserRepository : IUserRepository
         return false;
     }
 
-    public async void UpdateUserComms(int companyId, int userId, int createdUpdatedBy, string timeZoneId = "GMT Standard Time", string pingMethods = "", string incidentMethods = "", bool isNewUser = false, CancellationToken cancellationToken = default)
+    public async Task UpdateUserComms(int companyId, int userId, int createdUpdatedBy, string timeZoneId = "GMT Standard Time", string pingMethods = "", string incidentMethods = "", bool isNewUser = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -2408,12 +2419,12 @@ public class UserRepository : IUserRepository
 
             if (ImpPingMethods.Count > 0)
             {
-                ImportUsercomms(companyId, "Ping", userId, ImpPingMethods, createdUpdatedBy, timeZoneId, pingMethods, cancellationToken);
+               await ImportUsercomms(companyId, "Ping", userId, ImpPingMethods, createdUpdatedBy, timeZoneId, pingMethods, cancellationToken);
             }
 
             if (ImpInciMethods.Count > 0)
             {
-                ImportUsercomms(companyId, "Incident", userId, ImpInciMethods, createdUpdatedBy, timeZoneId, incidentMethods, cancellationToken);
+               await ImportUsercomms(companyId, "Incident", userId, ImpInciMethods, createdUpdatedBy, timeZoneId, incidentMethods, cancellationToken);
             }
 
         }
@@ -2422,7 +2433,7 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async void ImportUsercomms(int companyId, string messageType, int userId, List<string> methodList, int createdUpdatedBy, string timeZoneId, string rawMethodsList, CancellationToken cancellationToken)
+    public async Task ImportUsercomms(int companyId, string messageType, int userId, List<string> methodList, int createdUpdatedBy, string timeZoneId, string rawMethodsList, CancellationToken cancellationToken)
     {
         try
         {
@@ -2476,7 +2487,7 @@ public class UserRepository : IUserRepository
         try
         {
             bool showAllGroups = true;
-            bool.TryParse(_DBC.GetCompanyParameter("SHOW_ALL_GROUPS_TO_USERS", companyId), out showAllGroups);
+            bool.TryParse(await _DBC.GetCompanyParameter("SHOW_ALL_GROUPS_TO_USERS", companyId), out showAllGroups);
             UR.ShowAllGroups = showAllGroups;
 
             if (!showAllGroups)
@@ -2628,7 +2639,7 @@ public class UserRepository : IUserRepository
                             select UD).ToList();
             if (olditems.Count > 0)
             {
-                _context.Set<UserModuleLink>().RemoveRange(olditems);
+                _context.RemoveRange(olditems);
                 await _context.SaveChangesAsync();
             }
 
@@ -2658,7 +2669,7 @@ public class UserRepository : IUserRepository
             UM.Ypos = yPos;
             UM.Width = width;
             UM.Height = height;
-            await _context.Set<UserModuleLink>().AddAsync(UM);
+            await _context.AddAsync(UM);
             await _context.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
@@ -2688,7 +2699,7 @@ public class UserRepository : IUserRepository
 
     public async Task<List<KeyHolderResponse>> GetKeyHolders(int OutUserCompanyId)
     {
-        var roles = _DBC.CCRoles(true);
+        var roles = await _DBC.CCRoles(true);
         var kc = await (from U in _context.Set<User>()
                   where U.CompanyId == OutUserCompanyId &&
                   U.Status == 1 &&
@@ -2726,7 +2737,7 @@ public class UserRepository : IUserRepository
 
                 if (UserInfo != null)
                 {
-                    string sso_tenenat_id = _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", UserInfo.U.CompanyId);
+                    string sso_tenenat_id = await _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", UserInfo.U.CompanyId);
 
                     if (!string.IsNullOrEmpty(sso_tenenat_id))
                     {
@@ -2766,11 +2777,11 @@ public class UserRepository : IUserRepository
                  
 
 
-                    hostname = _DBC.LookupWithKey("SMTPHOST");
-                    fromadd = _DBC.LookupWithKey("EMAILFROM");
-                    resetLink = _DBC.LookupWithKey("RESETPASSWORDURL");
-                    appresetLink = _DBC.LookupWithKey("APPRESETPASSWORDURL");
-                    string Portal = _DBC.LookupWithKey("PORTAL");
+                    hostname = await _DBC.LookupWithKey("SMTPHOST");
+                    fromadd =await _DBC.LookupWithKey("EMAILFROM");
+                    resetLink =await _DBC.LookupWithKey("RESETPASSWORDURL");
+                    appresetLink =await _DBC.LookupWithKey("APPRESETPASSWORDURL");
+                    string Portal =await _DBC.LookupWithKey("PORTAL");
 
                     if (source == "APP")
                         resetLink = appresetLink;
@@ -2780,13 +2791,13 @@ public class UserRepository : IUserRepository
                     string htmlContent = string.Empty;
                     //string Templatepath = sysparms.Where(w => w.Name == "API_TEMPLATE_PATH").Select(s => s.Value).FirstOrDefault();
 
-                    htmlContent = Convert.ToString(_DBC.ReadHtmlFile("FORGOT_PASSWORD", "DB", companyID, out Subject));
+                    htmlContent = Convert.ToString(await _DBC.ReadHtmlFile("FORGOT_PASSWORD", "DB", companyID, Subject));
 
                     string CompanyLogo = Portal + "/uploads/" + UserInfo.U.CompanyId + "/companylogos/" + UserInfo.CompanyLogo;
 
                     if (string.IsNullOrEmpty(UserInfo.CompanyLogo))
                     {
-                        CompanyLogo = _DBC.LookupWithKey("CCLOGO");
+                        CompanyLogo =await _DBC.LookupWithKey("CCLOGO");
                     }
 
                     if ((!string.IsNullOrEmpty(hostname)) && (!string.IsNullOrEmpty(fromadd)))
@@ -2796,20 +2807,20 @@ public class UserRepository : IUserRepository
                         messagebody = messagebody.Replace("{COMPANY_NAME}", UserInfo.CompanyName);
                         messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
                         messagebody = messagebody.Replace("{RESET_LINK}", resetLink);
-                        messagebody = messagebody.Replace("{CC_WEBSITE}", _DBC.LookupWithKey("DOMAIN"));
-                        messagebody = messagebody.Replace("{PORTAL}", _DBC.LookupWithKey("PORTAL"));
-                        messagebody = messagebody.Replace("{SUPPORT_EMAIL}", _DBC.LookupWithKey("APP_SUPPORT_EMAIL"));
-                        messagebody = messagebody.Replace("{CC_LOGO}", _DBC.LookupWithKey("CCLOGO"));
-                        messagebody = messagebody.Replace("{CC_USER_SUPPORT_LINK}", _DBC.LookupWithKey("CC_USER_SUPPORT_LINK"));
+                        messagebody = messagebody.Replace("{CC_WEBSITE}",await _DBC.LookupWithKey("DOMAIN"));
+                        messagebody = messagebody.Replace("{PORTAL}", await _DBC.LookupWithKey("PORTAL"));
+                        messagebody = messagebody.Replace("{SUPPORT_EMAIL}",await _DBC.LookupWithKey("APP_SUPPORT_EMAIL"));
+                        messagebody = messagebody.Replace("{CC_LOGO}",await _DBC.LookupWithKey("CCLOGO"));
+                        messagebody = messagebody.Replace("{CC_USER_SUPPORT_LINK}",await _DBC.LookupWithKey("CC_USER_SUPPORT_LINK"));
                         messagebody = messagebody.Replace("{RECIPIENT_EMAIL}", email);
                         messagebody = messagebody.Replace("{CUSTOMER_ID}", UserInfo.CustomerId);
 
 
-                        SendEmail sendEmail = new SendEmail(_context,_DBC);
+                        
 
                         string[] toEmails = { email };
 
-                        bool ismailsend = sendEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        bool ismailsend =await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
 
                         if (ismailsend == false)
                         {
@@ -2846,10 +2857,10 @@ public class UserRepository : IUserRepository
             string message = string.Empty;
             if (string.IsNullOrEmpty(otpMessage))
             {
-                otpMessage = _DBC.LookupWithKey("VERIFICATION_CODE_MSG");
+                otpMessage =await _DBC.LookupWithKey("VERIFICATION_CODE_MSG");
             }
             double code_expiry = 15D;
-            double.TryParse(_DBC.LookupWithKey("VERIFICATION_CODE_EXP_MIN"), out code_expiry);
+            double.TryParse(await _DBC.LookupWithKey("VERIFICATION_CODE_EXP_MIN"), out code_expiry);
 
             otpMessage = otpMessage.Replace("{MINUTES}", code_expiry.ToString());
 
@@ -2868,7 +2879,7 @@ public class UserRepository : IUserRepository
 
             if (user != null)
             {
-                string is_sso_enabled = _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", user.U.CompanyId);
+                string is_sso_enabled = await _DBC.GetCompanyParameter("AAD_SSO_TENANT_ID", user.U.CompanyId);
 
                 if (!string.IsNullOrEmpty(is_sso_enabled))
                 {
@@ -2884,10 +2895,10 @@ public class UserRepository : IUserRepository
                     return message;
                 }
 
-                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
-                string UserMobile = _DBC.FormatMobile(user.U.Isdcode, user.U.MobileNo);
+                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor,_SDE,_DBC,_MSG);
+                string UserMobile = await _DBC.FormatMobile(user.U.Isdcode, user.U.MobileNo);
 
-                string Code = CH.SendOTP(user.U.Isdcode, UserMobile, otpMessage);
+                string Code =await CH.SendOTP(user.U.Isdcode, UserMobile, otpMessage);
 
                 if (!string.IsNullOrEmpty(Code))
                 {
@@ -2940,7 +2951,7 @@ public class UserRepository : IUserRepository
 
                 if (pwdTrue)
                 {
-                    string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", userdata.CompanyId);
+                    string CompExpirePwd =await _DBC.GetCompanyParameter("EXPIRE_PASSWORD", userdata.CompanyId);
 
                     if (CompExpirePwd == "true")
                     {
@@ -2950,10 +2961,10 @@ public class UserRepository : IUserRepository
                     userdata.FirstLogin = false;
                     //userdata.TOKEN = Guid.NewGuid().ToString();
                     userdata.UniqueGuiId = Guid.NewGuid().ToString();
-                    userdata.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    userdata.UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                     await _context.SaveChangesAsync();
 
-                    _DBC.RemoveUserDevice(userdata.UserId, true);
+                   await _DBC.RemoveUserDevice(userdata.UserId, true);
                     message = "Reset password successful.";
                 }
                 else
@@ -2983,7 +2994,7 @@ public class UserRepository : IUserRepository
             var Changepassword = await _context.Set<User>().SingleAsync(user => user.UserId == userID);
             if (Changepassword != null)
             {
-                if (oldPassword != _DBC.PWDencrypt(Changepassword.Password))
+                if (oldPassword !=await _DBC.PWDencrypt(Changepassword.Password))
                 {
                     Message = "Invalid old password.";
                 }
@@ -2994,7 +3005,7 @@ public class UserRepository : IUserRepository
 
                     if (pwdTrue)
                     {
-                        string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", companyID);
+                        string CompExpirePwd = await _DBC.GetCompanyParameter("EXPIRE_PASSWORD", companyID);
                         int DaysToExpire = Convert.ToInt16(_DBC.GetCompanyParameter("EXPIRE_PWD_IN_DAYS", companyID));
                         if (CompExpirePwd == "true")
                         {
@@ -3004,7 +3015,7 @@ public class UserRepository : IUserRepository
                         Changepassword.Password = newPassword;
                         await _context.SaveChangesAsync();
 
-                        _DBC.RemoveUserDevice(userID, true);
+                       await _DBC.RemoveUserDevice(userID, true);
 
                         Message = "Password reset successful";
                     }
@@ -3033,11 +3044,11 @@ public class UserRepository : IUserRepository
             string Message = string.Empty;
             if (string.IsNullOrEmpty(otpMessage))
             {
-                otpMessage = _DBC.LookupWithKey("VERIFICATION_CODE_MSG");
+                otpMessage = await _DBC.LookupWithKey("VERIFICATION_CODE_MSG");
             }
 
             double code_expiry = 15D;
-            double.TryParse(_DBC.LookupWithKey("VERIFICATION_CODE_EXP_MIN"), out code_expiry);
+            double.TryParse(await _DBC.LookupWithKey("VERIFICATION_CODE_EXP_MIN"), out code_expiry);
             otpMessage = otpMessage.Replace("{MINUTES}", code_expiry.ToString());
 
             var user = await _context.Set<User>()
@@ -3047,7 +3058,7 @@ public class UserRepository : IUserRepository
             {
 
                 //AccountHelper AH = new AccountHelper();
-                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor);
+                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor,_SDE,_DBC,_MSG);
 
                 if (action.ToUpper() == "CONFIRM")
                 {
@@ -3061,9 +3072,9 @@ public class UserRepository : IUserRepository
                             return Message;
                         }
 
-                        string UserMobile = _DBC.FormatMobile(user.Isdcode, user.MobileNo);
+                        string UserMobile =await _DBC.FormatMobile(user.Isdcode, user.MobileNo);
 
-                        string Code = CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method);
+                        string Code =await CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method);
 
                         if (!string.IsNullOrEmpty(Code))
                         {
@@ -3091,7 +3102,7 @@ public class UserRepository : IUserRepository
                 }
                 else if (action.ToUpper() == "OTPCHECK" || action.ToUpper() == "VERIFYCODE")
                 {
-                    string UserMobile = _DBC.FormatMobile(user.Isdcode, user.MobileNo);
+                    string UserMobile = await _DBC.FormatMobile(user.Isdcode, user.MobileNo);
 
                     if (user.Otpexpiry <= DateTime.Now)
                     {
@@ -3113,7 +3124,7 @@ public class UserRepository : IUserRepository
 
                         if (pwdTrue)
                         {
-                            CommsStatus otpcheck = CH.TwilioVerifyCheck(UserMobile, otpCode);
+                            CommsStatus otpcheck =await CH.TwilioVerifyCheck(UserMobile, otpCode);
 
                             if (otpcheck.CurrentAction.ToUpper() == "APPROVED")
                             {
@@ -3124,11 +3135,11 @@ public class UserRepository : IUserRepository
 
                                     if (action.ToUpper() == "OTPCHECK")
                                     {
-                                        string CompExpirePwd = _DBC.GetCompanyParameter("EXPIRE_PASSWORD", user.CompanyId);
+                                        string CompExpirePwd =await  _DBC.GetCompanyParameter("EXPIRE_PASSWORD", user.CompanyId);
 
                                         if (CompExpirePwd == "true")
                                         {
-                                            user.PasswordChangeDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                                            user.PasswordChangeDate = await  _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                                         }
                                         user.Password = password.Trim();
                                         user.FirstLogin = false;
@@ -3159,12 +3170,12 @@ public class UserRepository : IUserRepository
                 }
                 else if (action.ToUpper() == "OTPRESEND")
                 {
-                    string UserMobile = _DBC.FormatMobile(user.Isdcode, user.MobileNo);
+                    string UserMobile = await _DBC.FormatMobile(user.Isdcode, user.MobileNo);
                     CH.GCompanyId = user.CompanyId;
                     CH.GUserId = user.UserId;
                     CH.GTimezoneId = timeZoneId;
 
-                    string Code = CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method, user.PrimaryEmail);
+                    string Code = await CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method, user.PrimaryEmail);
 
                     if (!string.IsNullOrEmpty(Code))
                     {
@@ -3201,7 +3212,7 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            BillingHelper _billing = new BillingHelper(_context);
+            BillingHelper _billing = new BillingHelper(_context,_DBC,_SDE);
             int AdminCount = 0, KeyHolderCount = 0, StaffCount = 0, PendingUserCount = 0, ActiveUserCount = 0;
 
             await _billing.GetCompanyUserCount(companyId, currentUserId,  AdminCount,  KeyHolderCount,  StaffCount,  ActiveUserCount,  PendingUserCount);
@@ -3243,6 +3254,163 @@ public class UserRepository : IUserRepository
             }
 
             return Rslt;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task UsageAlert(int CompanyId)
+    {
+        try
+        {
+
+            var company = (from C in _context.Set<Company>()
+                           join CP in _context.Set<CompanyPaymentProfile>() on C.CompanyId equals CP.CompanyId
+                           where C.CompanyId == companyId
+                           select new { C, CP }).FirstOrDefault();
+            if (company != null)
+            {
+                string bill_status = company.C.CompanyProfile;
+                string templatename = string.Empty;
+                if (bill_status == "STOP_MESSAGING")
+                {
+                    templatename = "STOP_MESSAGE_ALERT";
+                }
+                else if (bill_status == "LOW_BALANCE" || bill_status == "ON_CREDIT")
+                {
+                    templatename = "LOW_BALANCE_ALERT";
+                }
+
+                string Subject = string.Empty;
+                string message = Convert.ToString(await _DBC.ReadHtmlFile(templatename, "DB", company.C.CompanyId, Subject));
+
+                string Website = await _DBC.LookupWithKey("DOMAIN");
+                string Portal = await _DBC.LookupWithKey("PORTAL");
+                string hostname = await _DBC.LookupWithKey("SMTPHOST");
+                string fromadd = await _DBC.LookupWithKey("ALERT_EMAILFROM");
+
+                string CompanyLogo = Portal + "/uploads/" + company.C.CompanyId + "/companylogos/" + company.C.CompanyLogoPath;
+
+                if (string.IsNullOrEmpty(company.C.CompanyLogoPath))
+                {
+                    CompanyLogo = await _DBC.LookupWithKey("CCLOGO");
+                }
+
+                if ((message != null) && (hostname != null) && (fromadd != null))
+                {
+                    string messagebody = message;
+
+                    string billing_email = await _DBC.LookupWithKey("BILLING_EMAIL");
+
+                    //Get company billing email list.
+                    string billing_users = await _DBC.GetCompanyParameter("BILLING_USERS", company.C.CompanyId);
+
+                    List<string> emaillist = new List<string>();
+
+                    if (!string.IsNullOrEmpty(billing_users))
+                    {
+                        var user_ids = billing_users.Split(',').Select(Int32.Parse).ToList();
+                        if (user_ids.Count > 0)
+                        {
+                            var get_user = await (from U in _context.Set<User>()
+                                                  where user_ids.Contains(U.UserId) && U.Status != 3
+                                                  select new
+                                                  {
+                                                      U.PrimaryEmail
+                                                  }).ToListAsync();
+                            foreach (var bill_user in get_user)
+                            {
+                                emaillist.Add(bill_user.PrimaryEmail);
+                            }
+                        }
+                    }
+
+                    messagebody = messagebody.Replace("{COMPANY_NAME}", company.C.CompanyName);
+                    messagebody = messagebody.Replace("{COMPANY_LOGO}", CompanyLogo);
+                    messagebody = messagebody.Replace("{CC_WEBSITE}", Website);
+                    messagebody = messagebody.Replace("{PORTAL}", Portal);
+
+                    messagebody = messagebody.Replace("{BILLING_EMAIL}", billing_email);
+                    messagebody = messagebody.Replace("{CREDIT_BALANCE}", await _DBC.ToCurrency(company.CP.CreditBalance));
+                    messagebody = messagebody.Replace("{MINIMUM_BALANCE}", await _DBC.ToCurrency(company.CP.MinimumBalance));
+                    messagebody = messagebody.Replace("{CREDIT_LIMIT}", await _DBC.ToCurrency(company.CP.CreditLimit));
+
+                    List<string> allowed_comms = new List<string>();
+                    List<string> stopped_comms = new List<string>();
+
+                    var subscribed_method = (from CM in _context.Set<CompanyComm>()
+                                             join CO in _context.Set<CommsMethod>() on CM.MethodId equals CO.CommsMethodId
+                                             where CM.CompanyId == CompanyId
+                                             select new { CO, CM }).Select(s => new {
+                                                 MethodCode = s.CO.MethodCode,
+                                                 MethodName = s.CO.MethodName,
+                                                 ServiceStats = s.CM.ServiceStatus
+                                             }).ToList();
+                    foreach (var method in subscribed_method)
+                    {
+                        if (method.MethodCode == "EMAIL")
+                        {
+                            if (company.CP.MinimumEmailRate > 0 && method.ServiceStats == false)
+                            {
+                                stopped_comms.Add(method.MethodName);
+                            }
+                            else
+                            {
+                                allowed_comms.Add(method.MethodName);
+                            }
+                        }
+                        if (method.MethodCode == "PUSH")
+                        {
+                            if (company.CP.MinimumPushRate > 0 && method.ServiceStats == false)
+                            {
+                                stopped_comms.Add(method.MethodName);
+                            }
+                            else
+                            {
+                                allowed_comms.Add(method.MethodName);
+                            }
+                        }
+                        if (method.MethodCode == "TEXT")
+                        {
+                            if (company.CP.MinimumTextRate > 0 && method.ServiceStats == false)
+                            {
+                                stopped_comms.Add(method.MethodName);
+                            }
+                            else
+                            {
+                                allowed_comms.Add(method.MethodName);
+                            }
+                        }
+                        if (method.MethodCode == "PHONE")
+                        {
+                            if (company.CP.MinimumPhoneRate > 0 && method.ServiceStats == false)
+                            {
+                                stopped_comms.Add(method.MethodName);
+                            }
+                            else
+                            {
+                                allowed_comms.Add(method.MethodName);
+                            }
+                        }
+                    }
+
+                    messagebody = messagebody.Replace("{STOPPED_COMMS}", string.Join(",", stopped_comms));
+                    messagebody = messagebody.Replace("{ALLOWED_COMMS}", string.Join(",", allowed_comms));
+                    messagebody = messagebody.Replace("{CUSTOMER_ID}", company.C.CustomerId);
+
+                    Subject = Subject + " " + company.C.CompanyName;
+                    string[] toEmails = emaillist.ToArray();
+
+                    string[] adm_email = { billing_email };
+
+                    await _SDE.Email(adm_email, messagebody, fromadd, hostname, Subject);
+
+                    string cust_usage_alert = await _DBC.LookupWithKey("SEND_USAGE_ALERT_TO_CUSTOMER");
+                    if (cust_usage_alert == "true")
+                        await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                }
+            }
         }
         catch (Exception ex)
         {

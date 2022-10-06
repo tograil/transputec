@@ -19,5 +19,14 @@ namespace CrisesControl.SharedKernel.Utils
                 _ => throw new ArgumentOutOfRangeException(nameof(logType), logType, null)
             };
         }
+        public static string ToLocString(this LocationType locationType)
+        {
+            return locationType switch
+            {
+                LocationType.AFFECTED => "AFFECTED",
+                LocationType.IMPACTED => "IMPACTED",
+                _ => throw new ArgumentOutOfRangeException(nameof(locationType), locationType, null)
+            };
+        }
     }
 }

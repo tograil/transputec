@@ -45,6 +45,8 @@ using CrisesControl.Core.Messages;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Reports;
 using CrisesControl.SharedKernel.Utils;
+using CrisesControl.Api.Application.Commands.Incidents.GetAffectedLocations;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllActiveCompanyIncident;
 
 namespace CrisesControl.Api.Application.Query;
 
@@ -69,8 +71,18 @@ public class IncidentQuery : IIncidentQuery
 
     public async Task<GetAllCompanyIncidentResponse> GetAllCompanyIncident(GetAllCompanyIncidentRequest request)
     {
-        ///return _incidentRepository.GetCompanyIncident(_currentUser.CompanyId, userId > 0 ? userId : _currentUser.UserId);
-        return null;
+        var companyIncident=  _incidentRepository.GetCompanyIncident(_currentUser.CompanyId, request.UserId);
+        var result = _mapper.Map<List<IncidentList>>(companyIncident);
+        var response = new GetAllCompanyIncidentResponse();
+        if (result != null)
+        {
+            response.IncidentList = result;
+        }
+        else
+        {
+            response.IncidentList = new List<IncidentList>();
+        }
+        return response;
     }
 
     public List<IncidentTypeReturn> GetCompanyIncidentType(int companyId)
@@ -78,9 +90,20 @@ public class IncidentQuery : IIncidentQuery
         return _incidentRepository.CompanyIncidentType(companyId);
     }
 
-    public List<AffectedLocation> GetAffectedLocations(int companyId, string locationType)
+    public async Task<GetAffectedLocationsResponse> GetAffectedLocations(GetAffectedLocationsRequest request)
     {
-        return _incidentRepository.GetAffectedLocation(companyId, locationType);
+        var affectedLocation= _incidentRepository.GetAffectedLocation(_currentUser.CompanyId, request.LocationType.ToLocString());
+        var result = _mapper.Map<List<AffectedLocation>>(affectedLocation);
+        var response = new GetAffectedLocationsResponse();
+        if (result != null)
+        {
+            response.Data = result;
+        }
+        else
+        {
+            response.Data = new List<AffectedLocation>();
+        }
+        return response;
     }
 
     public List<AffectedLocation> GetIncidentLocations(int companyId, int incidentActivationId)
@@ -98,12 +121,16 @@ public class IncidentQuery : IIncidentQuery
         return _incidentRepository.GetIncidentById(companyId, _currentUser.UserId, incidentId, userStatus);
     }
 
-    public DataTablePaging GetAllActiveCompanyIncident(string? status)
+    public async Task<GetAllActiveCompanyIncidentResponse> GetAllActiveCompanyIncident(GetAllActiveCompanyIncidentRequest request )
     {
-        string OrderBy = _paging.Order != null ? _paging.Order : "Name";
-        string OrderDir = _paging.Dir != null ? _paging.Dir : "asc";
-        
-        string Status = status != null ? status : "1,2,3,4";
+       // (string? status, DataTableAjaxPostModel pagedRequest
+        var RecordStart = _paging.PageNumber == 0 ? 0 : _paging.PageNumber;
+        var RecordLength = _paging.PageSize == 0 ? int.MaxValue : _paging.PageSize;
+        var SearchString = (_paging.Search != string.Empty) ? _paging.Search : "";
+        string OrderBy = _paging.OrderBy == string.Empty ? _paging.OrderBy : "Name";
+        string OrderDir = _paging.Order != string.Empty ? _paging.Order : "asc";
+        string Status = request.Status != null ? request.Status : "1,2,3,4";
+        var response = new GetAllActiveCompanyIncidentResponse();
 
         int totalRecord = 0;
         DataTablePaging rtn = new DataTablePaging();
@@ -126,8 +153,8 @@ public class IncidentQuery : IIncidentQuery
         }
 
         rtn.RecordsTotal = totalRecord;
-
-        return rtn;
+        response.DataTable = rtn;
+        return response;
     }
 
     public async Task<GetIncidentTaskNotesResponse> GetIncidentTaskNotes(GetIncidentTaskNotesRequest request)
@@ -183,7 +210,7 @@ public class IncidentQuery : IIncidentQuery
     public async Task<GetActiveIncidentBasicResponse> GetActiveIncidentBasic(GetActiveIncidentBasicRequest request)
     {
         var basic = await _incidentRepository.GetActiveIncidentBasic(_currentUser.CompanyId, request.IncidentActivationId);
-        var result = _mapper.Map<UpdateIncidentStatusReturn>(basic);
+        var result = _mapper.Map<List<UpdateIncident>>(basic.ToList());
         var response = new GetActiveIncidentBasicResponse();
         if (result != null)
         {
@@ -433,9 +460,9 @@ public class IncidentQuery : IIncidentQuery
             var incidentId = await _incidentRepository.UpdateCompanyIncidentActions(_currentUser.CompanyId, request.IncidentId, request.IncidentActionId,
                         request.Title, request.ActionDescription, request.IncidentParticipants, request.UsersToNotify,
                         request.Status, _currentUser.UserId, _currentUser.TimeZone);
-            var result = _mapper.Map<int>(incidentId);
+            var result = _mapper.Map<List<ActionLsts>>(incidentId);
             var response = new UpdateCompanyIncidentActionResponse();
-            if (result > 0)
+            if (result != null)
             {
                 response.Data = incidentId;
             }
@@ -795,7 +822,7 @@ public class IncidentQuery : IIncidentQuery
     {
         try
         {
-            var testMe = await _incidentRepository.GetIncidentMapLocations(request.ActiveIncidentId, request.Filter);
+            var testMe = await _incidentRepository.GetIncidentMapLocations(request.ActiveIncidentId, _paging.Filters);
             var result = _mapper.Map<List<MapLocationReturn>>(testMe);
             var response = new GetIncidentMapLocationsResponse();
             if (result != null)
@@ -986,7 +1013,7 @@ public class IncidentQuery : IIncidentQuery
     {
         try
         {
-            var dataTable = await _incidentRepository.GetIncidentEntityRecipient(_paging.PageNumber, _paging.PageSize, request.Search, request.Draw, _paging.OrderBy, request.Dir, request.ActiveIncidentID, request.EntityType, request.EntityID, _currentUser.CompanyId, _currentUser.UserId, request.CompanyKey);
+            var dataTable = await _incidentRepository.GetIncidentEntityRecipient(_paging.PageNumber, _paging.PageSize, _paging.Search, _paging.Draw, _paging.OrderBy, _paging.Order, request.ActiveIncidentID, request.EntityType, request.EntityID, _currentUser.CompanyId, _currentUser.UserId, _paging.UniqueKey);
             var result = _mapper.Map<DataTablePaging>(dataTable);
             var response = new GetIncidentEntityRecipientResponse();
             if (result != null)

@@ -1,4 +1,4 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Models;
 using System;
 using System.Collections.Generic;
@@ -11,8 +11,8 @@ namespace CrisesControl.Infrastructure.Services
 {
     public static class DataHelper
     {
-        private static DBCommon DBC;
-        public static bool CreateImportResult(List<ImportDump> importData, string impFilePath, string reportType)
+        private static IDBCommonRepository DBC;
+        public static  bool CreateImportResult(List<ImportDump> importData, string impFilePath, string reportType)
         {
             try
             {
@@ -100,6 +100,46 @@ namespace CrisesControl.Infrastructure.Services
                 return str.Replace(Environment.NewLine, rplcwith).Trim();
             }
             return "";
+        }
+        public static int GetStatusValue(string str, string ModuleType = "USER")
+        {
+           
+            try
+            {
+                if (!string.IsNullOrEmpty(str))
+                {
+                    string[] postiveActions = { "ACTIVE", "1", "YES", "TRUE" };
+                    string[] negetiveActions = { "INACTIVE", "0", "NO", "FALSE", "IN-ACTIVE", "IN ACTIVE" };
+                    str = str.Trim().ToUpper();
+
+                    if (postiveActions.Contains(str))
+                    {
+                        return 1;
+                    }
+                    else if (negetiveActions.Contains(str))
+                    {
+                        return 0;
+                    }
+                    else if (str == "DELETE")
+                    {
+                        return 3;
+                    }
+                    else if (str == "PENDING VERIFICATION" && ModuleType == "USER")
+                    {
+                        return 2;
+                    }
+                    else
+                    {
+                        return 1;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                
+                return 0;
+            }
+            return 1;
         }
     }
 }

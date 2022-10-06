@@ -1,8 +1,9 @@
-﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.App;
+﻿using CrisesControl.Core.App;
 using CrisesControl.Core.App.Repositories;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Incidents;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
@@ -23,13 +24,17 @@ namespace CrisesControl.Infrastructure.Repositories
     public class AppRepository : IAppRepository
     {
         private readonly CrisesControlContext _context;
-        private readonly DBCommon DBC;
+        private readonly IDBCommonRepository DBC;
+        private readonly IMessageService _MSG;
+        private readonly ISenderEmailService _SDE;       
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public AppRepository(CrisesControlContext context, DBCommon DBC, IHttpContextAccessor httpContextAccessor)
+        public AppRepository(CrisesControlContext context, IDBCommonRepository _DBC, IHttpContextAccessor httpContextAccessor, IMessageService MSG, ISenderEmailService SDE)
         {
             this._context = context;
+            this.DBC = _DBC;
             this._httpContextAccessor = httpContextAccessor;
-            this.DBC = new DBCommon(_context,_httpContextAccessor);
+            this._SDE = SDE;
+            this._MSG = MSG;
         }
         public async Task<AppHomeReturn> AppHome(int companyID,int userId, int userDeviceID,string token)
         {
@@ -93,19 +98,19 @@ namespace CrisesControl.Infrastructure.Repositories
                     IncidedntStar = 5;
                 }
 
-                string AppHomeTextTitleVal = DBC.LookupWithKey("APPHOMETEXT");
-                string AppHomeTextDescriptionVal = DBC.LookupWithKey("APPHOMETEXT", "");
-                string copyrightinfo = DBC.LookupWithKey("COPYRIGHT_INFO");
-                string TutorialPathVal = DBC.LookupWithKey("TUTORIALPATH");
-                string TermsAndConditionsUrlVal = DBC.LookupWithKey("TERMSANDCONDITIONSURL");
-                string PrivacyPolicyUrlVal = DBC.LookupWithKey("PRIVACYPOLICYURL");
-                string WhatsNewUrlVal = DBC.LookupWithKey("WHATSNEWURL");
-                string Portal = DBC.LookupWithKey("PORTAL");
-                string InviteUrl = DBC.LookupWithKey("INVITE_URL");
-                string webpath = DBC.LookupWithKey("PORTAL");
-                string THRESHOLD = DBC.LookupWithKey("PING_LIST_THRESHOLD");
+                string AppHomeTextTitleVal = await DBC.LookupWithKey("APPHOMETEXT");
+                string AppHomeTextDescriptionVal = await DBC.LookupWithKey("APPHOMETEXT", "");
+                string copyrightinfo = await DBC.LookupWithKey("COPYRIGHT_INFO");
+                string TutorialPathVal = await DBC.LookupWithKey("TUTORIALPATH");
+                string TermsAndConditionsUrlVal = await DBC.LookupWithKey("TERMSANDCONDITIONSURL");
+                string PrivacyPolicyUrlVal = await DBC.LookupWithKey("PRIVACYPOLICYURL");
+                string WhatsNewUrlVal = await DBC.LookupWithKey("WHATSNEWURL");
+                string Portal = await DBC.LookupWithKey("PORTAL");
+                string InviteUrl = await DBC.LookupWithKey("INVITE_URL");
+                string webpath = await DBC.LookupWithKey("PORTAL");
+                string THRESHOLD =await DBC.LookupWithKey("PING_LIST_THRESHOLD");
                 int ScrollThreashold = Convert.ToInt16(THRESHOLD);
-                int PingListLimit = Convert.ToInt16(DBC.GetCompanyParameter("PING_LIST_LIMIT", companyID));
+                int PingListLimit = Convert.ToInt16(await DBC.GetCompanyParameter("PING_LIST_LIMIT", companyID));
 
                 bool HasTask = false;
 
@@ -128,8 +133,8 @@ namespace CrisesControl.Infrastructure.Repositories
                     CompanyMessageLastUpdate = await DBC.LookupLastUpdate("APPHOMETEXT"),
                     CCMessageLastUpdate = await DBC.GetCompanyParameterLastUpdate("APP_HOME_TEXT", companyID),
                     IncidentStat = IncidedntStar,
-                    ApiVersion = DBC.LookupWithKey("CURRENT_API_VERSION"),
-                    CompanyText = DBC.GetCompanyParameter("APP_HOME_TEXT", companyID),
+                    ApiVersion = await  DBC.LookupWithKey("CURRENT_API_VERSION"),
+                    CompanyText = await DBC.GetCompanyParameter("APP_HOME_TEXT", companyID),
                     UsefulText = new UsefulText() { Title = AppHomeTextTitleVal, Description = AppHomeTextDescriptionVal },
                     CopyRightInfo = copyrightinfo,
                     TutorialPath = TutorialPathVal,
@@ -232,10 +237,10 @@ namespace CrisesControl.Infrastructure.Repositories
                 string feedbackaddress = string.Empty;
                 string Message = string.Empty;
 
-                hostname = DBC.LookupWithKey("SMTPHOST");
+                hostname = await DBC.LookupWithKey("SMTPHOST");
 
-                fromadd = DBC.LookupWithKey("EMAILFROM");
-                feedbackaddress = DBC.LookupWithKey("SENDFEEDBACKTO");
+                fromadd = await DBC.LookupWithKey("EMAILFROM");
+                feedbackaddress = await DBC.LookupWithKey("SENDFEEDBACKTO");
                   
                 if ((!string.IsNullOrEmpty(hostname)) && (!string.IsNullOrEmpty(fromadd)))
                 {
@@ -247,9 +252,9 @@ namespace CrisesControl.Infrastructure.Repositories
                     messagebody = messagebody + "<br><b>Device OS:</b> " + deviceOS;
                     messagebody = messagebody + "<br><b>Device Model:</b> " + deviceModel;
 
-                    SendEmail sendEmail = new SendEmail(_context,DBC);
+                   // SendEmail sendEmail = new SendEmail(_context,DBC);
                     string[] AdminEmail = feedbackaddress.Split(',');
-                    bool ismailsend = sendEmail.Email(AdminEmail, messagebody, fromadd, hostname, "Feedback from App");
+                    bool ismailsend =await _SDE.Email(AdminEmail, messagebody, fromadd, hostname, "Feedback from App");
                     if (ismailsend == false)
                     {
                         Message = "Email sending failed! Please try again.";
@@ -287,8 +292,8 @@ namespace CrisesControl.Infrastructure.Repositories
                     var message = _context.Set<SysParameter>().Single(L => L.Name == "REFERTOFRIEND");
                     var hostname = string.Empty;
                     var fromadd = string.Empty;
-                    hostname = DBC.LookupWithKey("SMTPHOST");
-                    fromadd = DBC.LookupWithKey("EMAILFROM");
+                    hostname =await DBC.LookupWithKey("SMTPHOST");
+                    fromadd =await DBC.LookupWithKey("EMAILFROM");
 
                     if ((!string.IsNullOrEmpty(hostname)) && (!string.IsNullOrEmpty(fromadd)))
                     {
@@ -296,18 +301,18 @@ namespace CrisesControl.Infrastructure.Repositories
                         messagebody = messagebody.Replace("{REFER_TO_NAME}", referToName);
                         messagebody = messagebody.Replace("{REFER_TO_EMAIL}", referToEmail);
                         messagebody = messagebody.Replace("{REFER_TO_MESSAGE}", referMessage);
-                        messagebody = messagebody.Replace("{REFER_NAME}", DBC.UserName(UserInfo.Username));
+                        messagebody = messagebody.Replace("{REFER_NAME}",await DBC.UserName(UserInfo.Username));
                         messagebody = messagebody.Replace("{REFER_EMAIL}", userEmail);
 
                         string Subject = message.Description;
 
                         string ToAddress = referToEmail;
 
-                        SendEmail sendEmail = new SendEmail(_context,DBC);
+                        
 
                         string[] toEmails = { ToAddress };
 
-                        bool ismailsend = sendEmail.Email(toEmails, messagebody, fromadd, hostname, Subject);
+                        bool ismailsend = await _SDE.Email(toEmails, messagebody, fromadd, hostname, Subject);
 
                         if (ismailsend == false)
                         {
@@ -391,7 +396,7 @@ namespace CrisesControl.Infrastructure.Repositories
             try
             {
                 bool CollectAllLog = false;
-                bool.TryParse(DBC.LookupWithKey("COLLECT_ALL_COORD_REQUEST"), out CollectAllLog);
+                bool.TryParse(await DBC.LookupWithKey("COLLECT_ALL_COORD_REQUEST"), out CollectAllLog);
 
                 if (userLocations != null)
                 {
@@ -401,7 +406,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     if (get_last_loc != null)
                     {
-                        Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                        
                         double LastLat =Convert.ToDouble( get_last_loc.Lat);
                         double LastLng = Convert.ToDouble(get_last_loc.Long);
                         foreach (LocationInfo loc in userLocations)
@@ -416,8 +421,8 @@ namespace CrisesControl.Infrastructure.Repositories
 
                                 if ((LastLat != locLat || LastLng != loclng) | CollectAllLog == true)
                                 {
-                                    string loc_address = DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
-                                   await MSG.AddUserLocation(userId, userDeviceID, locLat, loclng, loc_address, loc.UserDeviceTime, timeZoneId, companyID);
+                                    string loc_address =await DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
+                                    await _MSG.AddUserLocation(userId, userDeviceID, locLat, loclng, loc_address, loc.UserDeviceTime);
                                     LastLat = locLat;
                                     LastLng = loclng;
                                 }
@@ -435,7 +440,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     }
                     else
                     {
-                        Messaging MSG = new Messaging(_context,_httpContextAccessor);
+                        
                         double LastLat = 0;
                         double LastLng = 0;
 
@@ -454,9 +459,9 @@ namespace CrisesControl.Infrastructure.Repositories
                             {
                                 if (!string.IsNullOrWhiteSpace(loc.Latitude) && !string.IsNullOrWhiteSpace(loc.Longitude))
                                 {
-                                    string loc_address = DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
+                                    string loc_address =await DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
 
-                                   await MSG.AddUserLocation(userId, userDeviceID, Convert.ToDouble(loc.Latitude), Convert.ToDouble(loc.Longitude), loc_address, loc.UserDeviceTime, timeZoneId, companyID);
+                                   await _MSG.AddUserLocation(userId, userDeviceID, Convert.ToDouble(loc.Latitude), Convert.ToDouble(loc.Longitude), loc_address, loc.UserDeviceTime);
                                     LastLat = Convert.ToDouble(loc.Latitude);
                                     LastLng = Convert.ToDouble(loc.Longitude);
                                 }
@@ -525,7 +530,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                ).ToListAsync();
                     foreach (var dev in devc)
                     {
-                        dev.TrackMeStopped = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                        dev.TrackMeStopped =await DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                         _context.Update(dev);
                     }
                    await _context.SaveChangesAsync();
@@ -553,8 +558,8 @@ namespace CrisesControl.Infrastructure.Repositories
             TM.UserId = userID;
             TM.CompanyId = companyID;
             TM.TrackType = trackType;
-            TM.TrackMeStarted = DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
-            TM.TrackMeStopped = DBC.DbDate();
+            TM.TrackMeStarted = await DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+            TM.TrackMeStopped = await DBC.DbDate();
             TM.ActiveIncidentId = activeIncidentID;
             await _context.AddAsync(TM);
             await _context.SaveChangesAsync();

@@ -17,7 +17,7 @@ namespace CrisesControl.Api.Application.Commands.Import.GetCountActionCheck
         {
             Guard.Against.Null(request, nameof(GetCountActionCheckRequest));
             var response = new GetCountActionCheckResponse();
-            response = (GetCountActionCheckResponse)_importRepository.GetCountActionCheck(request.SessionId, request.OutUserCompanyId);
+            response = (GetCountActionCheckResponse) await _importRepository.GetCountActionCheck(request.SessionId, request.OutUserCompanyId);
             return response;
         }
     }

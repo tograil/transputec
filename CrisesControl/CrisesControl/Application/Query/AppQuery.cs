@@ -16,6 +16,7 @@ using CrisesControl.Api.Application.Commands.App.ValidatePin;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.App;
 using CrisesControl.Core.App.Repositories;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.SharedKernel.Utils;
 
@@ -25,10 +26,10 @@ namespace CrisesControl.Api.Application.Query
     {
         private readonly IAppRepository _appRepository;
         private readonly ILogger<AppQuery> _logger;
-        private readonly DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         private readonly IMapper _mapper;
         private readonly ICurrentUser _currentUser;
-        public AppQuery(IAppRepository appRepository, ILogger<AppQuery> logger, DBCommon DBC, IMapper mapper, ICurrentUser currentUser)
+        public AppQuery(IAppRepository appRepository, ILogger<AppQuery> logger, IDBCommonRepository DBC, IMapper mapper, ICurrentUser currentUser)
         {
             this._appRepository = appRepository;
             this._logger = logger;
@@ -67,7 +68,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var tncText = _DBC.LookupWithKey("PRIVACY_POLICY");
+                var tncText =await  _DBC.LookupWithKey("PRIVACY_POLICY");
                 var result = _mapper.Map<string>(tncText);
                 var response = new GetPrivacyPolicyResponse();
                 if (!string.IsNullOrEmpty(result))
@@ -94,7 +95,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var tncText = _DBC.LookupWithKey("TNC"); 
+                var tncText =await _DBC.LookupWithKey("TNC"); 
                 var result = _mapper.Map<string>(tncText);
                 var response = new GetTnCResponse();
                 if (!string.IsNullOrEmpty(result))

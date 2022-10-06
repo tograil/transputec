@@ -1,6 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
 using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Users.Repositories;
 using FluentValidation;
 using MediatR;
@@ -10,10 +11,10 @@ namespace CrisesControl.Api.Application.Commands.Users.TrackUserDevice
     public class TrackUserDeviceHandler : IRequestHandler<TrackUserDeviceRequest, TrackUserDeviceResponse>
     {
         private readonly TrackUserDeviceValidator _userValidator;
-        private readonly DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         private readonly ILogger<TrackUserDeviceHandler> _logger;
 
-        public TrackUserDeviceHandler(TrackUserDeviceValidator userValidator, IUserRepository userService, ILogger<TrackUserDeviceHandler> logger, DBCommon DBC)
+        public TrackUserDeviceHandler(TrackUserDeviceValidator userValidator, IUserRepository userService, ILogger<TrackUserDeviceHandler> logger, IDBCommonRepository DBC)
         {
             _userValidator = userValidator;
            // _userRepository = userService;

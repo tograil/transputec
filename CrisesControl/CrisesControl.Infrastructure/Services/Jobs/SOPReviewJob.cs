@@ -1,4 +1,4 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
@@ -15,11 +15,14 @@ namespace CrisesControl.Infrastructure.Services.Jobs
     public class SOPReviewJob : IJob
     {
         private readonly CrisesControlContext db;
-        private readonly DBCommon DBC ;
+        private readonly IDBCommonRepository DBC ;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public SOPReviewJob(IHttpContextAccessor httpContextAccessor)
+        private readonly ISenderEmailService SDE;
+        public SOPReviewJob(IHttpContextAccessor httpContextAccessor, IDBCommonRepository _DBC, ISenderEmailService _SDE)
         {
-            this.DBC = new DBCommon(db, _httpContextAccessor);
+            this.DBC =_DBC;
+            this._httpContextAccessor = httpContextAccessor;
+            this.SDE = _SDE;
         }
         public async Task Execute(IJobExecutionContext context)
         {
@@ -38,8 +41,8 @@ namespace CrisesControl.Infrastructure.Services.Jobs
                 {
                     if (incident.I.Status == 1 && incident.SH.Status == 1)
                     {
-                        SendEmail SE = new SendEmail(db, DBC);
-                        SE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, "SOP");
+                        
+                        SDE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, "SOP");
 
                         incident.SH.ReminderCount = Counter;
                         db.SaveChanges();

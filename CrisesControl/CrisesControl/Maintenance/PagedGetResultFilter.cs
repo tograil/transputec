@@ -19,15 +19,15 @@ namespace CrisesControl.Api.Maintenance
 
         public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
         {
-            if (_paging.Apply 
+            if (_paging.Apply
                 && context.Result is OkObjectResult { Value: IEnumerable<dynamic> result } okResult)
             {
                 var enumerable = result as dynamic[] ?? result.ToArray();
                 var orderName = _paging.OrderBy.Dehumanize();
                 var resultToReturn =
-                    orderName == string.Empty 
+                    orderName == string.Empty
                                     || !enumerable.Any()
-                                     || !NameInDynamicExists.NameExists(enumerable.First(), orderName) 
+                                     || !NameInDynamicExists.NameExists(enumerable.First(), orderName)
                         ? enumerable.ToArray()
                         : enumerable.OrderBy(x => Dynamic.InvokeGet(x, orderName)).ToArray();
                 okResult.Value = resultToReturn;

@@ -1,4 +1,4 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Billing;
 using CrisesControl.Core.Models;
@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CrisesControl.Core.DBCommon.Repositories;
 
 namespace CrisesControl.Infrastructure.Services
 {
@@ -20,20 +21,20 @@ namespace CrisesControl.Infrastructure.Services
     {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon DBC;
-        private readonly SendEmail _SDE;
+        private readonly IDBCommonRepository DBC;
+        private readonly ISenderEmailService _SDE;
 
         public int active_users = 0;
         public int admin_key_count = 0;
         public int staff_count = 0;
         public bool count_query = false;
         public string current_user_role = string.Empty;
-        public BillingHelper(CrisesControlContext db)
+        public BillingHelper(CrisesControlContext db, IDBCommonRepository _DBC, ISenderEmailService SDE)
         {
             _httpContextAccessor = new HttpContextAccessor();
             _context = db;
-            DBC = new DBCommon(_context, _httpContextAccessor);
-            _SDE = new SendEmail(_context, DBC);
+            DBC = _DBC;
+            _SDE = SDE;
         }
         public async Task<int> GetTransactionTypeID(string TransactionCode)
         {
@@ -170,7 +171,7 @@ namespace CrisesControl.Infrastructure.Services
         {
 
             List<BillingStats> result = await GetBillingStats(outUserCompanyId, userID);
-            var roles = DBC.CCRoles();
+            var roles =await DBC.CCRoles();
 
             adminCount = result.Where(w => roles.Contains(w.PropertyName.ToUpper())).Sum(su => su.TotalCount);
             keyHolderCount = result.Where(w => w.PropertyName.ToUpper() == "KEYHOLDER").Select(s => s.TotalCount).FirstOrDefault();

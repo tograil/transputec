@@ -12,9 +12,10 @@ namespace CrisesControl.Api.Application.Commands.Incidents.AddIncidentAsset
             this._incidentQuery = incidentQuery;
             this._logger = logger;
         }
-        public Task<AddIncidentAssetResponse> Handle(AddIncidentAssetRequest request, CancellationToken cancellationToken)
+        public async Task<AddIncidentAssetResponse> Handle(AddIncidentAssetRequest request, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var result = await _incidentQuery.AddIncidentAsset(request);
+            return result;
         }
     }
 }

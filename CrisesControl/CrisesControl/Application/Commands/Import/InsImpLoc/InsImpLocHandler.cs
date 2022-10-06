@@ -17,7 +17,7 @@ namespace CrisesControl.Api.Application.Commands.Import.InsImpLoc
         {
             Guard.Against.Null(request, nameof(InsImpLocRequest));
             var response = new InsImpLocResponse();
-            response.Result = _importRepository.CreateTempLocation(request.LocData, request.SessionId, request.CompanyId, request.UserId, request.TimeZoneId);
+            response.Result =await _importRepository.CreateTempLocation(request.LocData, request.SessionId, request.CompanyId, request.UserId, request.TimeZoneId);
             return response;
         }
     }

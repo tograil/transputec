@@ -29,7 +29,6 @@ using CrisesControl.Core.Register.Repositories;
 using CrisesControl.Core.Administrator.Repositories;
 using CrisesControl.Core.Payments.Repositories;
 using CrisesControl.Core.AddressDetails.Repositories;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Academy.Repositories;
 using CrisesControl.Core.SopLibrary.Repositories;
 using CrisesControl.Core.System.Repositories;
@@ -39,6 +38,7 @@ using CrisesControl.Core.CustomEventLog.Repositories;
 using CrisesControl.Core.Sop.Respositories;
 using CrisesControl.Core.App.Repositories;
 using CrisesControl.Core.CCWebSocket.Repositories;
+using CrisesControl.Core.DBCommon.Repositories;
 
 namespace CrisesControl.Infrastructure
 {
@@ -68,7 +68,9 @@ namespace CrisesControl.Infrastructure
         private void RegisterCommonDependencies(ContainerBuilder builder)
         {
             builder.RegisterAutoMapper(ThisAssembly);
-
+           
+            builder.RegisterType<DBCommonRepository>().As<IDBCommonRepository>(); 
+            builder.RegisterType<MessageService>().As<IMessageService>();
             builder.RegisterType<MemoryCache>().As<IMemoryCache>().SingleInstance();
             builder.RegisterType<CompanyRepository>().As<ICompanyRepository>();
             builder.RegisterType<RegisterCompanyRepository>().As<IRegisterCompanyRepository>();
@@ -91,7 +93,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<CustomEventLogRepository>().As<ICustomEventLogRepository>();
 
 
-            builder.RegisterType<MessageService>().As<IMessageService>();
+            
             builder.RegisterType<ActiveIncidentTaskService>().As<IActiveIncidentTaskService>();
             builder.RegisterType<ReportsRepository>().As<IReportsRepository>();
             builder.RegisterType<CommunicationRepository>().As<ICommunicationRepository>();
@@ -109,8 +111,6 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<SendEmailService>().As<ISenderEmailService>();
             builder.RegisterType<PaymentRepository>().As<IPaymentRepository>();
             builder.RegisterType<AddressRepository>().As<IAddressRepository>();
-            builder.RegisterType<SendEmail>().As<SendEmail>();
-            builder.RegisterType<DBCommon>().As<DBCommon>();
             builder.RegisterType<SopLibraryRepository>().As<ISopLibraryRepository>();
             builder.RegisterType<SystemRepository>().As<ISystemRepository>();
             builder.RegisterType<AcademyRepository>().As<IAcademyRepository>();
@@ -122,6 +122,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<PingHelper>().As<PingHelper>();
             builder.RegisterType<CommsHelper>().As<CommsHelper>();
             builder.RegisterType<Messaging>().As<Messaging>();
+            
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

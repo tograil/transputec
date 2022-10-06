@@ -1,8 +1,9 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Security;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
+using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
@@ -19,10 +20,14 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public SecurityRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+        private readonly IDBCommonRepository _DBC;
+        private readonly ISenderEmailService _SDE;
+        public SecurityRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, ISenderEmailService SDE)
         {
             this._context = context;
             this._httpContextAccessor = httpContextAccessor;
+            this._DBC = DBC;
+            this._SDE = SDE;
         }
         /* Created new store procedure called GetCompanySecurityGroup
           *
@@ -325,7 +330,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
+               
                 bool sendemail = false;
 
                 var pCompanyId = new SqlParameter("@CompanyId", companyID);
@@ -340,11 +345,11 @@ namespace CrisesControl.Infrastructure.Repositories
                     sendemail = true;
                     foreach (var item in result)
                     {
-                        sb.AppendLine("<tr><td>" + item.ModuleItem + "</td><td>" + DBC.UserName(item.UserName) + "</td></tr>");
+                        sb.AppendLine("<tr><td>" + item.ModuleItem + "</td><td>" + await _DBC.UserName(item.UserName) + "</td></tr>");
                     }
                     sb.AppendLine("</table>");
-                    SendEmail SDE = new SendEmail(_context, DBC);
-                    await SDE.SendMenuAccessAssociationsToAdmin(sb.ToString(), securityGroupID, companyID);
+                    
+                    await _SDE.SendMenuAccessAssociationsToAdmin(sb.ToString(), securityGroupID, companyID);
                 }
 
                 return sendemail;

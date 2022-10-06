@@ -1,5 +1,6 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Payments;
 using CrisesControl.Core.Sop.Respositories;
@@ -24,19 +25,20 @@ namespace CrisesControl.Infrastructure.Services
         private string CommsDebug = "true";
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon DBC;
+        private readonly IDBCommonRepository DBC;
+        private readonly ISenderEmailService _SDE;
         private BillingHelper _billing ;
 
-        public UsageHelper(CrisesControlContext context)
+        public UsageHelper(CrisesControlContext context, IDBCommonRepository _DBC, ISenderEmailService SDE)
         {
             VATRate = 0M;
             _context = context;
             _httpContextAccessor = new HttpContextAccessor();
-            DBC = new DBCommon(_context, _httpContextAccessor);
-            
-            decimal.TryParse(DBC.LookupWithKey("COMP_VAT"), out VATRate);
-            CommsDebug = DBC.LookupWithKey("COMMS_DEBUG_MODE");
-            _billing = new BillingHelper(_context);
+            DBC =_DBC;
+            _SDE = SDE;
+            decimal.TryParse(DBC.LookupWithKey("COMP_VAT").ToString(), out VATRate);
+            CommsDebug = DBC.LookupWithKey("COMMS_DEBUG_MODE").ToString();
+            _billing = new BillingHelper(_context, DBC,_SDE);
 
 
         }
@@ -52,8 +54,8 @@ namespace CrisesControl.Infrastructure.Services
                 {
                     decimal recharge_th = 10M;
                     decimal recharge_value = 0M;
-                    decimal.TryParse(DBC.GetCompanyParameter("RECHARGE_BALANCE_TRIGGER", CompanyID), out recharge_th);
-                    decimal.TryParse(DBC.GetCompanyParameter("CREDIT_BALANCE_RECHARGE", CompanyID), out recharge_value);
+                    decimal.TryParse(await DBC.GetCompanyParameter("RECHARGE_BALANCE_TRIGGER", CompanyID), out recharge_th);
+                    decimal.TryParse(await DBC.GetCompanyParameter("CREDIT_BALANCE_RECHARGE", CompanyID), out recharge_value);
 
                     if (BalanceAfterCompute <= recharge_th)
                     {
@@ -77,9 +79,9 @@ namespace CrisesControl.Infrastructure.Services
                         bool continuepayment = true;
 
                         int Attempt = 0;
-                        int MaxAttempt = Convert.ToInt16(DBC.LookupWithKey("WP_FAILED_PAYMENT_ATTEMPT"));
-                        string CardFailedErrorResponse = DBC.LookupWithKey("WP_CARD_FAILED_RESPONSE");
-                        string CardSuccessResponse = DBC.LookupWithKey("WP_CARD_SUCCESS_RESPONSE");
+                        int MaxAttempt = Convert.ToInt16(await DBC.LookupWithKey("WP_FAILED_PAYMENT_ATTEMPT"));
+                        string CardFailedErrorResponse =await  DBC.LookupWithKey("WP_CARD_FAILED_RESPONSE");
+                        string CardSuccessResponse =await DBC.LookupWithKey("WP_CARD_SUCCESS_RESPONSE");
                         string ResponseMessages = string.Empty;
 
                         while (AmountLeftForDebit > 0 && continuepayment == true && Attempt <= MaxAttempt)
@@ -100,7 +102,7 @@ namespace CrisesControl.Infrastructure.Services
                             {
                                 if (response.ResponseCode.ToUpper() == CardSuccessResponse)
                                 {
-                                    SendEmail SDE = new SendEmail(_context, DBC);
+                                    
                                     comp_profile.CreditBalance += response.Amount;
                                     TotalAmountDebited += TransactionAmount;
                                     AmountLeftForDebit -= TransactionAmount;
@@ -114,12 +116,12 @@ namespace CrisesControl.Infrastructure.Services
                                     {
                                         if (CommsDebug == "true")
                                         {
-                                            DBC.CreateLog("INFO", "Payment Transaction Success Alert, amount " + TotalAmountDebited, null, "UsageHelper", "BalanceCheckNDebIt", CompanyID);
+                                           await  DBC.CreateLog("INFO", "Payment Transaction Success Alert, amount " + TotalAmountDebited, null, "UsageHelper", "BalanceCheckNDebIt", CompanyID);
                                         }
                                         else
                                         {
-                                            string TimeZoneId = DBC.GetTimeZoneByCompany(CompanyID);
-                                            SDE.SendPaymentTransactionAlert(CompanyID, TotalAmountDebited, TimeZoneId);
+                                            string TimeZoneId =await  DBC.GetTimeZoneByCompany(CompanyID);
+                                            await _SDE.SendPaymentTransactionAlert(CompanyID, TotalAmountDebited, TimeZoneId);
                                         }
 
                                         continuepayment = false;
@@ -131,7 +133,7 @@ namespace CrisesControl.Infrastructure.Services
                                     Attempt++;
                                     ResponseMessages += (string.IsNullOrEmpty(ResponseMessages) ? "," : "") + response.ResponseMessage;
 
-                                    DBC.CreateLog("INFO", response.ResponseMessage, null, "UsageHelper", "BalanceCheckNDebit", CompanyID);
+                                    await DBC.CreateLog("INFO", response.ResponseMessage, null, "UsageHelper", "BalanceCheckNDebit", CompanyID);
 
                                     if (Attempt > MaxAttempt)
                                     {
@@ -141,8 +143,8 @@ namespace CrisesControl.Infrastructure.Services
                                         }
                                         else
                                         {
-                                            SendEmail SDE = new SendEmail(_context,DBC);
-                                            SDE.SendFailedPaymentAlert(CompanyID, TransactionAmount, ResponseMessages);
+                                           
+                                           await  _SDE.SendFailedPaymentAlert(CompanyID, TransactionAmount, ResponseMessages);
                                         }
 
                                        await _billing.UpdateTransactionDetails(0, CompanyID, ttype, 0, TransactionAmount, 1,
@@ -152,7 +154,7 @@ namespace CrisesControl.Infrastructure.Services
                                         {
                                             comp_profile.CardExpiryDate = DateTime.Now.AddMonths(-1);
                                             comp_profile.CardFailed = true;
-                                            _context.SaveChangesAsync();
+                                            await _context.SaveChangesAsync();
                                             Attempt = MaxAttempt + 1;
                                         }
 
@@ -172,9 +174,9 @@ namespace CrisesControl.Infrastructure.Services
             try
             {
                 decimal recharge_value = 10;
-                string wp_amdin_url = DBC.LookupWithKey("WP_IADMIN_URL");
-                string wp_inst_id = DBC.LookupWithKey("WP_IADMIN_INST_ID");
-                string wp_auth_pwd = DBC.LookupWithKey("WP_IADMIN_AUTH_PWD");
+                string wp_amdin_url =await  DBC.LookupWithKey("WP_IADMIN_URL");
+                string wp_inst_id =await DBC.LookupWithKey("WP_IADMIN_INST_ID");
+                string wp_auth_pwd =await DBC.LookupWithKey("WP_IADMIN_AUTH_PWD");
 
                 string agreement_no = "";
 
@@ -190,7 +192,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 if (RechargeAmount == 0 && CompanyID > 0)
                 {
-                    bool check = decimal.TryParse(DBC.GetCompanyParameter("CREDIT_BALANCE_RECHARGE", CompanyID), out recharge_value);
+                    bool check = decimal.TryParse(await DBC.GetCompanyParameter("CREDIT_BALANCE_RECHARGE", CompanyID), out recharge_value);
                 }
                 else
                 {
@@ -304,8 +306,8 @@ namespace CrisesControl.Infrastructure.Services
                         }
                         else
                         { //send email to admin for collecting payment offline by invoice
-                            SendEmail SDE = new SendEmail(_context, DBC);
-                            SDE.InvoicePaymentAlert(CompanyID, prorata_value);
+                            
+                            await _SDE.InvoicePaymentAlert(CompanyID, prorata_value);
                         }
                     }
 
@@ -398,8 +400,8 @@ namespace CrisesControl.Infrastructure.Services
                         int Attempt = 0;
                         int MaxAttempt = Convert.ToInt16(DBC.LookupWithKey("WP_FAILED_PAYMENT_ATTEMPT"));
 
-                        string CardFailedErrorResponse = DBC.LookupWithKey("WP_CARD_FAILED_RESPONSE");
-                        string CardSuccessResponse = DBC.LookupWithKey("WP_CARD_SUCCESS_RESPONSE");
+                        string CardFailedErrorResponse =await  DBC.LookupWithKey("WP_CARD_FAILED_RESPONSE");
+                        string CardSuccessResponse =await  DBC.LookupWithKey("WP_CARD_SUCCESS_RESPONSE");
                         string ResponseMessages = string.Empty;
 
 
@@ -438,7 +440,7 @@ namespace CrisesControl.Infrastructure.Services
                                     Attempt++;
                                     ResponseMessages += (string.IsNullOrEmpty(ResponseMessages) ? "," : "") + response.ResponseMessage;
 
-                                    DBC.CreateLog("INFO", response.ResponseMessage, null, "UsageHelper", "DebitAccount", CompanyID);
+                                    await DBC.CreateLog("INFO", response.ResponseMessage, null, "UsageHelper", "DebitAccount", CompanyID);
 
                                    await _billing.UpdateTransactionDetails(0, CompanyID, ttype, 0, TransactionAmount, 1,
                                            0, 0, 0, 0, 0, DateTime.Now, 0, DBC.Left(ResponseMessages, 150), "GMT Standard Time", 1, 0, "ER");
@@ -465,12 +467,12 @@ namespace CrisesControl.Infrastructure.Services
 
                             if (CommsDebug == "true")
                             {
-                                DBC.CreateLog("INFO", "Monthly payment success alert:" + TotalAmountDebited, null, "UsageHelper", "BalanceCheckNDebit", CompanyID);
+                                await DBC.CreateLog("INFO", "Monthly payment success alert:" + TotalAmountDebited, null, "UsageHelper", "BalanceCheckNDebit", CompanyID);
                             }
                             else
                             {
-                                SendEmail SDE = new SendEmail(_context,DBC);
-                                SDE.SendMonthlyPaymentAlert(CompanyID, TotalMonthlyDebitAmount, TotalAmountDebited, VatAmount, email_items);
+                               
+                                await _SDE.SendMonthlyPaymentAlert(CompanyID, TotalMonthlyDebitAmount, TotalAmountDebited, VatAmount, email_items);
                             }
 
 
@@ -479,12 +481,12 @@ namespace CrisesControl.Infrastructure.Services
                         {
                             if (CommsDebug == "true")
                             {
-                                DBC.CreateLog("INFO", "Monthly partial payment success alert:" + TotalAmountDebited, null, "UsageHelper", "BalanceCheckNDebit", CompanyID);
+                                await DBC.CreateLog("INFO", "Monthly partial payment success alert:" + TotalAmountDebited, null, "UsageHelper", "BalanceCheckNDebit", CompanyID);
                             }
                             else
                             {
-                                SendEmail SDE = new SendEmail(_context, DBC);
-                                SDE.SendMonthlyPartialPaymentAlert(CompanyID, TotalMonthlyDebitAmount, TotalAmountDebited, VatAmount, email_items);
+                               
+                                await _SDE.SendMonthlyPartialPaymentAlert(CompanyID, TotalMonthlyDebitAmount, TotalAmountDebited, VatAmount, email_items);
                             }
 
                         }
@@ -492,12 +494,12 @@ namespace CrisesControl.Infrastructure.Services
                         {
                             if (CommsDebug == "true")
                             {
-                                DBC.CreateLog("INFO", "Monthly payment failure alert:" + ResponseMessages, null, "UsageHelper", "BalanceCheckNDebit", CompanyID);
+                               await DBC.CreateLog("INFO", "Monthly payment failure alert:" + ResponseMessages, null, "UsageHelper", "BalanceCheckNDebit", CompanyID);
                             }
                             else
                             {
-                                SendEmail SDE = new SendEmail(_context, DBC);
-                                SDE.SendFailedPaymentAlert(CompanyID, TotalMonthlyDebitAmount, ResponseMessages);
+                                
+                               await _SDE.SendFailedPaymentAlert(CompanyID, TotalMonthlyDebitAmount, ResponseMessages);
                             }
 
                             //check if no amount is collected.. and attemt is maxattempt,; dump the error and send email.
@@ -591,9 +593,9 @@ namespace CrisesControl.Infrastructure.Services
                 throw ex;
             }
         }
-        public async void _calculate_contract_items(int CompanyID)
+        public async Task _calculate_contract_items(int CompanyID)
         {
-            BillingHelper BLH = new BillingHelper(_context);
+           
             try
             {
                 var items =await (from CT in _context.Set<CompanyTransactionType>()
@@ -623,8 +625,8 @@ namespace CrisesControl.Infrastructure.Services
                             if (item.CreatedOn.Date <= DateTime.Now.Date && item.CreatedOn.Date == item.NextRunDate.Date)
                             {
                                 this_month_charge = GetProrataPayment(item.TransactionRate, item.NextRunDate, item.PaymentPeriod);
-                                int mt_trans_id = await BLH.AddMonthTransaction(0, CompanyID, 0, "", this_month_charge, item.TransactionTypeId, TransactionDate);
-                                BLH.UpdateThisMonthOnly(mt_trans_id, true, true);
+                                int mt_trans_id = await _billing.AddMonthTransaction(0, CompanyID, 0, "", this_month_charge, item.TransactionTypeId, TransactionDate);
+                                _billing.UpdateThisMonthOnly(mt_trans_id, true, true);
 
                                 DateTime NextAnniversary = LastDayofMonth(profile.CreatedOn);
                                 item.NextRunDate = NextAnniversary;
@@ -638,16 +640,16 @@ namespace CrisesControl.Infrastructure.Services
 
                                 if (item.PaymentPeriod == "MONTHLY")
                                 {
-                                    int mt_trans_id = await BLH.AddMonthTransaction(0, CompanyID, 0, "", item.TransactionRate, item.TransactionTypeId, TransactionDate);
-                                    BLH.UpdateThisMonthOnly(mt_trans_id, true, false);
-                                    DateTimeOffset next_run_date = BLH.GetNextRunDate(item.NextRunDate, item.PaymentPeriod.ToUpper(), 0);
+                                    int mt_trans_id = await _billing.AddMonthTransaction(0, CompanyID, 0, "", item.TransactionRate, item.TransactionTypeId, TransactionDate);
+                                    _billing.UpdateThisMonthOnly(mt_trans_id, true, false);
+                                    DateTimeOffset next_run_date = _billing.GetNextRunDate(item.NextRunDate, item.PaymentPeriod.ToUpper(), 0);
                                     item.NextRunDate = next_run_date;
                                 }
                                 else if (item.PaymentPeriod == "YEARLY")
                                 {
-                                    int mt_trans_id =await BLH.AddMonthTransaction(0, CompanyID, 0, "", item.TransactionRate, item.TransactionTypeId, TransactionDate);
-                                    BLH.UpdateThisMonthOnly(mt_trans_id, true, true);
-                                    DateTimeOffset next_run_date = BLH.GetNextRunDate(profile.ContractAnniversary, item.PaymentPeriod.ToUpper(), 0);
+                                    int mt_trans_id =await _billing.AddMonthTransaction(0, CompanyID, 0, "", item.TransactionRate, item.TransactionTypeId, TransactionDate);
+                                    _billing.UpdateThisMonthOnly(mt_trans_id, true, true);
+                                    DateTimeOffset next_run_date = _billing.GetNextRunDate(profile.ContractAnniversary, item.PaymentPeriod.ToUpper(), 0);
                                     item.NextRunDate = next_run_date;
                                 }
 
@@ -656,18 +658,18 @@ namespace CrisesControl.Infrastructure.Services
                         }
                         else
                         {
-                            DateTimeOffset next_run_date = BLH.GetNextRunDate(item.NextRunDate, item.PaymentPeriod.ToUpper(), 0);
+                            DateTimeOffset next_run_date = _billing.GetNextRunDate(item.NextRunDate, item.PaymentPeriod.ToUpper(), 0);
                             if (monthly_item.ThisMonthOnly)
                             {
                                 if (profile.PaymentPeriod.ToUpper() == "MONTHLY")
                                 {
-                                    BLH.UpdateThisMonthOnly(monthly_item.TransactionId, true, false);
+                                    _billing.UpdateThisMonthOnly(monthly_item.TransactionId, true, false);
                                     monthly_item.ItemValue = item.TransactionRate;
                                 }
                                 else if (item.PaymentPeriod.ToUpper() == "YEARLY")
                                 {
                                     _context.Remove(monthly_item);
-                                    next_run_date = BLH.GetNextRunDate(profile.ContractAnniversary, item.PaymentPeriod.ToUpper(), 0);
+                                    next_run_date = _billing.GetNextRunDate(profile.ContractAnniversary, item.PaymentPeriod.ToUpper(), 0);
                                 }
                             }
 
@@ -790,7 +792,7 @@ namespace CrisesControl.Infrastructure.Services
                 int new_keyholder_count = 0;
                 int new_staff_count = 0;
 
-                var roles = DBC.CCRoles(true);
+                var roles =await DBC.CCRoles(true);
 
                 List<int> UserIds = new List<int>();
                 foreach (UserRoles ur in userList)
