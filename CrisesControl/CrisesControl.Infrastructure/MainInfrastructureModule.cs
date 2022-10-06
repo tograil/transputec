@@ -36,9 +36,10 @@ using CrisesControl.Core.Lookup.Repositories;
 using CrisesControl.Core.FileService.Repositories;
 using CrisesControl.Core.CustomEventLog.Repositories;
 using CrisesControl.Core.Sop.Respositories;
-using CrisesControl.Core.App.Repositories;
+using CrisesControl.Core.App.Services;
 using CrisesControl.Core.CCWebSocket.Repositories;
 using CrisesControl.Core.DBCommon.Repositories;
+using CrisesControl.Core.Communication.Services;
 
 namespace CrisesControl.Infrastructure
 {
@@ -117,12 +118,13 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<LookupRepository>().As<ILookupRepository>();
             builder.RegisterType<FileServiceRepository>().As<IFileServiceRepository>();
             builder.RegisterType<SopRepository>().As<ISopRepository>();
-            builder.RegisterType<AppRepository>().As<IAppRepository>();
+            builder.RegisterType<AppService>().As<IAppService>();
             builder.RegisterType<CCWebSocketRepository>().As<ICCWebSocketRepository>();
-            builder.RegisterType<PingHelper>().As<PingHelper>();
-            builder.RegisterType<CommsHelper>().As<CommsHelper>();
-            builder.RegisterType<Messaging>().As<Messaging>();
-            
+            builder.RegisterType<PingService>().As<IPingService>();
+            builder.RegisterType<CommsLogService>().As<ICommsLogService>();
+            builder.RegisterType<CommsService>().As<ICommsService>();
+
+
         }
 
         private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

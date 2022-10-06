@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Companies;
+﻿using CrisesControl.Core.Communication.Services;
+using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.CompanyParameters.Repositories;
 using CrisesControl.Core.DBCommon.Repositories;
@@ -30,15 +31,17 @@ namespace CrisesControl.Infrastructure.Repositories {
         private readonly IDBCommonRepository _DBC;
         private readonly IMessageService _MSG;
         private readonly ISenderEmailService _SDE;
+        private readonly ICommsService _CH;
 
-        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG, ISenderEmailService _SDE)
+        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, IHttpContextAccessor httpContextAccessor, ICommsService CH, IDBCommonRepository DBC, IMessageService MSG, ISenderEmailService SDE)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
             _DBC = DBC;
             _MSG = MSG;
-            _SDE = _SDE;
+            _SDE = SDE;
+            _CH = CH;
             
         }
         public async Task<IEnumerable<CascadingPlanReturn>> GetCascading(int planID, string planType, int companyId, bool getDetails = false)
@@ -620,9 +623,9 @@ namespace CrisesControl.Infrastructure.Repositories {
 
                         string OTPMessage =await _DBC.LookupWithKey("SEGREGATION_CODE_MSG");
 
-                        CommsHelper CH = new CommsHelper(_context, _httpContextAccessor, _SDE, _DBC, _MSG);
+                       
 
-                        result.Data = await CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
+                        result.Data = await _CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
                     }
                     else
                     {

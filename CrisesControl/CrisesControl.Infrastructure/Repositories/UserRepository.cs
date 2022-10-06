@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CrisesControl.Core.Billing;
+using CrisesControl.Core.Communication.Services;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.DBCommon.Repositories;
@@ -43,7 +44,8 @@ public class UserRepository : IUserRepository
     private readonly IGroupRepository _groupRepository;
     private readonly IMessageService _MSG;
     private UsageHelper _usage;
-
+    private readonly ICommsService _CH;
+    private readonly ICommsLogService _CLH;
 
     private int userId;
     private int companyId;
@@ -60,7 +62,9 @@ public class UserRepository : IUserRepository
         IGroupRepository groupRepository,
         IDBCommonRepository DBC,
         IMessageService MSG,
-        ISenderEmailService SDE
+        ISenderEmailService SDE,
+        ICommsService CH,
+        ICommsLogService CLH
         )
     {
         _context = context;
@@ -73,6 +77,8 @@ public class UserRepository : IUserRepository
         _locationRepository = locationRepository;
         _groupRepository = groupRepository;
         _MSG = MSG;
+        _CH = CH;
+        _CLH = CLH;
         _usage = new UsageHelper(_context,_DBC,_SDE);
     }
     public bool IsValidMobile
@@ -2895,10 +2901,10 @@ public class UserRepository : IUserRepository
                     return message;
                 }
 
-                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor,_SDE,_DBC,_MSG);
+               
                 string UserMobile = await _DBC.FormatMobile(user.U.Isdcode, user.U.MobileNo);
 
-                string Code =await CH.SendOTP(user.U.Isdcode, UserMobile, otpMessage);
+                string Code =await _CH.SendOTP(user.U.Isdcode, UserMobile, otpMessage);
 
                 if (!string.IsNullOrEmpty(Code))
                 {
@@ -3058,8 +3064,7 @@ public class UserRepository : IUserRepository
             {
 
                 //AccountHelper AH = new AccountHelper();
-                CommsHelper CH = new CommsHelper(_context,_httpContextAccessor,_SDE,_DBC,_MSG);
-
+               
                 if (action.ToUpper() == "CONFIRM")
                 {
                     if (oldPassword.Trim() == user.Password.Trim())
@@ -3074,7 +3079,7 @@ public class UserRepository : IUserRepository
 
                         string UserMobile =await _DBC.FormatMobile(user.Isdcode, user.MobileNo);
 
-                        string Code =await CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method);
+                        string Code =await _CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method);
 
                         if (!string.IsNullOrEmpty(Code))
                         {
@@ -3124,7 +3129,7 @@ public class UserRepository : IUserRepository
 
                         if (pwdTrue)
                         {
-                            CommsStatus otpcheck =await CH.TwilioVerifyCheck(UserMobile, otpCode);
+                            CommsStatus otpcheck =await _CH.TwilioVerifyCheck(UserMobile, otpCode);
 
                             if (otpcheck.CurrentAction.ToUpper() == "APPROVED")
                             {
@@ -3171,11 +3176,11 @@ public class UserRepository : IUserRepository
                 else if (action.ToUpper() == "OTPRESEND")
                 {
                     string UserMobile = await _DBC.FormatMobile(user.Isdcode, user.MobileNo);
-                    CH.GCompanyId = user.CompanyId;
-                    CH.GUserId = user.UserId;
-                    CH.GTimezoneId = timeZoneId;
+                    _CH.GCompanyId = user.CompanyId;
+                    _CH.GUserId = user.UserId;
+                    _CH.GTimezoneId = timeZoneId;
 
-                    string Code = await CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method, user.PrimaryEmail);
+                    string Code = await _CH.SendOTP(user.Isdcode, UserMobile, otpMessage, source, method, user.PrimaryEmail);
 
                     if (!string.IsNullOrEmpty(Code))
                     {

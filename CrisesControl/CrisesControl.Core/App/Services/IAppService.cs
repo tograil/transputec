@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Core.App.Repositories
+namespace CrisesControl.Core.App.Services
 {
-    public interface IAppRepository
+    public interface IAppService
     {
         Task<AppHomeReturn> AppHome(int companyID, int userId, int userDeviceID, string token);
         Task<string> SendFeedback(string deviceType, string deviceOS, string userEmail, string deviceModel, string feedbackMessage);

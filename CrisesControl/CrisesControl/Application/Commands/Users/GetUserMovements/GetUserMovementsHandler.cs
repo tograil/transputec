@@ -1,5 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using AutoMapper;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Infrastructure.Services;
 using MediatR;
 
@@ -8,10 +9,10 @@ namespace CrisesControl.Api.Application.Commands.Users.GetUserMovements
     public class GetUserMovementsHandler : IRequestHandler<GetUserMovementsRequest, GetUserMovementsResponse>
     {
         private readonly GetUserMovementsValidator _userValidator;
-        private readonly CrisesControl.Infrastructure.Services.Messaging _MSG;
+        private readonly IMessageService _MSG;
         private readonly ILogger<GetUserMovementsHandler> _logger;
 
-        public GetUserMovementsHandler(GetUserMovementsValidator userValidator, CrisesControl.Infrastructure.Services.Messaging MSG, ILogger<GetUserMovementsHandler> logger)
+        public GetUserMovementsHandler(GetUserMovementsValidator userValidator, IMessageService MSG, ILogger<GetUserMovementsHandler> logger)
         {
             _userValidator = userValidator;
             _MSG = MSG;

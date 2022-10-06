@@ -31,6 +31,7 @@ using Group = CrisesControl.Core.Groups.Group;
 using CrisesControl.Core.Register;
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Messages.Services;
+using CrisesControl.Core.Communication.Services;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -47,8 +48,8 @@ public class MessageRepository : IMessageRepository
     private readonly ILogger<MessageRepository> _logger;
     private readonly IDBCommonRepository _DBC;
     private readonly ISenderEmailService _SDE;
-    private readonly CommsHelper _CH;
-    private readonly PingHelper _PH;
+    private readonly ICommsService _CH;
+    private readonly IPingService _PH;
     private readonly IMessageService _MSG;
    
 
@@ -59,7 +60,9 @@ public class MessageRepository : IMessageRepository
         ILogger<MessageRepository> logger,
         IDBCommonRepository DBC,
         IMessageService MSG,
-        ISenderEmailService SDE
+        ISenderEmailService SDE,
+        ICommsService CH,
+        IPingService PH
         )
     {
         _context = context;
@@ -69,8 +72,8 @@ public class MessageRepository : IMessageRepository
         _DBC =  DBC;
         _MSG =MSG;
         _SDE = SDE;
-        _CH = new CommsHelper(_context,_httpContextAccessor, _SDE, _DBC,_MSG);
-        _PH = new PingHelper(_context, _httpContextAccessor, _DBC, _MSG);
+        _CH = CH;
+        _PH = PH;
         
     }
 
@@ -880,8 +883,8 @@ public class MessageRepository : IMessageRepository
             var pUserID = new SqlParameter("@UserID", CurrentUserID);
             var pSource = new SqlParameter("@Source", source);
 
-            var result = _context.Set<MessageDetails>().FromSqlRaw("exec Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
-                pParentID, pCompanyID, pUserID, pSource).AsEnumerable().ToList();
+            var result = await _context.Set<MessageDetails>().FromSqlRaw("exec Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
+                pParentID, pCompanyID, pUserID, pSource).ToListAsync();
 
             var replies = result.Select(c =>
             {
@@ -1275,7 +1278,7 @@ GO
     {
         try
         {
-            return _PH.GetPublicAlert(companyId, targetUserId);
+            return await _PH.GetPublicAlert(companyId, targetUserId);
         }
         catch (Exception ex)
         {
@@ -1283,11 +1286,11 @@ GO
         }
     }
 
-    public dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId)
+    public async Task<dynamic> GetPublicAlertTemplate(int templateId, int userId, int companyId)
     {
         try
         {
-            return _PH.GetPublicAlertTemplate(templateId, userId, companyId);
+            return await  _PH.GetPublicAlertTemplate(templateId, userId, companyId);
         }
         catch (Exception ex)
         {
