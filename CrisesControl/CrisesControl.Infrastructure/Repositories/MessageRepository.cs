@@ -883,8 +883,8 @@ public class MessageRepository : IMessageRepository
             var pUserID = new SqlParameter("@UserID", CurrentUserID);
             var pSource = new SqlParameter("@Source", source);
 
-            var result = await _context.Set<MessageDetails>().FromSqlRaw("exec Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
-                pParentID, pCompanyID, pUserID, pSource).ToListAsync();
+            var result = _context.Set<MessageDetails>().FromSqlRaw("exec Pro_User_Message_Reply @ParentID, @CompanyID, @UserID, @Source",
+                pParentID, pCompanyID, pUserID, pSource).AsEnumerable().ToList();
 
             var replies = result.Select(c =>
             {
