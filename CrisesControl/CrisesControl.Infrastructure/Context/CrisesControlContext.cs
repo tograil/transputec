@@ -31,7 +31,6 @@ using CrisesControl.Core.Academy;
 using CrisesControl.Core.Sop;
 using CrisesControl.Core.Payments;
 using CrisesControl.Core.App;
-using static CrisesControl.Infrastructure.Services.CommsLogsHelper;
 using CrisesControl.Core.Assets;
 
 using CrisesControl.Core.CCWebSocket;

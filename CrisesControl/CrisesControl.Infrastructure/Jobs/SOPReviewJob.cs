@@ -48,13 +48,13 @@ namespace CrisesControl.Infrastructure.Jobs
                     if (incident.I.Status == 1 && incident.SH.Status == 1)
                     {
                        
-                       await _SDE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, "SOP");
+                       await _SDE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, (int)incident.I.CompanyId, "SOP");
 
                         incident.SH.ReminderCount = Counter;
                         db.SaveChanges();
 
                         
-                        await _sopRepository.CreateSOPReviewReminder(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, incident.SH.ReviewDate, incident.SH.ReviewFrequency, Counter);
+                        await _sopRepository.CreateSOPReviewReminder(IncidentID, incident.SH.SopheaderId, (int)incident.I.CompanyId, incident.SH.ReviewDate, incident.SH.ReviewFrequency, Counter);
 
                     }
                     else

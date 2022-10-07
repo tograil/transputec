@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Infrastructure.Services
 {
-    public class PingHelper
+    public class PingService:IPingService
     {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -32,7 +32,7 @@ namespace CrisesControl.Infrastructure.Services
         private readonly QueueHelper _queueHelper;
 
         public bool IsFundAvailable = true;
-        public PingHelper(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG)
+        public PingService(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
@@ -42,15 +42,16 @@ namespace CrisesControl.Infrastructure.Services
             _queueHelper = new QueueHelper(_context, _DBC,_MSG);
         }
 
-        public List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId)
+        public async Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId)
         {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var pTargetUserId = new SqlParameter("@UserID", targetUserId);
 
-                var result = _context.Set<PublicAlertRtn>().FromSqlRaw("EXEC Public_Alert_Get @CompanyID, @UserID",
-                    pCompanyID, pTargetUserId).ToList().Select(c => {
+                var result = await _context.Set<PublicAlertRtn>().FromSqlRaw("EXEC Public_Alert_Get @CompanyID, @UserID",
+                    pCompanyID, pTargetUserId).ToListAsync();
+                result.Select(c => {
                         c.SentBy = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
                         return c;
                     }).ToList();
@@ -63,7 +64,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId)
+        public async Task<dynamic> GetPublicAlertTemplate(int templateId, int userId, int companyId)
         {
             try
             {
@@ -71,7 +72,7 @@ namespace CrisesControl.Infrastructure.Services
                 var pTemplateID = new SqlParameter("@TemplateID", templateId);
                 var pUserID = new SqlParameter("@UserID", userId);
 
-                var result = _context.Set<PublicAlertTemplate>().FromSqlRaw("EXEC Public_Alert_Template_Get @CompanyID, @TemplateID, @UserID", pCompanyID, pTemplateID, pUserID).ToList();
+                var result = await _context.Set<PublicAlertTemplate>().FromSqlRaw("EXEC Public_Alert_Template_Get @CompanyID, @TemplateID, @UserID", pCompanyID, pTemplateID, pUserID).ToListAsync();
 
                 if (templateId > 0 && result != null)
                 {
@@ -86,84 +87,84 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async Task<int> PingMessages(int CompanyId, string MessageText, List<AckOption> AckOptions, int Priority, bool MultiResponse, string MessageType,
-       int IncidentActivationId, int CurrentUserId, string TimeZoneId, PingMessageObjLst[] PingMessageObjLst, int[] UsersToNotify, int AssetId = 0,
-       bool SilentMessage = false, int[] MessageMethod = null, List<MediaAttachment> MediaAttachments = null, List<string> SocialHandle = null,
-       int CascadePlanID = 0)
+        public async Task<int> PingMessages(int companyId, string messageText, List<AckOption> ackOptions, int priority, bool multiResponse, string messageType,
+       int incidentActivationId, int currentUserId, string timeZoneId, PingMessageObjLst[] pingMessageObjLst, int[] usersToNotify, int assetId = 0,
+       bool silentMessage = false, int[] messageMethod = null, List<MediaAttachment> mediaAttachments = null, List<string> socialHandle = null,
+       int cascadePlanID = 0)
         {
             bool NotifyKeyholders = false;
             int MessageId = 0;
             int Source = 1;
             try
             {
-                _MSG.TimeZoneId = TimeZoneId;
-                _MSG.CascadePlanID = CascadePlanID;
-                if (MessageType == "EventLogNotify")
+                _MSG.TimeZoneId = timeZoneId;
+                _MSG.CascadePlanID = cascadePlanID;
+                if (messageType == "EventLogNotify")
                 {
                     _MSG.MessageSourceAction = SourceAction.EventLogNotify;
-                    MessageType = "Ping";
+                    messageType = "Ping";
                     Source = 7;
                 }
                 else
                 {
-                    _MSG.MessageSourceAction = IncidentActivationId > 0 ? SourceAction.IncidentUpdate : SourceAction.Ping;
+                    _MSG.MessageSourceAction = incidentActivationId > 0 ? SourceAction.IncidentUpdate : SourceAction.Ping;
                 }
 
-                int tblmessageid = await _MSG.CreateMessage(CompanyId, MessageText, MessageType, IncidentActivationId, Priority, CurrentUserId,
-                    Source, await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId), MultiResponse, AckOptions, 99, AssetId, 0, false, SilentMessage,
-                    MessageMethod, MediaAttachments);
+                int tblmessageid = await _MSG.CreateMessage(companyId, messageText, messageType, incidentActivationId, priority, currentUserId,
+                    Source, await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), multiResponse, ackOptions, 99, assetId, 0, false, silentMessage,
+                    messageMethod, mediaAttachments);
 
                 MessageId = tblmessageid;
 
-                List<PingMessageObjLst> LstIncNotiLst = new List<PingMessageObjLst>(PingMessageObjLst);
+                List<PingMessageObjLst> LstIncNotiLst = new List<PingMessageObjLst>(pingMessageObjLst);
                 //Checking whether to notifiy keyholders not not
-                if (MessageType.ToUpper() == "PING")
+                if (messageType.ToUpper() == "PING")
                 {
-                    if (PingMessageObjLst.Count() > 0 && MessageType.ToUpper() == "PING")
+                    if (pingMessageObjLst.Count() > 0 && messageType.ToUpper() == "PING")
                     {
                         foreach (var INotiLst in LstIncNotiLst)
                         {
                             if (INotiLst.ObjectMappingId > 0)
                             {
-                               await CreateAdHocNotificationList(tblmessageid, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CompanyId, CurrentUserId, TimeZoneId);
+                               await CreateAdHocNotificationList(tblmessageid, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, companyId, currentUserId, timeZoneId);
                             }
                         }
                     }
                 }
-                else if (MessageType.ToUpper() == "INCIDENT")
+                else if (messageType.ToUpper() == "INCIDENT")
                 {
-                    if (PingMessageObjLst.Count() > 0 && LstIncNotiLst != null)
+                    if (pingMessageObjLst.Count() > 0 && LstIncNotiLst != null)
                     {
                         foreach (var INotiLst in LstIncNotiLst)
                         {
                             if (INotiLst.ObjectMappingId > 0)
                             {
-                                await _MSG.CreateIncidentNotificationList(tblmessageid, IncidentActivationId, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CurrentUserId, CompanyId, TimeZoneId);
+                                await _MSG.CreateIncidentNotificationList(tblmessageid, incidentActivationId, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, currentUserId, companyId, timeZoneId);
                             }
                         }
                     }
                 }
 
-                NotifyKeyholders = Convert.ToBoolean(_DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", CompanyId));
+                NotifyKeyholders = Convert.ToBoolean(await _DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", companyId));
 
                 if (NotifyKeyholders)
                 {
                     var roles =await _DBC.CCRoles(true);
                     var UserLst = (from U in _context.Set<User>()
                                    where roles.Contains(U.UserRole)
-                                   && U.CompanyId == CompanyId && U.Status == 1
+                                   && U.CompanyId == companyId && U.Status == 1
                                    select U.UserId).Distinct().ToList();
 
-                    _MSG.AddUserToNotify(tblmessageid, UserLst.Distinct().ToList());
+                   await _MSG.AddUserToNotify(tblmessageid, UserLst.Distinct().ToList());
                 }
 
-                if (UsersToNotify != null)
+                if (usersToNotify != null)
                 {
-                    _MSG.AddUserToNotify(tblmessageid, UsersToNotify.ToList(), IncidentActivationId);
+                  await  _MSG.AddUserToNotify(tblmessageid, usersToNotify.ToList(), incidentActivationId);
                 }
 
-                if (SocialHandle != null)
-                    Task.Factory.StartNew(() => _MSG.SocialPosting(tblmessageid, SocialHandle, CompanyId));
+                if (socialHandle != null)
+                    await Task.Factory.StartNew(() => _MSG.SocialPosting(tblmessageid, socialHandle,companyId));
 
                 //QueueHelper.MessageListQueue(tblmessageid);
                 await queue.CreateMessageList(tblmessageid);
@@ -177,19 +178,19 @@ namespace CrisesControl.Infrastructure.Services
             return MessageId;
         }
 
-        private async Task CreateAdHocNotificationList(int tblmessageid, int MappingID, int SourceObjectID, int CompanyId, int CurrentUserId, string TimeZoneId)
+        private async Task CreateAdHocNotificationList(int tblmessageid, int mappingID, int SourceObjectID, int companyId, int currentUserId, string timeZoneId)
         {
             AdhocMessageNotificationList tblAdHocNotiLst = new AdhocMessageNotificationList()
             {
-                CompanyId = CompanyId,
+                CompanyId = companyId,
                 MessageId = tblmessageid,
-                ObjectMappingId = MappingID,
+                ObjectMappingId = mappingID,
                 SourceObjectPrimaryId = SourceObjectID,
                 Status = 1,
-                CreatedBy = CurrentUserId,
+                CreatedBy = currentUserId,
                 CreatedOn = DateTime.Now,
-                UpdatedBy = CurrentUserId,
-                UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                UpdatedBy = currentUserId,
+                UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId)
             };
             _context.Set<AdhocMessageNotificationList>().Add(tblAdHocNotiLst);
             _context.SaveChanges();
@@ -210,9 +211,9 @@ namespace CrisesControl.Infrastructure.Services
                 try
                 {
 
-                    _context.Database.ExecuteSqlRaw("DELETE FROM PublicAlertMessageListDump WHERE SessionId='" + sessionId + "'");
+                   await _context.Database.ExecuteSqlRawAsync("DELETE FROM PublicAlertMessageListDump WHERE SessionId='" + sessionId + "'");
 
-                    _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
+                    await _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
 
                     if (File.Exists(ServerUploadFolder + userListFile))
                     {
@@ -386,7 +387,7 @@ namespace CrisesControl.Infrastructure.Services
 
                     DateTimeOffset dtnow =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
-                    var PACount = (from PAD in _context.Set<PublicAlertMessageListDump>() where PAD.SessionId == sessionId select PAD).Count();
+                    var PACount = await _context.Set<PublicAlertMessageListDump>().Where(PAD=> PAD.SessionId == sessionId).CountAsync();
 
                     if (PACount > 0)
                     {
@@ -413,7 +414,7 @@ namespace CrisesControl.Infrastructure.Services
                         if (!schedulePA)
                         {
                             //Create Message List for Ping
-                            _MSG.SavePublicAlertMessageList(sessionId, PublicAlertID, tblmessageid, dtnow, TextAdded, EmailAdded, PhoneAdded);
+                            await _MSG.SavePublicAlertMessageList(sessionId, PublicAlertID, tblmessageid, dtnow, TextAdded, EmailAdded, PhoneAdded);
 
                             var rabbithosts = _queueHelper.RabbitHosts();
                             await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "EMAIL")).ContinueWith(t => {
@@ -422,11 +423,11 @@ namespace CrisesControl.Infrastructure.Services
                            await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "TEXT")).ContinueWith(t => {
                                 t.Dispose();
                             });
-                            _context.Database.ExecuteSqlRaw("EXEC UPDATE PublicAlert SET Executed=1 WHERE PublicAlertID=" + PublicAlertID);
+                           await _context.Database.ExecuteSqlRawAsync("EXEC UPDATE PublicAlert SET Executed=1 WHERE PublicAlertID=" + PublicAlertID);
                         }
                         else
                         {
-                            _context.Database.ExecuteSqlRaw("EXEC UPDATE PublicAlertMessageListDump SET PublicAlertID=" + PublicAlertID + " WHERE SessionId='" + sessionId + "'");
+                           await _context.Database.ExecuteSqlRawAsync("EXEC UPDATE PublicAlertMessageListDump SET PublicAlertID=" + PublicAlertID + " WHERE SessionId='" + sessionId + "'");
 
                             //SchedulerHelper SH = new SchedulerHelper();
                             //DateTimeOffset DOScheduleAt = _DBC.GetDateTimeOffset(ScheduleAt, TimeZoneId);
@@ -468,7 +469,7 @@ namespace CrisesControl.Infrastructure.Services
                     CreatedBy = userId,
                     CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId)
                 };
-                _context.Set<PublicAlert>().Add(PA);
+                await _context.AddAsync(PA);
                 await _context.SaveChangesAsync();
                 return PA.PublicAlertId;
             }
@@ -484,7 +485,7 @@ namespace CrisesControl.Infrastructure.Services
             Return Result = new Return();
             try
             {
-                var msg = (from M in _context.Set<Message>() where M.MessageId == parentId select M).FirstOrDefault();
+                var msg = await _context.Set<Message>().Where(M=> M.MessageId == parentId).FirstOrDefaultAsync();
                 if (msg != null)
                 {
 

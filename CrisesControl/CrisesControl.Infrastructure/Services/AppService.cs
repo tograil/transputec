@@ -1,5 +1,5 @@
 ﻿using CrisesControl.Core.App;
-using CrisesControl.Core.App.Repositories;
+using CrisesControl.Core.App.Services;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Incidents;
@@ -19,16 +19,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Infrastructure.Repositories
+namespace CrisesControl.Infrastructure.Services
 {
-    public class AppRepository : IAppRepository
+    public class AppService : IAppService
     {
         private readonly CrisesControlContext _context;
         private readonly IDBCommonRepository DBC;
         private readonly IMessageService _MSG;
         private readonly ISenderEmailService _SDE;       
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public AppRepository(CrisesControlContext context, IDBCommonRepository _DBC, IHttpContextAccessor httpContextAccessor, IMessageService MSG, ISenderEmailService SDE)
+        public AppService(CrisesControlContext context, IDBCommonRepository _DBC, IHttpContextAccessor httpContextAccessor, IMessageService MSG, ISenderEmailService SDE)
         {
             this._context = context;
             this.DBC = _DBC;

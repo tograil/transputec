@@ -62,7 +62,7 @@ public interface IMessageRepository
     Task<object> GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId);
     Task<dynamic> GetConfUser(int objectId, string objectType);
     Task<PingInfoReturn> GetPingInfo(int messageId, int userId, int companyId);
-    dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId);
+    Task<dynamic> GetPublicAlertTemplate(int templateId, int userId, int companyId);
     Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId);
     Task<int> PingMessages(PingMessageQuery pingMessage);
     Task<dynamic> ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId);

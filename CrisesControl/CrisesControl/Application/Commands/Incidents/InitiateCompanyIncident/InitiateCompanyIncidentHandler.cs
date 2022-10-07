@@ -72,7 +72,7 @@ public class InitiateCompanyIncidentHandler : IRequestHandler<InitiateCompanyInc
                 UpdatedBy = _currentUser.UserId,
                 UpdatedOn = DateTime.Now.GetDateTimeOffset(),
                 AssetId = request.AudioAssetId,
-                HasTask = incidentToVerify.HasTask,
+                HasTask = (bool)incidentToVerify.HasTask,
                 LaunchMode = request.LaunchMode,
                 SocialHandle = string.Join(",", request.SocialHandle),
                 CascadePlanId = request.CascadePlanId,

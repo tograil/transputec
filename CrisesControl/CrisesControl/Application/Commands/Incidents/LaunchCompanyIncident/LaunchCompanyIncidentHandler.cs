@@ -42,7 +42,7 @@ public class LaunchCompanyIncidentHandler : IRequestHandler<LaunchCompanyInciden
         if (incidentActivation.AssetId != request.AudioAssetId)
             incidentActivation.AssetId = request.AudioAssetId;
 
-        incidentActivation.HasTask = incidentActivation.Incident.HasTask;
+        incidentActivation.HasTask = (bool)incidentActivation.Incident.HasTask;
 
         await _incidentRepository.UpdateIncidentActivation(incidentActivation, cancellationToken);
 

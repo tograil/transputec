@@ -1,4 +1,5 @@
 ﻿using CrisesControl.Core.Administrator;
+using CrisesControl.Core.Communication.Services;
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.System;
@@ -31,14 +32,14 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly ILogger<SystemRepository> _logger;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IDBCommonRepository DBC;
-        public SystemRepository(CrisesControlContext context, ILogger<SystemRepository> logger, IHttpContextAccessor httpContextAccessor, IDBCommonRepository _DBC)
+        private readonly ICommsLogService _CLH;
+        public SystemRepository(CrisesControlContext context, ILogger<SystemRepository> logger, ICommsLogService CLH, IDBCommonRepository _DBC)
         {
             this._context = context;
             this._logger = logger;
-            this._httpContextAccessor = httpContextAccessor;
-            DBC = _DBC;
+            this._CLH = CLH;
+            this.DBC = _DBC;
         }
         public async Task<string> ExportTrackingData(int trackMeID, int userDeviceID, DateTimeOffset startDate, DateTimeOffset endDate, int outUserCompanyId)
         {
@@ -469,7 +470,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
                 else
                 {
-                    DBC.UpdateLog("0", fileName, "SystemContoller", MethodName, companyId);
+                   await DBC.UpdateLog("0", fileName, "SystemContoller", MethodName, companyId);
                     return badresult;
                 }
             }
@@ -610,31 +611,31 @@ namespace CrisesControl.Infrastructure.Repositories
             try
             {
 
-                CommsLogsHelper CLH = new CommsLogsHelper();
+               
                 string session = Guid.NewGuid().ToString();
 
                 if (logType == LogType.PHONE.ToLGString())
                 {
                     foreach (var item in calls)
                     {
-                        CLH.ProcessCallLogs(item, session);
+                        _CLH.ProcessCallLogs(item, session);
                     }
                 }
                 else if (logType == LogType.TEXT.ToLGString())
                 {
                     foreach (var item in texts)
                     {
-                        CLH.ProcessSMSLog(item, session);
+                        _CLH.ProcessSMSLog(item, session);
                     }
                 }
                 else if (logType == LogType.RECORDING.ToLGString())
                 {
                     foreach (var item in recordings)
                     {
-                        CLH.ProcessRecLog(item, session);
+                       await _CLH.ProcessRecLog(item, session);
                     }
                 }
-                var result = CLH.CreateCommsQueueSession(session);
+                var result = await _CLH.CreateCommsQueueSession(session);
                 if (result != null)
                 {
                     return true;
@@ -656,8 +657,6 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 string session = Guid.NewGuid().ToString();
 
-                CommsLogsHelper CLH = new CommsLogsHelper();
-
                 TwilioClient.Init(PHONESID, PHONETOKEN);
 
                 if (method.ToUpper() == MessageType.Text.ToDbString())
@@ -665,7 +664,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     var message = MessageResource.Fetch(pathSid: sId);
                     if (message != null)
                     {
-                        CLH.ProcessSMSLog(message, session);
+                      await  _CLH.ProcessSMSLog(message, session);
                     }
                 }
                 else if (method.ToUpper() == MessageType.Phone.ToDbString())
@@ -673,11 +672,11 @@ namespace CrisesControl.Infrastructure.Repositories
                     var call = CallResource.Fetch(pathSid: sId);
                     if (call != null)
                     {
-                        CLH.ProcessCallLogs(call, session);
+                        _CLH.ProcessCallLogs(call, session);
                     }
                 }
 
-                var result = CLH.CreateCommsQueueSession(session);
+                var result = await _CLH.CreateCommsQueueSession(session);
                 if (result)
                 {
                     return true;
@@ -699,7 +698,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 string session = Guid.NewGuid().ToString();
 
-                CommsLogsHelper CLH = new CommsLogsHelper();
+                
 
                 TwilioClient.Init(PHONESID, PHONETOKEN);
 
@@ -708,7 +707,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     var message = MessageResource.Fetch(pathSid: sId);
                     if (message != null)
                     {
-                        CLH.ProcessSMSLog(message, session);
+                       await _CLH.ProcessSMSLog(message, session);
                     }
                 }
                 else if (method.ToUpper() == MessageType.Phone.ToDbString())
@@ -716,11 +715,11 @@ namespace CrisesControl.Infrastructure.Repositories
                     var call = CallResource.Fetch(pathSid: sId);
                     if (call != null)
                     {
-                        CLH.ProcessCallLogs(call, session);
+                       await _CLH.ProcessCallLogs(call, session);
                     }
                 }
 
-                var result = CLH.CreateCommsQueueSession(session);
+                var result = await _CLH.CreateCommsQueueSession(session);
                 if (result)
                 {
                     return true;

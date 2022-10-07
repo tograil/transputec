@@ -43,7 +43,7 @@ namespace CrisesControl.Core.Users
         public int? DepartmentId { get; set; }
         public string? UserHash { get; set; }
         public int? TimezoneId { get; set; }
-        public bool IsValidNumber { get; set; }
+        //public bool IsValidNumber { get; set; }
         public UserSecurityGroup UserSecurityGroup { get; set; }
         //public UserComm UserComm { get; set; }
 

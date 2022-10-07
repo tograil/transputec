@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CrisesControl.Core.Communication;
 using CrisesControl.Core.Communication.Repositories;
+using CrisesControl.Core.Communication.Services;
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages.Services;
@@ -12,7 +13,6 @@ using CrisesControl.Infrastructure.Services;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -39,18 +39,22 @@ namespace CrisesControl.Infrastructure.Repositories {
         private readonly IDBCommonRepository _DBC;
         private readonly IMessageService _MSG;
         private readonly ISenderEmailService _SDE;
+        private readonly ICommsService _CH;
         private readonly ILogger<CommunicationRepository> _logger;
+        private readonly ICommsLogService _CLH;
 
         private int UserID;
         private int CompanyID;
             
-        public CommunicationRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<CommunicationRepository> logger, IDBCommonRepository DBC, ISenderEmailService SDE, IMessageService MSG) {
+        public CommunicationRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, ILogger<CommunicationRepository> logger, IDBCommonRepository DBC, ISenderEmailService SDE, IMessageService MSG, ICommsService CH, ICommsLogService CLH) {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _DBC = DBC;
             _MSG = MSG;
             _SDE = SDE;
             _logger = logger;
+            _CH = CH;
+            _CLH = CLH;
         }
         public async Task<List<UserConferenceItem>> GetUserActiveConferences() {
             try {
@@ -102,7 +106,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         if (MsgRslt.MD.Attempt <= MaxAttempt && MaxAttempt != 0)
                         {
                             
-                            LogUndelivered(MsgRslt.M.MessageId, "PHONE", MsgRslt.MD.MessageDeviceId, MsgRslt.MD.Attempt, MsgRslt.U.CompanyId, TimeZoneId);
+                           await LogUndelivered(MsgRslt.M.MessageId, "PHONE", MsgRslt.MD.MessageDeviceId, MsgRslt.MD.Attempt, MsgRslt.U.CompanyId, TimeZoneId);
                         }
 
                         await _context.SaveChangesAsync();
@@ -124,14 +128,14 @@ namespace CrisesControl.Infrastructure.Repositories {
                     _context.Update(MsgRslt);
                     await _context.SaveChangesAsync();
 
-                    CommsLogsHelper CLH = new CommsLogsHelper(_context, _httpContextAccessor,_DBC,_MSG);
+                   
                     DateTimeOffset utcNow = DateTimeOffset.UtcNow;
                     DateTimeOffset dateCreated = MsgRslt.ML.DateSent.UtcDateTime;
                     DateTimeOffset endCallTime = utcNow.AddSeconds(duration);
-                   await CLH.CreateCommsLogAsync(callSid, "PHONE", callStatus, from, to, "outbound-api", 0, "self", "USD", 1, "", duration, dateCreated, utcNow, utcNow, endCallTime, CommsProvider: operato);
+                   await _CLH.CreateCommsLog(callSid, "PHONE", callStatus, from, to, "outbound-api", 0, "self", "USD", 1, "", duration, dateCreated, utcNow, utcNow, endCallTime, commsProvider: operato);
 
                     if (operato.ToUpper() == "TWILIO")
-                        CLH.DownloadAndCreateTwilioLog(callSid, "PHONE");
+                       await _CLH.DownloadAndCreateTwilioLog(callSid, "PHONE");
 
                     Message = "Delivery confirmation processed";
                     
@@ -226,15 +230,15 @@ namespace CrisesControl.Infrastructure.Repositories {
                     _context.Update(MsgRslt);
                     await _context.SaveChangesAsync();
 
-                    CommsLogsHelper CLH = new CommsLogsHelper(_context, _httpContextAccessor, _DBC, _MSG);
+                    
                     DateTimeOffset utcNow = DateTimeOffset.UtcNow;
                     DateTimeOffset dateCreated = MsgRslt.MT.CreatedOn.Value;
                     DateTimeOffset endTime = DateTimeOffset.FromUnixTimeSeconds((long)CallTimestamp);
                     //DateTimeOffset endTime = CallTimestamp;
                     DateTimeOffset startTime = endTime.AddSeconds(Duration * -1);
 
-                   await CLH.CreateCommsLogAsync(callSId, "PHONE", callStatus, From, To, "outbound-api", 0, "self", "USD", 1, "", Duration, dateCreated, utcNow,
-                        startTime, endTime, CommsProvider: Operator);
+                   await _CLH.CreateCommsLog(callSId, "PHONE", callStatus, From, To, "outbound-api", 0, "self", "USD", 1, "", Duration, dateCreated, utcNow,
+                        startTime, endTime, commsProvider: Operator);
 
                     
                     Message = "Delivery confirmation processed";
@@ -309,18 +313,18 @@ namespace CrisesControl.Infrastructure.Repositories {
                     _context.Update(MsgRslt);
                     await _context.SaveChangesAsync();
 
-                    CommsLogsHelper CLH = new CommsLogsHelper(_context, _httpContextAccessor, _DBC, _MSG);
+                    
                     DateTimeOffset utcNow = DateTimeOffset.UtcNow;
                     DateTimeOffset dateCreated = MsgRslt.ML.DateSent.UtcDateTime;
-                    await CLH.CreateCommsLogAsync(messageSid, "TEXT", smsStatus, from, to, "outbound-api", 0, "self", "USD", 1, body, 0, dateCreated, utcNow, utcNow, utcNow, CommsProvider: operato);
+                    await _CLH.CreateCommsLog(messageSid, "TEXT", smsStatus, from, to, "outbound-api", 0, "self", "USD", 1, body, 0, dateCreated, utcNow, utcNow, utcNow, commsProvider: operato);
 
                     if (operato == "CM")
                     {
-                        CLH.DownloadAndCreateCMSMSLog(messageSid, (DateTimeOffset)MsgRslt.CreatedOn);
+                       await _CLH.DownloadAndCreateCMSMSLog(messageSid, (DateTimeOffset)MsgRslt.CreatedOn);
                     }
                     else if (operato == "TWILIO")
                     {
-                        CLH.DownloadAndCreateTwilioLog(messageSid, "TEXT");
+                      await  _CLH.DownloadAndCreateTwilioLog(messageSid, "TEXT");
                     }
 
                     Message = "Delivery confirmation processed";
@@ -584,11 +588,11 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var conf = await  _context.Set<ConferenceCallLogHeader>().Where(C=> C.CloudConfId == conferenceId).FirstOrDefaultAsync();
                 if (conf != null)
                 {
-                    CommsHelper CH = new CommsHelper(_context,_httpContextAccessor,_SDE,_DBC,_MSG);
+                    
                     bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
                     string DataCenter =await _DBC.GetCompanyParameter("TWILIO_EDGE_LOCATION", conf.CompanyId);
 
-                    dynamic CommsAPI = CH.InitComms("TWILIO", dataCenter: DataCenter);
+                    dynamic CommsAPI =await _CH.InitComms("TWILIO", dataCenter: DataCenter);
                     CommsAPI.SendInDirect = SendInDirect;
                     conf.CurrentStatus = "COMPLETED";
                     await _context.SaveChangesAsync();
@@ -674,8 +678,8 @@ namespace CrisesControl.Infrastructure.Repositories {
                         }
 
                         //Create Instenace of the Comms Api choosen by customer
-                        CommsHelper CMH = new CommsHelper(_context, _httpContextAccessor, _SDE, _DBC, _MSG);
-                        dynamic CommsAPI = CMH.InitComms(CONF_API, dataCenter: DataCenter);
+                       
+                        dynamic CommsAPI =await _CH.InitComms(CONF_API, dataCenter: DataCenter);
                         CommsAPI.IsConf = confHead.Record;
                         CommsAPI.ConfRoom = confHead.ConfRoomName;
                         CommsAPI.SendInDirect = SendInDirect;
@@ -693,7 +697,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                         {
                             if (!string.IsNullOrEmpty(pc.PhoneNumber) && (pc.UserId != confHead.InitiatedBy || (UserID > 0)))
                             {
-                                CMH.MakeConferenceCall(FromNumber, CallBackUrl, MessageXML, CommsAPI, out CallId, pc.PhoneNumber, pc.Landline, out Status, CalledOn);
+                               await  _CH.MakeConferenceCall(FromNumber, CallBackUrl, MessageXML, CommsAPI, out CallId, pc.PhoneNumber, pc.Landline, out Status, CalledOn);
 
                                 if (UserID > 0)
                                 {
@@ -978,9 +982,9 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
 
-                CommsHelper CH = new CommsHelper(_context, _httpContextAccessor, _SDE, _DBC, _MSG);
+               
 
-                dynamic CommsAPI = CH.InitComms("TWILIO", "", ip.ClientId, ip.Secret, ip.DataCenter);
+                dynamic CommsAPI =await _CH.InitComms("TWILIO", "", ip.ClientId, ip.Secret, ip.DataCenter);
 
                 CommsAPI.IsConf = false;
                 CommsAPI.CommsDebug = ip.CommsDebug;
@@ -1013,11 +1017,11 @@ namespace CrisesControl.Infrastructure.Repositories {
         {
             try
             {
-                CommsHelper CH = new CommsHelper(_context, _httpContextAccessor, _SDE, _DBC, _MSG);
+             
 
                 CommsStatus callrslt = new CommsStatus();
 
-                dynamic CommsAPI = CH.InitComms("TWILIO", "", ip.ClientId, ip.Secret, ip.DataCenter);
+                dynamic CommsAPI = _CH.InitComms("TWILIO", "", ip.ClientId, ip.Secret, ip.DataCenter);
 
                 CommsAPI.IsConf = false;
                 CommsAPI.CommsDebug = ip.CommsDebug;
@@ -1261,8 +1265,8 @@ namespace CrisesControl.Infrastructure.Repositories {
             try
             {
 
-                CommsHelper CH = new CommsHelper(_context, _httpContextAccessor, _SDE, _DBC, _MSG);
-                dynamic CommsAPI = CH.InitComms("TWILIO", "", ip.ClientId, ip.Secret, ip.DataCenter);
+                
+                dynamic CommsAPI = _CH.InitComms("TWILIO", "", ip.ClientId, ip.Secret, ip.DataCenter);
                 CommsAPI.SendInDirect = false;
                 var result = CommsAPI.EndConferenceCall(ip.Sid);
                 return result;
