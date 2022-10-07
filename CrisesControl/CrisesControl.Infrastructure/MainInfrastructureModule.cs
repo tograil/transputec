@@ -123,6 +123,7 @@ namespace CrisesControl.Infrastructure
             builder.RegisterType<PingService>().As<IPingService>();
             builder.RegisterType<CommsLogService>().As<ICommsLogService>();
             builder.RegisterType<CommsService>().As<ICommsService>();
+            builder.RegisterType<QueueConsumerService>().As<IQueueConsumerService>();
 
 
         }

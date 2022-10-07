@@ -23,6 +23,7 @@ using static CrisesControl.Infrastructure.Repositories.DBCommonRepository;
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Communication.Services;
+using CrisesControl.Core.Queues.Services;
 
 namespace CrisesControl.Infrastructure.Services
 {
@@ -41,15 +42,15 @@ namespace CrisesControl.Infrastructure.Services
         private bool SendInDirect = false;
         public event UpdateHandler EntityUpdate;
         private string CM_CLIENTID = string.Empty;
-        private readonly QueueHelper _queueHelper;
+        private readonly IQueueMessageService _queueHelper;
         private readonly IMessageService _MSG;
-        public CommsLogService(CrisesControlContext db, IHttpContextAccessor httpContextAccessor, IDBCommonRepository _DBC, IMessageService MSG)
+        public CommsLogService(CrisesControlContext db, IHttpContextAccessor httpContextAccessor, IDBCommonRepository _DBC, IMessageService MSG, IQueueMessageService queue)
         {
             this.db = db;
             this._httpContextAccessor = httpContextAccessor;
             this.DBC = _DBC;
             this._MSG = MSG;
-            _queueHelper = new QueueHelper(db, DBC, _MSG);
+            _queueHelper = queue;
         }
 
         public CommsLogService()

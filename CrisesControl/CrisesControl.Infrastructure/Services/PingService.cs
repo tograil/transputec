@@ -6,6 +6,7 @@ using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
 using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Queues.Services;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using ExcelDataReader;
@@ -28,18 +29,18 @@ namespace CrisesControl.Infrastructure.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMessageService _MSG;
         private readonly IDBCommonRepository _DBC;
-        private readonly QueueConsumer queue;
-        private readonly QueueHelper _queueHelper;
+        private readonly IQueueConsumerService _queue;
+        private readonly IQueueMessageService _queueHelper;
 
         public bool IsFundAvailable = true;
-        public PingService(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG)
+        public PingService(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG, IQueueMessageService queueMessage, IQueueConsumerService queue)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _DBC = DBC;
             _MSG = MSG;
-            queue = new QueueConsumer(_context, _httpContextAccessor, _DBC,_MSG);
-            _queueHelper = new QueueHelper(_context, _DBC,_MSG);
+            _queue = queue;
+            _queueHelper = queueMessage;
         }
 
         public async Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId)
@@ -167,8 +168,8 @@ namespace CrisesControl.Infrastructure.Services
                     await Task.Factory.StartNew(() => _MSG.SocialPosting(tblmessageid, socialHandle,companyId));
 
                 //QueueHelper.MessageListQueue(tblmessageid);
-                await queue.CreateMessageList(tblmessageid);
-                IsFundAvailable = queue.IsFundAvailable;
+                await _queue.CreateMessageList(tblmessageid);
+                IsFundAvailable = _queue.IsFundAvailable;
             }
             catch (Exception ex)
             {
@@ -416,7 +417,7 @@ namespace CrisesControl.Infrastructure.Services
                             //Create Message List for Ping
                             await _MSG.SavePublicAlertMessageList(sessionId, PublicAlertID, tblmessageid, dtnow, TextAdded, EmailAdded, PhoneAdded);
 
-                            var rabbithosts = _queueHelper.RabbitHosts();
+                            var rabbithosts =await  _queueHelper.RabbitHosts();
                             await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "EMAIL")).ContinueWith(t => {
                                 t.Dispose();
                             });
@@ -520,8 +521,8 @@ namespace CrisesControl.Infrastructure.Services
                     }
                    await _context.SaveChangesAsync();
 
-                    int queuecount = await queue.CreateMessageList(tblmessageid, replyTo);
-                    IsFundAvailable = queue.IsFundAvailable;
+                    int queuecount = await _queue.CreateMessageList(tblmessageid, replyTo);
+                    IsFundAvailable = _queue.IsFundAvailable;
 
                     Result = await _DBC.Return(0, IsFundAvailable == true ? null : "E219", true, "SUCCESS", tblmessageid, queuecount);
 
