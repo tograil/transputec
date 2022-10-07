@@ -8,7 +8,7 @@ namespace CrisesControl.Core.Locations.Services
 {
     public interface ILocationRepository
     {
-        Task<IEnumerable<Location>> GetAllLocations(int companyId);
+        Task<List<LocationDetail>> GetAllLocations(int companyId, bool filterVirtual);
         Task<Location> GetLocationById(int locationId);
         Task<int> CreateLocation(Location location, CancellationToken cancellationToken);
         Task<int> UpdateLocation(Location location, CancellationToken cancellationToken);

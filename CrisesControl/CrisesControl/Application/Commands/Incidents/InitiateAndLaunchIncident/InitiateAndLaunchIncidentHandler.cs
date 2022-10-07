@@ -92,7 +92,7 @@ public class InitiateAndLaunchIncidentHandler
                 HasTask = incidentToVerify.HasTask
             };
 
-            await _incidentService.InitiateAndLaunchIncident(incidentActivation, incidentSubset, cancellationToken);
+            _incidentService.InitiateAndLaunchIncident(incidentActivation, incidentSubset, cancellationToken);
 
             var incidents =
                 await _activeIncidentRepository.GetIncidentActivationList(incidentActivation.IncidentActivationId,

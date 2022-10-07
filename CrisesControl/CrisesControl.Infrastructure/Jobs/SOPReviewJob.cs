@@ -48,7 +48,7 @@ namespace CrisesControl.Infrastructure.Jobs
                         SE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, "SOP");
 
                         incident.SH.ReminderCount = Counter;
-                        db.SaveChanges();
+                        await db.SaveChangesAsync();
 
                         
                         await _sopRepository.CreateSOPReviewReminder(IncidentID, incident.SH.SopheaderId, incident.I.CompanyId, incident.SH.ReviewDate, incident.SH.ReviewFrequency, Counter);
@@ -56,7 +56,7 @@ namespace CrisesControl.Infrastructure.Jobs
                     }
                     else
                     {
-                        DBC.DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
+                        await DBC.DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
                     }
                 }
                 await Task.WhenAll();

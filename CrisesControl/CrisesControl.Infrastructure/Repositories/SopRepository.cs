@@ -48,7 +48,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
            
         }
-        public async Task<bool> AttachSOPToIncident(int SOPHeaderID, string SOPFileName, int CurrentUserID,int CompanyID, string TimeZoneId="GMT Standard Time")
+        public async Task<bool> AttachSOPToIncident(int SOPHeaderID, string SOPFileName, int currentUserId,int CompanyID, string TimeZoneId="GMT Standard Time")
         {
             try
             {
@@ -62,7 +62,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         incident.IsSopdoc = true;
                         incident.PlanAssetId = sop.AssetId;
                         incident.SopdocId = SOPHeaderID;
-                        incident.UpdatedBy = CurrentUserID;
+                        incident.UpdatedBy = currentUserId;
                         incident.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                         _context.Update(incident);
                         await _context.SaveChangesAsync();
@@ -234,7 +234,7 @@ namespace CrisesControl.Infrastructure.Repositories
             await _context.SaveChangesAsync();
             return SOPHeader.SopheaderId;
         }
-        public async Task LinkSOPWithIncident(int SOPHeaderID, int IncidentID,int CurrentUserID,string TimeZoneId)
+        public async Task LinkSOPWithIncident(int SOPHeaderID, int IncidentID,int currentUserId,string TimeZoneId)
         {
 
             try
@@ -244,7 +244,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 {
                     if (sop_incident.IncidentId != IncidentID)
                     {
-                        sop_incident.UpdatedBy = CurrentUserID;
+                        sop_incident.UpdatedBy = currentUserId;
                         sop_incident.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                         sop_incident.IncidentId = IncidentID;
                         _context.Update(sop_incident);
@@ -256,9 +256,9 @@ namespace CrisesControl.Infrastructure.Repositories
                     IncidentSop ISOP = new IncidentSop();
                     ISOP.IncidentId = IncidentID;
                     ISOP.SopheaderId = SOPHeaderID;
-                    ISOP.CreatedBy = CurrentUserID;
+                    ISOP.CreatedBy = currentUserId;
                     ISOP.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
-                    ISOP.UpdatedBy = CurrentUserID;
+                    ISOP.UpdatedBy = currentUserId;
                     ISOP.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     await _context.AddAsync(ISOP);
                     await _context.SaveChangesAsync();
@@ -436,7 +436,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<int> AU_ContentSection(int ContentSectionID, int SOPHeaderID, string SectionName, int Status, string SectionType, int SectionOrder, int CurrentUserID, string TimeZoneId="GMT STandard Time")
+        public async Task<int> AU_ContentSection(int ContentSectionID, int SOPHeaderID, string SectionName, int Status, string SectionType, int SectionOrder, int currentUserId, string TimeZoneId="GMT STandard Time")
         {
             try
             {
@@ -448,7 +448,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     {
                         content.SectionName = SectionName;
                         content.SectionType = SectionType;
-                        content.UpdatedBy = CurrentUserID;
+                        content.UpdatedBy = currentUserId;
                         content.Status = Status;
                         //content.SectionOrder = SectionOrder;
                         content.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
@@ -465,9 +465,9 @@ namespace CrisesControl.Infrastructure.Repositories
                     content.Status = Status;
                     content.SopheaderId = SOPHeaderID;
                     content.SectionOrder = SectionOrder;
-                    content.CreatedBy = CurrentUserID;
+                    content.CreatedBy = currentUserId;
                     content.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
-                    content.UpdatedBy = CurrentUserID;
+                    content.UpdatedBy = currentUserId;
                     content.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     await  _context.AddAsync(content);
                     await _context.SaveChangesAsync();
@@ -482,7 +482,7 @@ namespace CrisesControl.Infrastructure.Repositories
            
         }
         public async Task<int> AU_SOPHeader(int SOPHeaderID, int IncidentID, string SOPVersion, int SOPOwner, string BriefDescription, DateTimeOffset NextReviewDate, string ReviewFrequency,
-                                int ContentID, int ContentSectionID,int CurrentUserID,int CompanyId, int Status = 1, string TimeZoneId= "GMT Standard Time")
+                                int ContentID, int ContentSectionID,int currentUserId,int CompanyId, int Status = 1, string TimeZoneId= "GMT Standard Time")
         {
             try
             {
@@ -501,12 +501,12 @@ namespace CrisesControl.Infrastructure.Repositories
                         sop_head.ReviewFrequency =ReviewFrequency;
                         sop_head.ReminderCount = ReminderCount;
                         sop_head.Sopversion = SOPVersion;
-                        sop_head.UpdatedBy = CurrentUserID;
+                        sop_head.UpdatedBy = currentUserId;
                         sop_head.Status = 1;
                         sop_head.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                         var updatedId = await UPdateSOPHeader(sop_head);
 
-                        await LinkSOPWithIncident(updatedId, IncidentID, CurrentUserID, TimeZoneId);
+                        await LinkSOPWithIncident(updatedId, IncidentID, currentUserId, TimeZoneId);
                         Rt_SopHeaderId = updatedId;
                         ReminderCount = sop_head.ReminderCount;
                     }
@@ -519,15 +519,15 @@ namespace CrisesControl.Infrastructure.Repositories
                     sop_head.ReviewFrequency = ReviewFrequency;
                     sop_head.CompanyId = CompanyId;
                     sop_head.Sopversion = SOPVersion;
-                    sop_head.CreatedBy = CurrentUserID;
+                    sop_head.CreatedBy = currentUserId;
                     sop_head.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     sop_head.Status = 1;
                     sop_head.ReminderCount = ReminderCount;
-                    sop_head.UpdatedBy = CurrentUserID;
+                    sop_head.UpdatedBy = currentUserId;
                     sop_head.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     var NewSopheaderID = await SaveSOPHeader(sop_head);
 
-                    await LinkSOPWithIncident(NewSopheaderID, IncidentID, CurrentUserID, TimeZoneId);
+                    await LinkSOPWithIncident(NewSopheaderID, IncidentID, currentUserId, TimeZoneId);
 
                     Rt_SopHeaderId = NewSopheaderID;
                     //using (var dbContextTransaction = db.Database.BeginTransaction())
@@ -543,7 +543,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     decimal iSOPNetValue = profile.SOPTokenValue - VatValue;
 
                     await UpdateTransactionDetails(0, CompanyId, TextTransacTypeId, iSOPNetValue, iSOPNetValue, 1, iSOPNetValue, iSOPNetValue, VatValue, profile.SOPTokenValue,
-                             Rt_SopHeaderId, DateTime.Now, CurrentUserID, "SOPDOC" + Rt_SopHeaderId.ToString(),TimeZoneId);
+                             Rt_SopHeaderId, DateTime.Now, currentUserId, "SOPDOC" + Rt_SopHeaderId.ToString(),TimeZoneId);
 
                     await _usagecalc.update_company_balance(CompanyId, profile.SOPTokenValue);
 
@@ -558,8 +558,8 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
 
                 //Creating the contents for breif description
-                int rtContentSectionID = await AU_ContentSection(ContentSectionID, Rt_SopHeaderId, "BRIEF_DESCRIPTION", 1, "INFO", 0,CurrentUserID,TimeZoneId);
-                int rtContentID = await AU_Content(ContentID, BriefDescription, "INFO", 1,CurrentUserID,TimeZoneId);
+                int rtContentSectionID = await AU_ContentSection(ContentSectionID, Rt_SopHeaderId, "BRIEF_DESCRIPTION", 1, "INFO", 0,currentUserId,TimeZoneId);
+                int rtContentID = await AU_Content(ContentID, BriefDescription, "INFO", 1,currentUserId,TimeZoneId);
                int SopdetailId=await AU_SOPDetail(Rt_SopHeaderId, rtContentID, rtContentSectionID);
 
                 return Rt_SopHeaderId;
@@ -571,7 +571,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
         }
 
-        public async Task<int> AU_Content(int ContentID, string ContentText, string ContentType, int Status, int CurrentUserID, string TimeZoneId = "GMT Standard Time")
+        public async Task<int> AU_Content(int ContentID, string ContentText, string ContentType, int Status, int currentUserId, string TimeZoneId = "GMT Standard Time")
          {
             try
             {
@@ -589,7 +589,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         {
                             PrimaryContentID = old_content.PrimaryContentId == 0 ? old_content.ContentId : old_content.ContentId;
                             old_content.Status = 2;
-                           await CreateContentVersion(PrimaryContentID, ContentID, CurrentUserID,TimeZoneId);
+                           await CreateContentVersion(PrimaryContentID, ContentID, currentUserId,TimeZoneId);
                         }
                     }
                 }
@@ -600,11 +600,11 @@ namespace CrisesControl.Infrastructure.Repositories
                     content.ContentText = ContentText;
                     content.ContentType = ContentType;
                     content.Status = Status;
-                    content.CreatedBy = CurrentUserID;
+                    content.CreatedBy = currentUserId;
                     content.Checksum = Checksum;
                     content.PrimaryContentId = PrimaryContentID;
                     content.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
-                    content.UpdatedBy = CurrentUserID;
+                    content.UpdatedBy = currentUserId;
                     content.UpdatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
                     await _context.AddAsync(content);
                     await _context.SaveChangesAsync();
@@ -619,14 +619,14 @@ namespace CrisesControl.Infrastructure.Repositories
             }
            
         }
-        public async Task CreateContentVersion(int PrimaryContentID, int LastContentID, int CurrentUserID, string TimeZoneId= "GMT Standard Time")
+        public async Task CreateContentVersion(int PrimaryContentID, int LastContentID, int currentUserId, string TimeZoneId= "GMT Standard Time")
         {
             try
             {
                 ContentVersion content = new ContentVersion();
                 content.PrimaryContentId = PrimaryContentID;
                 content.LastContentId = LastContentID;
-                content.CreatedBy = CurrentUserID;
+                content.CreatedBy = currentUserId;
                 content.CreatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
                 await _context.AddAsync(content);
                 await _context.SaveChangesAsync();
@@ -696,7 +696,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             return 1;
         }
-        public async Task AU_ContentTag(int ContentID, List<int> Tags, int CurrentUserID,string TimeZoneId= "GMT Standard Time")
+        public async Task AU_ContentTag(int ContentID, List<int> Tags, int currentUserId,string TimeZoneId= "GMT Standard Time")
         {
             try
             {
@@ -717,9 +717,9 @@ namespace CrisesControl.Infrastructure.Repositories
                     ContentTag tags = new ContentTag();
                     tags.TagId = TagID;
                     tags.ContentId = ContentID;
-                    tags.CreatedBy = CurrentUserID;
+                    tags.CreatedBy = currentUserId;
                     tags.CreatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
-                    tags.UpdatedBy = CurrentUserID;
+                    tags.UpdatedBy = currentUserId;
                     tags.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     await _context.AddAsync(tags);
                     await _context.SaveChangesAsync();
@@ -731,7 +731,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task AU_SOPGroupDetail(int SOPDetailID, List<int> Groups, int CurrentUserID, string TimeZoneId= "GMT Standard Time")
+        public async Task AU_SOPGroupDetail(int SOPDetailID, List<int> Groups, int currentUserId, string TimeZoneId= "GMT Standard Time")
         {
             try
             {
@@ -752,9 +752,9 @@ namespace CrisesControl.Infrastructure.Repositories
                     SopdetailGroup group = new SopdetailGroup();
                     group.SopgroupId = GroupID;
                     group.SopdetailGroupId = SOPDetailID;
-                    group.CreatedBy = CurrentUserID;
+                    group.CreatedBy = currentUserId;
                     group.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
-                    group.UpdatedBy = CurrentUserID;
+                    group.UpdatedBy = currentUserId;
                     group.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     await _context.AddAsync(group);
                     await _context.SaveChangesAsync();
@@ -871,7 +871,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<bool> DeleteSOP(int LibSOPHeaderID, int CurrentUserID, int CompanyID, string TimeZoneId="GMT Standard Time")
+        public async Task<bool> DeleteSOP(int LibSOPHeaderID, int currentUserId, int CompanyID, string TimeZoneId="GMT Standard Time")
         {
 
             try
@@ -882,7 +882,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 {
 
                     section.Status = 3;
-                    section.UpdatedBy = CurrentUserID;
+                    section.UpdatedBy = currentUserId;
                     section.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
 
                     var incident = await _context.Set<Incident>().Where(I=> I.IncidentId == section.IncidentSOP.IncidentId).FirstOrDefaultAsync();
@@ -902,7 +902,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 return false;
             }
         }
-        public async Task<bool> UpdateSOPAsset(int SOPHeaderID, int AssetID, int CurrentUserID, int CompanyID, string TimeZoneId="GMT Standard Time")
+        public async Task<bool> UpdateSOPAsset(int SOPHeaderID, int AssetID, int currentUserId, int CompanyID, string TimeZoneId="GMT Standard Time")
         {
 
             try
@@ -912,7 +912,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 if (section != null)
                 {
                     section.IncidentSOP.AssetId = AssetID;
-                    section.IncidentSOP.UpdatedBy = CurrentUserID;
+                    section.IncidentSOP.UpdatedBy = currentUserId;
                     section.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     _context.Update(section);
                     await _context.SaveChangesAsync();

@@ -770,7 +770,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                             string TZone = Convert.ToString((from c in _context.Set<Company>() where c.CompanyId == uploadData.CompanyId select c.TimeZone).FirstOrDefault());
 
-                            Core.Locations.Location newLocation = new Core.Locations.Location();
+                            Location newLocation = new Location();
                             newLocation.CompanyId = uploadData.CompanyId;
                             newLocation.LocationName = uploadData.Location;
                             newLocation.Lat = LL.Lat;
@@ -790,7 +790,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                             if (uploadData.Action.ToUpper() == "DELETE")
                             {
-                                _locationRepository.DeleteLocation((int)uploadData.LocationId, cancellationToken);
+                                await _locationRepository.DeleteLocation((int)uploadData.LocationId, cancellationToken);
                                 UpdateActionMessage += "Location is deleted" + Environment.NewLine;
                                 uploadData.ActionCheck = DeletedCheck;
 
@@ -809,7 +809,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                     locUpdate.Long = _DBC.Left(LL.Lng, 15);
                                     locUpdate.UpdatedBy = userId;
                                     locUpdate.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
-                                    _context.SaveChanges();
+                                    await _context.SaveChangesAsync();
                                     uploadData.ActionCheck = OverrideCheck;
                                     UpdateActionMessage += "Location details updated" + Environment.NewLine;
                                 }
@@ -825,7 +825,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         uploadData.ValidationMessage = UpdateActionMessage;
 
                         uploadData.ImportAction = "Imported";
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                         Result.ErrorId = 0;
                         Result.Message = UpdateActionMessage;
                     }
@@ -1142,7 +1142,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 {
 
                     string Action = !string.IsNullOrEmpty(Dep.Action) ? Dep.Action : "ADD";
-                    ImportToDump(userId, companyId, sessionId,
+                    _ = ImportToDump(userId, companyId, sessionId,
                         "", "", "", "", "", "", "", "", "0", Action, "", "0", Dep.Department, Dep.DepartmentStatus, "", "", "0", "", "", "",
                         "", "", "", "", "", "", "", "", "", "", "DepartmentImportOnly", userId, TimeZoneId);
 
@@ -1155,7 +1155,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public void ImportToDump(int userId, int companyId, string sessionId,
+        public async Task ImportToDump(int userId, int companyId, string sessionId,
            string firstName, string surname, string email, string ISD, string phone, string LLISD, string landline, string userRole, string status, string action,
            string group, string groupStatus,
            string department, string departmentStatus,
@@ -1230,8 +1230,8 @@ namespace CrisesControl.Infrastructure.Repositories
                     IMPDump.UpdatedBy = createdUpdatedBy;
                 IMPDump.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
-                _context.Set<ImportDump>().Add(IMPDump);
-                _context.SaveChanges();
+                await _context.Set<ImportDump>().AddAsync(IMPDump);
+                await _context.SaveChangesAsync();
             }
             catch (Exception ex) { throw ex; }
         }
@@ -1246,7 +1246,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 foreach (ImportDumpInput Usr in userData)
                 {
-                    ImportToDump(0, companyId, sessionId, Usr.FirstName, Usr.Surname, Usr.Email, Usr.MobileISD, Usr.Mobile, Usr.ISDLandline, Usr.Landline,
+                    _ = ImportToDump(0, companyId, sessionId, Usr.FirstName, Usr.Surname, Usr.Email, Usr.MobileISD, Usr.Mobile, Usr.ISDLandline, Usr.Landline,
                         Usr.UserRole, Usr.Status, Usr.Action, Usr.Group, Usr.GroupStatus, Usr.Department, Usr.DepartmentStatus, Usr.Location, Usr.LocationAddress, Usr.LocationStatus,
                     Usr.MenuAccess, Usr.MenuAccess, Usr.PingMethods, Usr.IncidentMethods, Usr.LocationAction, Usr.GroupAction, Usr.DepartmentAction,
                     "", "", "", "", "", "", "USERIMPORTCOMPLETE", userId, TimeZoneId);
@@ -1295,7 +1295,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     string Action = !string.IsNullOrEmpty(Loc.Action) ? Loc.Action : "ADD";
 
-                    ImportToDump(userId, companyId, sessionId, "", "", "", "", "", "", "", "", "0",
+                    _ = ImportToDump(userId, companyId, sessionId, "", "", "", "", "", "", "", "", "0",
                         Action, "", "0", "", "0", Loc.Location, Loc.LocationAddress, Loc.LocationStatus, "", "", "", "", "", "", "", "",
                         "", "", "", "", "", "LocationImportOnly", userId, timeZoneId);
                 }
@@ -1316,7 +1316,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 {
 
                     string Action = !string.IsNullOrEmpty(Dep.Action) ? Dep.Action : "ADD";
-                    ImportToDump(userId, companyId, sessionId,
+                    _ = ImportToDump(userId, companyId, sessionId,
                         "", "", "", "", "", "", "", "", "0", Action, Dep.Group, Dep.Status, "", "0", "", "", "0", "", "", "", "", "", "",
                         "", "", "", "", "", "", "", "GroupImportOnly", userId, timeZoneId);
 
@@ -1329,15 +1329,15 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public object GetCountActionCheck(string sessionId, int outUserCompanyId)
+        public async Task<object> GetCountActionCheck(string sessionId, int outUserCompanyId)
         {
             CommonDTO ResultDTO = new CommonDTO();
             try
             {
 
-                var ImportActionCheck = (from UIT in _context.Set<ImportDump>()
+                var ImportActionCheck = await (from UIT in _context.Set<ImportDump>()
                                          where UIT.SessionId == sessionId
-                                         select new { ActionCheck = UIT.ActionCheck, ActionType = UIT.ActionType }).ToList();
+                                         select new { ActionCheck = UIT.ActionCheck, ActionType = UIT.ActionType }).ToListAsync();
                 if (ImportActionCheck.Count > 0)
                 {
                     int TotalNewImported = 0;
@@ -1381,9 +1381,9 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     DateTime DelTime = DateTime.Now.AddHours(-1);
 
-                    var DelImprtData = (from UIT in _context.Set<ImportDump>()
+                    var DelImprtData = await (from UIT in _context.Set<ImportDump>()
                                         where UIT.SessionId == sessionId
-                                        select UIT).ToList();
+                                        select UIT).ToListAsync();
                     try
                     {
 
@@ -1393,11 +1393,11 @@ namespace CrisesControl.Infrastructure.Repositories
                         if (fileCreated)
                             ImpDTO.ResultFile = FileName;
 
-                        var DelRecs = (from UIT in _context.Set<ImportDump>()
+                        var DelRecs = await (from UIT in _context.Set<ImportDump>()
                                        where UIT.CreatedOn <= DelTime
-                                       select UIT).ToList();
+                                       select UIT).ToListAsync();
                         _context.Set<ImportDump>().RemoveRange(DelRecs);
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
 
                     }
                     catch (Exception ex)

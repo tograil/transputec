@@ -78,7 +78,7 @@ namespace CrisesControl.Api.Controllers {
         [HttpGet]
         [Route("GetMessageResponses/{MessageType}/{Status:int}")]
         public async Task<IActionResult> GetMessageResponses([FromRoute] GetMessageResponsesRequest request, CancellationToken cancellationToken) {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _messageQuery.GetMessageResponses(request, cancellationToken);
 
             return Ok(result);
         }

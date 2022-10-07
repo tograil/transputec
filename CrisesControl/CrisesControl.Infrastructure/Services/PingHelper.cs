@@ -18,10 +18,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Infrastructure.Services
-{
-    public class PingHelper
-    {
+namespace CrisesControl.Infrastructure.Services {
+    public class PingHelper {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly Messaging _MSG;
@@ -30,20 +28,17 @@ namespace CrisesControl.Infrastructure.Services
         private readonly QueueHelper _queueHelper;
 
         public bool IsFundAvailable = true;
-        public PingHelper(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
-        {
+        public PingHelper(CrisesControlContext context, IHttpContextAccessor httpContextAccessor) {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            _DBC = new DBCommon(_context,_httpContextAccessor);
-            _MSG = new Messaging(_context,_httpContextAccessor);
+            _DBC = new DBCommon(_context, _httpContextAccessor);
+            _MSG = new Messaging(_context, _httpContextAccessor);
             queue = new QueueConsumer(_context, _httpContextAccessor);
-            _queueHelper = new QueueHelper(_context);
+            _queueHelper = new QueueHelper(_context, _httpContextAccessor);
         }
 
-        public List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId)
-        {
-            try
-            {
+        public List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId) {
+            try {
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var pTargetUserId = new SqlParameter("@UserID", targetUserId);
 
@@ -54,31 +49,24 @@ namespace CrisesControl.Infrastructure.Services
                     }).ToList();
 
                 return result;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 return new List<PublicAlertRtn>();
             }
         }
 
-        public dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId)
-        {
-            try
-            {
+        public dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId) {
+            try {
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var pTemplateID = new SqlParameter("@TemplateID", templateId);
                 var pUserID = new SqlParameter("@UserID", userId);
 
                 var result = _context.Set<PublicAlertTemplate>().FromSqlRaw("EXEC Public_Alert_Template_Get @CompanyID, @TemplateID, @UserID", pCompanyID, pTemplateID, pUserID).ToList();
 
-                if (templateId > 0 && result != null)
-                {
+                if (templateId > 0 && result != null) {
                     return result.FirstOrDefault();
                 }
                 return result;
-            }
-            catch (Exception)
-            {
+            } catch (Exception) {
 
                 throw;
             }
@@ -87,23 +75,18 @@ namespace CrisesControl.Infrastructure.Services
         public async Task<int> PingMessages(int CompanyId, string MessageText, List<AckOption> AckOptions, int Priority, bool MultiResponse, string MessageType,
        int IncidentActivationId, int CurrentUserId, string TimeZoneId, PingMessageObjLst[] PingMessageObjLst, int[] UsersToNotify, int AssetId = 0,
        bool SilentMessage = false, int[] MessageMethod = null, List<MediaAttachment> MediaAttachments = null, List<string> SocialHandle = null,
-       int CascadePlanID = 0)
-        {
+       int CascadePlanID = 0, bool SendToAllRecipient = false) {
             bool NotifyKeyholders = false;
             int MessageId = 0;
             int Source = 1;
-            try
-            {
+            try {
                 _MSG.TimeZoneId = TimeZoneId;
                 _MSG.CascadePlanID = CascadePlanID;
-                if (MessageType == "EventLogNotify")
-                {
+                if (MessageType == "EventLogNotify") {
                     _MSG.MessageSourceAction = SourceAction.EventLogNotify;
                     MessageType = "Ping";
                     Source = 7;
-                }
-                else
-                {
+                } else {
                     _MSG.MessageSourceAction = IncidentActivationId > 0 ? SourceAction.IncidentUpdate : SourceAction.Ping;
                 }
 
@@ -115,27 +98,18 @@ namespace CrisesControl.Infrastructure.Services
 
                 List<PingMessageObjLst> LstIncNotiLst = new List<PingMessageObjLst>(PingMessageObjLst);
                 //Checking whether to notifiy keyholders not not
-                if (MessageType.ToUpper() == "PING")
-                {
-                    if (PingMessageObjLst.Count() > 0 && MessageType.ToUpper() == "PING")
-                    {
-                        foreach (var INotiLst in LstIncNotiLst)
-                        {
-                            if (INotiLst.ObjectMappingId > 0)
-                            {
-                                CreateAdHocNotificationList(tblmessageid, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CompanyId, CurrentUserId, TimeZoneId);
+                if (MessageType.ToUpper() == "PING") {
+                    if (PingMessageObjLst.Count() > 0 && MessageType.ToUpper() == "PING") {
+                        foreach (var INotiLst in LstIncNotiLst) {
+                            if (INotiLst.ObjectMappingId > 0) {
+                                await CreateAdHocNotificationList(tblmessageid, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CompanyId, CurrentUserId, TimeZoneId);
                             }
                         }
                     }
-                }
-                else if (MessageType.ToUpper() == "INCIDENT")
-                {
-                    if (PingMessageObjLst.Count() > 0 && LstIncNotiLst != null)
-                    {
-                        foreach (var INotiLst in LstIncNotiLst)
-                        {
-                            if (INotiLst.ObjectMappingId > 0)
-                            {
+                } else if (MessageType.ToUpper() == "INCIDENT") {
+                    if (PingMessageObjLst.Count() > 0 && LstIncNotiLst != null) {
+                        foreach (var INotiLst in LstIncNotiLst) {
+                            if (INotiLst.ObjectMappingId > 0) {
                                 await _MSG.CreateIncidentNotificationList(tblmessageid, IncidentActivationId, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CurrentUserId, CompanyId, TimeZoneId);
                             }
                         }
@@ -144,60 +118,55 @@ namespace CrisesControl.Infrastructure.Services
 
                 NotifyKeyholders = Convert.ToBoolean(_DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", CompanyId));
 
-                if (NotifyKeyholders)
-                {
+                if (NotifyKeyholders) {
                     var roles = _DBC.CCRoles(true);
-                    var UserLst = (from U in _context.Set<User>()
-                                   where roles.Contains(U.UserRole)
-                                   && U.CompanyId == CompanyId && U.Status == 1
-                                   select U.UserId).Distinct().ToList();
+                    var UserLst = await (from U in _context.Set<User>()
+                                         where roles.Contains(U.UserRole)
+                                         && U.CompanyId == CompanyId && U.Status == 1
+                                         select U.UserId).Distinct().ToListAsync();
 
-                    _MSG.AddUserToNotify(tblmessageid, UserLst.Distinct().ToList());
+                    await _MSG.AddUserToNotify(tblmessageid, UserLst.Distinct().ToList());
                 }
 
-                if (UsersToNotify != null)
-                {
-                    _MSG.AddUserToNotify(tblmessageid, UsersToNotify.ToList(), IncidentActivationId);
+                if (UsersToNotify != null) {
+                    await _MSG.AddUserToNotify(tblmessageid, UsersToNotify.ToList(), IncidentActivationId);
                 }
 
                 if (SocialHandle != null)
-                    Task.Factory.StartNew(() => _MSG.SocialPosting(tblmessageid, SocialHandle, CompanyId));
+                    await _MSG.SocialPosting(tblmessageid, SocialHandle, CompanyId);
 
-                //QueueHelper.MessageListQueue(tblmessageid);
-                await queue.CreateMessageList(tblmessageid);
+                await queue.CreateMessageList(tblmessageid, "", SendToAllRecipient);
                 IsFundAvailable = queue.IsFundAvailable;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw;
             }
 
             return MessageId;
         }
 
-        private void CreateAdHocNotificationList(int tblmessageid, int MappingID, int SourceObjectID, int CompanyId, int CurrentUserId, string TimeZoneId)
-        {
-            AdhocMessageNotificationList tblAdHocNotiLst = new AdhocMessageNotificationList()
-            {
-                CompanyId = CompanyId,
-                MessageId = tblmessageid,
-                ObjectMappingId = MappingID,
-                SourceObjectPrimaryId = SourceObjectID,
-                Status = 1,
-                CreatedBy = CurrentUserId,
-                CreatedOn = DateTime.Now,
-                UpdatedBy = CurrentUserId,
-                UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
-            };
-            _context.Set<AdhocMessageNotificationList>().Add(tblAdHocNotiLst);
-            _context.SaveChanges();
+        private async Task CreateAdHocNotificationList(int tblmessageid, int MappingID, int SourceObjectID, int CompanyId, int CurrentUserId, string TimeZoneId) {
+            try {
+                AdhocMessageNotificationList tblAdHocNotiLst = new AdhocMessageNotificationList() {
+                    CompanyId = CompanyId,
+                    MessageId = tblmessageid,
+                    ObjectMappingId = MappingID,
+                    SourceObjectPrimaryId = SourceObjectID,
+                    Status = 1,
+                    CreatedBy = CurrentUserId,
+                    CreatedOn = DateTime.Now,
+                    UpdatedBy = CurrentUserId,
+                    UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
+                };
+                await _context.Set<AdhocMessageNotificationList>().AddAsync(tblAdHocNotiLst);
+                await _context.SaveChangesAsync();
+            } catch (Exception ex) {
+                throw ex;
+            }
         }
 
-        public dynamic ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId)
-        {
+        public dynamic ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId) {
 
-            try
-            {
+            try {
 
                 string AttachmentSavePath = _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
                 string AttachmentUncUser = _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
@@ -205,58 +174,44 @@ namespace CrisesControl.Infrastructure.Services
                 string AttachmentUseUnc = _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
                 string ServerUploadFolder = _DBC.LookupWithKey("UPLOAD_PATH");
 
-                try
-                {
+                try {
 
                     _context.Database.ExecuteSqlRaw("DELETE FROM PublicAlertMessageListDump WHERE SessionId='" + sessionId + "'");
 
                     _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
 
-                    if (File.Exists(ServerUploadFolder + userListFile))
-                    {
+                    if (File.Exists(ServerUploadFolder + userListFile)) {
                         bool HeaderSkipped = false;
                         List<PublicAlertUserList> PauList = new List<PublicAlertUserList>();
                         DateTimeOffset dtnow = _DBC.GetDateTimeOffset(DateTime.Now);
 
-                        using (var stream = File.Open(ServerUploadFolder + userListFile, FileMode.Open, FileAccess.Read))
-                        {
+                        using (var stream = File.Open(ServerUploadFolder + userListFile, FileMode.Open, FileAccess.Read)) {
 
-                            using (var reader = GetExcelReaderFactory(ServerUploadFolder + userListFile, stream))
-                            {
-                                do
-                                {
-                                    while (reader.Read())
-                                    {
-                                        if (hasHeader && HeaderSkipped == false)
-                                        {
+                            using (var reader = GetExcelReaderFactory(ServerUploadFolder + userListFile, stream)) {
+                                do {
+                                    while (reader.Read()) {
+                                        if (hasHeader && HeaderSkipped == false) {
                                             HeaderSkipped = true;
                                             continue;
-                                        }
-                                        else
-                                        {
+                                        } else {
                                             var pau = new PublicAlertUserList();
-                                            if (emailColIndex >= 0)
-                                            {
+                                            if (emailColIndex >= 0) {
                                                 var emailval = reader.GetValue(emailColIndex) ?? "";
                                                 pau.EmailId = Convert.ToString(emailval);
                                             }
-                                            if (phoneColIndex >= 0)
-                                            {
+                                            if (phoneColIndex >= 0) {
                                                 var phoneval = reader.GetValue(phoneColIndex) ?? "";
                                                 pau.MobileNo = Convert.ToString(phoneval);
                                             }
-                                            if (postcodeColIndex >= 0)
-                                            {
+                                            if (postcodeColIndex >= 0) {
                                                 var postcodeval = reader.GetValue(postcodeColIndex) ?? "";
                                                 pau.Postcode = Convert.ToString(postcodeval);
                                             }
-                                            if (latColIndex >= 0)
-                                            {
+                                            if (latColIndex >= 0) {
                                                 var latval = reader.GetValue(latColIndex) ?? "";
                                                 pau.Latitude = Convert.ToString(latval);
                                             }
-                                            if (longColIndex >= 0)
-                                            {
+                                            if (longColIndex >= 0) {
                                                 var longval = reader.GetValue(longColIndex) ?? "";
                                                 pau.Longitude = Convert.ToString(longval);
                                             }
@@ -267,8 +222,7 @@ namespace CrisesControl.Infrastructure.Services
                             }
                         }
 
-                        if (PauList.Count > 0)
-                        {
+                        if (PauList.Count > 0) {
                             //add data to datatable
                             DataTable dt = new DataTable();
                             dt.Columns.Add("EmailID", typeof(string));
@@ -282,8 +236,7 @@ namespace CrisesControl.Infrastructure.Services
 
                             string SessionId = Guid.NewGuid().ToString();
 
-                            foreach (PublicAlertUserList pauser in PauList)
-                            {
+                            foreach (PublicAlertUserList pauser in PauList) {
                                 dt.Rows.Add(new object[] { pauser.EmailId, pauser.MobileNo, pauser.Postcode, pauser.Latitude, pauser.Longitude, SessionId, 0, dtnow });
                             }
 
@@ -315,77 +268,57 @@ namespace CrisesControl.Infrastructure.Services
                             return new { rows, emailcount, phonecount, total = phonecount, SessionId };
                         }
                     }
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     throw;
                 }
 
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
             return null;
         }
 
-        private IExcelDataReader GetExcelReaderFactory(string path, FileStream stream)
-        {
-            if (Path.GetExtension(path) == ".csv")
-            {
+        private IExcelDataReader GetExcelReaderFactory(string path, FileStream stream) {
+            if (Path.GetExtension(path) == ".csv") {
                 return ExcelReaderFactory.CreateCsvReader(stream, new ExcelReaderConfiguration() { AutodetectSeparators = new char[] { ',', ';', '\t' } });
-            }
-            else
-            {
+            } else {
                 return ExcelReaderFactory.CreateReader(stream);
             }
         }
 
-        public async Task<CommonDTO> ResendFailure(int messageId, string commsMethod)
-        {
+        public async Task<CommonDTO> ResendFailure(int messageId, string commsMethod) {
             CommonDTO ResultDTO = new CommonDTO();
-            try
-            {
-                var deviceList =await _queueHelper.GetFailedDeviceQueue(messageId, commsMethod, 0);
-                if (deviceList.Count > 0)
-                {
+            try {
+                var deviceList = await _queueHelper.GetFailedDeviceQueue(messageId, commsMethod, 0);
+                if (deviceList.Count > 0) {
                     bool queued = await _queueHelper.RequeueMessage(messageId, commsMethod, deviceList);
-                    if (queued)
-                    {
+                    if (queued) {
                         ResultDTO.ErrorId = 205;
                         ResultDTO.ErrorCode = "205";
                         ResultDTO.Message = "Message queued successfully";
                     }
-                }
-                else
-                {
+                } else {
                     ResultDTO.ErrorId = 206;
                     ResultDTO.ErrorCode = "206";
                     ResultDTO.Message = "No items found for resending";
                 }
                 return ResultDTO;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 return ResultDTO;
             }
 
         }
 
-        public async Task<dynamic> SendPublicAlert(string messageText, int[] messageMethod, bool schedulePA, DateTime scheduleAt, string sessionId, int userId, int companyId, string timeZoneId)
-        {
-            try
-            {
+        public async Task<dynamic> SendPublicAlert(string messageText, int[] messageMethod, bool schedulePA, DateTime scheduleAt, string sessionId, int userId, int companyId, string timeZoneId) {
+            try {
 
-                try
-                {
+                try {
 
                     DateTimeOffset dtnow = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
                     var PACount = (from PAD in _context.Set<PublicAlertMessageListDump>() where PAD.SessionId == sessionId select PAD).Count();
 
-                    if (PACount > 0)
-                    {
+                    if (PACount > 0) {
                         _MSG.MessageSourceAction = SourceAction.PublicAlert;
                         //Create message enry
                         int tblmessageid = await _MSG.CreateMessage(companyId, messageText, "PublicAlert", 0, 100, userId,
@@ -406,8 +339,7 @@ namespace CrisesControl.Infrastructure.Services
                             EmailAdded = 1;
 
 
-                        if (!schedulePA)
-                        {
+                        if (!schedulePA) {
                             //Create Message List for Ping
                             _MSG.SavePublicAlertMessageList(sessionId, PublicAlertID, tblmessageid, dtnow, TextAdded, EmailAdded, PhoneAdded);
 
@@ -415,13 +347,11 @@ namespace CrisesControl.Infrastructure.Services
                             await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "EMAIL")).ContinueWith(t => {
                                 t.Dispose();
                             });
-                           await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "TEXT")).ContinueWith(t => {
+                            await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "TEXT")).ContinueWith(t => {
                                 t.Dispose();
                             });
                             _context.Database.ExecuteSqlRaw("EXEC UPDATE PublicAlert SET Executed=1 WHERE PublicAlertID=" + PublicAlertID);
-                        }
-                        else
-                        {
+                        } else {
                             _context.Database.ExecuteSqlRaw("EXEC UPDATE PublicAlertMessageListDump SET PublicAlertID=" + PublicAlertID + " WHERE SessionId='" + sessionId + "'");
 
                             //SchedulerHelper SH = new SchedulerHelper();
@@ -439,24 +369,17 @@ namespace CrisesControl.Infrastructure.Services
                         return true;
                     }
                     // }
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                 }
 
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
             }
             return null;
         }
 
-        public async Task<int> CreatePublicAlert(int messageId, bool scheduled, DateTimeOffset scheduleAt, int userId, string timeZoneId)
-        {
-            try
-            {
-                PublicAlert PA = new PublicAlert()
-                {
+        public async Task<int> CreatePublicAlert(int messageId, bool scheduled, DateTimeOffset scheduleAt, int userId, string timeZoneId) {
+            try {
+                PublicAlert PA = new PublicAlert() {
                     MessageId = messageId,
                     Scheduled = scheduled,
                     ScheduleAt = scheduleAt,
@@ -467,22 +390,17 @@ namespace CrisesControl.Infrastructure.Services
                 _context.Set<PublicAlert>().Add(PA);
                 await _context.SaveChangesAsync();
                 return PA.PublicAlertId;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 return 0;
             }
         }
 
         public async Task<dynamic> ReplyToMessage(int parentId, string messageText, string replyTo, string messageType, int activeIncidentId, int[] messageMethod,
-            int cascadePlanId, int currentUserId, int companyId, string timeZoneId)
-        {
+            int cascadePlanId, int currentUserId, int companyId, string timeZoneId) {
             Return Result = new Return();
-            try
-            {
+            try {
                 var msg = (from M in _context.Set<Message>() where M.MessageId == parentId select M).FirstOrDefault();
-                if (msg != null)
-                {
+                if (msg != null) {
 
                     int MessageActionType = 0;
                     bool MultiResponse = false;
@@ -491,8 +409,7 @@ namespace CrisesControl.Infrastructure.Services
                     _MSG.CascadePlanID = cascadePlanId;
                     _MSG.MessageSourceAction = SourceAction.PingReply;
 
-                    if (replyTo.ToUpper() == "RENOTIFY")
-                    {
+                    if (replyTo.ToUpper() == "RENOTIFY") {
                         string NotifyNote = _DBC.GetCompanyParameter("RENOTIFY_NOTE", companyId);
                         messageText = msg.MessageText + Environment.NewLine + "[" + NotifyNote + "]";
                         MessageActionType = 1;
@@ -505,15 +422,13 @@ namespace CrisesControl.Infrastructure.Services
 
                     msg.HasReply += 1;
 
-                    if (msg.AttachmentCount > 0)
-                    {
+                    if (msg.AttachmentCount > 0) {
                         var newmsg = (from M in _context.Set<Message>() where M.MessageId == tblmessageid select M).FirstOrDefault();
-                        if (newmsg != null)
-                        {
+                        if (newmsg != null) {
                             newmsg.AttachmentCount = msg.AttachmentCount;
                         }
                     }
-                    _context.SaveChanges();
+                    await _context.SaveChangesAsync();
 
                     int queuecount = await queue.CreateMessageList(tblmessageid, replyTo);
                     IsFundAvailable = queue.IsFundAvailable;
@@ -521,16 +436,12 @@ namespace CrisesControl.Infrastructure.Services
                     Result = _DBC.Return(0, IsFundAvailable == true ? null : "E219", true, "SUCCESS", tblmessageid, queuecount);
 
                     return Result;
-                }
-                else
-                {
+                } else {
                     Result = _DBC.Return(214, "E214", false, "The source message is not found.", null);
                     return Result;
                 }
 
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 return null;
             }
         }

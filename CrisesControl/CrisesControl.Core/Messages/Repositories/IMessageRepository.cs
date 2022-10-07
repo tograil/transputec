@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CrisesControl.Core.Compatibility.Jobs;
 using CrisesControl.Core.Import;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
@@ -11,6 +12,7 @@ namespace CrisesControl.Core.Messages.Repositories;
 
 public interface IMessageRepository
 {
+    bool IsFundAvailable();
     Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0);
 
     int GetPushMethodId();
@@ -39,7 +41,7 @@ public interface IMessageRepository
 
     Task<List<LibMessageResponse>> GetLibMessageResponse();
 
-    Task CopyMessageResponse(int companyID, int currentUserId, string timeZoneID, CancellationToken token);
+    void CopyMessageResponse(int companyID, int currentUserId, string timeZoneID, CancellationToken token);
     Task<List<UserMessageList>> GetMessages(int targetUserId, string? messageType, int incidentActivationId);
     Task<AcknowledgeReturn> AcknowledgeMessage(int userID, int messageID, int messageListID, string latitude, string longitude, string ackMethod, int responseID, string timeZoneId);
     Task<MessageAckDetails> MessageAcknowledged(int companyId, int msgListId, string timeZoneId, string userLocationLat, string userLocationLong, int currentUserId, int responseID = 0, string ackMethod = "WEB");
@@ -69,8 +71,10 @@ public interface IMessageRepository
     Task<CommonDTO> ResendFailure(int messageId, string commsMethod);
     Task<int> SaveMessageResponse(int responseId, string responseLabel, string description, bool isSafetyResponse, string safetyAckAction, string messageType, int status, int currentUserId, int companyId, string timeZoneId);
     Task<dynamic> SendPublicAlert(string messageText, int[] messageMethod, bool schedulePA, DateTime scheduleAt, string sessionId, int userId, int companyId, string timeZoneId);
-    Task<bool> StartConference(List<User> UserList, int ObjectID, int CurrentUserID, int CompanyID, string TimeZoneId);
+    Task<bool> StartConference(List<User> UserList, int ObjectID, int currentUserId, int CompanyID, string TimeZoneId);
     public Return UploadAttachment();
     Task<dynamic> ReplyToMessage(int parentId, string messageText, string replyTo, string messageType, int activeIncidentId, int[] messageMethod,
             int cascadePlanId, int currentUserId, int companyId, string timeZoneId);
+    Task<bool> HasRecipients(int MessageId = 0, int ActiveIncidentId = 0, int[] UsersToNotify = null, PingMessageObjLst[] MessageGroupList = null,
+           string ReplyAction = "ALL", bool SendToAllRecipient = false);
 }

@@ -22,11 +22,12 @@ namespace CrisesControl.Core.Messages
         public string TimeZoneId { get; set; }
         public PingMessageObjLst[] PingMessageObjLst { get; set; }
         public int[] UsersToNotify { get; set; }
-        public int AssetId { get; set; } = 0;
+        public int AudioAssetId { get; set; } = 0;
         public bool SilentMessage { get; set; } = false;
         public int[] MessageMethod { get; set; }
         public List<MediaAttachment> MediaAttachments { get; set; }
         public List<string> SocialHandle { get; set; }
         public int CascadePlanID { get; set; } = 0;
+        public bool SendToAllRecipient { get; set; }
     }
 }

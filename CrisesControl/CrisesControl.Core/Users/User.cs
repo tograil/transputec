@@ -2,6 +2,7 @@
 using CrisesControl.Core.Models;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrisesControl.Core.Users
 {
@@ -16,6 +17,7 @@ namespace CrisesControl.Core.Users
         public string PrimaryEmail { get; set; } = null!;
         public string? SecondaryEmail { get; set; }
         public string? UniqueGuiId { get; set; }
+        [NotMapped]
         public int CreatedBy { get; set; }
         public DateTimeOffset CreatedOn { get; set; }
         public int UpdatedBy { get; set; }
@@ -38,15 +40,24 @@ namespace CrisesControl.Core.Users
         public DateTimeOffset LastLocationUpdate { get; set; }
         public DateTimeOffset TrackingStartTime { get; set; }
         public DateTimeOffset TrackingEndTime { get; set; }
+        [NotMapped]
         public int ActiveOffDuty { get; set; }
         public bool Smstrigger { get; set; }
         public int? DepartmentId { get; set; }
         public string? UserHash { get; set; }
         public int? TimezoneId { get; set; }
+        [NotMapped]
         public UserSecurityGroup UserSecurityGroup { get; set; }
         //public UserComm UserComm { get; set; }
-
+        [NotMapped]
         public Company Company { get; set; }
        
+    }
+
+    public class UserDropdown {
+        public int UserId { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public int Status { get; set; }
     }
 }

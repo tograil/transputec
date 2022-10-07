@@ -16,10 +16,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Infrastructure.Services
-{
-    public  class QueueConsumer
-    {
+namespace CrisesControl.Infrastructure.Services {
+    public class QueueConsumer {
 
         public List<string> RabbitHost = new List<string>();
         public int MaxQueueConsumer = 3;
@@ -31,247 +29,202 @@ namespace CrisesControl.Infrastructure.Services
 
         public bool IsFundAvailable = true;
         public ushort RabbitMQHeartBeat = 60;
-        private  readonly IHttpContextAccessor _httpContextAccessor;    
-        private  readonly CrisesControlContext _db;
-        private  readonly DBCommon _DBC;
-        private  readonly Messaging _MSG;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly CrisesControlContext _db;
+        private readonly DBCommon _DBC;
+        private readonly Messaging _MSG;
         private readonly QueueHelper _queueHelper;
 
-        public QueueConsumer(CrisesControlContext db, IHttpContextAccessor httpContextAccessor)
-        {
+        public QueueConsumer(CrisesControlContext db, IHttpContextAccessor httpContextAccessor) {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
             _DBC = new DBCommon(_db, _httpContextAccessor);
             _MSG = new Messaging(_db, _httpContextAccessor);
-            _queueHelper = new QueueHelper(db);
+            _queueHelper = new QueueHelper(db, _httpContextAccessor);
         }
-        public  async Task<int> CreateMessageList(int MessageID, string ReplyTo = "")
-        {
+        public async Task<int> CreateMessageList(int MessageID, string ReplyTo = "", bool SendToAllRecipient = false) {
 
-         
+
             string MessageType = string.Empty;
             int Priority = 999;
             int QueueSize = 0;
             int CascadePlanID = 0;
-            try
-            {
-               
-
-                    //_db.Database.ti = 300;
-
-                    var msg = _db.Set<Message>().Where(M=> M.MessageId == MessageID).FirstOrDefault();
-                    if (msg != null)
-                    {
-
-                        CascadePlanID = msg.CascadePlanId;
-
-                        string TimeZoneId = await _DBC.GetTimeZoneVal(msg.CreatedBy);
-
-                        bool notifySender = false;
-                        bool.TryParse(_DBC.GetCompanyParameter("INC_SENDER_INCIDENT_UPDATE", msg.CompanyId), out notifySender);
-
-                        bool NotifyKeyholders = false;
-                        bool.TryParse(_DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", msg.CompanyId), out NotifyKeyholders);
-
-                        MessageType = msg.MessageType.ToUpper();
-                        Priority = msg.Priority;
-
-                        string rpl_sp_name = "Pro_Create_Reply_Message_List ";
-
-                        if (CascadePlanID > 0)
-                            rpl_sp_name = "Pro_Create_Message_Queue_Cascading ";
+            try {
 
 
-                        if (msg.MessageType.ToUpper() == "PING")
-                        {
-                            //Check for incident closure ping.
-                            if (NotifyKeyholders && msg.IncidentActivationId > 0 && msg.Source != 7)
-                            {
-                                try
-                                {
-                                    var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
-                                    var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+                //_db.Database.ti = 300;
 
-                                    _db.Database.ExecuteSqlRaw("Pro_Create_Keyholder_Message_List @MessageID, @CustomerTime", pMessageId, pCustomerTime);
-                                }
-                                catch (Exception ex)
-                                {
-                                   
-                                    throw ex;
-                                }
-                            }
-                            else
-                            { //Normal ping message
+                var msg = await _db.Set<Message>().Where(M => M.MessageId == MessageID).FirstOrDefaultAsync();
+                if (msg != null) {
+
+                    CascadePlanID = msg.CascadePlanId;
+
+                    string TimeZoneId = await _DBC.GetTimeZoneVal(msg.CreatedBy);
+
+                    bool notifySender = false;
+                    bool.TryParse(_DBC.GetCompanyParameter("INC_SENDER_INCIDENT_UPDATE", msg.CompanyId), out notifySender);
+
+                    bool NotifyKeyholders = false;
+                    bool.TryParse(_DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", msg.CompanyId), out NotifyKeyholders);
+
+                    MessageType = msg.MessageType.ToUpper();
+                    Priority = msg.Priority;
+
+                    string rpl_sp_name = "Pro_Create_Reply_Message_List ";
+
+                    if (CascadePlanID > 0)
+                        rpl_sp_name = "Pro_Create_Message_Queue_Cascading ";
+
+
+                    if (msg.MessageType.ToUpper() == "PING") {
+                        //Check for incident closure ping.
+                        if (NotifyKeyholders && msg.IncidentActivationId > 0 && msg.Source != 7) {
+                            try {
                                 var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
-                                var pNotifySender = new SqlParameter("@NotifySender", notifySender);
                                 var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
-                                if (msg.ParentId == 0 && ReplyTo.ToUpper() != "RENOTIFY")
-                                {
-                                    try
-                                    {
-                                        _db.Database.ExecuteSqlRaw("Pro_Create_Message_List @MessageID, @NotifySender,@CustomerTime", pMessageId, pNotifySender, pCustomerTime);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                     
-                                        throw ex;
-                                    }
+                                await _db.Database.ExecuteSqlRawAsync("Pro_Create_Keyholder_Message_List @MessageID, @CustomerTime", pMessageId, pCustomerTime);
+                            } catch (Exception ex) {
 
-                                }
-                                else
-                                {
-                                    var pReplyTo = new SqlParameter("@ReplyTo", ReplyTo);
-                                    try
-                                    {
-                                        var result = _db.Set<Result>().FromSqlRaw(rpl_sp_name + " @MessageID, @ReplyTo, @CustomerTime", pMessageId, pReplyTo, pCustomerTime).FirstOrDefault();
-                                        if (result != null)
-                                        {
-                                            QueueSize = result.ResultID;
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                       
-                                        throw ex;
-                                    }
-                                }
+                                throw;
                             }
-                        }
-                        else if (msg.MessageType.ToUpper() == "INCIDENT")
-                        {
-
-                            var pIncidentActivationId = new SqlParameter("@IncidentActivationID", msg.IncidentActivationId);
+                        } else { //Normal ping message
                             var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
                             var pNotifySender = new SqlParameter("@NotifySender", notifySender);
                             var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
-                            if (msg.ParentId == 0 && ReplyTo.ToUpper() != "RENOTIFY")
-                            {
-                                try
-                                {
-                                    _db.Database.ExecuteSqlRaw("Pro_Create_Incident_Message_List @IncidentActivationID, @MessageID, @NotifySender,@CustomerTime",
-                                            pIncidentActivationId, pMessageId, pNotifySender, pCustomerTime);
-                                }
-                                catch (Exception ex)
-                                {
-                                    
-                                    throw ex;
+                            if (msg.ParentId == 0 && ReplyTo.ToUpper() != "RENOTIFY") {
+                                try {
+                                    await _db.Database.ExecuteSqlRawAsync("Pro_Create_Message_List @MessageID, @NotifySender,@CustomerTime", pMessageId, pNotifySender, pCustomerTime);
+                                } catch (Exception ex) {
+
+                                    throw;
                                 }
 
-                            }
-                            else
-                            {
-                                try
-                                {
-                                    var pReplyTo = new SqlParameter("@ReplyTo", ReplyTo);
-                                    var result = _db.Set<Result>().FromSqlRaw(rpl_sp_name + " @MessageID, @ReplyTo, @CustomerTime", pMessageId, pReplyTo, pCustomerTime).FirstOrDefault();
-                                    if (result != null)
-                                    {
+                            } else {
+                                var pReplyTo = new SqlParameter("@ReplyTo", ReplyTo);
+                                try {
+                                    var result = await _db.Set<Result>().FromSqlRaw(rpl_sp_name + " @MessageID, @ReplyTo, @CustomerTime", pMessageId, pReplyTo, pCustomerTime).FirstOrDefaultAsync();
+                                    if (result != null) {
                                         QueueSize = result.ResultID;
                                     }
-                                }
-                                catch (Exception ex)
-                                {
-                                  
-                                    throw ex;
+                                } catch (Exception ex) {
+
+                                    throw;
                                 }
                             }
                         }
+                    } else if (msg.MessageType.ToUpper() == "INCIDENT") {
 
-                        CreateCascadingJobs(CascadePlanID, MessageID, msg.IncidentActivationId, msg.CompanyId, TimeZoneId);
+                        var pIncidentActivationId = new SqlParameter("@IncidentActivationID", msg.IncidentActivationId);
+                        var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
+                        var pNotifySender = new SqlParameter("@NotifySender", notifySender);
+                        var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+                        var pSendToAllRecipient = new SqlParameter("@SendToAllRecipient", SendToAllRecipient);
 
-                       await  _DBC.MessageProcessLog(msg.MessageId, "MESSAGE_LIST_CREATED", "", "", "Total count: " + QueueSize);
+                        if (msg.ParentId == 0 && ReplyTo.ToUpper() != "RENOTIFY") {
+                            try {
+                                await _db.Database.ExecuteSqlRawAsync("Pro_Create_Incident_Message_List @IncidentActivationID, @MessageID, @NotifySender,@CustomerTime,@SendToAllRecipient",
+                                        pIncidentActivationId, pMessageId, pNotifySender, pCustomerTime, pSendToAllRecipient);
+                            } catch (Exception ex) {
 
-                        IsFundAvailable =await _MSG.CalculateMessageCost(msg.CompanyId, MessageID, msg.MessageText);
+                                throw;
+                            }
+
+                        } else {
+                            try {
+                                var pReplyTo = new SqlParameter("@ReplyTo", ReplyTo);
+                                var result = await _db.Set<Result>().FromSqlRaw(rpl_sp_name + " @MessageID, @ReplyTo, @CustomerTime", pMessageId, pReplyTo, pCustomerTime).FirstOrDefaultAsync();
+                                if (result != null) {
+                                    QueueSize = result.ResultID;
+                                }
+                            } catch (Exception ex) {
+
+                                throw;
+                            }
+                        }
                     }
-                
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-            finally
-            {
-                if (ReplyTo.ToUpper() != "RENOTIFY")
-                {
-                    Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(MessageID, MessageType, 1, CascadePlanID));
+
+                     await CreateCascadingJobs(CascadePlanID, MessageID, msg.IncidentActivationId, msg.CompanyId, TimeZoneId);
+
+                     await _DBC.MessageProcessLog(msg.MessageId, "MESSAGE_LIST_CREATED", "", "", "Total count: " + QueueSize);
+
+                    IsFundAvailable = await _MSG.CalculateMessageCost(msg.CompanyId, MessageID, msg.MessageText);
                 }
-                else
-                {
-                    Task.Factory.StartNew(() => _queueHelper.MessageDevicePublish(MessageID, 1, ""));
+
+            } catch (Exception ex) {
+                throw;
+            } finally {
+                if (ReplyTo.ToUpper() != "RENOTIFY") {
+                    await _queueHelper.MessageDeviceQueue(MessageID, MessageType, 1, CascadePlanID);
+                } else {
+                    await _queueHelper.MessageDevicePublish(MessageID, 1, "");
                 }
+
+                //Todo do it in quartz
+                //Task.Factory.StartNew(() => {
+                //    CCWebSocketHelper.SendCountToUsersByMessage(MessageID);
+                //});
+
                 //CreateMessageDevice(MessageID);
             }
             return QueueSize;
         }
-        public  async void CreateCascadingJobs(int PlanID, int MessageID, int ActiveIncidentID, int CompanyID, string TimeZoneId)
-        {
+
+
+        public async Task CreateCascadingJobs(int PlanID, int MessageID, int ActiveIncidentID, int CompanyID, string TimeZoneId) {
             DBCommon DBC = new DBCommon(_db, _httpContextAccessor);
-            try
-            {
-                if (PlanID > 0)
-                {
+            try {
+                if (PlanID > 0) {
 
-                   
-                        var steps = (from PI in _db.Set<PriorityInterval>()
-                                     where PI.CascadingPlanId == PlanID && PI.CompanyId == CompanyID && PI.Interval > 0 && PI.Priority > 1
-                                     select PI).ToList();
 
-                        ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
-                        IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+                    var steps = await (from PI in _db.Set<PriorityInterval>()
+                                 where PI.CascadingPlanId == PlanID && PI.CompanyId == CompanyID && PI.Interval > 0 && PI.Priority > 1
+                                 select PI).ToListAsync();
 
-                        DateTimeOffset StartMessageTime = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
-                        int LastPriority = 1;
+                    ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                    IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
-                        foreach (var step in steps)
-                        {
-                            LastPriority = step.Priority;
-                            StartMessageTime = StartMessageTime.AddMinutes(step.Interval);
+                    DateTimeOffset StartMessageTime = DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                    int LastPriority = 1;
 
-                            string jobName = "MESSAGE_ATTEMPT_" + MessageID + "_" + step.Priority;
-                            var jobKey = new JobKey(jobName, "MESSAGE_CASCADE_" + ActiveIncidentID);
-                            bool jobExists = false;
-                            int tried = 0;
-                            while (jobExists == false && tried < 5)
-                            {
-                                if (!_scheduler.CheckExists(jobKey).Result)
-                                {
-                                    CreateCascadeJobStep(MessageID, PlanID, ActiveIncidentID, step.MessageType, step.Priority, step.Interval, ref StartMessageTime, TimeZoneId);
-                                }
-                                else
-                                {
-                                    jobExists = true;
-                                }
-                                tried++;
+                    foreach (var step in steps) {
+                        LastPriority = step.Priority;
+                        StartMessageTime = StartMessageTime.AddMinutes(step.Interval);
+
+                        string jobName = "MESSAGE_ATTEMPT_" + MessageID + "_" + step.Priority;
+                        var jobKey = new JobKey(jobName, "MESSAGE_CASCADE_" + ActiveIncidentID);
+                        bool jobExists = false;
+                        int tried = 0;
+                        while (jobExists == false && tried < 5) {
+                            if (!_scheduler.CheckExists(jobKey).Result) {
+                                CreateCascadeJobStep(MessageID, PlanID, ActiveIncidentID, step.MessageType, step.Priority, step.Interval, ref StartMessageTime, TimeZoneId);
+                            } else {
+                                jobExists = true;
                             }
-                        }
-
-                        //Schedule the SOS Launch of users.
-                        var sos = await _db.Set<CascadingPlan>().Where(w => w.PlanId == PlanID).FirstOrDefaultAsync();
-                        if (sos != null)
-                        {
-                            if (sos.LaunchSos)
-                            {
-                                StartMessageTime = StartMessageTime.AddMinutes(sos.LaunchSosinterval);
-                                int sospriority = LastPriority + 1;
-                                SOSSchedule(MessageID, CompanyID, sospriority, StartMessageTime, TimeZoneId, ActiveIncidentID);
-                            }
+                            tried++;
                         }
                     }
-               
-            }
-            catch (Exception ex)
-            {
+
+                    //Schedule the SOS Launch of users.
+                    var sos = await _db.Set<CascadingPlan>().Where(w => w.PlanId == PlanID).FirstOrDefaultAsync();
+                    if (sos != null) {
+                        if (sos.LaunchSos) {
+                            StartMessageTime = StartMessageTime.AddMinutes(sos.LaunchSosinterval);
+                            int sospriority = LastPriority + 1;
+                            SOSSchedule(MessageID, CompanyID, sospriority, StartMessageTime, TimeZoneId, ActiveIncidentID);
+                        }
+                    }
+                }
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
 
-        public  void CreateCascadeJobStep(int MessageID, int PlanID, int ActiveIncidentID, string MessageType, int Priority, int Interval, ref DateTimeOffset StartMessageTime, string TimeZoneId)
-        {
-            DBCommon DBC = new DBCommon(_db,_httpContextAccessor);
-            try
-            {
+        public void CreateCascadeJobStep(int MessageID, int PlanID, int ActiveIncidentID, string MessageType, int Priority, int Interval, ref DateTimeOffset StartMessageTime, string TimeZoneId) {
+            DBCommon DBC = new DBCommon(_db, _httpContextAccessor);
+            try {
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
@@ -285,8 +238,7 @@ namespace CrisesControl.Infrastructure.Services
                 jobDetail.JobDataMap["Priority"] = Priority;
                 jobDetail.JobDataMap["MessageType"] = MessageType;
 
-                if (!DBC.IsDayLightOn(StartMessageTime.DateTime))
-                {
+                if (!DBC.IsDayLightOn(StartMessageTime.DateTime)) {
                     StartMessageTime = DBC.ConvertToLocalTime("GMT Standard Time", StartMessageTime.ToUniversalTime().DateTime);
                 }
 
@@ -301,51 +253,44 @@ namespace CrisesControl.Infrastructure.Services
                                                 .Build();
 
                 var triggered = _scheduler.ScheduleJob(jobDetail, trigger);
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
 
-        public  void SOSSchedule(int MessageID, int CompanyID, int Priority, DateTimeOffset StartTime, string TimeZoneId, int ActiveIncidentID)
-        {
+        public void SOSSchedule(int MessageID, int CompanyID, int Priority, DateTimeOffset StartTime, string TimeZoneId, int ActiveIncidentID) {
             DBCommon DBC = new DBCommon(_db, _httpContextAccessor);
-            try
-            {
+            try {
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
-               
 
-                    string jobName = "CASCADE_SOS_" + MessageID + "_" + Priority;
-                    string taskTrigger = "CASCADE_SOS_" + MessageID + "_" + Priority;
 
-                    IJobDetail jobDetail = JobBuilder.Create<SOSCascadeMessageJob>().WithIdentity(jobName, "MESSAGE_CASCADE_" + ActiveIncidentID).Build();
+                string jobName = "CASCADE_SOS_" + MessageID + "_" + Priority;
+                string taskTrigger = "CASCADE_SOS_" + MessageID + "_" + Priority;
 
-                    jobDetail.JobDataMap["MessageID"] = MessageID;
-                    jobDetail.JobDataMap["CompanyID"] = CompanyID;
+                IJobDetail jobDetail = JobBuilder.Create<SOSCascadeMessageJob>().WithIdentity(jobName, "MESSAGE_CASCADE_" + ActiveIncidentID).Build();
 
-                    if (!DBC.IsDayLightOn(StartTime.DateTime))
-                    {
-                        StartTime = DBC.ConvertToLocalTime("GMT Standard Time", StartTime.ToUniversalTime().DateTime);
-                    }
+                jobDetail.JobDataMap["MessageID"] = MessageID;
+                jobDetail.JobDataMap["CompanyID"] = CompanyID;
 
-                    string CronExpressionStr = StartTime.Second + " " + StartTime.Minute + " " + StartTime.Hour + " " + StartTime.Day + " " + StartTime.Month + " ? " + StartTime.Year;
+                if (!DBC.IsDayLightOn(StartTime.DateTime)) {
+                    StartTime = DBC.ConvertToLocalTime("GMT Standard Time", StartTime.ToUniversalTime().DateTime);
+                }
 
-                    var trigger = TriggerBuilder.Create()
-                                                 .WithIdentity(taskTrigger, "MESSAGE_CASCADE_" + ActiveIncidentID)
-                                                 .WithCronSchedule(CronExpressionStr, x => x
-                                                     .InTimeZone(TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId))
-                                                     .WithMisfireHandlingInstructionDoNothing())
-                                                 .ForJob(jobDetail)
-                                                 .Build();
+                string CronExpressionStr = StartTime.Second + " " + StartTime.Minute + " " + StartTime.Hour + " " + StartTime.Day + " " + StartTime.Month + " ? " + StartTime.Year;
 
-                    _scheduler.ScheduleJob(jobDetail, trigger);
-               
-            }
-            catch (Exception ex)
-            {
+                var trigger = TriggerBuilder.Create()
+                                             .WithIdentity(taskTrigger, "MESSAGE_CASCADE_" + ActiveIncidentID)
+                                             .WithCronSchedule(CronExpressionStr, x => x
+                                                 .InTimeZone(TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId))
+                                                 .WithMisfireHandlingInstructionDoNothing())
+                                             .ForJob(jobDetail)
+                                             .Build();
+
+                _scheduler.ScheduleJob(jobDetail, trigger);
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }

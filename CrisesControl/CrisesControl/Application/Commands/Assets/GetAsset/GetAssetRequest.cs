@@ -4,7 +4,6 @@ namespace CrisesControl.Api.Application.Commands.Assets.GetAsset
 {
     public class GetAssetRequest: IRequest<GetAssetResponse>
     {
-        public int CompanyId { get; set; }
         public int AssetId { get; set; }
     }
 }

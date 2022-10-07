@@ -36,8 +36,8 @@ namespace CrisesControl.Api.Application.Query
         {
             Guard.Against.Null(request, nameof(GetDepartmentsRequest));
 
-            var departments = await _departmentRepository.GetAllDepartments(request.CompanyId);
-            var result = _mapper.Map<List<Department>>(departments.ToList());
+            var departments = await _departmentRepository.GetAllDepartments(request.CompanyId, request.FilterVirtual);
+            var result = _mapper.Map<List<DepartmentDetail>>(departments);
             var response = new GetDepartmentsResponse();
             response.Data = result;
             return response;

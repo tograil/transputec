@@ -17,22 +17,18 @@ using System.Threading.Tasks;
 using Assets = CrisesControl.Core.Assets.Assets;
 
 
-namespace CrisesControl.Infrastructure.Repositories
-{
-    public class AssetRespository: IAssetRepository
-    {
+namespace CrisesControl.Infrastructure.Repositories {
+    public class AssetRespository : IAssetRepository {
         private readonly CrisesControlContext _context;
         private readonly IMapper _mapper;
         private readonly DBCommon DBC;
-        public AssetRespository(CrisesControlContext context, IMapper mapper, DBCommon _DBC)
-        {
+        public AssetRespository(CrisesControlContext context, IMapper mapper, DBCommon _DBC) {
             _context = context;
             _mapper = mapper;
             DBC = _DBC;
         }
 
-        public async Task<int> CreateAsset(Assets asset, CancellationToken cancellationToken)
-        {
+        public async Task<int> CreateAsset(Assets asset, CancellationToken cancellationToken) {
             await _context.AddAsync(asset, cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -40,44 +36,49 @@ namespace CrisesControl.Infrastructure.Repositories
             return asset.AssetId;
         }
 
-        public async Task<bool> DeleteAsset(int assetId,int currentUserId,int companyId, string timeZoneId)
-        {
-            var Assetsdata = await _context.Set<Assets>().Where(a=>a.AssetId==assetId && a.CompanyId== companyId).FirstOrDefaultAsync();
-            if(Assetsdata != null) {
-                var result = await  DeleteAssetLink(assetId);
+        public async Task<bool> DeleteAsset(int assetId, int currentUserId, int companyId, string timeZoneId) {
+            var Assetsdata = await _context.Set<Assets>().Where(a => a.AssetId == assetId && a.CompanyId == companyId).FirstOrDefaultAsync();
+            if (Assetsdata != null) {
+                var result = await DeleteAssetLink(assetId);
 
                 Assetsdata.Status = 3;
                 Assetsdata.UpdatedBy = currentUserId;
                 Assetsdata.UpdatedOn = DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
                 await _context.SaveChangesAsync();
 
-               await  DBC.DeleteScheduledJob("ASSET_REVIEW_" + assetId, "REVIEW_REMINDER");
+                DBC.DeleteScheduledJob("ASSET_REVIEW_" + assetId, "REVIEW_REMINDER");
 
                 return true;
             }
             return false;
         }
 
-        public async Task<IEnumerable<Assets>> GetAllAssets(int companyId)
-        {
+        public async Task<IEnumerable<Assets>> GetAllAssets(int companyId) {
             return await _context.Set<Assets>().Where(t => t.CompanyId == companyId).ToListAsync();
         }
 
-        public async Task<Assets> GetAsset(int companyId, int assetId)
-        {
-            return await _context.Set<Assets>().Where(t => t.CompanyId == companyId && t.AssetId == assetId).FirstOrDefaultAsync();
+        public async Task<AssetsDetails> GetAsset(int companyId, int assetId) {
+            var pCompanyId = new SqlParameter("@CompanyID", companyId);
+            var pAssetId = new SqlParameter("@AssetID", assetId);
+
+            var details = _context.Set<AssetsDetails>().FromSqlRaw("exec Pro_Assets_GetAssetDetails @CompanyID, @AssetID", pCompanyId, pAssetId).AsEnumerable();
+
+            if (details != null) {
+                var result = details.FirstOrDefault();
+                result.AssetOwnerName = new UserFullName { Firstname = result.AssetOwnerFirstName, Lastname = result.AssetOwnerLastName };
+                result.CreatedByName = new UserFullName { Firstname = result.CreatedByFirstName, Lastname = result.CreatedByLastName };
+                result.UpdatedByName = new UserFullName { Firstname = result.UpdatedByFirstName, Lastname = result.UpdatedByLastName };
+                return result;
+            }
+            return null;
         }
 
-        public async Task<int> UpdateAsset(Assets asset, CancellationToken cancellationToken)
-        {
+        public async Task<int> UpdateAsset(Assets asset, CancellationToken cancellationToken) {
             var result = _context.Set<Assets>().Where(t => t.AssetId == asset.AssetId).FirstOrDefault();
 
-            if (result == null)
-            {
+            if (result == null) {
                 return default;
-            }
-            else
-            {
+            } else {
                 result.AssetTitle = asset.AssetTitle;
                 result.AssetDescription = asset.AssetDescription;
                 result.AssetType = asset.AssetType;
@@ -89,7 +90,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 result.SourceObjectId = asset.SourceObjectId;
                 result.AssetOwner = asset.AssetOwner;
                 result.ReminderCount = asset.ReminderCount;
-                result.ReviewDate =  asset.ReviewDate;                
+                result.ReviewDate = asset.ReviewDate;
                 result.ReviewFrequency = asset.ReviewFrequency;
                 result.SourceFileName = asset.SourceFileName;
                 _context.Update(result);
@@ -98,22 +99,18 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async Task<bool> CheckDuplicate(Assets asset)
-        {
-            return await _context.Set<Assets>().Where(t=>t.AssetTitle.Equals(asset.AssetTitle)).AnyAsync();
+        public async Task<bool> CheckDuplicate(Assets asset) {
+            return await _context.Set<Assets>().Where(t => t.AssetTitle.Equals(asset.AssetTitle)).AnyAsync();
         }
 
-        public async Task<bool> CheckForExistance(int assetId)
-        {
+        public async Task<bool> CheckForExistance(int assetId) {
             return _context.Set<Assets>().Where(t => t.AssetId.Equals(assetId)).Any();
         }
 
-        public async Task CreateAssetReviewReminder(int assetId, int companyID, DateTimeOffset nextReviewDate, string reviewFrequency, int reminderCount)
-        {
-            try
-            {
+        public async Task CreateAssetReviewReminder(int assetId, int companyID, DateTimeOffset nextReviewDate, string reviewFrequency, int reminderCount) {
+            try {
 
-              await  DBC.DeleteScheduledJob("ASSET_REVIEW_" + assetId, "REVIEW_REMINDER");
+                DBC.DeleteScheduledJob("ASSET_REVIEW_" + assetId, "REVIEW_REMINDER");
 
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
@@ -130,8 +127,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                 string TimeZoneVal = DBC.GetTimeZoneByCompany(companyID);
 
-                if (DateTimeOffset.Compare(DateCheck, DBC.GetDateTimeOffset(DateTime.Now, TimeZoneVal)) >= 0)
-                {
+                if (DateTimeOffset.Compare(DateCheck, DBC.GetDateTimeOffset(DateTime.Now, TimeZoneVal)) >= 0) {
 
                     if (DateCheck < DateTime.Now)
                         DateCheck = DateTime.Now.AddMinutes(5);
@@ -141,88 +137,70 @@ namespace CrisesControl.Infrastructure.Repositories
                                                               .StartAt(DateCheck)
                                                               .ForJob(jobDetail)
                                                               .Build();
-                  await  _scheduler.ScheduleJob(jobDetail, trigger);
-                }
-                else
-                {
+                    await _scheduler.ScheduleJob(jobDetail, trigger);
+                } else {
                     DateTimeOffset NewReviewDate = DBC.GetNextReviewDate(nextReviewDate, reviewFrequency);
-                    var asset = _context.Set<Assets>().Where(A=> A.AssetId == assetId).FirstOrDefault();
-                    if (asset != null)
-                    {
+                    var asset = _context.Set<Assets>().Where(A => A.AssetId == assetId).FirstOrDefault();
+                    if (asset != null) {
                         asset.ReviewDate = NewReviewDate;
                         _context.Update(asset);
-                       await _context.SaveChangesAsync();
-                       await CreateAssetReviewReminder(assetId, companyID, NewReviewDate, reviewFrequency, reminderCount);
+                        await _context.SaveChangesAsync();
+                        await CreateAssetReviewReminder(assetId, companyID, NewReviewDate, reviewFrequency, reminderCount);
                     }
                 }
 
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<AssetLink>> GetAssetLink(int assetId)
-        {
-            try
-            {
-                   var pAssetId = new SqlParameter("@AssetID", assetId);
+        public async Task<List<AssetLink>> GetAssetLink(int assetId) {
+            try {
+                var pAssetId = new SqlParameter("@AssetID", assetId);
 
-                    var result = await _context.Set<AssetLink>().FromSqlRaw("exec Pro_Get_Asset_Links @AssetID", pAssetId).ToListAsync();
+                var result = await _context.Set<AssetLink>().FromSqlRaw("exec Pro_Get_Asset_Links @AssetID", pAssetId).ToListAsync();
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
 
-        public async Task<int> DeleteAssetLink(int assetId)
-        {
-            try
-            {
-                    var pAssetId = new SqlParameter("@AssetID", assetId);
+        public async Task<int> DeleteAssetLink(int assetId) {
+            try {
+                var pAssetId = new SqlParameter("@AssetID", assetId);
 
-                    var result = await _context.Database.ExecuteSqlRawAsync("exec Pro_Delete_Asset_Links @AssetID", pAssetId);
+                var result = await _context.Database.ExecuteSqlRawAsync("exec Pro_Delete_Asset_Links @AssetID", pAssetId);
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<List<AssetsDetails>> GetAssets(int companyID, int recordStart = 0, int recordLength = 100, string searchString = "",
-    string orderBy = "Name", string orderDir = "asc", int assetFilter = 0, int userID = 0)
-        {
-            try
-            {
+        public async Task<List<AssetList>> GetAssets(int companyID, int recordStart = 0, int recordLength = 100, string searchString = "",
+    string orderBy = "Name", string orderDir = "asc", int assetFilter = 0, int userID = 0) {
+            try {
 
-              
-                    var pCompanyID = new SqlParameter("@CompanyID", companyID);
-                    var pUserID = new SqlParameter("@UserID", userID);
-                    var pRecordStart = new SqlParameter("@RecordStart", recordStart);
-                    var pRecordLength = new SqlParameter("@RecordLength", recordLength);
-                    var pSearchString = new SqlParameter("@SearchString", searchString);
-                    var pOrderBy = new SqlParameter("@OrderBy", orderBy);
-                    var pOrderDir = new SqlParameter("@OrderDir", orderDir);
-                    var pAssetFilter = new SqlParameter("@AssetFilter", assetFilter);
+                var pCompanyID = new SqlParameter("@CompanyID", companyID);
+                var pUserID = new SqlParameter("@UserID", userID);
+                var pRecordStart = new SqlParameter("@RecordStart", recordStart);
+                var pRecordLength = new SqlParameter("@RecordLength", recordLength);
+                var pSearchString = new SqlParameter("@SearchString", searchString);
+                var pOrderBy = new SqlParameter("@OrderBy", orderBy);
+                var pOrderDir = new SqlParameter("@OrderDir", orderDir);
+                var pAssetFilter = new SqlParameter("@AssetFilter", assetFilter);
 
-                var result = await _context.Set<AssetsDetails>().FromSqlRaw("exec Pro_Asset_SelectAll @CompanyID, @UserID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @AssetFilter",
+                var result = await _context.Set<AssetList>().FromSqlRaw("exec Pro_Asset_SelectAll @CompanyID, @UserID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @AssetFilter",
                     pCompanyID, pUserID, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir, pAssetFilter).ToListAsync();
-                        result.Select(c => {
-                            c.AssetOwnerName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
-                            return c;
-                        }).ToList();
+                result.Select(c => {
+                    c.AssetOwnerName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                    return c;
+                }).ToList();
 
-                    return result;
-                
-            }
-            catch (Exception ex)
-            {
+                return result;
+
+            } catch (Exception ex) {
                 throw ex;
             }
         }

@@ -8,6 +8,7 @@ using CrisesControl.Api.Application.Commands.Assets.GetAssets;
 using CrisesControl.Api.Application.Commands.Assets.UpdateAssets;
 using CrisesControl.Api.Application.Query;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using AssetModel = CrisesControl.Core.Assets.Assets;
 
@@ -18,20 +19,19 @@ namespace CrisesControl.Api.Controllers
     public class AssetController : Controller
     {
         private readonly IMediator _mediator;
-       
+        private readonly IAssetQuery _assetQuery;
 
-        public AssetController(IMediator mediator)
-        {
+
+        public AssetController(IMediator mediator, IAssetQuery assetQuery) {
             _mediator = mediator;
-       
-
+            _assetQuery = assetQuery;
         }
 
-        [HttpGet ("GetAllAssets")]
-        
+        [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetAllAssets([FromQuery] GetAllAssetsRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _assetQuery.GetAllAssets(request);
             return Ok(result);
         }
 
@@ -50,10 +50,10 @@ namespace CrisesControl.Api.Controllers
             return Ok(result);
         }
         [HttpGet]
-        [Route("[action]/{CompanyId:int}/{AssetId:int}")]
+        [Route("{AssetId:int}")]
         public async Task<IActionResult> GetAsset([FromRoute] GetAssetRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _assetQuery.GetAsset(request, cancellationToken);
             return Ok(result);
         }
 

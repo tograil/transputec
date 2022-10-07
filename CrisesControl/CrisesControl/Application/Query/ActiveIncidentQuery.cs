@@ -158,7 +158,7 @@ namespace CrisesControl.Api.Application.Query
                         }
 
                         string action_update = "Reallocated task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 50) + "\" is accepted by " + username + ".";
-                        await _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
+                        _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
                     }
                     else
                     {
@@ -170,7 +170,7 @@ namespace CrisesControl.Api.Application.Query
                         //    grp.Add("ACTION");
                         //}
                         string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 50) + "\" is accepted by " + username + ".";
-                        await _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3, sourceAction: MessageSourceAction);
+                        _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3, sourceAction: MessageSourceAction);
                     }
 
                     response.result = task;
@@ -284,10 +284,10 @@ namespace CrisesControl.Api.Application.Query
                     }
 
                     string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 50) + "\" is completed by " + username + "." + Environment.NewLine + " With comment: " + request.TaskActionReason;
-                    await _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3, request.MessageMethod, null, request.CascadePlanID, sourceAction: SourceAction.TaskCompleted);
+                    _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3, request.MessageMethod, null, request.CascadePlanID, sourceAction: SourceAction.TaskCompleted);
 
-                    _dBCommon.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
-                    _dBCommon.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
+                    await _dBCommon.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
+                    await _dBCommon.DeleteScheduledJob("START_ESCL_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
 
                     //Start the escalation job for the successor tasks
                     await _activeIncidentRepository.CreatePredecessorJobs(task.ActiveIncidentId, task.IncidentTaskId, _currentUser.UserId, _currentUser.TimeZone);
@@ -388,7 +388,7 @@ namespace CrisesControl.Api.Application.Query
                         TaskPtcpntList.Add(new NotificationUserList(task.TaskOwnerId, true));
                         string action_update = "Reallocated task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" declined by " + username + "." + Environment.NewLine + " Comment: " + request.TaskActionReason;
 
-                        await _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, task_action, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
+                        _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, task_action, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
                     }
                     else
                     {
@@ -667,7 +667,7 @@ namespace CrisesControl.Api.Application.Query
 
                     string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" update. : " + request.TaskActionReason;
 
-                    await _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone,
+                    _activeIncidentRepository.send_notifiation_to_groups(grp, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone,
                           NotifyKeyContact, 3, request.MessageMethod, request.MembersToNotify, sourceAction: SourceAction.TaskUpdate);
 
                     await _activeIncidentRepository.AddTaskAction(request.ActiveIncidentTaskID, "Task Update: " + request.TaskActionReason, _currentUser.UserId, 8, _currentUser.TimeZone);
@@ -740,7 +740,7 @@ namespace CrisesControl.Api.Application.Query
                         bool.TryParse(await _activeIncidentRepository.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", _currentUser.CompanyId), out NotifyKeyContact);
 
                         string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 50) + "\" is now owned by " + username + ".";
-                        await _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
+                        _activeIncidentRepository.notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, _currentUser.UserId, _currentUser.CompanyId, _currentUser.TimeZone, NotifyKeyContact, 3);
 
                     }
                     else if (task.DelayedComplete.Year < 2000 || new List<int> { 1, 4, 6, 7 }.Contains(task.TaskStatus))
@@ -941,7 +941,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                await _activeIncidentRepository.SaveActiveTaskAssets(request.ActiveIncidentTaskId, request.TaskAssets, _currentUser.CompanyId, _currentUser.UserId);
+                _activeIncidentRepository.SaveActiveTaskAssets(request.ActiveIncidentTaskId, request.TaskAssets, _currentUser.CompanyId, _currentUser.UserId);
                 var TaskList = await _activeIncidentRepository.GetActiveTaskAsset(request.ActiveIncidentTaskId, _currentUser.CompanyId, _currentUser.UserId);
                 var result = _mapper.Map<List<TaskAssetList>>(TaskList);
                 var response = new SaveActiveTaskAssetResponse();

@@ -24,7 +24,7 @@ namespace CrisesControl.Api.Maintenance {
             var pageNumber = context.HttpContext.Request.Query["pageNumber"];
             var pageIndex = context.HttpContext.Request.Query["start"];
             var dir = context.HttpContext.Request.Query["dir"];
-            var uniqueKey = context.HttpContext.Request.Query["uniqueKey"];
+            var uniqueKey = context.HttpContext.Request.Query["companyKey"];
             var filters = context.HttpContext.Request.Query["filters"];
             var pageSize = context.HttpContext.Request.Query["length"];
             var orderBy = context.HttpContext.Request.Query["orderBy"];

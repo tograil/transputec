@@ -40,8 +40,8 @@ namespace CrisesControl.Infrastructure.Repositories {
         private readonly DBCommon _DBC;
         // private readonly IQueueService _queueService;
 
-        private int CurrentUserID;
-        private int CurrentCompanyID;
+        private int currentUserId;
+        private int currentCompanyId;
         public DateTimeOffset MinTrackingDate = DateTimeOffset.Now;
         public DateTimeOffset MaxTrackingDate = DateTimeOffset.Now;
         public DateTimeOffset NewMaxTrackingDate = DateTimeOffset.Now;
@@ -58,14 +58,14 @@ namespace CrisesControl.Infrastructure.Repositories {
             _DBC = DBC;
             //_queueService = queueService;
 
-            CurrentUserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-            CurrentCompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            currentUserId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            currentCompanyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         }
         public async Task<List<SOSItem>> GetSOSItems(int UserId) {
             try {
 
                 var pUserId = new SqlParameter("@UserID", UserId);
-                var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
+                var pCompanyID = new SqlParameter("@CompanyID", currentCompanyId);
 
                 var result = await _context.Set<SOSItem>().FromSqlRaw("exec Pro_Get_SOS_Alerts {0},{1}", pCompanyID, pUserId).ToListAsync();
 
@@ -76,11 +76,11 @@ namespace CrisesControl.Infrastructure.Repositories {
             }
         }
 
-        public async Task<List<IncidentPingStatsCount>> GetIncidentPingStats(int CompanyID, int NoOfMonth) {
+        public async Task<List<IncidentPingStatsCount>> GetIncidentPingStats(int companyID, int noOfMonth) {
             try {
 
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
-                var pNoOfMonth = new SqlParameter("@NoOfMonth", NoOfMonth);
+                var pCompanyID = new SqlParameter("@CompanyID", companyID);
+                var pNoOfMonth = new SqlParameter("@NoOfMonth", noOfMonth);
 
                 var result = await _context.Set<IncidentPingStatsCount>().FromSqlRaw("exec Pro_Report_Dashboard_Incident_Ping_Stats_ByMonth {0},{1}", pCompanyID, pNoOfMonth).ToListAsync();
                 return result;
@@ -91,58 +91,52 @@ namespace CrisesControl.Infrastructure.Repositories {
             return new List<IncidentPingStatsCount>();
         }
 
-        public async Task<DataTablePaging> GetIncidentMessageAck(int MessageId, int MessageAckStatus, int MessageSentStatus, string Source, int RecordStart, int RecordLength,
-            string SearchString = "", string OrderBy = "DateAcknowledge", string OrderDir = "asc", string Filters = "", string UniqueKey = "") {
+        public async Task<DataTablePaging> GetIncidentMessageAck(int messageId, int messageAckStatus, int messageSentStatus, string source, int recordStart, int recordLength,
+            string searchString = "", string orderBy = "DateAcknowledge", string orderDir = "asc", string filters = "", string uniqueKey = "") {
 
-            OrderBy = OrderBy ?? "DateAcknowledge";
-            OrderDir = OrderDir ?? "asc";
-            Source = Source ?? "WEB";
+            orderBy = orderBy ?? "DateAcknowledge";
+            orderDir = orderDir ?? "asc";
+            source = source ?? "WEB";
 
-            if (string.IsNullOrEmpty(OrderBy))
-                OrderBy = "PrimaryEmail";
-
-            if (string.IsNullOrEmpty(OrderDir))
-                OrderDir = "asc";
-
-            var propertyInfo = typeof(MessageAcknowledgements).GetProperty(OrderBy);
+            var propertyInfo = typeof(MessageAcknowledgements).GetProperty(orderBy);
             var incidentMessageListDetails = new List<MessageAcknowledgements>();
             int totalRecord = 0;
 
             string ig = _DBC.LookupWithKey("INITIALS_GENERATOR_URL");
 
-            if (OrderDir == "desc") {
-                incidentMessageListDetails = GetAcknowledgements(MessageId, MessageAckStatus, MessageSentStatus, RecordStart, RecordLength, SearchString,
-                OrderBy, OrderDir, Filters, UniqueKey, Source).Result.Select(c => {
+            if (orderDir == "desc") {
+                incidentMessageListDetails = GetAcknowledgements(messageId, messageAckStatus, messageSentStatus, recordStart, recordLength, searchString,
+                orderBy, orderDir, filters, uniqueKey, source).Result.Select(c => {
                     c.ActiveUser = c.UserStatus == 1 ? true : false;
                     c.AcknowledgedUser = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
                     c.UserMobile = new PhoneNumber { ISD = c.MobileNo != null ? c.ISDCode : "", Number = c.MobileNo != null ? c.MobileNo : "" };
                     c.UserLandLine = new PhoneNumber { ISD = c.LLISDCode != null ? c.LLISDCode : "", Number = c.Landline != null ? c.Landline : "" };
                     //if(string.IsNullOrEmpty(c.UserPhoto)) {
-                    c.UserPhoto = ig + "/" + c.UserId.ToString() + "/" + CurrentCompanyID.ToString() + "/" + c.FirstName + " " + c.LastName;
+                    c.UserPhoto = ig + "/" + c.UserId.ToString() + "/" + currentCompanyId.ToString() + "/" + c.FirstName + " " + c.LastName;
                     //}
                     return c;
                 }).OrderByDescending(o => propertyInfo.GetValue(o, null)).ToList();
 
             } else {
-                incidentMessageListDetails = GetAcknowledgements(MessageId, MessageAckStatus, MessageSentStatus, RecordStart, RecordLength, SearchString,
-                OrderBy, OrderDir, Filters, UniqueKey, Source).Result.Select(c => {
+                incidentMessageListDetails = GetAcknowledgements(messageId, messageAckStatus, messageSentStatus, recordStart, recordLength, searchString,
+                orderBy, orderDir, filters, uniqueKey, source).Result.Select(c => {
                     c.ActiveUser = c.UserStatus == 1 ? true : false;
                     c.AcknowledgedUser = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
                     c.UserMobile = new PhoneNumber { ISD = c.MobileNo != null ? c.ISDCode : "", Number = c.MobileNo != null ? c.MobileNo : "" };
                     c.UserLandLine = new PhoneNumber { ISD = c.LLISDCode != null ? c.LLISDCode : "", Number = c.Landline != null ? c.Landline : "" };
                     //if(string.IsNullOrEmpty(c.UserPhoto)) {
-                    c.UserPhoto = ig + "/" + c.UserId.ToString() + "/" + CurrentCompanyID.ToString() + "/" + c.FirstName + " " + c.LastName;
+                    c.UserPhoto = ig + "/" + c.UserId.ToString() + "/" + currentCompanyId.ToString() + "/" + c.FirstName + " " + c.LastName;
                     //}
                     return c;
                 }).OrderBy(o => propertyInfo.GetValue(o, null)).ToList();
             }
 
-            if (MessageAckStatus == 0 || MessageAckStatus == 1) {
-                totalRecord = GetAcknowledgements(MessageId, MessageAckStatus, MessageSentStatus, 0, int.MaxValue, "",
-                "U.UserId", "asc", "", UniqueKey, Source).Result.Count();
+            if (messageAckStatus == 0 || messageAckStatus == 1) {
+                totalRecord = GetAcknowledgements(messageId, messageAckStatus, messageSentStatus, 0, int.MaxValue, "",
+                "U.UserId", "asc", "", uniqueKey, source).Result.Count();
             } else {
-                totalRecord = GetAcknowledgements(MessageId, 0, MessageSentStatus, 0, int.MaxValue, "",
-               "U.UserId", "asc", "", UniqueKey, Source).Result.Count();
+                totalRecord = GetAcknowledgements(messageId, 0, messageSentStatus, 0, int.MaxValue, "",
+               "U.UserId", "asc", "", uniqueKey, source).Result.Count();
             }
 
             DataTablePaging rtn = new DataTablePaging();
@@ -170,7 +164,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var pMessageId = new SqlParameter("@MessageID", MessageId);
                 var pMessageAckStatus = new SqlParameter("@MessageAckStatus", MessageAckStatus);
                 var pMessageSentStatus = new SqlParameter("@MessageSentStatus", MessageSentStatus);
-                var pUserID = new SqlParameter("@UserID", CurrentUserID);
+                var pUserID = new SqlParameter("@UserID", currentUserId);
                 var pSource = new SqlParameter("@Source", Source);
                 var pRecordStart = new SqlParameter("@RecordStart", RecordStart);
                 var pRecordLength = new SqlParameter("@RecordLength", RecordLength);
@@ -217,8 +211,8 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var pSearchString = new SqlParameter("@SearchString", SearchString);
                 var pOrderBy = new SqlParameter("@OrderBy", OrderBy);
                 var pOrderDir = new SqlParameter("@OrderDir", OrderDir);
-                var pUserID = new SqlParameter("@UserID", CurrentUserID);
-                var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
+                var pUserID = new SqlParameter("@UserID", currentUserId);
+                var pCompanyID = new SqlParameter("@CompanyID", currentCompanyId);
                 var pUniqueKey = new SqlParameter("@UniqueKey", UniqueKey);
 
                 var result = await _context.Set<MessageAcknowledgements>().FromSqlRaw("exec Pro_Get_No_Ack_Users @ActiveIncidentID, @UserID, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir, @UniqueKey",
@@ -298,8 +292,8 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var pGroupID = new SqlParameter("@GroupID", GroupID);
                 var pMessageType = new SqlParameter("@MessageType", MessageType);
                 var pObjectMappingID = new SqlParameter("@ObjectMappingID", ObjectMappingID);
-                var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
-                var pUserID = new SqlParameter("@UserID", CurrentUserID);
+                var pCompanyID = new SqlParameter("@CompanyID", currentCompanyId);
+                var pUserID = new SqlParameter("@UserID", currentUserId);
 
                 var result = await _context.Set<PingGroupChartCount>().FromSqlRaw("exec Pro_Report_Ping_Chart @StartDate, @EndDate, @GroupID, @MessageType, @ObjectMappingID, @CompanyID,@UserID",
                 pStartDate, pEndDate, pGroupID, pMessageType, pObjectMappingID, pCompanyID, pUserID).ToListAsync();
@@ -362,8 +356,8 @@ namespace CrisesControl.Infrastructure.Repositories {
 
                 var pStartDate = new SqlParameter("@StartDate", StartDate);
                 var pEndDate = new SqlParameter("@EndDate", EndDate);
-                var pCompanyID = new SqlParameter("@CompanyID", CurrentCompanyID);
-                var pUserID = new SqlParameter("@UserID", CurrentUserID);
+                var pCompanyID = new SqlParameter("@CompanyID", currentCompanyId);
+                var pUserID = new SqlParameter("@UserID", currentUserId);
                 var pRecordStart = new SqlParameter("@RecordStart", start);
                 var pRecordLength = new SqlParameter("@RecordLength", length);
                 var pSearchString = new SqlParameter("@SearchString", SearchString);
@@ -397,7 +391,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 var result = await _context.Set<DeliverySummary>().FromSqlRaw(" exec Pro_Report_Delivery_Summary @MessageID", pMessageID).ToListAsync();
 
                 List<DeliverySummary> DlvRecs = new List<DeliverySummary>();
-                string TimeZoneId = await GetTimeZoneVal(CurrentUserID);
+                string TimeZoneId = await GetTimeZoneVal(currentUserId);
                 List<DateTimeOffset> endTimes = new List<DateTimeOffset>();
 
                 foreach (DeliverySummary rec in result) {
@@ -428,7 +422,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 return Tuple.Create(DlvRecs, methods, maxEndTimes);
 
             } catch (Exception ex) {
-                throw new MessageNotFoundException(CurrentCompanyID, CurrentUserID);
+                throw new MessageNotFoundException(currentCompanyId, currentUserId);
 
                 return null;
             }
@@ -623,7 +617,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 _logger.LogError("Error occured while seeding the database {0},{1}", ex.Message, ex.InnerException);
 
             }
-            throw new CompanyNotFoundException(companyId, CurrentUserID);
+            throw new CompanyNotFoundException(companyId, currentUserId);
 
         }
         public async Task<List<IncidentMessagesRtn>> GetIncidentReportDetails(int IncidentActivationID, int CompanyID, int UserId) {

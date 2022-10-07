@@ -7,7 +7,7 @@ namespace CrisesControl.Api.Application.Commands.Messaging.StartConference
     {
         public List<User> UserList { get; set; }
         public int ObjectID { get; set; }
-        //public int CurrentUserID { get; set; }
+        //public int currentUserId { get; set; }
         //public int CompanyID { get; set; }
         //public string TimeZoneId { get; set; }
     }

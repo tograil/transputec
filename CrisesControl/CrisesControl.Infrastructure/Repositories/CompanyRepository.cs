@@ -565,18 +565,18 @@ public class CompanyRepository : ICompanyRepository {
         }
 
     }
-    public async Task<ReplyChannel> UpdateCompanyComms(int CompanyID, int[] MethodId, int[] BillingUsers, int CurrentAdmin, int CurrentUserID, string TimeZoneId, string Source = "PORTAL") {
+    public async Task<ReplyChannel> UpdateCompanyComms(int CompanyID, int[] MethodId, int[] BillingUsers, int CurrentAdmin, int currentUserId, string TimeZoneId, string Source = "PORTAL") {
         try {
             if (MethodId.Count() > 0) {
 
-                var company = (from CP in _context.Set<CompanyPaymentProfile>()
+                var company = await (from CP in _context.Set<CompanyPaymentProfile>()
                                where CP.CompanyId == CompanyID
-                               select CP).FirstOrDefault();
+                               select CP).FirstOrDefaultAsync();
 
 
-                var DelCommList = (from CC in _context.Set<CompanyComm>()
+                var DelCommList = await (from CC in _context.Set<CompanyComm>()
                                    where CC.CompanyId == CompanyID
-                                   select CC).ToList();
+                                   select CC).ToListAsync();
 
                 List<int> CILIst = new List<int>();
                 foreach (int NewMethodId in MethodId) {
@@ -587,12 +587,12 @@ public class CompanyRepository : ICompanyRepository {
                             CompanyId = CompanyID,
                             Status = 1,
                             ServiceStatus = true,
-                            CreatedBy = CurrentUserID,
-                            UpdatedBy = CurrentUserID,
+                            CreatedBy = currentUserId,
+                            UpdatedBy = currentUserId,
                             UpdatedOn = DateTimeOffset.Now,
                             CreatedOn = DateTimeOffset.Now
                         };
-                        _context.Add(CompanyComms);
+                        await _context.AddAsync(CompanyComms);
                     } else {
                         CILIst.Add(ISExist.CompanyCommsId);
                     }
@@ -606,39 +606,38 @@ public class CompanyRepository : ICompanyRepository {
                         Ditem.Status = 1;
                     }
                 }
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
 
                 //Delete from the UserComms table - all that are not in the company comms 
-                var MethodRemoved = (from CM in _context.Set<CommsMethod>() select CM.CommsMethodId).Except(MethodId).ToList();
+                var MethodRemoved = await (from CM in _context.Set<CommsMethod>() select CM.CommsMethodId).Except(MethodId).ToListAsync();
                 foreach (int RmId in MethodRemoved) {
-                    UpdateUserComms(CompanyID, RmId, 0);
+                    await UpdateUserComms(CompanyID, RmId, 0);
                     if (Source == "ADMIN") {
-                        var rmc = _context.Set<CompanyComm>().Where(w => w.MethodId == RmId && w.CompanyId == CompanyID).FirstOrDefault();
+                        var rmc = await _context.Set<CompanyComm>().Where(w => w.MethodId == RmId && w.CompanyId == CompanyID).FirstOrDefaultAsync();
                         if (rmc != null) {
                             _context.Remove(rmc);
                         }
                     }
                 }
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
 
                 //Add back the method ids to the user for enabled one.
                 foreach (int ActiveMethod in MethodId) {
-                    UpdateUserComms(CompanyID, ActiveMethod, 1);
+                    await UpdateUserComms(CompanyID, ActiveMethod, 1);
                 }
             }
 
             if (BillingUsers.Count() > 0) {
-                var CompanyParameter = (from CP in _context.Set<CompanyParameter>()
+                var CompanyParameter = await (from CP in _context.Set<CompanyParameter>()
                                         where CP.CompanyId == CompanyID && CP.Name == "BILLING_USERS"
-                                        select CP).FirstOrDefault();
+                                        select CP).FirstOrDefaultAsync();
                 string joined_list = string.Join(",", BillingUsers);
 
                 if (CompanyParameter != null) {
                     CompanyParameter.Value = joined_list;
-                    _context.SaveChanges();
+                    await _context.SaveChangesAsync();
                 } else {
-
-                    await AddCompanyParameter("BILLING_USERS", joined_list, CompanyID, CurrentUserID, TimeZoneId);
+                    await AddCompanyParameter("BILLING_USERS", joined_list, CompanyID, currentUserId, TimeZoneId);
                 }
             }
 
@@ -651,7 +650,7 @@ public class CompanyRepository : ICompanyRepository {
                         curadmin.UserRole = "ADMIN";
                         newadmin.RegisteredUser = true;
                         newadmin.UserRole = "SUPERADMIN";
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                     }
                 }
             }
@@ -770,7 +769,7 @@ public class CompanyRepository : ICompanyRepository {
         }
         return 0;
     }
-    private async void UpdateUserComms(int companyId, int userId, int createdUpdatedBy, string timeZoneId = "GMT Standard Time", string pingMethods = "", string incidentMethods = "", bool isNewUser = false, CancellationToken cancellationToken = default) {
+    private async Task UpdateUserComms(int companyId, int userId, int createdUpdatedBy, string timeZoneId = "GMT Standard Time", string pingMethods = "", string incidentMethods = "", bool isNewUser = false, CancellationToken cancellationToken = default) {
         try {
 
             List<string> ImpPingMethods = pingMethods.Split(',').Select(p => p.Trim().ToUpper()).ToList();
@@ -791,18 +790,18 @@ public class CompanyRepository : ICompanyRepository {
             }
 
             if (ImpPingMethods.Count > 0) {
-                ImportUsercomms(companyId, "Ping", userId, ImpPingMethods, createdUpdatedBy, timeZoneId, pingMethods, cancellationToken);
+                await ImportUsercomms(companyId, "Ping", userId, ImpPingMethods, createdUpdatedBy, timeZoneId, pingMethods, cancellationToken);
             }
 
             if (ImpInciMethods.Count > 0) {
-                ImportUsercomms(companyId, "Incident", userId, ImpInciMethods, createdUpdatedBy, timeZoneId, incidentMethods, cancellationToken);
+                await ImportUsercomms(companyId, "Incident", userId, ImpInciMethods, createdUpdatedBy, timeZoneId, incidentMethods, cancellationToken);
             }
 
         } catch (Exception ex) {
             throw new UserNotFoundException(companyId, userId);
         }
     }
-    public async void ImportUsercomms(int companyId, string messageType, int userId, List<string> methodList, int createdUpdatedBy, string timeZoneId, string rawMethodsList, CancellationToken cancellationToken) {
+    public async Task ImportUsercomms(int companyId, string messageType, int userId, List<string> methodList, int createdUpdatedBy, string timeZoneId, string rawMethodsList, CancellationToken cancellationToken) {
         try {
             var CompanyCommsMethodid = await (from CM in _context.Set<CompanyComm>()
                                               join CP in _context.Set<CommsMethod>() on CM.MethodId equals CP.CommsMethodId
@@ -819,7 +818,7 @@ public class CompanyRepository : ICompanyRepository {
             var incMethods = (from PM in UserMethods where PM.UC.MessageType == messageType select PM).ToList();
             if (incMethods.Count <= 0 && (methodList.Count <= 0 && !string.IsNullOrEmpty(rawMethodsList))) {
                 foreach (var comMethod in CompanyCommsMethodid) {
-                    CreateUserComms(userId, companyId, comMethod.MethodId, createdUpdatedBy, timeZoneId, messageType);
+                    await CreateUserComms(userId, companyId, comMethod.MethodId, createdUpdatedBy, timeZoneId, messageType);
                 }
             } else if (methodList.Count > 0 && !string.IsNullOrEmpty(rawMethodsList)) {
                 if (incMethods.Count > 0) {
@@ -828,7 +827,7 @@ public class CompanyRepository : ICompanyRepository {
                 }
                 var method = (from m in CompanyCommsMethodid where methodList.Contains(m.MethodCode) select m).ToList();
                 foreach (var comMethod in method) {
-                    CreateUserComms(userId, companyId, comMethod.MethodId, createdUpdatedBy, timeZoneId, messageType);
+                    await CreateUserComms(userId, companyId, comMethod.MethodId, createdUpdatedBy, timeZoneId, messageType);
                 }
             }
 
@@ -836,7 +835,7 @@ public class CompanyRepository : ICompanyRepository {
             throw new UserNotFoundException(companyId, userId);
         }
     }
-    public async void CreateUserComms(int UserId, int CompanyId, int MethodId, int CreatedUpdatedBy, string TimeZoneId, string CommType) {
+    public async Task CreateUserComms(int UserId, int CompanyId, int MethodId, int CreatedUpdatedBy, string TimeZoneId, string CommType) {
         try {
             var IsCommExist = await _context.Set<UserComm>().Where(UCMM => UCMM.UserId == UserId && UCMM.CompanyId == CompanyId
                              && UCMM.MethodId == MethodId
@@ -875,7 +874,7 @@ public class CompanyRepository : ICompanyRepository {
             throw ex;
         }
     }
-    public async Task<string> DeleteCompany(int TargetCompanyID, int CompanyID, int CurrentUserID, string TimeZoneId) {
+    public async Task<string> DeleteCompany(int TargetCompanyID, int CompanyID, int currentUserId, string TimeZoneId) {
 
         try {
             string Message = "";
@@ -883,7 +882,7 @@ public class CompanyRepository : ICompanyRepository {
             if (CompanyToDelete != null) {
                 CompanyToDelete.Status = 3;
                 CompanyToDelete.CompanyProfile = "MEMBERSHIP_CANCELLED";
-                CompanyToDelete.UpdatedBy = CurrentUserID;
+                CompanyToDelete.UpdatedBy = currentUserId;
                 CompanyToDelete.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                 await _context.SaveChangesAsync();
 
@@ -928,8 +927,8 @@ public class CompanyRepository : ICompanyRepository {
                               .Where(w => (w.om.CompanyId == CompanyID || w.om.CompanyId == null) && w.o.ObjectName == ObjectName)
                               .Select(s => new CompanyObject {
                                   ObjectMappingId = s.om.ObjectMappingId,
-                                  ObjectId = s.om.SourceObjectId,
-                                  CompanyId = CompanyID,
+                                  ObjectId = s.o.ObjectId,
+                                  CompanyId = s.om.CompanyId,
                                   ObjectName = _context.Set<CCObj>()
                                                 .Where(OBJD => OBJD.ObjectId == s.om.SourceObjectId)
                                                 .Select(OBJD => OBJD.ObjectName).FirstOrDefault(),

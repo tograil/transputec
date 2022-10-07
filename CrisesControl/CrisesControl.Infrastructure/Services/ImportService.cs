@@ -252,12 +252,12 @@ namespace CrisesControl.Infrastructure.Services
             return 1;
         }
 
-        public bool createLocationData(string sessionId, int companyId, int currentUserId)
+        public async Task<bool> createLocationData(string sessionId, int companyId, int currentUserId)
         {
 
             try
             {
-                var impLocData = _context.Set<ImportDump>().Where(t => t.SessionId == sessionId).ToList();
+                var impLocData = await _context.Set<ImportDump>().Where(t => t.SessionId == sessionId).ToListAsync();
 
                 if (impLocData.Count > 0)
                 {
@@ -368,7 +368,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         item.LocationId = LocationId;
                         item.LocationCheck = LocationRec;
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                     }
                 }
                 return true;
@@ -594,12 +594,12 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public bool createGroupData(string SessionId, int CompanyId, int UserId)
+        public async Task<bool> createGroupData(string SessionId, int CompanyId, int UserId)
         {
 
             try
             {
-                var ImpDepData = (from Dep in _context.Set<ImportDump>() where Dep.SessionId == SessionId select Dep).ToList();
+                var ImpDepData = await (from Dep in _context.Set<ImportDump>() where Dep.SessionId == SessionId select Dep).ToListAsync();
                 if (ImpDepData.Count > 0)
                 {
 
@@ -707,7 +707,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         item.GroupId = GroupId;
                         item.GroupCheck = GroupRec;
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
 
                     }
                 }
@@ -749,7 +749,7 @@ namespace CrisesControl.Infrastructure.Services
             try
             {
                 string UpdateActionMessage = string.Empty;
-                var uploadData = _context.Set<ImportDump>().Where(t => t.ImportDumpId == ImportRecId).FirstOrDefault();
+                var uploadData = await _context.Set<ImportDump>().Where(t => t.ImportDumpId == ImportRecId).FirstOrDefaultAsync();
                 if (uploadData != null)
                 {
                     if (uploadData.ActionCheck != "ERROR")
@@ -764,7 +764,7 @@ namespace CrisesControl.Infrastructure.Services
                         {
                             LatLng LL = _DBC.GetCoordinates(uploadData.LocationAddress);
 
-                            string TZone = Convert.ToString((from c in _context.Set<Company>() where c.CompanyId == uploadData.CompanyId select c.TimeZone).FirstOrDefault());
+                            string TZone = Convert.ToString(await (from c in _context.Set<Company>() where c.CompanyId == uploadData.CompanyId select c.TimeZone).FirstOrDefaultAsync());
                             Core.Locations.Location newLocation = new Core.Locations.Location();
                             newLocation.CompanyId = uploadData.CompanyId;
                             newLocation.LocationName = uploadData.Location;
@@ -783,7 +783,7 @@ namespace CrisesControl.Infrastructure.Services
 
                             if (uploadData.Action.ToUpper() == "DELETE")
                             {
-                                _locationRepository.DeleteLocation((int)uploadData.LocationId, cancellationToken);
+                                await _locationRepository.DeleteLocation((int)uploadData.LocationId, cancellationToken);
                                 UpdateActionMessage += "Location is deleted" + Environment.NewLine;
                                 uploadData.ActionCheck = DeletedCheck;
 
@@ -820,7 +820,7 @@ namespace CrisesControl.Infrastructure.Services
                         uploadData.ValidationMessage = UpdateActionMessage;
 
                         uploadData.ImportAction = "Imported";
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                         Result.ErrorId = 0;
                         Result.Message = UpdateActionMessage;
                     }
@@ -867,7 +867,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public void ImportToDump(int UserId, int CompanyId, string SessionId,
+        public async Task ImportToDump(int UserId, int CompanyId, string SessionId,
            string FirstName, string Surname, string Email, string ISD, string Phone, string LLISD, string Landline, string UserRole, string Status, string Action,
            string Group, string GroupStatus,
            string Department, string DepartmentStatus,
@@ -942,8 +942,8 @@ namespace CrisesControl.Infrastructure.Services
                     IMPDump.UpdatedBy = createdUpdatedBy;
                 IMPDump.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
-                _context.Set<ImportDump>().Add(IMPDump);
-                _context.SaveChanges();
+                await _context.Set<ImportDump>().AddAsync(IMPDump);
+                await _context.SaveChangesAsync();
             }
             catch (Exception ex) { throw ex; }
         }
@@ -1199,7 +1199,7 @@ namespace CrisesControl.Infrastructure.Services
 
                 int UserIdToUpdate = -1;
 
-                var UploadData = (from UIT in _context.Set<ImportDump>() where UIT.ImportDumpId == ImportRecId select UIT).FirstOrDefault();
+                var UploadData = await (from UIT in _context.Set<ImportDump>() where UIT.ImportDumpId == ImportRecId select UIT).FirstOrDefaultAsync();
                 if (UploadData != null)
                 {
 
@@ -1278,10 +1278,10 @@ namespace CrisesControl.Infrastructure.Services
                         else if (UploadData.EmailCheck.ToUpper() == "DUPLICATE" || UploadData.EmailCheck.ToUpper() == "OK")
                         { //Existing user update
 
-                            var userUpdate = (from U in _context.Set<User>()
+                            var userUpdate = await (from U in _context.Set<User>()
                                               where U.PrimaryEmail == UploadData.Email
                                               && U.CompanyId == UploadData.CompanyId
-                                              select U).FirstOrDefault();
+                                              select U).FirstOrDefaultAsync();
 
                             if (userUpdate != null)
                             {
@@ -1291,8 +1291,8 @@ namespace CrisesControl.Infrastructure.Services
                                 {
                                     if (userUpdate.RegisteredUser != true)
                                     {
-                                        var user = _context.Set<User>().Where(t => t.UserId == userUpdate.UserId).FirstOrDefault();
-                                        _userRepository.DeleteUser(user, CancellationToken.None);
+                                        var user = await _context.Set<User>().Where(t => t.UserId == userUpdate.UserId).FirstOrDefaultAsync();
+                                        await _userRepository.DeleteUser(user, CancellationToken.None);
                                         UploadData.ActionCheck = DeletedCheck;
                                         UpdateActionMessage += "User has been deleted" + Environment.NewLine;
                                     }
@@ -1373,18 +1373,18 @@ namespace CrisesControl.Infrastructure.Services
                                             userUpdate.Status = Status;
 
                                         if (Status == 0 && !string.IsNullOrEmpty(UploadData.Status))
-                                            _DBC.RemoveUserDevice(userUpdate.UserId);
+                                            await _DBC.RemoveUserDevice(userUpdate.UserId);
                                     }
 
                                     if (CurrentUserId > 0)
                                         userUpdate.UpdatedBy = CurrentUserId;
 
                                     userUpdate.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
-                                    _context.SaveChanges();
+                                    await _context.SaveChangesAsync();
 
                                     await _userRepository.CreateUserSearch(userUpdate.UserId, userUpdate.FirstName, userUpdate.LastName, userUpdate.Isdcode, userUpdate.MobileNo, userUpdate.PrimaryEmail, CompanyId);
 
-                                    _userRepository.CreateSMSTriggerRight(CompanyId, userUpdate.UserId, userUpdate.UserRole, false, userUpdate.Isdcode, userUpdate.MobileNo, true);
+                                    await _userRepository.CreateSMSTriggerRight(CompanyId, userUpdate.UserId, userUpdate.UserRole, false, userUpdate.Isdcode, userUpdate.MobileNo, true);
 
                                     UploadData.ActionCheck = OverrideCheck;
                                     UpdateActionMessage += "Account details updated" + Environment.NewLine;
@@ -1407,7 +1407,7 @@ namespace CrisesControl.Infrastructure.Services
                                         UploadData.LocationCheck.ToUpper() == "DUPLICATE")
                                 {
                                     //Remove the user from the location assignment
-                                    _DBC.RemoveUserObjectRelation("LOCATION", UserIdToUpdate, (int)UploadData.LocationId, CompanyId, CurrentUserId, TimeZoneId);
+                                    await _DBC.RemoveUserObjectRelation("LOCATION", UserIdToUpdate, (int)UploadData.LocationId, CompanyId, CurrentUserId, TimeZoneId);
                                     UpdateActionMessage += "Location removed from user profile" + Environment.NewLine;
 
                                 }
@@ -1470,7 +1470,7 @@ namespace CrisesControl.Infrastructure.Services
                                 UploadData.GroupCheck.ToUpper() == "DUPLICATE")
                                 {
                                     //Remove the user from the location assignment
-                                    _DBC.RemoveUserObjectRelation("GROUP", UserIdToUpdate, (int)UploadData.GroupId, CompanyId, CurrentUserId, TimeZoneId);
+                                    await _DBC.RemoveUserObjectRelation("GROUP", UserIdToUpdate, (int)UploadData.GroupId, CompanyId, CurrentUserId, TimeZoneId);
                                     UpdateActionMessage += "Group removed from user profile" + Environment.NewLine;
 
                                 }
@@ -1513,7 +1513,7 @@ namespace CrisesControl.Infrastructure.Services
                                 UploadData.DepartmentCheck.ToUpper() == "DUPLICATE")
                                 {
                                     //Remove the user from the location assignment
-                                    _DBC.RemoveUserObjectRelation("DEPARTMENT", UserIdToUpdate, (int)UploadData.GroupId, CompanyId, CurrentUserId, TimeZoneId);
+                                    await _DBC.RemoveUserObjectRelation("DEPARTMENT", UserIdToUpdate, (int)UploadData.GroupId, CompanyId, CurrentUserId, TimeZoneId);
                                     UpdateActionMessage += "Department removed from user profile" + Environment.NewLine;
                                 }
                                 else if (UploadData.DepartmentAction.ToUpper() == "ADD" || UploadData.DepartmentAction.ToUpper() == "UPDATE")
@@ -1556,15 +1556,15 @@ namespace CrisesControl.Infrastructure.Services
 
                                     if (UploadData.EmailCheck.ToUpper() == "NEW")
                                     {
-                                        _userRepository.CreateUserSecurityGroup(UserIdToUpdate, (int)UploadData.SecurityGroupId, CurrentUserId, CompanyId, "Standard");
+                                        await _userRepository.CreateUserSecurityGroup(UserIdToUpdate, (int)UploadData.SecurityGroupId, CurrentUserId, CompanyId, "Standard");
                                     }
                                     else
                                     {
                                         if (updateRole == "true")
                                         {
-                                            var UpdateSecurity = (from USG in _context.Set<UserSecurityGroup>()
+                                            var UpdateSecurity = await (from USG in _context.Set<UserSecurityGroup>()
                                                                   where USG.UserId == UserIdToUpdate
-                                                                  select USG).ToList();
+                                                                  select USG).ToListAsync();
                                             bool secItemExist = false;
                                             if (UpdateSecurity != null)
                                             {
@@ -1573,7 +1573,7 @@ namespace CrisesControl.Infrastructure.Services
                                                     if (secitem.SecurityGroupId != UploadData.SecurityGroupId)
                                                     {
                                                         _context.Set<UserSecurityGroup>().Remove(secitem);
-                                                        _context.SaveChanges();
+                                                        await _context.SaveChangesAsync();
                                                     }
                                                     else
                                                     {
@@ -1581,12 +1581,12 @@ namespace CrisesControl.Infrastructure.Services
                                                     }
                                                 }
                                                 if (!secItemExist)
-                                                    _userRepository.CreateUserSecurityGroup(UserIdToUpdate, (int)UploadData.SecurityGroupId, CurrentUserId, CompanyId, "Standard");
+                                                    await _userRepository.CreateUserSecurityGroup(UserIdToUpdate, (int)UploadData.SecurityGroupId, CurrentUserId, CompanyId, "Standard");
 
                                             }
                                             else
                                             {
-                                                _userRepository.CreateUserSecurityGroup(UserIdToUpdate, (int)UploadData.SecurityGroupId, CurrentUserId, CompanyId, "Standard");
+                                                await _userRepository.CreateUserSecurityGroup(UserIdToUpdate, (int)UploadData.SecurityGroupId, CurrentUserId, CompanyId, "Standard");
                                             }
                                             UpdateActionMessage += "Menu Access assigned to user" + Environment.NewLine;
                                         }
@@ -1599,7 +1599,7 @@ namespace CrisesControl.Infrastructure.Services
                             }
 
                             //Handle the Comms Method
-                            _userRepository.UpdateUserComms(UploadData.CompanyId, UserIdToUpdate, CurrentUserId, TimeZoneId, UploadData.PingMethods, UploadData.IncidentMethods, IsNew);
+                            await _userRepository.UpdateUserComms(UploadData.CompanyId, UserIdToUpdate, CurrentUserId, TimeZoneId, UploadData.PingMethods, UploadData.IncidentMethods, IsNew);
 
                             if (SendInvite && UploadData.EmailCheck.ToUpper() == "NEW")
                             {
@@ -1611,7 +1611,7 @@ namespace CrisesControl.Infrastructure.Services
                         UploadData.ImportAction = "Imported";
                         UploadData.UserId = UserIdToUpdate;
 
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                         Result.ErrorId = 0;
                         Result.Message = UpdateActionMessage;
                         importUserId = UserIdToUpdate;

@@ -22,10 +22,11 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetAllGroupResponse> GetAllGroup(GetAllGroupRequest request, CancellationToken cancellationToken)
         {
-            var groups = await _groupRepository.GetAllGroups(request.CompanyId, request.UserId, request.IncidentId);
-            var result = new GetAllGroupResponse();
-            result.Data = groups;
-            return result;
+            var groups = await _groupRepository.GetAllGroups(request.CompanyId, request.IncidentId, request.FilterVirtual);
+            var result = _mapper.Map<List<GroupDetail>>(groups.ToList());
+            var response = new GetAllGroupResponse();
+            response.Data = result;
+            return response;
         }
 
         public async Task<GetGroupResponse> GetGroup(GetGroupRequest request, CancellationToken cancellationToken)

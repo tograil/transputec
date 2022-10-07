@@ -54,7 +54,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
         }
 
-        public async Task<int> AU_LibSOPHeader(int SOPHeaderID, int IncidentID, string SOPVersion, DateTimeOffset NextReviewDate, int CurrentUserID, int CompanyID, int Status = 1,  string TimeZoneId = "GMT Standard Time")
+        public async Task<int> AU_LibSOPHeader(int SOPHeaderID, int IncidentID, string SOPVersion, DateTimeOffset NextReviewDate, int currentUserId, int CompanyID, int Status = 1,  string TimeZoneId = "GMT Standard Time")
         {
             int Rt_SopHeaderId = 0;
             try
@@ -67,7 +67,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                         sop_head.ReviewDate = NextReviewDate;
                         sop_head.Sopversion = SOPVersion;
-                        sop_head.UpdatedBy = CurrentUserID;
+                        sop_head.UpdatedBy = currentUserId;
                         sop_head.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                         sop_head.IncidentId = IncidentID;
                         _context.Update(sop_head);
@@ -83,9 +83,9 @@ namespace CrisesControl.Infrastructure.Repositories
                     sop_head.CompanyId = CompanyID;
                     sop_head.Sopversion = SOPVersion;
                     sop_head.IncidentId = IncidentID;
-                    sop_head.CreatedBy = CurrentUserID;
+                    sop_head.CreatedBy = currentUserId;
                     sop_head.CreatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
-                    sop_head.UpdatedBy = CurrentUserID;
+                    sop_head.UpdatedBy = currentUserId;
                     sop_head.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     await _context.AddAsync(sop_head);
                     await _context.SaveChangesAsync();
@@ -136,7 +136,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             
         }
-        public async Task<int> AU_LibContent(int ContentID, string ContentText, int Status,int CurrentUserID, string TimeZoneId)
+        public async Task<int> AU_LibContent(int ContentID, string ContentText, int Status,int currentUserId, string TimeZoneId)
         {
             try
             {
@@ -164,11 +164,11 @@ namespace CrisesControl.Infrastructure.Repositories
                     LibContent content = new LibContent();
                     content.ContentText = ContentText;
                     content.Status = Status;
-                    content.CreatedBy = CurrentUserID;
+                    content.CreatedBy = currentUserId;
                     content.Checksum = Checksum;
                     content.PrimaryContentId = PrimaryContentID;
                     content.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
-                    content.UpdatedBy = CurrentUserID;
+                    content.UpdatedBy = currentUserId;
                     content.UpdatedOn = DateTime.Now.GetDateTimeOffset( TimeZoneId);
                    await _context.AddAsync(content);
                     await _context.SaveChangesAsync();
@@ -216,7 +216,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             
         }
-        public async Task AU_LibContentTag(int ContentID, List<int> Tags,int CurrentUserID,  string TimeZoneId)
+        public async Task AU_LibContentTag(int ContentID, List<int> Tags,int currentUserId,  string TimeZoneId)
         {
             try
             {
@@ -237,9 +237,9 @@ namespace CrisesControl.Infrastructure.Repositories
                     LibContentTag tags = new LibContentTag();
                     tags.TagId = TagID;
                     tags.LibContentId = ContentID;
-                    tags.CreatedBy = CurrentUserID;
+                    tags.CreatedBy = currentUserId;
                     tags.CreatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
-                    tags.UpdatedBy = CurrentUserID;
+                    tags.UpdatedBy = currentUserId;
                     tags.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                     await  _context.AddAsync(tags);
                     await _context.SaveChangesAsync();

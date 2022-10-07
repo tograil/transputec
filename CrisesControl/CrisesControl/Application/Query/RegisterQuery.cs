@@ -157,7 +157,7 @@ namespace CrisesControl.Api.Application.Query
             var CompanyStatus = await _companyRepository.GetCompanyByID(_currentUser.CompanyId);
             if (CompanyStatus != null)
             {
-               // var newReg = _mapper.Map<Company>(CompanyStatus);
+                // var newReg = _mapper.Map<Company>(CompanyStatus);
                 await _incidentRepository.CopyIncidentToCompany(_currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
 
                 CompanyStatus.CompanyProfile = "ON_TRIAL";

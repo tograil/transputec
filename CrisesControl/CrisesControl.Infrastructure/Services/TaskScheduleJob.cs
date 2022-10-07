@@ -101,7 +101,7 @@ namespace CrisesControl.Infrastructure.Services
                             }
 
                             string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 70) + "\" " + escalation_type;
-                           await _activeIncidentRepository.send_notifiation_to_groups(groups, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, task.UpdatedBy, task.CompanyId, TimeZoneId, false, 4, CommsMethod, sourceAction: SourceAction.TaskEscalation);
+                           _activeIncidentRepository.send_notifiation_to_groups(groups, task.ActiveIncidentId, task.ActiveIncidentTaskId, action_update, task.UpdatedBy, task.CompanyId, TimeZoneId, false, 4, CommsMethod, sourceAction: SourceAction.TaskEscalation);
                         }
                     }
                     else

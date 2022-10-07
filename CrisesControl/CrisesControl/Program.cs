@@ -22,6 +22,10 @@ using GrpcAuditLogClient;
 using System.Net.WebSockets;
 using CrisesControl.Infrastructure.Repositories;
 using CrisesControl.Core.CCWebSocket.Repositories;
+using Quartz;
+using CrisesControl.Infrastructure.Services.Jobs;
+using CrisesControl.Infrastructure.Jobs;
+using Quartz.Spi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +42,7 @@ builder.Services.AddDbContext<CrisesControlContext>(options =>
 
 builder.Services.Configure<JobsMongoSettings>(
     builder.Configuration.GetSection("JobsMongoSettings"));
+
 builder.Services.Configure<AuditLogOptions>(builder.Configuration.GetSection("AuditLog"));
 
 // Add services to the container.
@@ -105,6 +110,20 @@ builder.Host.UseSerilog((ctx, lc) =>
     lc.ReadFrom.Configuration(ctx.Configuration);
 });
 
+builder.Services.Configure<QuartzOptions>(builder.Configuration.GetSection("Quartz"));
+builder.Services.AddQuartz(q => {
+    q.UseMicrosoftDependencyInjectionJobFactory();
+    q.UsePersistentStore(c => {
+        c.UseJsonSerializer();
+        c.UseSqlServer(builder.Configuration.GetConnectionString("quartzDbConnection"));
+    });
+});
+
+builder.Services.AddQuartzHostedService(options =>
+{
+    options.WaitForJobsToComplete = true;
+});
+
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder => {
     containerBuilder.RegisterModule(new ApiModule());
     containerBuilder.RegisterModule(new MainCoreModule());
@@ -152,6 +171,20 @@ builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.Authen
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+var dbcontext = app.Services.GetService<CrisesControlContext>();
+if (dbcontext != null) {
+    var pParam = new Microsoft.Data.SqlClient.SqlParameter("@ParamNames", string.Empty);
+    var allSysParameters = dbcontext.Set<CrisesControl.Core.Models.SysParameter>().FromSqlRaw("exec Pro_Global_GetSystemParameter @ParamNames", pParam).AsEnumerable()
+        .Select(c => new CrisesControl.Core.Models.SysParameter { Name = c.Name, Value = c.Value }).ToList().Distinct();
+
+    foreach (CrisesControl.Core.Models.SysParameter param in allSysParameters) {
+        if (!CrisesControl.SharedKernel.Utils.CCConstants.GlobalVars.ContainsKey(param.Name)) {
+            CrisesControl.SharedKernel.Utils.CCConstants.GlobalVars.Add(param.Name, param.Value);
+        }
+    }
+}
+
 
 app.UseSwagger();
 app.UseSwaggerUI(setupAction => {

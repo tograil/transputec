@@ -41,24 +41,11 @@ namespace CrisesControl.Api.Application.Query
             _currentUser = currentUser;
         }
 
-        public async Task<GetAllUserResponse> GetUsers(Commands.Users.GetAllUser.GetAllUserRequest request, CancellationToken cancellationToken)
+        public async Task<GetAllUserResponse> GetUsers(GetAllUserRequest request, CancellationToken cancellationToken)
         {
-
-           
-            GetAllUserRequestList getAllUser = new GetAllUserRequestList();
-            getAllUser.ActiveOnly = request.ActiveOnly;
-            getAllUser.CompanyKey = request.CompanyKey;
-            getAllUser.Filters = request.Filters;
-            getAllUser.KeyHolderOnly = request.KeyHolderOnly;
-            getAllUser.OrderBy = _paging.OrderBy;
-            getAllUser.OrderDir = request.OrderDir;
-            getAllUser.RecordLength = _paging.PageSize;
-            getAllUser.RecordStart = _paging.PageNumber;
-            getAllUser.SearchString = request.SearchString;
-            getAllUser.SkipDeleted = request.SkipDeleted;
-            getAllUser.SkipInActive = request.SkipInActive;
-            var users = await _UserRepository.GetAllUsers(getAllUser);
-            var result = _mapper.Map<List<User>>(users);
+            var users = await _UserRepository.GetAllUsers(request.CompanyId, request.ActiveOnly,request.SkipInActive,request.SkipDeleted,request.KeyHolderOnly, 
+                _paging.Start, _paging.Length, _paging.Search, _paging.OrderBy, _paging.Dir, _paging.Filters, _paging.UniqueKey);
+            var result = _mapper.Map<DataTablePaging>(users);
             var response = new GetAllUserResponse();
             response.Data = result;
             return response;

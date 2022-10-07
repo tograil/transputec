@@ -43,8 +43,14 @@ namespace CrisesControl.Api.Application.Query {
             return result;
         }
 
-        public async Task<GetMessageResponsesResponse> GetMessageResponses(GetMessageResponsesRequest request) {
+        public async Task<GetMessageResponsesResponse> GetMessageResponses(GetMessageResponsesRequest request, CancellationToken token) {
             var msgresponse = await _messageRepository.GetMessageResponses(request.MessageType, request.Status);
+
+            if (msgresponse.Count <= 0) {
+                _messageRepository.CopyMessageResponse(_currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone, token);
+                msgresponse = await _messageRepository.GetMessageResponses(request.MessageType, request.Status);
+            }
+
             var response = _mapper.Map<List<CompanyMessageResponse>>(msgresponse);
             var result = new GetMessageResponsesResponse();
             result.Data = response;
@@ -104,6 +110,7 @@ namespace CrisesControl.Api.Application.Query {
 
         public async Task<GetPingInfoResponse> GetPingInfo(GetPingInfoRequest request) {
             var result = await _messageRepository.GetPingInfo(request.MessageId, _currentUser.UserId, _currentUser.CompanyId);
+
             var response = new GetPingInfoResponse();
             response.Data = result;
             response.ErrorCode = System.Net.HttpStatusCode.OK;

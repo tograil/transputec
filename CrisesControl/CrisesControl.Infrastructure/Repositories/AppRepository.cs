@@ -416,7 +416,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                 if ((LastLat != locLat || LastLng != loclng) | CollectAllLog == true)
                                 {
                                     string loc_address = DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
-                                   await MSG.AddUserLocation(userId, userDeviceID, locLat, loclng, loc_address, loc.UserDeviceTime, timeZoneId, companyID);
+                                   MSG.AddUserLocation(userId, userDeviceID, locLat, loclng, loc_address, loc.UserDeviceTime, timeZoneId, companyID);
                                     LastLat = locLat;
                                     LastLng = loclng;
                                 }
@@ -455,7 +455,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                 {
                                     string loc_address = DBC.RetrieveFormatedAddress(loc.Latitude, loc.Longitude);
 
-                                   await MSG.AddUserLocation(userId, userDeviceID, Convert.ToDouble(loc.Latitude), Convert.ToDouble(loc.Longitude), loc_address, loc.UserDeviceTime, timeZoneId, companyID);
+                                   MSG.AddUserLocation(userId, userDeviceID, Convert.ToDouble(loc.Latitude), Convert.ToDouble(loc.Longitude), loc_address, loc.UserDeviceTime, timeZoneId, companyID);
                                     LastLat = Convert.ToDouble(loc.Latitude);
                                     LastLng = Convert.ToDouble(loc.Longitude);
                                 }

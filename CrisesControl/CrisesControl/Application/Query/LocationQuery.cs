@@ -13,26 +13,24 @@ namespace CrisesControl.Api.Application.Query
     public class LocationQuery: ILocationQuery
     {
         private readonly ILocationRepository _locationRepository;
-      
-      
-       
+        private readonly IMapper _mapper;
+
+
         private readonly ICurrentUser _currentUser;
-        public LocationQuery(ILocationRepository locationRepository, ICurrentUser currentUser)
+        public LocationQuery(ILocationRepository locationRepository, IMapper mapper, ICurrentUser currentUser)
         {
             _locationRepository = locationRepository;
-            
+            _mapper = mapper;
             _currentUser = currentUser;
         }
 
         public async Task<GetLocationsResponse> GetLocations(GetLocationsRequest request, CancellationToken cancellationToken)
         {
-           
-
-            var locations = await _locationRepository.GetAllLocations(request.CompanyId);
-            //List<GetLocationResponse> response = _mapper.Map<List<Location>, List<GetLocationResponse>>(locations.ToList());
-            var result = new GetLocationsResponse();
-            result.Data = locations.ToList();
-            return result;
+            var locations = await _locationRepository.GetAllLocations(request.CompanyId, request.FilterVirtual);
+            var result = _mapper.Map<List<LocationDetail>>(locations);
+            var response = new GetLocationsResponse();
+            response.Data = result;
+            return response;
         }
 
         public async Task<GetLocationResponse> GetLocation(GetLocationRequest request, CancellationToken cancellationToken)

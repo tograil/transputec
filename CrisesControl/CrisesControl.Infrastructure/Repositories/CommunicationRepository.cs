@@ -897,7 +897,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 CallStatus = callId = _DBC.Left(callId, 50);
                 if (!string.IsNullOrEmpty(landLineNumber))
                 {
-                    Task<dynamic> recalltask = Task.Factory.StartNew(() => commsAPI.Call(fromNumber, landLineNumber, messageXML, callBackUrl));
+                    Task<dynamic> recalltask = await Task.Factory.StartNew(() => commsAPI.Call(fromNumber, landLineNumber, messageXML, callBackUrl));
                     CommsStatus recallrslt = recalltask.Result;
                     if (recallrslt.Status)
                     {

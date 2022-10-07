@@ -342,7 +342,7 @@ namespace CrisesControl.Api.Application.Helpers
                         if (sourceObjectId > 0)
                         {
                             newSourceObjectId = sourceObjectId;
-                            CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
+                            _ = CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
                         }
 
                         if (!string.IsNullOrEmpty(relatinFilter))
@@ -355,13 +355,13 @@ namespace CrisesControl.Api.Application.Helpers
                             {
                                 newSourceObjectId = _context.Set<Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
                             }
-                            CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
+                            _ = CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
                         }
                     }
                 }
                 else if (relationName.ToUpper() == "DEPARTMENT")
                 {
-                    UpdateUserDepartment(targetObjectId, sourceObjectId, createdUpdatedBy, companyId, timeZoneId);
+                    _ = UpdateUserDepartment(targetObjectId, sourceObjectId, createdUpdatedBy, companyId, timeZoneId);
                 }
             }
             catch (Exception ex)
@@ -370,17 +370,17 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        private void UpdateUserDepartment(int userId, int departmentId, int createdUpdatedBy, int companyId, string timeZoneId)
+        private async Task UpdateUserDepartment(int userId, int departmentId, int createdUpdatedBy, int companyId, string timeZoneId)
         {
             try
             {
-                var user = _context.Set<User>().Where(t => t.UserId == userId).FirstOrDefault();
+                var user = await _context.Set<User>().Where(t => t.UserId == userId).FirstOrDefaultAsync();
                 if (user != null)
                 {
                     user.DepartmentId = departmentId;
                     user.UpdatedBy = createdUpdatedBy;
                     user.UpdatedOn = GetDateTimeOffset(DateTime.Now, timeZoneId);
-                    _context.SaveChanges();
+                    await _context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
@@ -388,13 +388,13 @@ namespace CrisesControl.Api.Application.Helpers
                 throw new UserNotFoundException(companyId, userId);
             }
         }
-        public void CreateNewObjectRelation(int sourceObjectId, int targetObjectId, int objMapId, int createdUpdatedBy, string timeZoneId, int companyId)
+        public async Task CreateNewObjectRelation(int sourceObjectId, int targetObjectId, int objMapId, int createdUpdatedBy, string timeZoneId, int companyId)
         {
             try
             {
-                bool isAllObjeRelationExist = _context.Set<ObjectRelation>().Where(t => t.TargetObjectPrimaryId == targetObjectId
+                bool isAllObjeRelationExist = await _context.Set<ObjectRelation>().Where(t => t.TargetObjectPrimaryId == targetObjectId
                 && t.ObjectMappingId != objMapId
-                && t.SourceObjectPrimaryId == sourceObjectId).Any();
+                && t.SourceObjectPrimaryId == sourceObjectId).AnyAsync();
 
                 if (!isAllObjeRelationExist)
                 {
@@ -409,8 +409,8 @@ namespace CrisesControl.Api.Application.Helpers
                         UpdatedOn = GetLocalTime(timeZoneId, System.DateTime.Now),
                         ReceiveOnly = false
                     };
-                    _context.Set<ObjectRelation>().Add(tblDepObjRel);
-                    _context.SaveChanges();
+                    await _context.Set<ObjectRelation>().AddAsync(tblDepObjRel);
+                    await _context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
@@ -419,7 +419,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public int AddPwdChangeHistory(int userId, string newPassword)
+        public async Task<int> AddPwdChangeHistory(int userId, string newPassword)
         {
             try
             {
@@ -427,8 +427,8 @@ namespace CrisesControl.Api.Application.Helpers
                 PH.UserId = userId;
                 PH.LastPassword = newPassword;
                 PH.ChangedDateTime = GetDateTimeOffset(DateTime.Now);
-                _context.Set<PasswordChangeHistory>().Add(PH);
-                _context.SaveChanges();
+                await _context.Set<PasswordChangeHistory>().AddAsync(PH);
+                await _context.SaveChangesAsync();
                 return PH.Id;
             }
             catch (Exception ex)
@@ -607,25 +607,25 @@ namespace CrisesControl.Api.Application.Helpers
                         if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
                         { //Have positive balance + More than the minimum balance required.
                             comp.CompanyProfile = "SUBSCRIBED";
-                            _set_comms_status(companyId, stopped_comms, true);
+                            await _set_comms_status(companyId, stopped_comms, true);
                         }
                         else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
                         { //Used the overdraft amount as well, so stop their SMS and Phone
                             comp.CompanyProfile = "STOP_MESSAGING";
                             sendAlert = true;
-                            _set_comms_status(companyId, stopped_comms, false);
+                            await _set_comms_status(companyId, stopped_comms, false);
                         }
                         else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
                         { //Using the overdraft facility, can still use the system
                             comp.CompanyProfile = "ON_CREDIT";
                             sendAlert = true;
-                            _set_comms_status(companyId, stopped_comms, true);
+                            await _set_comms_status(companyId, stopped_comms, true);
                         }
                         else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
                         { //Less than the minimum balance, just send an alert, can still use the system.
                             comp.CompanyProfile = "LOW_BALANCE";
                             sendAlert = true;
-                            _set_comms_status(companyId, stopped_comms, true);
+                            await _set_comms_status(companyId, stopped_comms, true);
                         }
                         comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
                         _context.Update(comp_pp);
@@ -653,14 +653,14 @@ namespace CrisesControl.Api.Application.Helpers
             }
 
         }
-        public void _set_comms_status(int companyId, List<string> methods, bool status)
+        public async Task _set_comms_status(int companyId, List<string> methods, bool status)
         {
             try
             {
                  _context.Set<CompanyComm>().Include( CO => CO.CommsMethod)
                  .Where(CM=> CM.CompanyId == companyId && methods.Contains(CM.CommsMethod.MethodCode)
                  ).ToList().ForEach(x => x.ServiceStatus = status);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -906,28 +906,28 @@ namespace CrisesControl.Api.Application.Helpers
                 return testResult;
             }
         }
-        public void RemoveUserObjectRelation(string relationName, int userId, int sourceObjectId, int companyId, int currentUserId, string timeZoneId)
+        public async Task RemoveUserObjectRelation(string relationName, int userId, int sourceObjectId, int companyId, int currentUserId, string timeZoneId)
         {
             try
             {
                 if (relationName.ToUpper() == "GROUP" || relationName.ToUpper() == "LOCATION")
                 {
-                    var ObjMapId =  _context.Set<ObjectMapping>().Include(o=>o.Object) 
+                    var ObjMapId =  await _context.Set<ObjectMapping>().Include(o=>o.Object) 
                                     .Where(OBJ=> OBJ.Object.ObjectTableName == relationName
-                                    ).Select(a => a.ObjectMappingId).FirstOrDefault();
+                                    ).Select(a => a.ObjectMappingId).FirstOrDefaultAsync();
 
-                    var getRelationRec =  _context.Set<ObjectRelation>()
+                    var getRelationRec =  await _context.Set<ObjectRelation>()
                                           .Where(OR=> OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == userId &&
-                                          OR.SourceObjectPrimaryId == sourceObjectId).FirstOrDefault();
+                                          OR.SourceObjectPrimaryId == sourceObjectId).FirstOrDefaultAsync();
                     if (getRelationRec != null)
                     {
                         _context.Set<ObjectRelation>().Remove(getRelationRec);
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                     }
                 }
                 else if (relationName.ToUpper() == "DEPARTMENT")
                 {
-                    UpdateUserDepartment(userId, 0, currentUserId, companyId, timeZoneId);
+                    await UpdateUserDepartment(userId, 0, currentUserId, companyId, timeZoneId);
                 }
             }
             catch (Exception ex)
@@ -938,11 +938,11 @@ namespace CrisesControl.Api.Application.Helpers
         }
 
 
-        public void RemoveUserDevice(int userId, bool tokenReset = false)
+        public async Task RemoveUserDevice(int userId, bool tokenReset = false)
         {
             try
             {
-                var devices = (from UD in _context.Set<UserDevice>() where UD.UserId == userId select UD).ToList();
+                var devices = await (from UD in _context.Set<UserDevice>() where UD.UserId == userId select UD).ToListAsync();
                 if (!tokenReset)
                 {
                     _context.Set<UserDevice>().RemoveRange(devices);
@@ -951,7 +951,7 @@ namespace CrisesControl.Api.Application.Helpers
                 {
                     devices.ForEach(s => s.DeviceToken = "");
                 }
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -970,10 +970,9 @@ namespace CrisesControl.Api.Application.Helpers
                 var pQueueName = new SqlParameter("@QueueName", queueName);
                 var pAdditionalInfo = new SqlParameter("@AdditionalInfo", additionalInfo);
 
-                var result = _context.Set<CrisesControl.Core.Messages.Results>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
-                      pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).AsEnumerable();
+                await _context.Database.ExecuteSqlRawAsync("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
+                      pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo);
 
-                result.FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -1218,7 +1217,7 @@ namespace CrisesControl.Api.Application.Helpers
             try
             {
 
-                DeleteScheduledJob("SOP_REVIEW_" + sopHeaderId, "REVIEW_REMINDER");
+                await DeleteScheduledJob("SOP_REVIEW_" + sopHeaderId, "REVIEW_REMINDER");
 
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;

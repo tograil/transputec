@@ -25,8 +25,8 @@ namespace CrisesControl.Infrastructure.Repositories
     public class GroupRepository: IGroupRepository
     {
         private readonly CrisesControlContext _context;
-        private int UserID;
-        private int CompanyID;
+        private int currentUserId;
+        private int currentCompanyId;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<GroupRepository> _logger;
 
@@ -35,8 +35,8 @@ namespace CrisesControl.Infrastructure.Repositories
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
-            CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-            UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            currentCompanyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            currentUserId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
         }
 
         public async Task<int> CreateGroup(Groups group, CancellationToken token)
@@ -86,20 +86,21 @@ namespace CrisesControl.Infrastructure.Repositories
         }
 
 
-        public async Task<List<GroupDetail>> GetAllGroups(int companyId, int userId = 0, int incidentId = 0, bool filterVirtual = false)
+        public async Task<List<GroupDetail>> GetAllGroups(int companyId, int incidentId = 0, bool filterVirtual = false)
         {
             var pCompanyID = new SqlParameter("@CompanyID", companyId);
-            var pUserID = new SqlParameter("@UserID", userId);
+            var pUserID = new SqlParameter("@UserID", currentUserId);
             var pFilterVirtual = new SqlParameter("@FilterVirtual", filterVirtual ? filterVirtual : false);
             var pIncidentId = new SqlParameter("@IncidentId", incidentId);
 
-            var groupList =  _context.Set<GroupDetail>().FromSqlRaw("EXEC Pro_Get_Group_List @CompanyID, @UserID, @FilterVirtual, @IncidentId",
-                pCompanyID, pUserID, pFilterVirtual, pIncidentId).AsEnumerable();
-            List<GroupDetail> response =  groupList.Select(t=> new GroupDetail() { 
-                CreatedByName = new UserFullName { Firstname = t.FirstName, Lastname = t.LastName },
-                UpdatedByName = new UserFullName { Firstname = t.FirstName, Lastname = t.LastName }, 
-                }).ToList();
-            return response;
+            var result =  await _context.Set<GroupDetail>().FromSqlRaw("EXEC Pro_Get_Group_List @CompanyID, @UserID, @FilterVirtual, @IncidentId",
+                pCompanyID, pUserID, pFilterVirtual, pIncidentId).ToListAsync();
+
+            result.Select(async c => {
+                c.CreatedByName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+            }).ToList();
+
+            return result;
         }
 
         public async Task<int> UpdateGroup(Groups group, CancellationToken token)
@@ -137,8 +138,8 @@ namespace CrisesControl.Infrastructure.Repositories
                 var pGroupID = new SqlParameter("@GroupID", targetId);
                 var pMemberShipType = new SqlParameter("@MemberShipType", memberShipType.ToMemString());
                 var pLinkType = new SqlParameter("@LinkType", linkType);
-                var pUserID = new SqlParameter("@UserID", UserID);
-                var pCompanyID = new SqlParameter("@CompanyID", CompanyID);
+                var pUserID = new SqlParameter("@UserID", currentUserId);
+                var pCompanyID = new SqlParameter("@CompanyID", currentCompanyId);
 
                 var result = await _context.Set<GroupLink>().FromSqlRaw("exec Pro_Get_Group_Links @GroupID, @LinkType, @MemberShipType, @UserID, @CompanyID",
                     pGroupID, pLinkType, pMemberShipType, pUserID, pCompanyID).ToListAsync();
@@ -194,7 +195,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     var item = await (from I in _context.Set<SegGroupDepartmentLink>() where I.GroupId == sourceId && I.DepartmentId == targetId select I).FirstOrDefaultAsync();
                     if (action.ToUpper() == "ADD" && item == null)
                     {
-                        await CreateSegregtionLink(sourceId, targetId, linkType, CompanyID);
+                        await CreateSegregtionLink(sourceId, targetId, linkType, currentCompanyId);
                     }
                     else if (action.ToUpper() == "REMOVE" && item != null)
                     {
@@ -207,7 +208,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     var item = await (from I in _context.Set<SegGroupDepartmentLink>() where I.DepartmentId == sourceId && I.GroupId == targetId select I).FirstOrDefaultAsync();
                     if (action.ToUpper() == "ADD" && item == null)
                     {
-                        await CreateSegregtionLink(sourceId, targetId, linkType, CompanyID);
+                        await CreateSegregtionLink(sourceId, targetId, linkType, currentCompanyId);
                     }
                     else if (action.ToUpper() == "REMOVE" && item != null)
                     {
@@ -220,7 +221,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     var item = await (from I in _context.Set<SegGroupIncidentLink>() where I.GroupId == sourceId && I.IncidentId == targetId select I).FirstOrDefaultAsync();
                     if (action.ToUpper() == "ADD" && item == null)
                     {
-                        await CreateSegregtionLink(sourceId, targetId, linkType, CompanyID);
+                        await CreateSegregtionLink(sourceId, targetId, linkType, currentCompanyId);
                     }
                     else if (action.ToUpper() == "REMOVE" && item != null)
                     {
@@ -233,7 +234,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     var item = await (from I in _context.Set<SegGroupLocationLink>() where I.GroupId == sourceId && I.LocationId == targetId select I).FirstOrDefaultAsync();
                     if (action.ToUpper() == "ADD" && item == null)
                     {
-                        await CreateSegregtionLink(sourceId, targetId, linkType, CompanyID);
+                        await CreateSegregtionLink(sourceId, targetId, linkType, currentCompanyId);
                     }
                     else if (action.ToUpper() == "REMOVE" && item != null)
                     {

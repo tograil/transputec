@@ -30,7 +30,7 @@ public interface IIncidentRepository
 
     Task AddIncidentGroup(int incidentId, int[] groups, int companyId);
 
-    Task CreateIncidentSegLinks(int incidentId, int userId, int companyId);
+    void CreateIncidentSegLinks(int incidentId, int userId, int companyId);
 
     NewIncident CloneIncident(int incidentId, bool keepKeyContact, bool keepIncidentMessage, bool keepTasks,
         bool keepIncidentAsset, bool keepTaskAssets,
@@ -92,7 +92,7 @@ public interface IIncidentRepository
     Task<bool> DeleteCompanyIncidents(int CompanyId, int IncidentId, int CurrentUserId, string TimeZoneId);
     Task<List<ActionLsts>> UpdateCompanyIncidentActions(int CompanyId, int IncidentId, int IncidentActionId, string Title, string ActionDescription,
            IncidentNotificationObjLst[] IncidentParticipants, int[] UsersToNotify, int Status, int CurrentUserId, string TimeZoneId);
-    Task<UpdateIncidentStatus> ActiveIncidentDetailsById(int CompanyId, int IncidentActivationId, int CurrentUserID, bool isapp = false);
+    Task<UpdateIncidentStatus> ActiveIncidentDetailsById(int CompanyId, int IncidentActivationId, int currentUserId, bool isapp = false);
     Task<List<IncidentLibraryDetails>> IncidentLibrary(int CompanyId);
     Task<List<ActionLsts>> IncidentMessage(int CompanyId, int IncidentId);
     Task<ActionLsts> GetIncidentAction(int CompanyId, int IncidentId, int IncidentActionId);
@@ -103,10 +103,10 @@ public interface IIncidentRepository
     Task UpdateSOSNotificationGroup(int IncidentId, IncidentNotificationObjLst[] NotificationGroup, int CompanyID);
     Task UpdateSOSLocation(int IncidentId, int[] ImpactedLocation);
     Task<List<CmdMessage>> GetCMDMessage(int ActiveIncidentID, int UserID);
-    Task CreateIncidentLocation(AffectedLocation loc, int ActiveIncidentID, int CompanyID);
+    void CreateIncidentLocation(AffectedLocation loc, int ActiveIncidentID, int CompanyID);
     Task ProcessImpactedLocation(int[] LocationID, int IncidentActivationID, int CompanyID, string Action);
     Task<UpdateIncidentStatusReturn> TestWithMe(int IncidentId, int[] ImpactedLocations, int CurrentUserId, int CompanyId, string TimeZoneId);
-    Task CleanUPJob(int ActiveIncidentID);
+    void CleanUPJob(int ActiveIncidentID);
     Task<bool> SaveIncidentJob(int CompanyId, int IncidentId, int IncidentActivationId, string Description, int Severity, int[] ImpactedLocationId,
       string TimeZoneId, int CurrentUserId, IncidentKeyHldLst[] IncidentKeyHldLst, IncidentNotificationObjLst[] InitiateIncidentNotificationObjLst,
       bool MultiResponse, List<AckOption> AckOptions, int AssetId = 0, bool TrackUser = false, bool SilentMessage = false, int[] MessageMethod = null,

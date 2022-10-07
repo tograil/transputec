@@ -28,15 +28,15 @@ namespace CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses {
             Guard.Against.Null(request, nameof(GetMessageResponsesRequest));
             await _getMessageResponseValidator.ValidateAndThrowAsync(request, cancellationToken);
 
-            var result = await _messageQuery.GetMessageResponses(request);
+            var result = await _messageQuery.GetMessageResponses(request, cancellationToken);
 
             if (result.Data.Count <= 0) {
                 int UserID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
                 int CompanyID = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
 
-                await _messageRepository.CopyMessageResponse(CompanyID, UserID, TimeZoneId, cancellationToken);
+                _messageRepository.CopyMessageResponse(CompanyID, UserID, TimeZoneId, cancellationToken);
 
-                var result_again = await _messageQuery.GetMessageResponses(request);
+                var result_again = await _messageQuery.GetMessageResponses(request, cancellationToken);
 
                 return result_again;
             } else {

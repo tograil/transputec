@@ -42,8 +42,7 @@ public class InitiateAndLaunchJob : IJob
             var simulationText = string.Empty;
             if (request.LaunchMode == 4)
             {
-                simulationText =
-                    await _companyRepository.GetCompanyParameter("INCIDENT_SIMULATION_TEXT", request.CompanyId) +
+                simulationText = await _companyRepository.GetCompanyParameter("INCIDENT_SIMULATION_TEXT", request.CompanyId) +
                     " ";
             }
 
@@ -93,7 +92,7 @@ public class InitiateAndLaunchJob : IJob
                 HasTask = incidentToVerify.HasTask
             };
 
-            await _incidentService.InitiateAndLaunchIncident(incidentActivation, incidentSubset);
+            _incidentService.InitiateAndLaunchIncident(incidentActivation, incidentSubset);
 
             _logger.LogInformation("Initiate and launch incident job ended");
         }

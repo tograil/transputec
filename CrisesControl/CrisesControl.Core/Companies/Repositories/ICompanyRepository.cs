@@ -37,7 +37,7 @@ public interface ICompanyRepository
     Task<ReplyChannel> GetReplyChannel(int CompanyID, int UserID);
     Task<CompanyCommunication> GetCompanyComms(int CompanyID, int UserID);
     Task<CompanyAccount> GetCompanyAccount(int CompanyID);
-    Task<ReplyChannel> UpdateCompanyComms(int CompanyID, int[] MethodId, int[] BillingUsers, int CurrentAdmin, int CurrentUserID, string TimeZoneId, string Source = "PORTAL");
+    Task<ReplyChannel> UpdateCompanyComms(int CompanyID, int[] MethodId, int[] BillingUsers, int CurrentAdmin, int currentUserId, string TimeZoneId, string Source = "PORTAL");
     Task<bool> CompanyDataReset(string[] ResetOptions, int CompanyID, string TimeZoneId);
     Task ResetGlobalConfig(int CompanyID, string TimeZoneId);
     Task ResetPings(int CompanyID);
@@ -49,5 +49,5 @@ public interface ICompanyRepository
     Task<CompanyScimProfile> GetScimProfile(int outUserCompanyId);
     Task<List<GroupUsers>> GetGroupUsers(int GroupId, int ObjectMappingId);
     Task<List<CompanyObject>> GetCompanyObject(int CompanyID, string ObjectName);
-    Task<string> DeleteCompany(int TargetCompanyID, int CompanyID, int CurrentUserID, string TimeZoneId);
+    Task<string> DeleteCompany(int TargetCompanyID, int CompanyID, int currentUserId, string TimeZoneId);
 }

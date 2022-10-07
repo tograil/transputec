@@ -22,16 +22,16 @@ namespace CrisesControl.Core.CompanyParameters.Repositories
         Task SaveCascadingDetails(int planID, List<CommsMethodPriority> commsMethod, int companyID);
         Task<bool> SavePriority(string paramName, bool enableSetting, List<CommsMethodPriority> commsMethod, PriorityLevel pingPriority, PriorityLevel incidentPriority,
             SeverityLevel incidentSeverity, string type, int userID, int companyID, string timeZoneId);
-        Task UpdateCascadingAsync(int companyID);
-        Task UpdateOffDuty(int companyID);
+        void UpdateCascadingAsync(int companyID);
+        void UpdateOffDuty(int companyID);
         Task<bool> CompanyDataReset(string[] ResetOptions, int companyID, string timeZoneId);
-        Task ResetGlobalConfig(int companyID, string timeZoneId);
-        Task ResetPings(int companyID);
-        Task ResetActiveIncident(int companyID);
+        void ResetGlobalConfig(int companyID, string timeZoneId);
+        void ResetPings(int companyID);
+        void ResetActiveIncident(int companyID);
         Task<bool> DeleteCascading(int planID, int companyId, int userId);
         Task<bool> SaveParameter(int parameterID, string parameterName, string parameterValue, int currentUserID, int companyID, string timeZoneId);
         Task<int> AddCompanyParameter(string name, string value, int companyId, int currentUserId, string timeZoneId);
-        Task SetSSOParameters(int companyId);
+        void SetSSOParameters(int companyId);
         Task<OTPResponse> SegregationOtp(int companyId, int currentUserId, string method);
     
 

@@ -28,6 +28,6 @@ namespace CrisesControl.Core.Import.Repositories
         Task<CommonDTO> RefreshTmpTable(int companyId, int userId, string sessionId);
         public bool CreateTempLocation(List<ImportDumpInput> locData, string sessionId, int companyId, int userId = 0, string timeZoneId = "GMT Standard Time");
         public bool CreateTempGroup(List<ImportDumpInput> data, string sessionId, int companyId, int userId, string timeZoneId);
-        public object GetCountActionCheck(string sessionId, int outUserCompanyId);
+        public Task<object> GetCountActionCheck(string sessionId, int outUserCompanyId);
     }
 }

@@ -85,7 +85,7 @@ public class AddCompanyIncidentHandler : IRequestHandler<AddCompanyIncidentReque
             }
         }
 
-        await _incidentRepository.CreateIncidentSegLinks(incidentId, _currentUser.UserId, _currentUser.CompanyId);
+        _incidentRepository.CreateIncidentSegLinks(incidentId, _currentUser.UserId, _currentUser.CompanyId);
 
         return new ResultResponse(0, string.Empty, "Ok");
 

@@ -93,7 +93,7 @@ namespace CrisesControl.Infrastructure.Services
                     {
                         if (SkipUserId == 0 || SkipUserId != uItem.UserId)
                         {
-                            Task<dynamic> trhtask = Task.Factory.StartNew(() => CommsAPI.Call(FromNumber, toMobile, MessageXML, CallBackUrl));
+                            Task<dynamic> trhtask = await Task.Factory.StartNew(() => CommsAPI.Call(FromNumber, toMobile, MessageXML, CallBackUrl));
                             CommsStatus callrslt = trhtask.Result;
 
                             CallId = callrslt.CommsId;
@@ -340,7 +340,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public async void LogTwoFactorAuth(int companyId, int userId, string toNumber, string cloudMessageId, string status, string timeZoneId)
+        public async Task LogTwoFactorAuth(int companyId, int userId, string toNumber, string cloudMessageId, string status, string timeZoneId)
         {
             try
             {

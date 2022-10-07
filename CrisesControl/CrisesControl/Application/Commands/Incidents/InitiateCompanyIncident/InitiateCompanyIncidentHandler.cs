@@ -89,7 +89,7 @@ public class InitiateCompanyIncidentHandler : IRequestHandler<InitiateCompanyInc
                 AffectedLocations = request.AffectedLocations
             };
 
-            await _incidentService.InitiateIncident(incidentActivation, incidentSubset, cancellationToken);
+            _incidentService.InitiateIncident(incidentActivation, incidentSubset, cancellationToken);
 
             var incidentToReturn = await _incidentRepository.GetIncidentActivation(_currentUser.CompanyId,
                 incidentActivation.IncidentActivationId);

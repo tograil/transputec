@@ -61,12 +61,12 @@ namespace CrisesControl.Infrastructure.Services
                     db.Update(comp_profile);
                    await db.SaveChangesAsync();
 
-                   await DBC.GetSetCompanyComms(CompanyId);
+                   _ = DBC.GetSetCompanyComms(CompanyId);
 
                     //Check the remaining balance and recharge
                     if (comp_profile.ContractStartDate <= DateTime.UtcNow)
                     {
-                       await _usage.BalanceCheckNDebit(comp_profile.CompanyId, BalanceAfterCompute);
+                        await _usage.BalanceCheckNDebit(comp_profile.CompanyId, BalanceAfterCompute);
                     }
                 }
 
@@ -77,18 +77,18 @@ namespace CrisesControl.Infrastructure.Services
                 throw;
             }
         }
-        public void Generate_Statement()
+        public async Task Generate_Statement()
         {
             try
             {
                 DateTime runDate = DateTime.Now.Date;
 
-                var Companies = (from C in db.Set<Company>()
+                var Companies = await (from C in db.Set<Company>()
                                  join CPP in db.Set<CompanyPaymentProfile>() on C.CompanyId equals CPP.CompanyId
                                  where C.Status == 1
-                                 select new { C, CPP }).ToList();
+                                 select new { C, CPP }).ToListAsync();
 
-                var payment_profile =  db.Set<PaymentProfile>().FirstOrDefault();
+                var payment_profile =  await db.Set<PaymentProfile>().FirstOrDefaultAsync();
 
                 foreach (var comp in Companies)
                 {
@@ -100,7 +100,7 @@ namespace CrisesControl.Infrastructure.Services
                         //DBC.CreateLog("INFO", "Total Company to bill"+Companies.Count);
                         if (comp.CPP.ContractStartDate.Date <= DateTime.Now.Date && comp.CPP.ContractAnniversary.Date == comp.CPP.ContractStartDate.Date)
                             //Call the function.
-                            _usage.GenerateProrataInvoice(comp.C.CompanyId);
+                            _ = _usage.GenerateProrataInvoice(comp.C.CompanyId);
 
                         DateTimeOffset stmt_run_date = comp.CPP.StatementRunDate;
                         DateTimeOffset stmt_start_date = comp.CPP.LastStatementEndDate;
@@ -114,9 +114,9 @@ namespace CrisesControl.Infrastructure.Services
                         //DBC.CreateLog("INFO", "Passed the check" + stmt_run_date + "|" + stmt_start_date + "|" + stmt_end_date);
 
                         //Run the statement for the last calendar month from the statement date.
-                        _usage._calculate_contract_items(comp.C.CompanyId);
+                        _ = _usage._calculate_contract_items(comp.C.CompanyId);
 
-                        _generate_company_statement(comp.C.CompanyId, stmt_start_date, stmt_end_date.AddHours(23).AddMinutes(59).AddSeconds(59));
+                        _ = _generate_company_statement(comp.C.CompanyId, stmt_start_date, stmt_end_date.AddHours(23).AddMinutes(59).AddSeconds(59));
 
                         comp.CPP.StatementRunDate = stmt_run_date.AddMonths(1);
                         DateTimeOffset new_start_date = stmt_end_date.AddDays(1);
@@ -125,7 +125,7 @@ namespace CrisesControl.Infrastructure.Services
 
                         DBC.CreateLog("INFO", "Statement generated successfully" + stmt_run_date + "|" + stmt_start_date + "|" + stmt_end_date);
 
-                        db.SaveChanges();
+                        await db.SaveChangesAsync();
 
                     }
                     catch (Exception ex)
@@ -142,7 +142,7 @@ namespace CrisesControl.Infrastructure.Services
 
         }
 
-        public async void _generate_company_statement(int CompanyId, DateTimeOffset StartTime, DateTimeOffset EndTime)
+        public async Task _generate_company_statement(int CompanyId, DateTimeOffset StartTime, DateTimeOffset EndTime)
         {
             try
             {
@@ -245,7 +245,7 @@ namespace CrisesControl.Infrastructure.Services
                             AdminLimit, TotalAdmin, StaffLimit, TotalStaff, StorageLimit, AssetSize, StartTime, EndTime);
 
                         transactions.ForEach(s => s.TransactionHeaderId = tran_header_id);
-                        db.SaveChanges();
+                        await db.SaveChangesAsync();
                     }
                 }
             }
