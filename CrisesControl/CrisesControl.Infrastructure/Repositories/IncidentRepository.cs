@@ -29,6 +29,7 @@ using CrisesControl.Core.Messages;
 using MessageMethod = CrisesControl.Core.Messages.MessageMethod;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.DBCommon.Repositories;
+using CrisesControl.Core.Queues.Services;
 
 namespace CrisesControl.Infrastructure.Repositories;
 
@@ -38,11 +39,10 @@ public class IncidentRepository : IIncidentRepository
     private readonly IMessageService _service;
     private readonly ILogger<IncidentRepository> _logger;
     private readonly IActiveIncidentRepository _activeIncidentRepository;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IDBCommonRepository _DBC;
     private readonly ISenderEmailService _SDE;
-    private readonly QueueConsumer queueConsumer;
-    private readonly QueueHelper _queueHelper;
+    private readonly IQueueConsumerService _queueConsumer;
+    private readonly IQueueMessageService _queueHelper;
     public bool IsSOS = false;
     public string Latitude = "0";
     public string Longtude = "0";
@@ -50,20 +50,18 @@ public class IncidentRepository : IIncidentRepository
     private readonly IActiveIncidentTaskService _activeIncidentTaskService;
     public IncidentRepository(CrisesControlContext context, IActiveIncidentRepository activeIncidentRepository,
               IMessageService service, IDBCommonRepository DBC, ISenderEmailService SDE,
-        ILogger<IncidentRepository> logger, IHttpContextAccessor httpContextAccessor,
-         IActiveIncidentTaskService activeIncidentTaskService)
+        ILogger<IncidentRepository> logger, IQueueConsumerService queueConsumer,
+         IActiveIncidentTaskService activeIncidentTaskService, IQueueMessageService queue)
     {
         _context = context;
         _service = service;
         _logger = logger;
         _activeIncidentRepository = activeIncidentRepository;
-        _httpContextAccessor = httpContextAccessor;       
-
         _DBC = DBC;
         _SDE = SDE;
-        queueConsumer = new QueueConsumer(_context,_httpContextAccessor,DBC, service);
+        _queueConsumer = queueConsumer;
         _activeIncidentTaskService = activeIncidentTaskService;
-        _queueHelper = new QueueHelper(_context,DBC, service);
+        _queueHelper = queue;
     }
 
     public async Task<bool> CheckDuplicate(int companyId, string incidentName, int incidentId)
@@ -1188,7 +1186,7 @@ public class IncidentRepository : IIncidentRepository
                    await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Ping", 1, CascadePlanID));
 
                     //QueueHelper.MessageDevicePublish(tblmessageid, 1);
-                    queueConsumer.CreateCascadingJobs(CascadePlanID, tblmessageid, 0, CompanyId, TimeZoneId);
+                   await _queueConsumer.CreateCascadingJobs(CascadePlanID, tblmessageid, 0, CompanyId, TimeZoneId);
                 }
                 catch (Exception ex)
                 {
@@ -2322,7 +2320,7 @@ public class IncidentRepository : IIncidentRepository
                     await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, verifyInci.CascadePlanId ?? 0));
 
                     //QueueHelper.MessageDevicePublish(tblmessageid, 1);
-                    await queueConsumer.CreateCascadingJobs(verifyInci.CascadePlanId ?? 0, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
+                    await _queueConsumer.CreateCascadingJobs((int)verifyInci.CascadePlanId, tblmessageid, tblIncidenActivation.IncidentActivationId, CompanyId, TimeZoneId);
 
                 }
                 catch (Exception ex)

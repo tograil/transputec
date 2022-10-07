@@ -2,6 +2,7 @@
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Jobs;
 using CrisesControl.Core.Messages.Services;
+using CrisesControl.Core.Queues.Services;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Services;
@@ -25,15 +26,15 @@ namespace CrisesControl.Infrastructure.Services
     public class CascadeMessageJob : IJob
     {
         private readonly CrisesControlContext _controlContext;
-        private readonly QueueHelper _queueHelper;
+        private readonly IQueueMessageService _queueHelper;
         private readonly IMessageService _MSG;
         private readonly IDBCommonRepository _DBC;
-        public CascadeMessageJob(CrisesControlContext controlContext, IDBCommonRepository DBC, IMessageService MSG)
+        public CascadeMessageJob(CrisesControlContext controlContext, IDBCommonRepository DBC, IMessageService MSG, IQueueMessageService queue)
         {
             this._controlContext = controlContext;
             this._DBC = DBC;
             this._MSG = MSG;
-            this._queueHelper = new QueueHelper(_controlContext, _DBC, _MSG);
+            this._queueHelper = queue;
         }
         //DBCommon DBC = new DBCommon();
 

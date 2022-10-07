@@ -4,6 +4,7 @@ using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Queues.Services;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.Infrastructure.Context.Misc;
 using GrpcAuditLogClient;
@@ -19,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Infrastructure.Services
 {
-    public  class QueueConsumer
+    public  class QueueConsumerService: IQueueConsumerService
     {
 
         public List<string> RabbitHost = new List<string>();
@@ -30,23 +31,26 @@ namespace CrisesControl.Infrastructure.Services
         public string RabbitMQPassword = "guest";
         public string RabbitVirtualHost = "/";
 
-        public bool IsFundAvailable = true;
+        public bool isFundAvailable = true;
         public ushort RabbitMQHeartBeat = 60;
         private  readonly IHttpContextAccessor _httpContextAccessor;    
         private  readonly CrisesControlContext _db;
         private  readonly IDBCommonRepository _DBC;
         private  readonly IMessageService _MSG;
-        private readonly QueueHelper _queueHelper;
+        private readonly IQueueMessageService _queueHelper;
 
-        public QueueConsumer(CrisesControlContext db, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG)
+        public QueueConsumerService(CrisesControlContext db, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG, IQueueMessageService queue)
         {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
             _DBC = DBC;
             _MSG = MSG;
-            _queueHelper = new QueueHelper(db,_DBC, _MSG);
+            _queueHelper = queue;
         }
-        public  async Task<int> CreateMessageList(int MessageID, string ReplyTo = "")
+        public bool IsFundAvailable { 
+            get=> isFundAvailable; 
+            set=> isFundAvailable=value; }
+        public  async Task<int> CreateMessageList(int messageID, string replyTo = "")
         {
 
          
@@ -60,7 +64,7 @@ namespace CrisesControl.Infrastructure.Services
 
                     //_db.Database.ti = 300;
 
-                    var msg = _db.Set<Message>().Where(M=> M.MessageId == MessageID).FirstOrDefault();
+                    var msg = _db.Set<Message>().Where(M=> M.MessageId == messageID).FirstOrDefault();
                     if (msg != null)
                     {
 
@@ -107,7 +111,7 @@ namespace CrisesControl.Infrastructure.Services
                                 var pNotifySender = new SqlParameter("@NotifySender", notifySender);
                                 var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
-                                if (msg.ParentId == 0 && ReplyTo.ToUpper() != "RENOTIFY")
+                                if (msg.ParentId == 0 && replyTo.ToUpper() != "RENOTIFY")
                                 {
                                     try
                                     {
@@ -122,7 +126,7 @@ namespace CrisesControl.Infrastructure.Services
                                 }
                                 else
                                 {
-                                    var pReplyTo = new SqlParameter("@ReplyTo", ReplyTo);
+                                    var pReplyTo = new SqlParameter("@ReplyTo", replyTo);
                                     try
                                     {
                                         var result = _db.Set<Result>().FromSqlRaw(rpl_sp_name + " @MessageID, @ReplyTo, @CustomerTime", pMessageId, pReplyTo, pCustomerTime).FirstOrDefault();
@@ -147,7 +151,7 @@ namespace CrisesControl.Infrastructure.Services
                             var pNotifySender = new SqlParameter("@NotifySender", notifySender);
                             var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
-                            if (msg.ParentId == 0 && ReplyTo.ToUpper() != "RENOTIFY")
+                            if (msg.ParentId == 0 && replyTo.ToUpper() != "RENOTIFY")
                             {
                                 try
                                 {
@@ -165,7 +169,7 @@ namespace CrisesControl.Infrastructure.Services
                             {
                                 try
                                 {
-                                    var pReplyTo = new SqlParameter("@ReplyTo", ReplyTo);
+                                    var pReplyTo = new SqlParameter("@ReplyTo", replyTo);
                                     var result = _db.Set<Result>().FromSqlRaw(rpl_sp_name + " @MessageID, @ReplyTo, @CustomerTime", pMessageId, pReplyTo, pCustomerTime).FirstOrDefault();
                                     if (result != null)
                                     {
@@ -180,11 +184,11 @@ namespace CrisesControl.Infrastructure.Services
                             }
                         }
 
-                        CreateCascadingJobs(CascadePlanID, MessageID, msg.IncidentActivationId, msg.CompanyId, TimeZoneId);
+                       await  CreateCascadingJobs(CascadePlanID, messageID, msg.IncidentActivationId, msg.CompanyId, TimeZoneId);
 
                        await  _DBC.MessageProcessLog(msg.MessageId, "MESSAGE_LIST_CREATED", "", "", "Total count: " + QueueSize);
 
-                        IsFundAvailable =await _MSG.CalculateMessageCost(msg.CompanyId, MessageID, msg.MessageText);
+                        IsFundAvailable =await _MSG.CalculateMessageCost(msg.CompanyId, messageID, msg.MessageText);
                     }
                 
             }
@@ -194,35 +198,35 @@ namespace CrisesControl.Infrastructure.Services
             }
             finally
             {
-                if (ReplyTo.ToUpper() != "RENOTIFY")
+                if (replyTo.ToUpper() != "RENOTIFY")
                 {
-                    Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(MessageID, MessageType, 1, CascadePlanID));
+                   await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(messageID, MessageType, 1, CascadePlanID));
                 }
                 else
                 {
-                    Task.Factory.StartNew(() => _queueHelper.MessageDevicePublish(MessageID, 1, ""));
+                  await   Task.Factory.StartNew(() => _queueHelper.MessageDevicePublish(messageID, 1, ""));
                 }
                 //CreateMessageDevice(MessageID);
             }
             return QueueSize;
         }
-        public  async Task CreateCascadingJobs(int PlanID, int MessageID, int ActiveIncidentID, int CompanyID, string TimeZoneId)
+        public  async Task CreateCascadingJobs(int planID, int messageID, int activeIncidentID, int companyID, string timeZoneId)
         {
            
             try
             {
-                if (PlanID > 0)
+                if (planID > 0)
                 {
 
                    
                         var steps = (from PI in _db.Set<PriorityInterval>()
-                                     where PI.CascadingPlanId == PlanID && PI.CompanyId == CompanyID && PI.Interval > 0 && PI.Priority > 1
+                                     where PI.CascadingPlanId == planID && PI.CompanyId == companyID && PI.Interval > 0 && PI.Priority > 1
                                      select PI).ToList();
 
                         ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                         IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
-                        DateTimeOffset StartMessageTime =await  _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                        DateTimeOffset StartMessageTime =await  _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                         int LastPriority = 1;
 
                         foreach (var step in steps)
@@ -230,15 +234,15 @@ namespace CrisesControl.Infrastructure.Services
                             LastPriority = step.Priority;
                             StartMessageTime = StartMessageTime.AddMinutes(step.Interval);
 
-                            string jobName = "MESSAGE_ATTEMPT_" + MessageID + "_" + step.Priority;
-                            var jobKey = new JobKey(jobName, "MESSAGE_CASCADE_" + ActiveIncidentID);
+                            string jobName = "MESSAGE_ATTEMPT_" + messageID + "_" + step.Priority;
+                            var jobKey = new JobKey(jobName, "MESSAGE_CASCADE_" + activeIncidentID);
                             bool jobExists = false;
                             int tried = 0;
                             while (jobExists == false && tried < 5)
                             {
                                 if (!_scheduler.CheckExists(jobKey).Result)
                                 {
-                                    CreateCascadeJobStep(MessageID, PlanID, ActiveIncidentID, step.MessageType, step.Priority, step.Interval, ref StartMessageTime, TimeZoneId);
+                                    CreateCascadeJobStep(messageID, planID, activeIncidentID, step.MessageType, step.Priority, step.Interval, ref StartMessageTime, timeZoneId);
                                 }
                                 else
                                 {
@@ -249,14 +253,14 @@ namespace CrisesControl.Infrastructure.Services
                         }
 
                         //Schedule the SOS Launch of users.
-                        var sos = await _db.Set<CascadingPlan>().Where(w => w.PlanId == PlanID).FirstOrDefaultAsync();
+                        var sos = await _db.Set<CascadingPlan>().Where(w => w.PlanId == planID).FirstOrDefaultAsync();
                         if (sos != null)
                         {
                             if (sos.LaunchSos)
                             {
                                 StartMessageTime = StartMessageTime.AddMinutes(sos.LaunchSosinterval);
                                 int sospriority = LastPriority + 1;
-                                SOSSchedule(MessageID, CompanyID, sospriority, StartMessageTime, TimeZoneId, ActiveIncidentID);
+                               await  SOSSchedule(messageID, companyID, sospriority, StartMessageTime, timeZoneId, activeIncidentID);
                             }
                         }
                     }
@@ -268,7 +272,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public   void CreateCascadeJobStep(int MessageID, int PlanID, int ActiveIncidentID, string MessageType, int Priority, int Interval, ref DateTimeOffset StartMessageTime, string TimeZoneId)
+        public  void CreateCascadeJobStep(int messageID, int planID, int activeIncidentID, string messageType, int priority, int interval, ref DateTimeOffset startMessageTime, string timeZoneId)
         {
            
             try
@@ -276,31 +280,31 @@ namespace CrisesControl.Infrastructure.Services
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
-                string jobName = "MESSAGE_ATTEMPT_" + MessageID + "_" + Priority;
-                string taskTrigger = "MESSAGE_ATTEMPT_" + MessageID + "_" + Priority;
+                string jobName = "MESSAGE_ATTEMPT_" + messageID + "_" + priority;
+                string taskTrigger = "MESSAGE_ATTEMPT_" + messageID + "_" + priority;
 
-                IJobDetail jobDetail = JobBuilder.Create<CascadeMessageJob>().WithIdentity(jobName, "MESSAGE_CASCADE_" + ActiveIncidentID).Build();
+                IJobDetail jobDetail = JobBuilder.Create<CascadeMessageJob>().WithIdentity(jobName, "MESSAGE_CASCADE_" + activeIncidentID).Build();
 
-                jobDetail.JobDataMap["PlanId"] = PlanID;
-                jobDetail.JobDataMap["MessageId"] = MessageID;
-                jobDetail.JobDataMap["Priority"] = Priority;
-                jobDetail.JobDataMap["MessageType"] = MessageType;
-                string dayLight = _DBC.IsDayLightOn(StartMessageTime.DateTime).ToString();
+                jobDetail.JobDataMap["PlanId"] = planID;
+                jobDetail.JobDataMap["MessageId"] = messageID;
+                jobDetail.JobDataMap["Priority"] = priority;
+                jobDetail.JobDataMap["MessageType"] = messageType;
+                string dayLight = _DBC.IsDayLightOn(startMessageTime.DateTime).ToString();
                 bool isDayLightOn = Convert.ToBoolean(dayLight);
                 if (!isDayLightOn)
                 {
-                    string date = _DBC.ConvertToLocalTime("GMT Standard Time", StartMessageTime.ToUniversalTime().DateTime).ToString();
-                    StartMessageTime =DateTimeOffset.Parse(date);
+                    string date = _DBC.ConvertToLocalTime("GMT Standard Time", startMessageTime.ToUniversalTime().DateTime).ToString();
+                    startMessageTime =DateTimeOffset.Parse(date);
                 }
 
-                string CronExpressionStr = StartMessageTime.Second + " " + StartMessageTime.Minute + " " + StartMessageTime.Hour + " " + StartMessageTime.Day + " " + StartMessageTime.Month + " ? " + StartMessageTime.Year;
+                string CronExpressionStr = startMessageTime.Second + " " + startMessageTime.Minute + " " + startMessageTime.Hour + " " + startMessageTime.Day + " " + startMessageTime.Month + " ? " + startMessageTime.Year;
 
                 var trigger = TriggerBuilder.Create()
-                                             .WithIdentity(taskTrigger, "MESSAGE_CASCADE_" + ActiveIncidentID)
+                                             .WithIdentity(taskTrigger, "MESSAGE_CASCADE_" + activeIncidentID)
                                              .WithSimpleSchedule(
                                                 x => x.WithMisfireHandlingInstructionFireNow())
                                                 .ForJob(jobDetail)
-                                                .StartAt(StartMessageTime)
+                                                .StartAt(startMessageTime)
                                                 .Build();
 
                 var triggered = _scheduler.ScheduleJob(jobDetail, trigger);
@@ -311,7 +315,7 @@ namespace CrisesControl.Infrastructure.Services
             }
         }
 
-        public  void SOSSchedule(int MessageID, int CompanyID, int Priority, DateTimeOffset StartTime, string TimeZoneId, int ActiveIncidentID)
+        public async  Task SOSSchedule(int messageID, int companyID, int priority, DateTimeOffset startTime, string timeZoneId, int activeIncidentID)
         {
             
             try
@@ -321,33 +325,33 @@ namespace CrisesControl.Infrastructure.Services
 
                
 
-                    string jobName = "CASCADE_SOS_" + MessageID + "_" + Priority;
-                    string taskTrigger = "CASCADE_SOS_" + MessageID + "_" + Priority;
+                    string jobName = "CASCADE_SOS_" + messageID + "_" + priority;
+                    string taskTrigger = "CASCADE_SOS_" + messageID + "_" + priority;
 
-                    IJobDetail jobDetail = JobBuilder.Create<SOSCascadeMessageJob>().WithIdentity(jobName, "MESSAGE_CASCADE_" + ActiveIncidentID).Build();
+                    IJobDetail jobDetail = JobBuilder.Create<SOSCascadeMessageJob>().WithIdentity(jobName, "MESSAGE_CASCADE_" + activeIncidentID).Build();
 
-                    jobDetail.JobDataMap["MessageID"] = MessageID;
-                    jobDetail.JobDataMap["CompanyID"] = CompanyID;
+                    jobDetail.JobDataMap["MessageID"] = messageID;
+                    jobDetail.JobDataMap["CompanyID"] = companyID;
 
-                string dayLight = _DBC.IsDayLightOn(StartTime.DateTime).ToString();
-                bool isDayLightOn = Convert.ToBoolean(dayLight);
+                
+                bool isDayLightOn =await _DBC.IsDayLightOn(startTime.DateTime);
                 if (!isDayLightOn)
                 {
-                    string date = _DBC.ConvertToLocalTime("GMT Standard Time", StartTime.ToUniversalTime().DateTime).ToString();
-                    StartTime = DateTimeOffset.Parse(date);
+                    
+                    startTime =await _DBC.ConvertToLocalTime("GMT Standard Time", startTime.ToUniversalTime().DateTime);
                 }
 
-                string CronExpressionStr = StartTime.Second + " " + StartTime.Minute + " " + StartTime.Hour + " " + StartTime.Day + " " + StartTime.Month + " ? " + StartTime.Year;
+                string CronExpressionStr = startTime.Second + " " + startTime.Minute + " " + startTime.Hour + " " + startTime.Day + " " + startTime.Month + " ? " + startTime.Year;
 
                     var trigger = TriggerBuilder.Create()
-                                                 .WithIdentity(taskTrigger, "MESSAGE_CASCADE_" + ActiveIncidentID)
+                                                 .WithIdentity(taskTrigger, "MESSAGE_CASCADE_" + activeIncidentID)
                                                  .WithCronSchedule(CronExpressionStr, x => x
-                                                     .InTimeZone(TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId))
+                                                     .InTimeZone(TimeZoneInfo.FindSystemTimeZoneById(timeZoneId))
                                                      .WithMisfireHandlingInstructionDoNothing())
                                                  .ForJob(jobDetail)
                                                  .Build();
 
-                    _scheduler.ScheduleJob(jobDetail, trigger);
+                   await _scheduler.ScheduleJob(jobDetail, trigger);
                
             }
             catch (Exception ex)
