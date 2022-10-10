@@ -31,7 +31,6 @@ using CrisesControl.Core.Academy;
 using CrisesControl.Core.Sop;
 using CrisesControl.Core.Payments;
 using CrisesControl.Core.App;
-using static CrisesControl.Infrastructure.Services.CommsLogsHelper;
 using CrisesControl.Core.Assets;
 
 using CrisesControl.Core.CCWebSocket;
@@ -272,6 +271,8 @@ namespace CrisesControl.Infrastructure.Context
 
             modelBuilder.Entity<AssetLink>().HasNoKey();
             modelBuilder.Entity<AssetsDetails>().HasNoKey();
+            modelBuilder.Entity<InvoiceSchReturn>().HasNoKey();
+            modelBuilder.Entity<OrderListReturn>().HasNoKey();
             //modelBuilder.Entity<Location>().HasNoKey();
             modelBuilder.Entity<AssetLink>().HasNoKey();
             modelBuilder.Entity<AssetsDetails>().HasNoKey();
@@ -285,7 +286,8 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<ConferenceUser>().HasNoKey();
             modelBuilder.Entity<FailedDeviceQueue>().HasNoKey();
             modelBuilder.Entity<UserParams>().HasNoKey();
-            //modelBuilder.Entity<MessageMethod>().HasNoKey();
+            modelBuilder.Entity<CmdMessage>().HasNoKey();
+            modelBuilder.Entity<UpdateIncident>().HasNoKey();
 
         }
 

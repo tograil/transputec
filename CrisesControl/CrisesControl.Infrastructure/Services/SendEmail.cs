@@ -1632,7 +1632,7 @@ namespace CrisesControl.Api.Application.Helpers
             try
             {
                 string Subject = string.Empty;
-                string message = Convert.ToString(_DBC.ReadHtmlFile("SOP_EDITED_ALERT", "DB", CompanyID, out Subject));
+                string message = Convert.ToString( _DBC.ReadHtmlFile("SOP_EDITED_ALERT", "DB", CompanyID, out Subject));
 
                 string hostname = _DBC.LookupWithKey("SMTPHOST");
                 string fromadd = _DBC.LookupWithKey("EMAILFROM");

@@ -1,5 +1,5 @@
-﻿using CrisesControl.Api.Application.Helpers;
-using CrisesControl.Core.Companies;
+﻿using CrisesControl.Core.Companies;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Sop;
@@ -27,13 +27,16 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly ILogger<SopRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon DBC;
-        public SopRepository(IHttpContextAccessor httpContextAccessor, ILogger<SopRepository> logger, CrisesControlContext context)
+        private readonly IDBCommonRepository DBC;
+        private readonly ISenderEmailService _SDE;
+        private readonly string TimeZone = "GMT Standard Time";
+        public SopRepository(IHttpContextAccessor httpContextAccessor, ILogger<SopRepository> logger, CrisesControlContext context, IDBCommonRepository _DBC, ISenderEmailService SDE)
         {
            this._context = context;
            this._logger = logger;
            this._httpContextAccessor = httpContextAccessor;
-            this.DBC = new DBCommon(_context,_httpContextAccessor);
+           this.DBC = _DBC;
+            this._SDE = SDE;
         }
         public async Task<List<LibSopSection>> GetSOPSectionLibrary()
         {
@@ -75,8 +78,8 @@ namespace CrisesControl.Infrastructure.Repositories
                             await _context.SaveChangesAsync();
                         }
 
-                        SendEmail SDE = new SendEmail(_context, DBC);
-                        await SDE.NotifyKeyContactForSOPAttach(incident.IncidentId, CompanyID);
+                       
+                        await _SDE.NotifyKeyContactForSOPAttach((int)incident.IncidentId, CompanyID);
                         return true;
                     }
                 }
@@ -375,8 +378,8 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
-                DBC.DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
+                
+                await DBC.DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
 
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
@@ -389,7 +392,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 jobDetail.JobDataMap["SOPHeaderID"] = SOPHeaderID;
 
                 int Counter = 0;
-                DateTimeOffset DateCheck = DBC.GetNextReviewDate(NextReviewDate, CompanyID, ReminderCount, out Counter);
+                DateTimeOffset DateCheck =await DBC.GetNextReviewDate(NextReviewDate, CompanyID, ReminderCount,  Counter);
                 jobDetail.JobDataMap["Counter"] = Counter;
 
                 var sop_head = await _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == SOPHeaderID).FirstOrDefaultAsync();
@@ -398,7 +401,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 await _context.SaveChangesAsync();
 
                 //if(DateCheck.Date >= DateTime.Now.Date && Counter <= 3) {
-                if (DateTimeOffset.Compare(DateCheck, DBC.GetDateTimeOffset(DateTime.Now)) >= 0 && Counter <= 3)
+                if (DateTimeOffset.Compare(DateCheck,await DBC.GetDateTimeOffset(DateTime.Now, TimeZone)) >= 0 && Counter <= 3)
                 {
                     //string TimeZoneVal = DBC.GetTimeZoneByCompany(CompanyID);
                     //DateCheck = DBC.GetServerTime(TimeZoneVal, DateCheck);
@@ -417,7 +420,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
                 else
                 {
-                    DateTimeOffset NewReviewDate = DBC.GetNextReviewDate(NextReviewDate, ReviewFrequency);
+                    DateTimeOffset NewReviewDate =await DBC.GetNextReviewDate(NextReviewDate, ReviewFrequency);
 
                     if (sop_head != null)
                     {
@@ -486,8 +489,8 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                UsageCalculation _usagecalc = new UsageCalculation();
-                DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+                UsageCalculation _usagecalc = new UsageCalculation(DBC,_SDE);
+                
                
                 int Rt_SopHeaderId = 0;
                 int ReminderCount = 0;
@@ -550,7 +553,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
                 if (Status != 1)
                 {
-                    DBC.DeleteScheduledJob("SOP_REVIEW_" + Rt_SopHeaderId, "REVIEW_REMINDER");
+                   await DBC.DeleteScheduledJob("SOP_REVIEW_" + Rt_SopHeaderId, "REVIEW_REMINDER");
                 }
                 else
                 {

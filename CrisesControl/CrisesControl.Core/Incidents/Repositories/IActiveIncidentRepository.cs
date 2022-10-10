@@ -34,11 +34,11 @@ public interface IActiveIncidentRepository
         int previousIncidentTaskId, int previousOwnerId, DateTimeOffset taskActivationDate, int currentUserId,
         int companyId);
 
-    void CreateActiveCheckList(int activeIncidentTaskId, int incidentTaskId, int userId, string timeZoneId = "GMT Standard Time");
+    Task CreateActiveCheckList(int activeIncidentTaskId, int incidentTaskId, int userId, string timeZoneId = "GMT Standard Time");
 
-    void CreateTaskRecipient(int activeIncidentId, int activeIncidentTaskId, int incidentTaskId);
+    Task CreateTaskRecipient(int activeIncidentId, int activeIncidentTaskId, int incidentTaskId);
 
-    List<UpdateIncidentStatusReturn> GetCompanyActiveIncident(int companyId, int userId, string status, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc");
+    Task<List<UpdateIncidentStatusReturn>> GetCompanyActiveIncident(int companyId, int userId, string status, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc");
     Task<List<UserTaskHead>> GetUserTasks(int currentUserId);
     Task<TaskIncidentHeader> TaskIncidentHeader(int activeIncidentId);
     Task<TaskIncidentHeader> GetActiveIncidentWorkflow(int activeIncidentID);
@@ -55,10 +55,10 @@ public interface IActiveIncidentRepository
     Task remove_old_delegates(int activeIncidentTaskId);
     Task<int> UpdateTaskActiveIncident(TaskActiveIncident task);
     Task<int> GetTaskActiveIncidentParticipantIdByStatus(int activeIncidentTaskId);
-    void notify_users(int ActiveIncidentID, int ActiveIncidentTaskID, List<NotificationUserList> userToNotify, string message, int currentUserId,
+    Task notify_users(int ActiveIncidentID, int ActiveIncidentTaskID, List<NotificationUserList> userToNotify, string message, int currentUserId,
         int companyId, string timeZoneId, bool includeKeyContact = true, int source = 1, int[] messageMetod = null, int cascadePlanId = 0);
     Task<int> AddTaskAction(int ActiveIncidentTaskID, string ActionDescription, int currentUserId, int TaskActionTypeID, string TimeZoneId);
-    void send_notifiation_to_groups(List<string> groupType, int activeIncidentId, int activeIncidentTaskId,
+    Task send_notifiation_to_groups(List<string> groupType, int activeIncidentId, int activeIncidentTaskId,
            string message, int currentUserId, int companyId, string timeZoneId, bool includeKeyContact = true,
            int source = 1, int[] messageMethod = null, List<NotificationUserList> userToNotify = null, int cascadePlanId = 0, string sourceAction = "");
     Task<List<TaskIncidentAction>> GetTaskIncidentActionByDeline(int activeIncidentTaskId);
@@ -91,5 +91,5 @@ public interface IActiveIncidentRepository
     Task<bool> AddTaskAttachment(int activeIncidentTaskId, string attachmentTitle, string fileName, string sourceFileName, double fileSize, int userId, string timeZoneId);
     Task<List<CheckListHistoryRsp>> GetTaskCheckListHistory(int activeCheckListId, int companyId, int userId);
     Task<List<TaskAssetList>> GetActiveTaskAsset(int activeTaskId, int companyId, int userId);
-    void SaveActiveTaskAssets(int activeTaskId, int[] taskAssets, int companyId, int userId);
+    Task SaveActiveTaskAssets(int activeTaskId, int[] taskAssets, int companyId, int userId);
 }

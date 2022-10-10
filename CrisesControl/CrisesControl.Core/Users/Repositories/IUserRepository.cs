@@ -12,6 +12,7 @@ namespace CrisesControl.Core.Users.Repositories;
 
 public interface IUserRepository
 {
+    public bool IsValidMobile { get; set; }
     Task<int> CreateUser(User user, CancellationToken cancellationToken);
     bool EmailExists(string email);
     Task<User?> GetUserById(int id);
@@ -64,7 +65,7 @@ public interface IUserRepository
     Task<User> GetUserId(int companyId, string email);
     Task<dynamic> OffDutyActivate(OffDutyModel request, bool exist, CancellationToken cancellationToken);
     Task<dynamic> UpdateGroupMember(int targetId, int userId, int objMapId, string action, int currentUserId, int companyId, string timeZoneId, CancellationToken cancellationToken);
-    void CreateOffDutyJob(int userId, DateTimeOffset offDutyDate, int companyId, string action = "START", string timeZoneId = "GMT Standard Time");
+    Task CreateOffDutyJob(int userId, DateTimeOffset offDutyDate, int companyId, string action = "START", string timeZoneId = "GMT Standard Time");
     Task<int> CreateUsers(int CompanyId, bool RegisteredUser, string FirstName, string PrimaryEmail, string Password,
         int Status, int CreatedUpdatedBy, string TimeZoneId, string LastName = "", string MobileNo = "", string UserRole = "",
         string UserPhoto = "no-photo.jpg", string ISDCode = "", string LLIsdCode = "", string LandLine = "", string SecondaryEmail = "",
@@ -87,5 +88,6 @@ public interface IUserRepository
     Task<dynamic> SendPasswordOTP(int userID, string action, string password, string oldPassword, string otpCode = "", string Return = "bool",
            string otpMessage = "", string source = "RESET", string method = "TEXT", string timeZoneId = "GMT Standard Time");
     Task<BillingSummaryModel> GetUserCount(int companyId, int currentUserId);
+    Task UsageAlert(int companyId);
     Task<LicenseCheckResult> CheckUserLicense(string sessionId, List<UserRoles> userList, int companyId, int currentUserId);
 }

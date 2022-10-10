@@ -35,21 +35,26 @@ using CrisesControl.Api.Application.Commands.Incidents.UpdateCompanyIncidentActi
 using CrisesControl.Api.Application.Commands.Incidents.UpdateSegregationLink;
 using CrisesControl.Api.Application.Commands.Incidents.UpdateSOS;
 using CrisesControl.Api.Application.Commands.Incidents.UpdateSOSIncident;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllCompanyIncident;
 using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
+using CrisesControl.Api.Application.Commands.Incidents.GetAffectedLocations;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllActiveCompanyIncident;
 
 namespace CrisesControl.Api.Application.Query
 {
     public interface IIncidentQuery
     {
-        List<IncidentList> GetAllCompanyIncident(int userId);
+     
+        Task<GetAllCompanyIncidentResponse> GetAllCompanyIncident(GetAllCompanyIncidentRequest request);
         List<IncidentTypeReturn> GetCompanyIncidentType(int companyId);
-        List<AffectedLocation> GetAffectedLocations(int companyId, string locationType);
+        Task<GetAffectedLocationsResponse> GetAffectedLocations(GetAffectedLocationsRequest request);
         List<AffectedLocation> GetIncidentLocations(int companyId, int incidentActivationId);
         List<CommsMethods> GetIncidentComms(int itemID, string type);
         IncidentDetails GetCompanyIncidentById(int companyId, int incidentId, string userStatus);
-        DataTablePaging GetAllActiveCompanyIncident(string? status);
+        // DataTablePaging GetAllActiveCompanyIncident(string? status);
+        Task<DataTablePaging> GetAllActiveCompanyIncident(string? status);
         Task<GetIncidentTaskNotesResponse> GetIncidentTaskNotes(GetIncidentTaskNotesRequest request);
         Task<CheckUserSOSResponse> CheckUserSOS(CheckUserSOSRequest request);
         Task<AddNotesResponse> AddNotes(AddNotesRequest request);

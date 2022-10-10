@@ -15,7 +15,8 @@ using CrisesControl.Api.Application.Commands.App.UpdateTrackMe;
 using CrisesControl.Api.Application.Commands.App.ValidatePin;
 using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.App;
-using CrisesControl.Core.App.Repositories;
+using CrisesControl.Core.App.Services;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Models;
 using CrisesControl.SharedKernel.Utils;
 
@@ -23,12 +24,12 @@ namespace CrisesControl.Api.Application.Query
 {
     public class AppQuery : IAppQuery
     {
-        private readonly IAppRepository _appRepository;
+        private readonly IAppService _appRepository;
         private readonly ILogger<AppQuery> _logger;
-        private readonly DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         private readonly IMapper _mapper;
         private readonly ICurrentUser _currentUser;
-        public AppQuery(IAppRepository appRepository, ILogger<AppQuery> logger, DBCommon DBC, IMapper mapper, ICurrentUser currentUser)
+        public AppQuery(IAppService appRepository, ILogger<AppQuery> logger, IDBCommonRepository DBC, IMapper mapper, ICurrentUser currentUser)
         {
             this._appRepository = appRepository;
             this._logger = logger;
@@ -42,7 +43,7 @@ namespace CrisesControl.Api.Application.Query
             try
             {
                string Token = request.Token;
-                var home = _appRepository.AppHome(_currentUser.CompanyId, _currentUser.UserId, request.UserDeviceID,Token);
+                var home = await _appRepository.AppHome(_currentUser.CompanyId, _currentUser.UserId, request.UserDeviceID,Token);
                 var result = _mapper.Map<AppHomeReturn>(home);
                 var response = new AppHomeResponse();
                 if (result!=null)
@@ -67,7 +68,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var tncText = _DBC.LookupWithKey("PRIVACY_POLICY");
+                var tncText =await  _DBC.LookupWithKey("PRIVACY_POLICY");
                 var result = _mapper.Map<string>(tncText);
                 var response = new GetPrivacyPolicyResponse();
                 if (!string.IsNullOrEmpty(result))
@@ -94,7 +95,7 @@ namespace CrisesControl.Api.Application.Query
         {
             try
             {
-                var tncText = _DBC.LookupWithKey("TNC"); 
+                var tncText =await _DBC.LookupWithKey("TNC"); 
                 var result = _mapper.Map<string>(tncText);
                 var response = new GetTnCResponse();
                 if (!string.IsNullOrEmpty(result))
@@ -218,6 +219,7 @@ namespace CrisesControl.Api.Application.Query
                 if (request.PinNumber == ValidPin)
                 {
                     response.PinExpire = 10;
+                    response.Message = "Pin has been Validated correctly";
                 }
                 else
                 {

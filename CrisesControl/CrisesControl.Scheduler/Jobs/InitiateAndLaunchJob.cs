@@ -69,7 +69,7 @@ public class InitiateAndLaunchJob : IJob
                 UpdatedBy = request.CurrentUserId,
                 UpdatedOn = DateTime.Now.GetDateTimeOffset(),
                 AssetId = request.AudioAssetId,
-                HasTask = incidentToVerify.HasTask,
+                HasTask = (bool)incidentToVerify.HasTask,
                 LaunchMode = request.LaunchMode,
                 SocialHandle = string.Join(",", request.SocialHandle),
                 CascadePlanId = request.CascadePlanID
@@ -89,7 +89,7 @@ public class InitiateAndLaunchJob : IJob
                 AudioAssetId = request.AudioAssetId,
                 SilentMessage = request.SilentMessage,
                 InitiateIncidentNotificationObjLst = request.InitiateIncidentNotificationObjLst,
-                HasTask = incidentToVerify.HasTask
+                HasTask = (bool)incidentToVerify.HasTask
             };
 
             _incidentService.InitiateAndLaunchIncident(incidentActivation, incidentSubset);

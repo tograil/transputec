@@ -32,15 +32,56 @@ namespace CrisesControl.Api.Maintenance
             //        Schema = new OpenApiSchema { Type = "Int" }
             //    });
 
-            //    operation.Parameters.Add(new OpenApiParameter
-            //    {
-            //        Name = "orderBy",
-            //        Description = "Order by field",
-            //        In = ParameterLocation.Query,
-            //        Required = false,
-            //        Schema = new OpenApiSchema { Type = "String" }
-            //    });
-            //}
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = "orderBy",
+                    Description = "Order by field",
+                    In = ParameterLocation.Query,
+                    Required = false,
+                    Schema = new OpenApiSchema { Type = "String" }
+                });
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = "dir",
+                    Description = "Order by Dir",
+                    In = ParameterLocation.Query,
+                    Required = false,
+                    Schema = new OpenApiSchema { Type = "String" }
+                });
+
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = "draw",
+                    Description = "Draw",
+                    In = ParameterLocation.Query,
+                    Required = false,
+                    Schema = new OpenApiSchema { Type = "Int" }
+                });
+                
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = "uniqueKey",
+                    Description = "Unique Key",
+                    In = ParameterLocation.Query,
+                    Required = false,
+                    Schema = new OpenApiSchema { Type = "String" }
+                });
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = "filters",
+                    Description = "Filters",
+                    In = ParameterLocation.Query,
+                    Required = false,
+                    Schema = new OpenApiSchema { Type = "String" }
+                });
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = "search",
+                    Description = "Search",
+                    In = ParameterLocation.Query,
+                    Required = false,
+                    Schema = new OpenApiSchema { Type = "String" }
+                });
+            }
         }
     }
-}

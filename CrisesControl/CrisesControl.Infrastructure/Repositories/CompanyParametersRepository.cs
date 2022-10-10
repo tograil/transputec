@@ -1,9 +1,11 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿using CrisesControl.Core.Communication.Services;
 using CrisesControl.Core.Companies;
 using CrisesControl.Core.CompanyParameters;
 using CrisesControl.Core.CompanyParameters.Repositories;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Exceptions.NotFound;
 using CrisesControl.Core.Messages.Repositories;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
@@ -25,18 +27,22 @@ namespace CrisesControl.Infrastructure.Repositories {
     public class CompanyParametersRepository : ICompanyParametersRepository {
         private readonly CrisesControlContext _context;
         private readonly ILogger<CompanyParametersRepository> _logger;
-        private readonly DBCommon _DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly Messaging _MSG;
-        private readonly SendEmail _SDE;
-        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, IHttpContextAccessor httpContextAccessor) {
+        private readonly IDBCommonRepository _DBC;
+        private readonly IMessageService _MSG;
+        private readonly ISenderEmailService _SDE;
+        private readonly ICommsService _CH;
+
+        public CompanyParametersRepository(CrisesControlContext context, ILogger<CompanyParametersRepository> logger, IHttpContextAccessor httpContextAccessor, ICommsService CH, IDBCommonRepository DBC, IMessageService MSG, ISenderEmailService SDE)
+        {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
-
-            _DBC = new DBCommon(context, _httpContextAccessor);
-            _MSG = new Messaging(context, _httpContextAccessor);
-            _SDE = new SendEmail(context, _DBC);
+            _DBC = DBC;
+            _MSG = MSG;
+            _SDE = SDE;
+            _CH = CH;
+            
         }
         public async Task<IEnumerable<CascadingPlanReturn>> GetCascading(int planID, string planType, int companyId, bool getDetails = false) {
             try {
@@ -114,8 +120,10 @@ namespace CrisesControl.Infrastructure.Repositories {
                         var LPR = await _context.Set<LibCompanyParameter>().Where(CP => CP.Name == key).FirstOrDefaultAsync();
                         if (LPR != null) {
                             Default = LPR.Value;
-                        } else {
-                            Default = _DBC.LookupWithKey(key, Default);
+                        }
+                        else
+                        {
+                            Default = await _DBC.LookupWithKey(key, Default);
                         }
                     }
                 }
@@ -288,7 +296,7 @@ namespace CrisesControl.Infrastructure.Repositories {
                 return false;
             }
         }
-        public void UpdateCascadingAsync(int companyID) {
+        public async Task UpdateCascadingAsync(int companyID) {
             try {
                 var pCompanyID = new SqlParameter("@CompanyID", companyID);
                 _context.Set<Result>().FromSqlRaw("exec Pro_Update_Cascading_Channel @CompanyID", pCompanyID).AsEnumerable();
@@ -298,10 +306,10 @@ namespace CrisesControl.Infrastructure.Repositories {
             }
         }
 
-        public void UpdateOffDuty(int companyID) {
+        public async Task UpdateOffDuty(int companyID) {
             try {
                 var pCompanyID = new SqlParameter("@CompanyID", companyID);
-                _context.Set<Result>().FromSqlRaw("exec Pro_Update_OffDuty @CompanyID", pCompanyID).FirstOrDefault();
+                await _context.Set<Result>().FromSqlRaw("exec Pro_Update_OffDuty @CompanyID", pCompanyID).FirstOrDefaultAsync();
             } catch (Exception ex) {
                 throw ex;
             }
@@ -325,29 +333,29 @@ namespace CrisesControl.Infrastructure.Repositories {
             return false;
         }
 
-        public void ResetGlobalConfig(int companyID, string timeZoneId) {
+        public async Task ResetGlobalConfig(int companyID, string timeZoneId) {
             try {
                 DateTimeOffset CreatedNow = DateTime.Now.GetDateTimeOffset(timeZoneId);
                 var pCompanyID = new SqlParameter("@CompanyID", companyID);
                 var pCreatedNow = new SqlParameter("@CreatedOnOffset", CreatedNow);
-                _context.Set<Result>().FromSqlRaw("Pro_DC_Global_Config @CompanyID, @CreatedOnOffset", pCompanyID, pCreatedNow).FirstOrDefault();
+                await _context.Set<Result>().FromSqlRaw("Pro_DC_Global_Config @CompanyID, @CreatedOnOffset", pCompanyID, pCreatedNow).FirstOrDefaultAsync();
             } catch (Exception ex) {
                 throw ex;
             }
         }
-        public void ResetPings(int companyID) {
+        public async Task ResetPings(int companyID) {
             try {
                 var pCompanyID = new SqlParameter("@CompanyID", companyID);
-                _context.Set<Result>().FromSqlRaw("Pro_DC_Ping @CompanyID", pCompanyID).FirstOrDefault();
+                await _context.Set<Result>().FromSqlRaw("Pro_DC_Ping @CompanyID", pCompanyID).FirstOrDefaultAsync();
             } catch (Exception ex) {
                 throw ex;
             }
         }
 
-        public void ResetActiveIncident(int companyID) {
+        public async Task ResetActiveIncident(int companyID) {
             try {
                 var pCompanyID = new SqlParameter("@CompanyID", companyID);
-                _context.Set<Result>().FromSqlRaw("Pro_DC_Active_Incident @CompanyID", pCompanyID).FirstOrDefault();
+                await _context.Set<Result>().FromSqlRaw("Pro_DC_Active_Incident @CompanyID", pCompanyID).FirstOrDefaultAsync();
             } catch (Exception ex) {
                 throw ex;
             }
@@ -461,7 +469,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             }
             return 0;
         }
-        public void SetSSOParameters(int companyId) {
+        public async Task SetSSOParameters(int companyId) {
             try {
                 var pCompanyID = new SqlParameter("@CompanyId", companyId);
                 _context.Set<JsonResults>().FromSqlRaw("exec Pro_Configure_SSO @CompanyId", pCompanyID).AsEnumerable();
@@ -478,12 +486,14 @@ namespace CrisesControl.Infrastructure.Repositories {
                 if (reg_user != null) {
                     if (reg_user.RegisteredUser) {
 
-                        string OTPMessage = _DBC.LookupWithKey("SEGREGATION_CODE_MSG");
+                        string OTPMessage =await _DBC.LookupWithKey("SEGREGATION_CODE_MSG");
 
-                        CommsHelper CH = new CommsHelper(_context, _httpContextAccessor);
+                       
 
-                        result.Data = CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
-                    } else {
+                        result.Data = await _CH.SendOTP(reg_user.Isdcode, reg_user.Isdcode + reg_user.MobileNo, OTPMessage, "SEGREGATION", method.ToUpper());
+                    }
+                    else
+                    {
                         result.ErrorId = 234;
                         result.ErrorCode = "E234";
                         result.Message = "You are not authorized to make this request";
@@ -495,36 +505,6 @@ namespace CrisesControl.Infrastructure.Repositories {
         }
 
 
-
-        //public int AddCompanyParameter(string Name, string Value, int CompanyId, int CurrentUserId, string TimeZoneId)
-        //{
-        //    try
-        //    {
-        //        var comp_param = (from CP in db.CompanyParameters where CP.CompanyId == CompanyId && CP.Name == Name select CP).Any();
-        //        if (!comp_param)
-        //        {
-        //            CompanyParameters NewCompanyParameters = new CompanyParameters()
-        //            {
-        //                CompanyId = CompanyId,
-        //                Name = Name,
-        //                Value = Value,
-        //                Status = 1,
-        //                CreatedBy = CurrentUserId,
-        //                UpdatedBy = CurrentUserId,
-        //                CreatedOn = DateTime.Now,
-        //                UpdatedOn = GetDateTimeOffset(DateTime.Now, TimeZoneId)
-        //            };
-        //            db.CompanyParameters.Add(NewCompanyParameters);
-        //            db.SaveChanges(CurrentUserId, CompanyId);
-        //            return NewCompanyParameters.CompanyParametersId;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        catchException(ex);
-        //    }
-        //    return 0;
-        //}
 
 
     }

@@ -47,6 +47,7 @@ namespace CrisesControl.Core.Users
         public string? UserHash { get; set; }
         public int? TimezoneId { get; set; }
         [NotMapped]
+        //public bool IsValidNumber { get; set; }
         public UserSecurityGroup UserSecurityGroup { get; set; }
         //public UserComm UserComm { get; set; }
         [NotMapped]

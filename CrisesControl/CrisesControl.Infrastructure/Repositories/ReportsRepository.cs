@@ -29,7 +29,7 @@ using System.Text;
 using IncidentMessagesRtn = CrisesControl.Core.Reports.IncidentMessagesRtn;
 using FailedTaskList = CrisesControl.Core.Reports.FailedTaskList;
 using CrisesControl.Core.Import;
-using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.DBCommon.Repositories;
 
 namespace CrisesControl.Infrastructure.Repositories {
     public class ReportsRepository : IReportsRepository {
@@ -37,7 +37,7 @@ namespace CrisesControl.Infrastructure.Repositories {
         private readonly ILogger<ReportsRepository> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
-        private readonly DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         // private readonly IQueueService _queueService;
 
         private int currentUserId;
@@ -50,7 +50,7 @@ namespace CrisesControl.Infrastructure.Repositories {
         public ReportsRepository(CrisesControlContext context,
                                 IHttpContextAccessor httpContextAccessor,
                                 ILogger<ReportsRepository> logger,
-                                IMapper mapper, DBCommon DBC) {
+                                IMapper mapper, IDBCommonRepository DBC) {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
@@ -102,7 +102,7 @@ namespace CrisesControl.Infrastructure.Repositories {
             var incidentMessageListDetails = new List<MessageAcknowledgements>();
             int totalRecord = 0;
 
-            string ig = _DBC.LookupWithKey("INITIALS_GENERATOR_URL");
+            string ig =await _DBC.LookupWithKey("INITIALS_GENERATOR_URL");
 
             if (orderDir == "desc") {
                 incidentMessageListDetails = GetAcknowledgements(messageId, messageAckStatus, messageSentStatus, recordStart, recordLength, searchString,
@@ -1751,10 +1751,10 @@ namespace CrisesControl.Infrastructure.Repositories {
             rFileName = string.Empty;
             try {
 
-                string ResultFilePath = _DBC.Getconfig("ImportResultPath");
+                string ResultFilePath =  _DBC.Getconfig("ImportResultPath").ToString();
                 string ExportPath = ResultFilePath + inputModel.CompanyId.ToString() + "\\DataExport\\";
 
-                _DBC.connectUNCPath();
+               _DBC.connectUNCPath();
 
                 var ReportSP = "Pro_Get_User_Invitation";
                 string FileName = "User_Invitation_Report" + DateTime.Now.ToString("ddmmyyyyhhss") + ".csv";

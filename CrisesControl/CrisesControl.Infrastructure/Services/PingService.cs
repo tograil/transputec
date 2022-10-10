@@ -1,9 +1,12 @@
-﻿using CrisesControl.Api.Application.Helpers;
+﻿
 using CrisesControl.Core.Compatibility.Jobs;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Import;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Messages;
+using CrisesControl.Core.Messages.Services;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Queues.Services;
 using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using ExcelDataReader;
@@ -18,32 +21,42 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Infrastructure.Services {
-    public class PingHelper {
+namespace CrisesControl.Infrastructure.Services
+{
+    public class PingService:IPingService
+    {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly Messaging _MSG;
-        private readonly DBCommon _DBC;
-        private readonly QueueConsumer queue;
-        private readonly QueueHelper _queueHelper;
+        private readonly IMessageService _MSG;
+        private readonly IDBCommonRepository _DBC;
+        private readonly IQueueConsumerService _queue;
+        private readonly IQueueMessageService _queueHelper;
 
-        public bool IsFundAvailable = true;
-        public PingHelper(CrisesControlContext context, IHttpContextAccessor httpContextAccessor) {
+        public bool _IsFundAvailable = true;
+        public PingService(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, IMessageService MSG, IQueueMessageService queueMessage, IQueueConsumerService queue)
+        {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            _DBC = new DBCommon(_context, _httpContextAccessor);
-            _MSG = new Messaging(_context, _httpContextAccessor);
-            queue = new QueueConsumer(_context, _httpContextAccessor);
-            _queueHelper = new QueueHelper(_context, _httpContextAccessor);
+            _DBC = DBC;
+            _MSG = MSG;
+            _queue = queue;
+            _queueHelper = queueMessage;
         }
 
-        public List<PublicAlertRtn> GetPublicAlert(int companyId, int targetUserId) {
-            try {
+        public bool IsFundAvailable() {
+            return _IsFundAvailable;
+        }
+
+        public async Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId)
+        {
+            try
+            {
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var pTargetUserId = new SqlParameter("@UserID", targetUserId);
 
-                var result = _context.Set<PublicAlertRtn>().FromSqlRaw("EXEC Public_Alert_Get @CompanyID, @UserID",
-                    pCompanyID, pTargetUserId).ToList().Select(c => {
+                var result = await _context.Set<PublicAlertRtn>().FromSqlRaw("EXEC Public_Alert_Get @CompanyID, @UserID",
+                    pCompanyID, pTargetUserId).ToListAsync();
+                result.Select(c => {
                         c.SentBy = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
                         return c;
                     }).ToList();
@@ -54,13 +67,15 @@ namespace CrisesControl.Infrastructure.Services {
             }
         }
 
-        public dynamic GetPublicAlertTemplate(int templateId, int userId, int companyId) {
-            try {
+        public async Task<dynamic> GetPublicAlertTemplate(int templateId, int userId, int companyId)
+        {
+            try
+            {
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var pTemplateID = new SqlParameter("@TemplateID", templateId);
                 var pUserID = new SqlParameter("@UserID", userId);
 
-                var result = _context.Set<PublicAlertTemplate>().FromSqlRaw("EXEC Public_Alert_Template_Get @CompanyID, @TemplateID, @UserID", pCompanyID, pTemplateID, pUserID).ToList();
+                var result = await _context.Set<PublicAlertTemplate>().FromSqlRaw("EXEC Public_Alert_Template_Get @CompanyID, @TemplateID, @UserID", pCompanyID, pTemplateID, pUserID).ToListAsync();
 
                 if (templateId > 0 && result != null) {
                     return result.FirstOrDefault();
@@ -72,118 +87,135 @@ namespace CrisesControl.Infrastructure.Services {
             }
         }
 
-        public async Task<int> PingMessages(int CompanyId, string MessageText, List<AckOption> AckOptions, int Priority, bool MultiResponse, string MessageType,
-       int IncidentActivationId, int CurrentUserId, string TimeZoneId, PingMessageObjLst[] PingMessageObjLst, int[] UsersToNotify, int AssetId = 0,
-       bool SilentMessage = false, int[] MessageMethod = null, List<MediaAttachment> MediaAttachments = null, List<string> SocialHandle = null,
-       int CascadePlanID = 0, bool SendToAllRecipient = false) {
+        public async Task<int> PingMessages(int companyId, string messageText, List<AckOption> ackOptions, int priority, bool multiResponse, string messageType,
+       int incidentActivationId, int currentUserId, string timeZoneId, PingMessageObjLst[] pingMessageObjLst, int[] usersToNotify, int assetId = 0,
+       bool silentMessage = false, int[] messageMethod = null, List<MediaAttachment> mediaAttachments = null, List<string> socialHandle = null,
+       int cascadePlanID = 0, bool sendToAllRecipient = false) {
             bool NotifyKeyholders = false;
             int MessageId = 0;
             int Source = 1;
-            try {
-                _MSG.TimeZoneId = TimeZoneId;
-                _MSG.CascadePlanID = CascadePlanID;
-                if (MessageType == "EventLogNotify") {
+            try
+            {
+                _MSG.TimeZoneId = timeZoneId;
+                _MSG.CascadePlanID = cascadePlanID;
+                if (messageType == "EventLogNotify")
+                {
                     _MSG.MessageSourceAction = SourceAction.EventLogNotify;
-                    MessageType = "Ping";
+                    messageType = "Ping";
                     Source = 7;
-                } else {
-                    _MSG.MessageSourceAction = IncidentActivationId > 0 ? SourceAction.IncidentUpdate : SourceAction.Ping;
+                }
+                else
+                {
+                    _MSG.MessageSourceAction = incidentActivationId > 0 ? SourceAction.IncidentUpdate : SourceAction.Ping;
                 }
 
-                int tblmessageid = await _MSG.CreateMessage(CompanyId, MessageText, MessageType, IncidentActivationId, Priority, CurrentUserId,
-                    Source, _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId), MultiResponse, AckOptions, 99, AssetId, 0, false, SilentMessage,
-                    MessageMethod, MediaAttachments);
+                int tblmessageid = await _MSG.CreateMessage(companyId, messageText, messageType, incidentActivationId, priority, currentUserId,
+                    Source, await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), multiResponse, ackOptions, 99, assetId, 0, false, silentMessage,
+                    messageMethod, mediaAttachments);
 
                 MessageId = tblmessageid;
 
-                List<PingMessageObjLst> LstIncNotiLst = new List<PingMessageObjLst>(PingMessageObjLst);
+                List<PingMessageObjLst> LstIncNotiLst = new List<PingMessageObjLst>(pingMessageObjLst);
                 //Checking whether to notifiy keyholders not not
-                if (MessageType.ToUpper() == "PING") {
-                    if (PingMessageObjLst.Count() > 0 && MessageType.ToUpper() == "PING") {
-                        foreach (var INotiLst in LstIncNotiLst) {
-                            if (INotiLst.ObjectMappingId > 0) {
-                                await CreateAdHocNotificationList(tblmessageid, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CompanyId, CurrentUserId, TimeZoneId);
-                            }
-                        }
-                    }
-                } else if (MessageType.ToUpper() == "INCIDENT") {
-                    if (PingMessageObjLst.Count() > 0 && LstIncNotiLst != null) {
-                        foreach (var INotiLst in LstIncNotiLst) {
-                            if (INotiLst.ObjectMappingId > 0) {
-                                await _MSG.CreateIncidentNotificationList(tblmessageid, IncidentActivationId, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, CurrentUserId, CompanyId, TimeZoneId);
+                if (messageType.ToUpper() == "PING")
+                {
+                    if (pingMessageObjLst.Count() > 0 && messageType.ToUpper() == "PING")
+                    {
+                        foreach (var INotiLst in LstIncNotiLst)
+                        {
+                            if (INotiLst.ObjectMappingId > 0)
+                            {
+                               await CreateAdHocNotificationList(tblmessageid, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, companyId, currentUserId, timeZoneId);
                             }
                         }
                     }
                 }
-
-                NotifyKeyholders = Convert.ToBoolean(_DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", CompanyId));
-
-                if (NotifyKeyholders) {
-                    var roles = _DBC.CCRoles(true);
-                    var UserLst = await (from U in _context.Set<User>()
-                                         where roles.Contains(U.UserRole)
-                                         && U.CompanyId == CompanyId && U.Status == 1
-                                         select U.UserId).Distinct().ToListAsync();
-
-                    await _MSG.AddUserToNotify(tblmessageid, UserLst.Distinct().ToList());
+                else if (messageType.ToUpper() == "INCIDENT")
+                {
+                    if (pingMessageObjLst.Count() > 0 && LstIncNotiLst != null)
+                    {
+                        foreach (var INotiLst in LstIncNotiLst)
+                        {
+                            if (INotiLst.ObjectMappingId > 0)
+                            {
+                                await _MSG.CreateIncidentNotificationList(tblmessageid, incidentActivationId, INotiLst.ObjectMappingId, INotiLst.SourceObjectPrimaryId, currentUserId, companyId, timeZoneId);
+                            }
+                        }
+                    }
                 }
 
-                if (UsersToNotify != null) {
-                    await _MSG.AddUserToNotify(tblmessageid, UsersToNotify.ToList(), IncidentActivationId);
+                NotifyKeyholders = Convert.ToBoolean(await _DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", companyId));
+
+                if (NotifyKeyholders)
+                {
+                    var roles =await _DBC.CCRoles(true);
+                    var UserLst = (from U in _context.Set<User>()
+                                   where roles.Contains(U.UserRole)
+                                   && U.CompanyId == companyId && U.Status == 1
+                                   select U.UserId).Distinct().ToList();
+
+                   await _MSG.AddUserToNotify(tblmessageid, UserLst.Distinct().ToList());
                 }
 
-                if (SocialHandle != null)
-                    await _MSG.SocialPosting(tblmessageid, SocialHandle, CompanyId);
+                if (usersToNotify != null)
+                {
+                  await  _MSG.AddUserToNotify(tblmessageid, usersToNotify.ToList(), incidentActivationId);
+                }
 
-                await queue.CreateMessageList(tblmessageid, "", SendToAllRecipient);
-                IsFundAvailable = queue.IsFundAvailable;
-            } catch (Exception ex) {
+                if (socialHandle != null)
+                    await Task.Factory.StartNew(() => _MSG.SocialPosting(tblmessageid, socialHandle,companyId));
+
+                //QueueHelper.MessageListQueue(tblmessageid);
+                await _queue.CreateMessageList(tblmessageid, "", sendToAllRecipient);
+                _IsFundAvailable = _queue.IsFundAvailable;
+            }
+            catch (Exception ex)
+            {
                 throw;
             }
 
             return MessageId;
         }
 
-        private async Task CreateAdHocNotificationList(int tblmessageid, int MappingID, int SourceObjectID, int CompanyId, int CurrentUserId, string TimeZoneId) {
-            try {
-                AdhocMessageNotificationList tblAdHocNotiLst = new AdhocMessageNotificationList() {
-                    CompanyId = CompanyId,
-                    MessageId = tblmessageid,
-                    ObjectMappingId = MappingID,
-                    SourceObjectPrimaryId = SourceObjectID,
-                    Status = 1,
-                    CreatedBy = CurrentUserId,
-                    CreatedOn = DateTime.Now,
-                    UpdatedBy = CurrentUserId,
-                    UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId)
-                };
-                await _context.Set<AdhocMessageNotificationList>().AddAsync(tblAdHocNotiLst);
-                await _context.SaveChangesAsync();
-            } catch (Exception ex) {
-                throw ex;
-            }
+        private async Task CreateAdHocNotificationList(int tblmessageid, int mappingID, int SourceObjectID, int companyId, int currentUserId, string timeZoneId)
+        {
+            AdhocMessageNotificationList tblAdHocNotiLst = new AdhocMessageNotificationList()
+            {
+                CompanyId = companyId,
+                MessageId = tblmessageid,
+                ObjectMappingId = mappingID,
+                SourceObjectPrimaryId = SourceObjectID,
+                Status = 1,
+                CreatedBy = currentUserId,
+                CreatedOn = DateTime.Now,
+                UpdatedBy = currentUserId,
+                UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId)
+            };
+            _context.Set<AdhocMessageNotificationList>().Add(tblAdHocNotiLst);
+            _context.SaveChanges();
         }
 
-        public dynamic ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId) {
+        public async Task<dynamic> ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId)
+        {
 
             try {
 
-                string AttachmentSavePath = _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
-                string AttachmentUncUser = _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
-                string AttachmentUncPwd = _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
-                string AttachmentUseUnc = _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
-                string ServerUploadFolder = _DBC.LookupWithKey("UPLOAD_PATH");
+                string AttachmentSavePath =await _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
+                string AttachmentUncUser =await _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
+                string AttachmentUncPwd =await _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
+                string AttachmentUseUnc =await _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
+                string ServerUploadFolder =await _DBC.LookupWithKey("UPLOAD_PATH");
 
                 try {
 
-                    _context.Database.ExecuteSqlRaw("DELETE FROM PublicAlertMessageListDump WHERE SessionId='" + sessionId + "'");
+                   await _context.Database.ExecuteSqlRawAsync("DELETE FROM PublicAlertMessageListDump WHERE SessionId='" + sessionId + "'");
 
-                    _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
+                    await _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);
 
                     if (File.Exists(ServerUploadFolder + userListFile)) {
                         bool HeaderSkipped = false;
                         List<PublicAlertUserList> PauList = new List<PublicAlertUserList>();
-                        DateTimeOffset dtnow = _DBC.GetDateTimeOffset(DateTime.Now);
+                        DateTimeOffset dtnow =await _DBC.GetDateTimeOffset(DateTime.Now);
 
                         using (var stream = File.Open(ServerUploadFolder + userListFile, FileMode.Open, FileAccess.Read)) {
 
@@ -297,14 +329,20 @@ namespace CrisesControl.Infrastructure.Services {
                         ResultDTO.ErrorCode = "205";
                         ResultDTO.Message = "Message queued successfully";
                     }
-                } else {
-                    ResultDTO.ErrorId = 206;
-                    ResultDTO.ErrorCode = "206";
-                    ResultDTO.Message = "No items found for resending";
+                    else
+                    {
+                        ResultDTO.ErrorId = 206;
+                        ResultDTO.ErrorCode = "206";
+                        ResultDTO.Message = "No items found for resending";
+                    }
+                    return ResultDTO;
                 }
+                
                 return ResultDTO;
-            } catch (Exception ex) {
-                return ResultDTO;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
 
         }
@@ -314,15 +352,15 @@ namespace CrisesControl.Infrastructure.Services {
 
                 try {
 
-                    DateTimeOffset dtnow = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    DateTimeOffset dtnow =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
-                    var PACount = (from PAD in _context.Set<PublicAlertMessageListDump>() where PAD.SessionId == sessionId select PAD).Count();
+                    var PACount = await _context.Set<PublicAlertMessageListDump>().Where(PAD=> PAD.SessionId == sessionId).CountAsync();
 
                     if (PACount > 0) {
                         _MSG.MessageSourceAction = SourceAction.PublicAlert;
                         //Create message enry
                         int tblmessageid = await _MSG.CreateMessage(companyId, messageText, "PublicAlert", 0, 100, userId,
-                                1, _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), false, null, 99, 0, 0, false, false, messageMethod, null, 0);
+                                1, await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), false, null, 99, 0, 0, false, false, messageMethod, null, 0);
 
                         //Create public alert entry for the listing
                         int PublicAlertID = await CreatePublicAlert(tblmessageid, schedulePA, scheduleAt, userId, timeZoneId);
@@ -341,18 +379,20 @@ namespace CrisesControl.Infrastructure.Services {
 
                         if (!schedulePA) {
                             //Create Message List for Ping
-                            _MSG.SavePublicAlertMessageList(sessionId, PublicAlertID, tblmessageid, dtnow, TextAdded, EmailAdded, PhoneAdded);
+                            await _MSG.SavePublicAlertMessageList(sessionId, PublicAlertID, tblmessageid, dtnow, TextAdded, EmailAdded, PhoneAdded);
 
-                            var rabbithosts = _queueHelper.RabbitHosts();
+                            var rabbithosts =await  _queueHelper.RabbitHosts();
                             await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "EMAIL")).ContinueWith(t => {
                                 t.Dispose();
                             });
                             await Task.Factory.StartNew(() => _queueHelper.PublishPublicAlertQueue(tblmessageid, rabbithosts, "TEXT")).ContinueWith(t => {
                                 t.Dispose();
                             });
-                            _context.Database.ExecuteSqlRaw("EXEC UPDATE PublicAlert SET Executed=1 WHERE PublicAlertID=" + PublicAlertID);
-                        } else {
-                            _context.Database.ExecuteSqlRaw("EXEC UPDATE PublicAlertMessageListDump SET PublicAlertID=" + PublicAlertID + " WHERE SessionId='" + sessionId + "'");
+                           await _context.Database.ExecuteSqlRawAsync("EXEC UPDATE PublicAlert SET Executed=1 WHERE PublicAlertID=" + PublicAlertID);
+                        }
+                        else
+                        {
+                           await _context.Database.ExecuteSqlRawAsync("EXEC UPDATE PublicAlertMessageListDump SET PublicAlertID=" + PublicAlertID + " WHERE SessionId='" + sessionId + "'");
 
                             //SchedulerHelper SH = new SchedulerHelper();
                             //DateTimeOffset DOScheduleAt = _DBC.GetDateTimeOffset(ScheduleAt, TimeZoneId);
@@ -385,9 +425,9 @@ namespace CrisesControl.Infrastructure.Services {
                     ScheduleAt = scheduleAt,
                     Executed = 0,
                     CreatedBy = userId,
-                    CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId)
+                    CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId)
                 };
-                _context.Set<PublicAlert>().Add(PA);
+                await _context.AddAsync(PA);
                 await _context.SaveChangesAsync();
                 return PA.PublicAlertId;
             } catch (Exception ex) {
@@ -398,9 +438,11 @@ namespace CrisesControl.Infrastructure.Services {
         public async Task<dynamic> ReplyToMessage(int parentId, string messageText, string replyTo, string messageType, int activeIncidentId, int[] messageMethod,
             int cascadePlanId, int currentUserId, int companyId, string timeZoneId) {
             Return Result = new Return();
-            try {
-                var msg = (from M in _context.Set<Message>() where M.MessageId == parentId select M).FirstOrDefault();
-                if (msg != null) {
+            try
+            {
+                var msg = await _context.Set<Message>().Where(M=> M.MessageId == parentId).FirstOrDefaultAsync();
+                if (msg != null)
+                {
 
                     int MessageActionType = 0;
                     bool MultiResponse = false;
@@ -409,15 +451,16 @@ namespace CrisesControl.Infrastructure.Services {
                     _MSG.CascadePlanID = cascadePlanId;
                     _MSG.MessageSourceAction = SourceAction.PingReply;
 
-                    if (replyTo.ToUpper() == "RENOTIFY") {
-                        string NotifyNote = _DBC.GetCompanyParameter("RENOTIFY_NOTE", companyId);
+                    if (replyTo.ToUpper() == "RENOTIFY")
+                    {
+                        string NotifyNote =await _DBC.GetCompanyParameter("RENOTIFY_NOTE", companyId);
                         messageText = msg.MessageText + Environment.NewLine + "[" + NotifyNote + "]";
                         MessageActionType = 1;
                         MultiResponse = msg.MultiResponse;
                     }
 
                     int tblmessageid = await _MSG.CreateMessage(companyId, messageText, messageType, activeIncidentId, 100, currentUserId,
-                        1, _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), MultiResponse, null, 99, msg.AssetId, 0, false, msg.SilentMessage, messageMethod, null,
+                        1,await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId), MultiResponse, null, 99, msg.AssetId, 0, false, msg.SilentMessage, messageMethod, null,
                         parentId, MessageActionType);
 
                     msg.HasReply += 1;
@@ -428,16 +471,18 @@ namespace CrisesControl.Infrastructure.Services {
                             newmsg.AttachmentCount = msg.AttachmentCount;
                         }
                     }
-                    await _context.SaveChangesAsync();
+                   await _context.SaveChangesAsync();
 
-                    int queuecount = await queue.CreateMessageList(tblmessageid, replyTo);
-                    IsFundAvailable = queue.IsFundAvailable;
+                    int queuecount = await _queue.CreateMessageList(tblmessageid, replyTo);
+                    _IsFundAvailable = _queue.IsFundAvailable;
 
-                    Result = _DBC.Return(0, IsFundAvailable == true ? null : "E219", true, "SUCCESS", tblmessageid, queuecount);
+                    Result = await _DBC.Return(0, _IsFundAvailable == true ? null : "E219", true, "SUCCESS", tblmessageid, queuecount);
 
                     return Result;
-                } else {
-                    Result = _DBC.Return(214, "E214", false, "The source message is not found.", null);
+                }
+                else
+                {
+                    Result =await  _DBC.Return(214, "E214", false, "The source message is not found.", null);
                     return Result;
                 }
 

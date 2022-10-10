@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllCompanyIncident;
 using CrisesControl.Api.Application.Commands.Incidents.AddIncidentAction;
 using CrisesControl.Api.Application.Commands.Incidents.AddIncidentAsset;
 using CrisesControl.Api.Application.Commands.Incidents.AddIncidentType;
@@ -44,6 +45,8 @@ using CrisesControl.Core.Messages;
 using CrisesControl.Core.Models;
 using CrisesControl.Core.Reports;
 using CrisesControl.SharedKernel.Utils;
+using CrisesControl.Api.Application.Commands.Incidents.GetAffectedLocations;
+using CrisesControl.Api.Application.Commands.Incidents.GetAllActiveCompanyIncident;
 
 namespace CrisesControl.Api.Application.Query;
 
@@ -66,9 +69,20 @@ public class IncidentQuery : IIncidentQuery
         _paging = paging;
     }
 
-    public List<IncidentList> GetAllCompanyIncident(int userId)
+    public async Task<GetAllCompanyIncidentResponse> GetAllCompanyIncident(GetAllCompanyIncidentRequest request)
     {
-        return _incidentRepository.GetCompanyIncident(_currentUser.CompanyId, userId > 0 ? userId : _currentUser.UserId);
+        var companyIncident=  _incidentRepository.GetCompanyIncident(_currentUser.CompanyId, request.UserId);
+        var result = _mapper.Map<List<IncidentList>>(companyIncident);
+        var response = new GetAllCompanyIncidentResponse();
+        if (result != null)
+        {
+            response.IncidentList = result;
+        }
+        else
+        {
+            response.IncidentList = new List<IncidentList>();
+        }
+        return response;
     }
 
     public List<IncidentTypeReturn> GetCompanyIncidentType(int companyId)
@@ -76,9 +90,20 @@ public class IncidentQuery : IIncidentQuery
         return _incidentRepository.CompanyIncidentType(companyId);
     }
 
-    public List<AffectedLocation> GetAffectedLocations(int companyId, string locationType)
+    public async Task<GetAffectedLocationsResponse> GetAffectedLocations(GetAffectedLocationsRequest request)
     {
-        return _incidentRepository.GetAffectedLocation(companyId, locationType);
+        var affectedLocation= _incidentRepository.GetAffectedLocation(_currentUser.CompanyId, request.LocationType.ToLocString());
+        var result = _mapper.Map<List<AffectedLocation>>(affectedLocation);
+        var response = new GetAffectedLocationsResponse();
+        if (result != null)
+        {
+            response.Data = result;
+        }
+        else
+        {
+            response.Data = new List<AffectedLocation>();
+        }
+        return response;
     }
 
     public List<AffectedLocation> GetIncidentLocations(int companyId, int incidentActivationId)
@@ -96,30 +121,27 @@ public class IncidentQuery : IIncidentQuery
         return _incidentRepository.GetIncidentById(companyId, _currentUser.UserId, incidentId, userStatus);
     }
 
-    public DataTablePaging GetAllActiveCompanyIncident(string? status)
-    {
+    public async Task<DataTablePaging> GetAllActiveCompanyIncident(string? status) {
         string OrderBy = _paging.Order != null ? _paging.Order : "Name";
         string OrderDir = _paging.Dir != null ? _paging.Dir : "asc";
-        
+
         string Status = status != null ? status : "1,2,3,4";
 
         int totalRecord = 0;
         DataTablePaging rtn = new DataTablePaging();
         rtn.Draw = _paging.Draw;
 
-        var ActIncidentDtl = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, _paging.Start, _paging.Length, _paging.Search, OrderBy, OrderDir);
+        var ActIncidentDtl = await _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, _paging.Start, _paging.Length, _paging.Search, OrderBy, OrderDir);
 
-        if (ActIncidentDtl != null)
-        {
+        if (ActIncidentDtl != null) {
             totalRecord = ActIncidentDtl.Count;
             rtn.RecordsFiltered = ActIncidentDtl.Count;
             rtn.Data = ActIncidentDtl;
         }
 
-        var TotalList = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, 0, int.MaxValue, "", "IncidentActivationId", "asc");
+        var TotalList = await _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, 0, int.MaxValue, "", "IncidentActivationId", "asc");
 
-        if (TotalList != null)
-        {
+        if (TotalList != null) {
             totalRecord = TotalList.Count;
         }
 
@@ -181,7 +203,7 @@ public class IncidentQuery : IIncidentQuery
     public async Task<GetActiveIncidentBasicResponse> GetActiveIncidentBasic(GetActiveIncidentBasicRequest request)
     {
         var basic = await _incidentRepository.GetActiveIncidentBasic(_currentUser.CompanyId, request.IncidentActivationId);
-        var result = _mapper.Map<UpdateIncidentStatusReturn>(basic);
+        var result = _mapper.Map<List<UpdateIncident>>(basic.ToList());
         var response = new GetActiveIncidentBasicResponse();
         if (result != null)
         {
@@ -431,9 +453,9 @@ public class IncidentQuery : IIncidentQuery
             var incidentId = await _incidentRepository.UpdateCompanyIncidentActions(_currentUser.CompanyId, request.IncidentId, request.IncidentActionId,
                         request.Title, request.ActionDescription, request.IncidentParticipants, request.UsersToNotify,
                         request.Status, _currentUser.UserId, _currentUser.TimeZone);
-            var result = _mapper.Map<int>(incidentId);
+            var result = _mapper.Map<List<ActionLsts>>(incidentId);
             var response = new UpdateCompanyIncidentActionResponse();
-            if (result > 0)
+            if (result != null)
             {
                 response.Data = incidentId;
             }
@@ -793,7 +815,7 @@ public class IncidentQuery : IIncidentQuery
     {
         try
         {
-            var testMe = await _incidentRepository.GetIncidentMapLocations(request.ActiveIncidentId, request.Filter);
+            var testMe = await _incidentRepository.GetIncidentMapLocations(request.ActiveIncidentId, _paging.Filters);
             var result = _mapper.Map<List<MapLocationReturn>>(testMe);
             var response = new GetIncidentMapLocationsResponse();
             if (result != null)
@@ -984,7 +1006,7 @@ public class IncidentQuery : IIncidentQuery
     {
         try
         {
-            var dataTable = await _incidentRepository.GetIncidentEntityRecipient(_paging.PageNumber, _paging.PageSize, request.Search, request.Draw, _paging.OrderBy, request.Dir, request.ActiveIncidentID, request.EntityType, request.EntityID, _currentUser.CompanyId, _currentUser.UserId, request.CompanyKey);
+            var dataTable = await _incidentRepository.GetIncidentEntityRecipient(_paging.PageNumber, _paging.PageSize, _paging.Search, _paging.Draw, _paging.OrderBy, _paging.Order, request.ActiveIncidentID, request.EntityType, request.EntityID, _currentUser.CompanyId, _currentUser.UserId, _paging.UniqueKey);
             var result = _mapper.Map<DataTablePaging>(dataTable);
             var response = new GetIncidentEntityRecipientResponse();
             if (result != null)

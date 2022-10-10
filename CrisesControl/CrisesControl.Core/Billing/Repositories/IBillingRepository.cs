@@ -12,8 +12,9 @@ namespace CrisesControl.Core.Billing.Repositories {
         Task<dynamic> GetUnbilledSummaryByMonth(int startYear, int monthNumber);
         Task<dynamic> GetUnbilledSummaryByMessage(int messageId);
         Task<List<InvoiceSchReturn>> GetInvItems(int OrderId, int MonthVal, int YearVal);
-        Task<List<OrderListReturn>> GetOrder(int orderId, int companyId, string customerId, int originalOrderId);
+        Task<List<OrderListReturn>> GetOrders(int orderId, int companyId);
         Task<int> CreateOrder(OrderModel IP);
+        Task AddUserRoleChange(int CompanyID, int UserID, string UserRole, string TimeZoneId);
         Task<int> CreateInvoiceSchedule(OrderModel orderModel);
         Task<GetInvoiceByIdResponse> GetInvoicesById(int companyId, int transactionHeaderId, bool showPayments);
         Task<List<TransactionItemDetails>> GetTransactionItem(int companyId, int messageId, string method, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc", string companyKey = "");

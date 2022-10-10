@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
-using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Core.Administrator;
 using CrisesControl.Core.Billing;
 using CrisesControl.Core.Billing.Repositories;
 using CrisesControl.Core.Common;
 using CrisesControl.Core.Companies;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Import;
 using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Context;
@@ -27,17 +27,19 @@ namespace CrisesControl.Infrastructure.Repositories
         private readonly CrisesControlContext _context;
         private readonly IMapper _mapper;
         private readonly UsageHelper _usage;
-        private readonly DBCommon _DBC;
+        private readonly IDBCommonRepository _DBC;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ISenderEmailService _SDE;
         private readonly int companyId;
 
-        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor) {
+        public BillingRespository(CrisesControlContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, IDBCommonRepository DBC, ISenderEmailService senderEmail) {
             _context = context;
-            _mapper = mapper;
+            _mapper = mapper;            
             _httpContextAccessor = httpContextAccessor;
-            companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
-            _DBC = new DBCommon(context, _httpContextAccessor);
-            _usage = new UsageHelper(context);
+             companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            _DBC = DBC;
+            _SDE = senderEmail;
+            _usage = new UsageHelper(context,_DBC,_SDE);
         }
 
         public async Task<BillingPaymentProfile> GetPaymentProfile(int companyID)
@@ -183,25 +185,25 @@ namespace CrisesControl.Infrastructure.Repositories
             return new List<InvoiceSchReturn>();
         }
 
-        public async Task<List<OrderListReturn>> GetOrder(int orderId, int companyId, string customerId, int originalOrderId)
+        public async Task<List<OrderListReturn>> GetOrders(int orderId, int companyId)
         {
             try
             {
                 var pOrderId = new SqlParameter("@OrderId", orderId);
-                var pOriginalOrderId = new SqlParameter("@OriginalOrderId", originalOrderId);
+               
                 var pCompanyId = new SqlParameter("@CompanyId", companyId);
-                var pCustomerId = new SqlParameter("@CustomerId", customerId);
+               
 
-                var result = await _context.Set<OrderListReturn>().FromSqlRaw("EXEC Billing_Get_Order @OrderId, @OriginalOrderId, @CompanyId, @CustomerId",
-                    pOrderId, pOriginalOrderId, pCompanyId, pCustomerId).ToListAsync();
+                var result = await _context.Set<OrderListReturn>().FromSqlRaw("EXEC Billing_Get_Order @OrderId, @CompanyId",
+                    pOrderId, pCompanyId).ToListAsync();
 
                 if (result != null)
                 {
-                    if (orderId > 0 || originalOrderId > 0)
+                    if (orderId > 0 )
                     {
                         var newresult = result.FirstOrDefault();
-                        newresult.Modules = await GetProducts((int)newresult.OrderID, companyId);
-                        newresult.InvItems = await GetInvItems((int)newresult.OrderID, DateTime.Now.Month, DateTime.Now.Year);
+                        newresult.Modules = await GetProducts(newresult.OrderID ?? 0, companyId);
+                        newresult.InvItems = await GetInvItems(newresult.OrderID ?? 0, DateTime.Now.Month, DateTime.Now.Year);
                         var r = new List<OrderListReturn>();
                         r.Add(newresult);
                         return r;
@@ -421,7 +423,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
             return orderId;
         }
-        public async Task<dynamic> GetOrder(int OrderId, int CompanyId)
+        private async Task<dynamic> GetOrder(int OrderId, int CompanyId)
         {
             try
             {
@@ -471,13 +473,12 @@ namespace CrisesControl.Infrastructure.Repositories
                         {
                             cp.OnTrial = false;
                             cpp.ContractStartDate = order.ContractStartDate;
-                            cpp.ContractAnniversary = order.ContractStartDate.AddMonths((int)order.ContractDuration).AddDays(-1);
-
+                            cpp.ContractAnniversary = order.ContractStartDate.AddMonths(order.ContractDuration ?? 0).AddDays(-1);
                             await _context.SaveChangesAsync();
                         }
 
-                        string TimeZoneId = _DBC.GetTimeZoneByCompany(CompanyId);
-                        DateTimeOffset dtnow = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                        string TimeZoneId =await _DBC.GetTimeZoneByCompany(CompanyId);
+                        DateTimeOffset dtnow =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
 
                         decimal TotalValue = (decimal)(order.ContractValue + order.VatTotal);
                         decimal VATRate = (decimal)cpp.Vatrate;
@@ -490,10 +491,10 @@ namespace CrisesControl.Infrastructure.Repositories
                         var Storage = (from A in _context.Set<Assets>() where A.CompanyId == CompanyId select A).ToList();
                         double AssetSize = Storage.Select(s => s.AssetSize).Sum();
 
-                        DateTime EndTime = order.ContractStartDate.AddMonths((int)order.ContractDuration).AddDays(-1);
+                        DateTime EndTime = order.ContractStartDate.AddMonths(order.ContractDuration ?? 0).AddDays(-1);
 
                         int tran_header_id = await _usage.AddTransactionHeader(CompanyId, Convert.ToDecimal(order.ContractValue), VATRate, Convert.ToDecimal(order.VatTotal),
-                            Convert.ToDecimal(TotalValue), 0, cpp.CreditLimit, (int)order.KeyholderCount, TotalAdmin, (int)order.StaffCount, TotalStaff, StorageLimit, AssetSize,
+                            Convert.ToDecimal(TotalValue), 0, cpp.CreditLimit, order.KeyholderCount ?? 0, TotalAdmin, order.StaffCount ?? 0, TotalStaff, StorageLimit, AssetSize,
                             order.ContractStartDate, EndTime);
 
 
@@ -512,8 +513,8 @@ namespace CrisesControl.Infrastructure.Repositories
                                 cpp.LastCreditDate = dtnow;
                                 cpp.UpdatedOn = dtnow;
                                 cpp.UpdatedBy = CurrentUserId;
-                                await _context.SaveChangesAsync();
-                                await _DBC.GetSetCompanyComms(CompanyId);
+                               await _context.SaveChangesAsync();
+                               await _DBC.GetSetCompanyComms(CompanyId);
                             }
 
                             //Handle the Storage Transaction
@@ -610,8 +611,9 @@ namespace CrisesControl.Infrastructure.Repositories
                             newTransactionDetails.TransactionDate = TransactionDate;
                             newTransactionDetails.TransactionStatus = TransactionStatus;
                             newTransactionDetails.UpdatedBy = currntUserId;
-                            newTransactionDetails.UpdateOn = _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                            newTransactionDetails.UpdateOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
                             newTransactionDetails.Drcr = TrType;
+                            _context.Update(newTransactionDetails);
                             await _context.SaveChangesAsync();
                             TDId = newTransactionDetails.TransactionDetailsId;
                         }
@@ -627,14 +629,14 @@ namespace CrisesControl.Infrastructure.Repositories
             return TDId;
         }
 
-        public void ProcessPendingOrder(int OrderID, int CompanyId)
+        public async Task ProcessPendingOrder(int OrderID, int CompanyId)
         {
             try
             {
                 var pOrderId = new SqlParameter("@OrderId", OrderID);
                 var pCompanyId = new SqlParameter("@CompanyId", CompanyId);
 
-                var result = _context.Set<CompanyPackageFeatures>().FromSqlRaw("EXEC Process_Pending_Order @OrderId, @CompanyId", pOrderId, pCompanyId).ToList();
+                var result = await  _context.Set<CompanyPackageFeatures>().FromSqlRaw("EXEC Process_Pending_Order @OrderId, @CompanyId", pOrderId, pCompanyId).ToListAsync();
             }
             catch (Exception ex)
             {
@@ -664,7 +666,23 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-
+        public async Task AddUserRoleChange(int CompanyID, int UserID, string UserRole, string TimeZoneId)
+        {
+            try
+            {
+                UserRoleChange URC = new UserRoleChange();
+                URC.CompanyId = CompanyID;
+                URC.UserId = UserID;
+                URC.UserRole = UserRole.ToUpper();
+                URC.CreatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
+                await _context.AddAsync(URC);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         private void CreateSchedule(int orderItemId, double totalAmount, int period, DateTime contractStartDate, string chargeType)
         {
             try
@@ -850,17 +868,17 @@ namespace CrisesControl.Infrastructure.Repositories
                 }
                 else
                 {
-                    transaction.NextRunDate = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    transaction.NextRunDate = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 }
                 transaction.CreatedBy = currntUserId;
-                transaction.CreatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                transaction.CreatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                 transaction.UpdatedBy = currntUserId;
-                transaction.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                transaction.UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
 
                 if (!string.IsNullOrEmpty(paymentMethod) && paymentMethod != "UNKNOWN")
                     transaction.PaymentMethod = paymentMethod;
 
-                await _context.Set<CompanyTranscationType>().AddAsync(transaction);
+                await _context.AddAsync(transaction);
                 await _context.SaveChangesAsync();
                 CTTId = transaction.CompanyTranscationTypeId;
             }
@@ -883,7 +901,8 @@ namespace CrisesControl.Infrastructure.Repositories
                         newCompanyTranscationType.NextRunDate = (DateTimeOffset)nextRunDate;
                     }
                     newCompanyTranscationType.UpdatedBy = currntUserId;
-                    newCompanyTranscationType.UpdatedOn = _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    newCompanyTranscationType.UpdatedOn = await _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    _context.Update(newCompanyTranscationType);
                     await _context.SaveChangesAsync();
                     CTTId = newCompanyTranscationType.CompanyTranscationTypeId;
                 }

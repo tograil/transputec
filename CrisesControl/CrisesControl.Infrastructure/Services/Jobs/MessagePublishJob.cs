@@ -1,4 +1,5 @@
-﻿using CrisesControl.Infrastructure.Context;
+﻿using CrisesControl.Core.Queues.Services;
+using CrisesControl.Infrastructure.Context;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Quartz;
@@ -8,11 +9,11 @@ using System.Threading.Tasks;
 
 namespace CrisesControl.Infrastructure.Services.Jobs {
     public class MessageDevicePublishJob : IJob {
-        private readonly IServiceProvider _serviceProvider;
-        public MessageDevicePublishJob(IServiceProvider serviceProvider) {
+        private readonly IQueueMessageService _queueHelper;
+        public MessageDevicePublishJob( IQueueMessageService queueHelper) {
             Debug.WriteLine("Inizialing the MessageDeviceQueueJob");
             try {
-                _serviceProvider = serviceProvider;
+                _queueHelper = queueHelper;
             } catch (Exception) {
 
                 throw;
@@ -22,10 +23,6 @@ namespace CrisesControl.Infrastructure.Services.Jobs {
         public async Task Execute(IJobExecutionContext context) {
             Console.WriteLine("Executing the MessageDevicePublishJob");
             try {
-                var _db = _serviceProvider.GetRequiredService<CrisesControlContext>();
-                var _httpContextAccessor = _serviceProvider.GetRequiredService<IHttpContextAccessor>();
-                QueueHelper _queueHelper = new QueueHelper(_db, _httpContextAccessor);
-
 
                 int MessageID = context.JobDetail.JobDataMap.GetInt("MessageID");
                 int Priority = context.JobDetail.JobDataMap.GetInt("Priority");
@@ -42,11 +39,11 @@ namespace CrisesControl.Infrastructure.Services.Jobs {
     }
 
     public class MessageDeviceQueueJob : IJob {
-        private readonly IServiceProvider _serviceProvider;
-        public MessageDeviceQueueJob(IServiceProvider serviceProvider) {
+        private readonly IQueueMessageService _queueHelper;
+        public MessageDeviceQueueJob(IQueueMessageService queueHelper) {
             Debug.WriteLine("Inizialing the MessageDeviceQueueJob");
             try {
-                _serviceProvider = serviceProvider;
+                _queueHelper = queueHelper;
             } catch (Exception) {
 
                 throw;
@@ -57,10 +54,6 @@ namespace CrisesControl.Infrastructure.Services.Jobs {
         public async Task Execute(IJobExecutionContext context) {
             Debug.WriteLine("Executing the MessageDeviceQueueJob");
             try {
-
-                var _db = _serviceProvider.GetRequiredService<CrisesControlContext>();
-                var _httpContextAccessor = _serviceProvider.GetRequiredService<IHttpContextAccessor>();
-                QueueHelper _queueHelper = new QueueHelper(_db, _httpContextAccessor);
 
                 int MessageID = context.JobDetail.JobDataMap.GetInt("MessageID");
                 string? MessageType = context.JobDetail.JobDataMap.GetString("MessageType");
@@ -77,11 +70,11 @@ namespace CrisesControl.Infrastructure.Services.Jobs {
     }
 
     public class PublishMessageQueueJob : IJob {
-        private readonly IServiceProvider _serviceProvider;
-        public PublishMessageQueueJob(IServiceProvider serviceProvider) {
+        private readonly IQueueMessageService _queueHelper;
+        public PublishMessageQueueJob(IQueueMessageService queueHelper) {
             Debug.WriteLine("Inizialing the MessageDeviceQueueJob");
             try {
-                _serviceProvider = serviceProvider;
+                _queueHelper = queueHelper;
             } catch (Exception) {
 
                 throw;
@@ -93,15 +86,11 @@ namespace CrisesControl.Infrastructure.Services.Jobs {
             Debug.WriteLine("Executing the MessageDeviceQueueJob");
             try {
 
-                var _db = _serviceProvider.GetRequiredService<CrisesControlContext>();
-                var _httpContextAccessor = _serviceProvider.GetRequiredService<IHttpContextAccessor>();
-                QueueHelper _queueHelper = new QueueHelper(_db, _httpContextAccessor);
-
                 int MessageID = context.JobDetail.JobDataMap.GetInt("MessageID");
                 string? Method = context.JobDetail.JobDataMap.GetString("Method");
                 int Priority = context.JobDetail.JobDataMap.GetInt("Priority");
 
-                var rabbithosts = _queueHelper.RabbitHosts();
+                var rabbithosts = await _queueHelper.RabbitHosts();
 
                 await _queueHelper.PublishMessageQueue(MessageID, rabbithosts, Method, null, Priority);
 

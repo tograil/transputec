@@ -19,7 +19,7 @@ namespace CrisesControl.Api.Application.Commands.Messaging.ProcessPAFile
         {
             Guard.Against.Null(request, nameof(ProcessPAFileRequest));
             var response = new ProcessPAFileResponse();
-            response = _messageRepository.ProcessPAFile(request.UserListFile, request.HasHeader, request.EmailColIndex, request.PhoneColIndex, request.PostcodeColIndex, request.LatColIndex, request.LongColIndex, request.SessionId);
+            response =await _messageRepository.ProcessPAFile(request.UserListFile, request.HasHeader, request.EmailColIndex, request.PhoneColIndex, request.PostcodeColIndex, request.LatColIndex, request.LongColIndex, request.SessionId);
             return response;
         }
     }

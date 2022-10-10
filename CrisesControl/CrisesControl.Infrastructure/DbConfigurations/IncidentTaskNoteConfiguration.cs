@@ -8,6 +8,7 @@ public class IncidentTaskNoteConfiguration : IEntityTypeConfiguration<IncidentTa
 {
     public void Configure(EntityTypeBuilder<IncidentTaskNote> builder)
     {
+        builder.ToTable("IncidentTaskNotes");
         builder.HasKey(e => e.IncidentTaskNotesId)
             .HasName("PK_dbo.IncidentTaskNotes");
 
@@ -16,11 +17,13 @@ public class IncidentTaskNoteConfiguration : IEntityTypeConfiguration<IncidentTa
         builder.Property(e => e.CompanyId).HasColumnName("CompanyID");
 
         builder.Property(e => e.NoteType).HasMaxLength(20);
+        builder.Property(e => e.Notes).HasColumnName("Notes");
+        builder.Property(e => e.CreatedDate).HasColumnName("CreatedDate");
 
         builder.Property(e => e.ObjectId).HasColumnName("ObjectID");
 
         builder.Property(e => e.UserId).HasColumnName("UserID");
 
-        builder.ToTable("IncidentTaskNote");
+        
     }
 }

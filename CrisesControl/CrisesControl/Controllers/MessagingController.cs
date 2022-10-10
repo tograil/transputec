@@ -92,7 +92,7 @@ namespace CrisesControl.Api.Controllers {
         [HttpGet]
         [Route("GetMessages/{TargetUserId:int}/{MessageType}/{IncidentActivationId:int}")]
         public async Task<IActionResult> GetMessages([FromRoute] GetMessagesRequest request, CancellationToken cancellationToken) {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _messageQuery.GetMessages(request);
 
             return Ok(result);
         }
@@ -147,8 +147,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpPut]
         [Route("MessageAcknowledge/{MsgListId:int}")]
-        public async Task<IActionResult> MessageAcknowledge([FromRoute] int MsgListId, [FromBody] MessageAcknowledgeRequestRoute requestRoute, CancellationToken cancellationToken)
-        {
+        public async Task<IActionResult> MessageAcknowledge([FromRoute] int MsgListId, [FromBody] MessageAcknowledgeRequestRoute requestRoute, CancellationToken cancellationToken) {
 
             MessageAcknowledgeRequest request = new MessageAcknowledgeRequest();
             request.AckMethod = requestRoute.AckMethod;
@@ -161,6 +160,7 @@ namespace CrisesControl.Api.Controllers {
 
             return Ok(result);
         }
+
         /// <summary>
         /// Get message reply for a message
         /// </summary>

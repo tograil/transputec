@@ -10,18 +10,23 @@ using CrisesControl.Api.Application.Commands.Billing.GetUnbilledSummary;
 using CrisesControl.Api.Application.Commands.Billing.GetUsageGraph;
 using CrisesControl.Core.Billing;
 using CrisesControl.Core.Billing.Repositories;
+using CrisesControl.Api.Application.Helpers;
 
 namespace CrisesControl.Api.Application.Query {
     public class BillingQuery : IBillingQuery  {
         private readonly IBillingRepository _billingRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<BillingQuery> _logger;
+        private readonly ICurrentUser _currentUser;
 
         public BillingQuery(IBillingRepository billingRepository, IMapper mapper,
-            ILogger<BillingQuery> logger) {
-            _logger = logger;
+            ILogger<BillingQuery> logger, ICurrentUser currentUser) {
+
             _mapper = mapper;
             _billingRepository = billingRepository;
+            _logger = logger;
+            _currentUser = currentUser;
+
         }
 
         public async Task<GetPaymentProfileResponse> GetPaymentProfile(GetPaymentProfileRequest request) {
@@ -39,49 +44,64 @@ namespace CrisesControl.Api.Application.Query {
 
         public async Task<GetAllInvoicesResponse> GetAllInvoices(GetAllInvoicesRequest request)
         {
-            var invoices = await _billingRepository.GetAllInvoices(request.CompanyId);
+            var invoices = await _billingRepository.GetAllInvoices(_currentUser.CompanyId);
             GetAllInvoicesResponse result = _mapper.Map<GetAllInvoicesResponse>(invoices);
             return result;
         }
 
-        public async Task<List<GetInvScheduleResponse>> GetInvSchedule(GetInvScheduleRequest request)
+        public async Task<GetInvScheduleResponse> GetInvSchedule(GetInvScheduleRequest request)
         {
             var invoiceItems = await _billingRepository.GetInvItems(request.OrderId, request.MonthVal, request.YearVal);
-            List<GetInvScheduleResponse> result = _mapper.Map<List<GetInvScheduleResponse>>(invoiceItems);
-            return result;
+            var result = _mapper.Map<List<InvoiceSchReturn>>(invoiceItems);
+            var response = new GetInvScheduleResponse();
+            if (result!=null)
+            {
+                response.Data = result;
+            }
+            else
+            {
+                response.Data = new List<InvoiceSchReturn>();
+            }
+            return response;
             
         }
 
-        public async Task<List<GetOrdersResponse>> GetOrders(GetOrdersRequest request)
+        public async Task<GetOrdersResponse> GetOrders(GetOrdersRequest request)
         {
-            var orderList = await _billingRepository.GetOrder(request.OrderId, request.CompanyId,request.CustomerId, request.OriginalOrderId);
-            List<GetOrdersResponse> result = _mapper.Map<List<GetOrdersResponse>>(orderList);
-            return result;
+            var orderList = await _billingRepository.GetOrders(request.OrderId, _currentUser.CompanyId);
+            var result = _mapper.Map<List<OrderListReturn>>(orderList);
+            var response = new GetOrdersResponse();
+            response.Data = result;
+            return response;
 
         }
 
         public async Task<GetInvoicesByIdResponse> GetInvoicesById(GetInvoicesByIdRequest request)
         {
-            var invoices = await _billingRepository.GetInvoicesById(request.CompanyId,request.TransactionHeaderId,request.ShowPayments);
+            var invoices = await _billingRepository.GetInvoicesById(_currentUser.CompanyId,request.TransactionHeaderId,request.ShowPayments);
             GetInvoicesByIdResponse result = _mapper.Map<GetInvoicesByIdResponse>(invoices);
             return result;
         }
 
-        public async Task<List<GetTransactionDetailsResponse>> GetTransactionDetails(GetTransactionDetailsRequest request)
+        public async Task<GetTransactionDetailsResponse> GetTransactionDetails(GetTransactionDetailsRequest request)
         {
-            var transactions = await _billingRepository.GetTransactionItem(request.companyId, request.messageId, request.method, request.recordStart, request.recordLength, request.searchString, request.orderBy, request.orderDir, request.companyKey);
-            List<GetTransactionDetailsResponse> result = _mapper.Map<List<GetTransactionDetailsResponse>>(request);
-            return result;
+            var transactions = await _billingRepository.GetTransactionItem(_currentUser.CompanyId, request.messageId, request.method, request.recordStart, request.recordLength, request.searchString, request.orderBy, request.orderDir, request.companyKey);
+            var result = _mapper.Map<List<TransactionItemDetails>>(transactions);
+            var response = new GetTransactionDetailsResponse();
+            response.Details = result;
+            return response;
         }
 
-        public async Task<List<GetUsageGraphResponse>> GetUsageGraph(GetUsageGraphRequest request)
+        public async Task<GetUsageGraphResponse> GetUsageGraph(GetUsageGraphRequest request)
         {
-            var usageGraph = await _billingRepository.GetUsageGraph(request.CompanyId, request.ReportType, request.LastMonth);
-            List<GetUsageGraphResponse> result = _mapper.Map<List<GetUsageGraphResponse>>(usageGraph);
-            return result;
+            var usageGraph = await _billingRepository.GetUsageGraph(_currentUser.CompanyId, request.ReportType, request.LastMonth);
+            var  result = _mapper.Map<List<TransactionItemDetails>>(usageGraph);
+            var response = new GetUsageGraphResponse();
+            response.Details = result;
+            return response;
         }
 
-        public async Task<List<GetUnbilledSummaryResponse>> GetUnbilledSummary(GetUnbilledSummaryRequest request)
+        public async Task<GetUnbilledSummaryResponse> GetUnbilledSummary(GetUnbilledSummaryRequest request)
         {
             var unbilledSummary = new List<UnbilledSummary>();
 
@@ -97,8 +117,10 @@ namespace CrisesControl.Api.Application.Query {
             {
                 unbilledSummary = await _billingRepository.GetUnbilledSummaryByMessage(request.MessageId);
             }
-            List<GetUnbilledSummaryResponse> result = _mapper.Map<List<GetUnbilledSummaryResponse>>(unbilledSummary);
-            return result;
+            var result = _mapper.Map<List<UnbilledSummary>>(unbilledSummary);           
+            var response = new GetUnbilledSummaryResponse();
+            response.unbilledSummaries = result;
+            return response;
         }
 
     }

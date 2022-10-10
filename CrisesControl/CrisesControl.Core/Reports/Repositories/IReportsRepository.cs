@@ -71,5 +71,6 @@ namespace CrisesControl.Core.Reports.Repositories
         Task<TaskOverview> CMD_TaskOverView(int activeIncidentId);
         Task<DataTablePaging> GetUserInvitationReport(UserInvitationModel userInvitation);
         DataTable GetUserInvitationReportData(UserInvitationModel inputModel, out string rFilePath, out string rFileName);
+        //Task<DataTable> GetUserInvitationReportData(UserInvitationModel inputModel, string rFilePath, string rFileName);
     }
 }

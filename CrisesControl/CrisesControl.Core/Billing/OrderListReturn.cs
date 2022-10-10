@@ -8,10 +8,10 @@ namespace CrisesControl.Core.Billing
 {
     public class OrderListReturn
     {
-        public int OrderID { get; set; }
-        public string CustomerId { get; set; }
-        public int CompanyId { get; set; }
-        public int ContractDuration { get; set; }
+        public int? OrderID { get; set; }
+        public string? CustomerId { get; set; }
+        public int? CompanyId { get; set; }
+        public int? ContractDuration { get; set; }
         public DateTimeOffset OrderDate { get; set; }
         public double? ContractValue { get; set; }
         public string? PaymentMethod { get; set; }

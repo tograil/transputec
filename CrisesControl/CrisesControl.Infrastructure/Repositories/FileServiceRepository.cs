@@ -1,7 +1,7 @@
 ﻿
 using Azure;
 using Azure.Storage.Files.Shares;
-using CrisesControl.Api.Application.Helpers;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.FileService.Repositories;
 using CrisesControl.Infrastructure.Context;
 using Microsoft.AspNetCore.Http;
@@ -20,12 +20,12 @@ namespace CrisesControl.Infrastructure.Repositories
     {
         private readonly CrisesControlContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly DBCommon _DBC;
-        public FileServiceRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+        private readonly IDBCommonRepository _DBC;
+        public FileServiceRepository(CrisesControlContext context, IDBCommonRepository DBC, IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
             _context = context;
-            _DBC = new DBCommon(_context, _httpContextAccessor);
+            _DBC =  DBC;
 
         }
        
@@ -34,7 +34,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                string connectionString = _DBC.Getconfig("AzureFileShareConnection");
+                string connectionString =await _DBC.Getconfig("AzureFileShareConnection");
                 //string connectionString = "DefaultEndpointsProtocol=https;AccountName=crisescontroluae;AccountKey=ymMQovjoq3BHsyxRa6PJ9JiJ3OaFjSLASmyvstM0QnLKee3QKvPKBoGpM+AmJalb7ZKZmkT9DYTL+vRoKMV6uA==;EndpointSuffix=core.windows.net";
                 const int uploadLimit = 4194304;
 

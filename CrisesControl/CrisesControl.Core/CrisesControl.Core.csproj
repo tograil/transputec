@@ -46,11 +46,9 @@
     <Folder Include="Exceptions\Error\Base\" />
     <Folder Include="Incidents\Services\" />
     <Folder Include="Jobs\Services\" />
-    <Folder Include="Messages\Services\" />
     <Folder Include="Messages\Repositories\" />
     <Folder Include="Queues\Maps\" />
     <Folder Include="Queues\Repositories\" />
-    <Folder Include="Queues\Services\" />
     <Folder Include="Settings\Repositories\" />
   </ItemGroup>
 

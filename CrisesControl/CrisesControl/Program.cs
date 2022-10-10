@@ -56,35 +56,35 @@ var serverCredentials = builder.Configuration
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
+{
+    c.OperationFilter<SwaggerParameterAttributeFilter>();
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crises Control API", Version = "v1" });
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+
+    c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
     {
-        c.OperationFilter<SwaggerParameterAttributeFilter>();
-        c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crises Control API", Version = "v1" });
-
-        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-        c.IncludeXmlComments(xmlPath);
-
-        c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+        Flows = new OpenApiOAuthFlows
+        {
+            Password = new OpenApiOAuthFlow
             {
-                Flows = new OpenApiOAuthFlows
+                Scopes = new Dictionary<string, string>
                 {
-                    Password = new OpenApiOAuthFlow
-                    {
-                        Scopes = new Dictionary<string, string>
-                        {
-                            ["api"] = "api scope description"
-                        },
-                        TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
-                    },
+                    ["api"] = "api scope description"
                 },
-                In = ParameterLocation.Header,
-                Name = HeaderNames.Authorization,
-                Type = SecuritySchemeType.OAuth2
-            }
-        );
-        c.AddSecurityRequirement(
-            new OpenApiSecurityRequirement
-            {
+                TokenUrl = new Uri(serverCredentials.OpendIddictEndpoint + "connect/token"),
+            },
+        },
+        In = ParameterLocation.Header,
+        Name = HeaderNames.Authorization,
+        Type = SecuritySchemeType.OAuth2
+    }
+    );
+    c.AddSecurityRequirement(
+        new OpenApiSecurityRequirement
+        {
                 {
                     new OpenApiSecurityScheme
                     {
@@ -93,9 +93,9 @@ builder.Services.AddSwaggerGen(c =>
                     },
                     new[] { "api" }
                 }
-            }
-        );
-    }
+        }
+    );
+}
 );
 
 var auditLogSettings = builder.Configuration.GetSection("AuditLog").Get<AuditLogOptions>();

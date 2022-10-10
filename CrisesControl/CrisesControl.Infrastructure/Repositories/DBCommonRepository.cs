@@ -1,24 +1,4 @@
-﻿using CrisesControl.Core.Companies;
-using CrisesControl.Core.Models;
-using CrisesControl.Core.Users;
-using CrisesControl.Infrastructure.Context;
-using CrisesControl.SharedKernel.Utils;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
-using System.Linq;
-using CrisesControl.Core.Exceptions.NotFound;
-using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-using CrisesControl.Core.Exceptions.InvalidOperation;
-using System.Text.RegularExpressions;
-using Microsoft.Data.SqlClient;
-using CrisesControl.Core.CompanyParameters;
-using Microsoft.EntityFrameworkCore;
-using CrisesControl.Infrastructure.Services;
-using log4net;
+﻿using log4net;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using CrisesControl.Core.Incidents;
@@ -29,33 +9,58 @@ using CrisesControl.Core.Locations;
 using System.Net;
 using System.Xml.Linq;
 using Location = CrisesControl.Core.Locations.Location;
-using CrisesControl.Core.Models;
 using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.Core.Import;
 using System.Net.Http;
 using System.Data;
 using Newtonsoft.Json;
+using CrisesControl.Core.DBCommon.Repositories;
+using CrisesControl.Infrastructure.Context;
+using CrisesControl.Core.Users.Repositories;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Text;
+using System.IO;
+using CrisesControl.Core.Models;
+using System.Linq;
+using System.Collections.Generic;
+using CrisesControl.SharedKernel.Utils;
+using Microsoft.EntityFrameworkCore;
+using CrisesControl.Core.Exceptions.NotFound;
+using CrisesControl.Core.Users;
+using CrisesControl.Core.Companies;
+using System.Security.Cryptography;
+using CrisesControl.SharedKernel.Enums;
+using CrisesControl.Core.Exceptions.InvalidOperation;
+using System.Text.RegularExpressions;
+using CrisesControl.Infrastructure.Services;
+using Microsoft.Data.SqlClient;
+using Twilio;
+using Twilio.Rest.Lookups.V1;
 
-namespace CrisesControl.Api.Application.Helpers
+namespace CrisesControl.Infrastructure.Repositories
 {
-    public class DBCommon
+    public class DBCommonRepository: IDBCommonRepository
     {
         private readonly CrisesControlContext _context;
         private int userId;
         private int companyId;
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
+        // private readonly ISenderEmailService _SDE;
+        //private readonly IUserRepository _userRepository;
         ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
         bool isretry = false;
         public delegate void UpdateHandler(object sender, UpdateEventArgs e);
+        public bool isValidPhone = false;
 
-        public DBCommon(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
+        public DBCommonRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor /*,ISenderEmailService SDE*/)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
-            //userId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
-            //companyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
+            //_SDE = SDE;
         }
+
         public class UpdateEventArgs : EventArgs
         {
             public UpdateEventArgs(string _Msg)
@@ -64,8 +69,13 @@ namespace CrisesControl.Api.Application.Helpers
             }
             public string Message { get; }
         }
+        public bool IsValidPhone
+        {
+            get => isValidPhone;
+            set => isValidPhone = value;
+        }
 
-        public StringBuilder ReadHtmlFile(string fileCode, string source, int companyId, out string subject, string provider = "AWSSES")
+        public async Task<StringBuilder> ReadHtmlFile(string fileCode, string source, int companyId,  string subject, string provider = "AWSSES")
         {
             StringBuilder htmlContent = new StringBuilder();
             string line;
@@ -84,11 +94,11 @@ namespace CrisesControl.Api.Application.Helpers
                 }
                 else
                 {
-                    var content =  _context.Set<EmailTemplate>()
-                                   .Where(MSG=> MSG.Code == fileCode && MSG.CompanyId == 0
+                    var content = _context.Set<EmailTemplate>()
+                                   .Where(MSG => MSG.Code == fileCode && MSG.CompanyId == 0
                                   )
-                                   .Union( _context.Set<EmailTemplate>()
-                                          .Where(MSG=> MSG.Code == fileCode && MSG.CompanyId == companyId
+                                   .Union(_context.Set<EmailTemplate>()
+                                          .Where(MSG => MSG.Code == fileCode && MSG.CompanyId == companyId
                                           ))
                                           .OrderByDescending(o => o.CompanyId).FirstOrDefault();
                     if (content != null)
@@ -107,11 +117,11 @@ namespace CrisesControl.Api.Application.Helpers
 
                         if (provider.ToUpper() != "OFFICE365")
                         {
-                            var desc =  _context.Set<EmailTemplate>()
-                                        .Where(MSG=> MSG.Code == "DISCLAIMER_TEXT" && MSG.CompanyId == 0
+                            var desc = _context.Set<EmailTemplate>()
+                                        .Where(MSG => MSG.Code == "DISCLAIMER_TEXT" && MSG.CompanyId == 0
                                         )
-                                  .Union( _context.Set<EmailTemplate>()
-                                         .Where(MSG=> MSG.Code == "DISCLAIMER_TEXT" && MSG.CompanyId == companyId
+                                  .Union(_context.Set<EmailTemplate>()
+                                         .Where(MSG => MSG.Code == "DISCLAIMER_TEXT" && MSG.CompanyId == companyId
                                          ))
                                          .OrderByDescending(o => o.CompanyId).FirstOrDefault();
 
@@ -131,7 +141,7 @@ namespace CrisesControl.Api.Application.Helpers
             return htmlContent;
         }
 
-        public string LookupWithKey(string key, string Default = "")
+        public async Task<string> LookupWithKey(string key, string Default = "")
         {
             try
             {
@@ -141,9 +151,9 @@ namespace CrisesControl.Api.Application.Helpers
                     return Globals[key];
                 }
 
-                var LKP =  _context.Set<SysParameter>()
-                           .Where(L=> L.Name == key
-                          ).FirstOrDefault();
+                var LKP = await _context.Set<SysParameter>()
+                           .Where(L => L.Name == key
+                          ).FirstOrDefaultAsync();
                 if (LKP != null)
                 {
                     Default = LKP.Value;
@@ -156,7 +166,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public string UserName(UserFullName strUserName)
+        public async Task<string> UserName(UserFullName strUserName)
         {
             if (strUserName != null)
             {
@@ -189,7 +199,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public string GetCompanyParameter(string key, int companyId, string Default = "", string customerId = "")
+        public async Task<string> GetCompanyParameter(string key, int companyId, string Default = "", string customerId = "")
         {
             try
             {
@@ -197,25 +207,25 @@ namespace CrisesControl.Api.Application.Helpers
 
                 if (companyId > 0)
                 {
-                    var LKP =  _context.Set<CompanyParameter>()
-                               .Where(CP=> CP.Name == key && CP.CompanyId == companyId
-                               ).FirstOrDefault();
+                    var LKP = await _context.Set<CompanyParameter>()
+                               .Where(CP => CP.Name == key && CP.CompanyId == companyId
+                               ).FirstOrDefaultAsync();
                     if (LKP != null)
                     {
                         Default = LKP.Value;
                     }
                     else
                     {
-                        var LPR =  _context.Set<LibCompanyParameters>()
-                                   .Where(CP=> CP.Name == key
-                                   ).FirstOrDefault();
+                        var LPR = await _context.Set<LibCompanyParameters>()
+                                   .Where(CP => CP.Name == key
+                                   ).FirstOrDefaultAsync();
                         if (LPR != null)
                         {
                             Default = LPR.Value;
                         }
                         else
                         {
-                            Default = LookupWithKey(key, Default);
+                            Default = await LookupWithKey(key, Default);
                         }
                     }
                 }
@@ -225,8 +235,8 @@ namespace CrisesControl.Api.Application.Helpers
                     var cmp = _context.Set<Company>().Where(w => w.CustomerId == customerId).FirstOrDefault();
                     if (cmp != null)
                     {
-                        var LKP =  _context.Set<CompanyParameter>()
-                                   .Where(CP=> CP.Name == key && CP.CompanyId == cmp.CompanyId
+                        var LKP = _context.Set<CompanyParameter>()
+                                   .Where(CP => CP.Name == key && CP.CompanyId == cmp.CompanyId
                                    ).FirstOrDefault();
                         if (LKP != null)
                         {
@@ -247,7 +257,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public string[] CCRoles(bool addKeyHolder = false, bool addUser = false)
+        public async Task<string[]> CCRoles(bool addKeyHolder = false, bool addUser = false)
         {
             List<string> rolelist = new List<string> { "ADMIN", "SUPERADMIN" };
             if (addKeyHolder)
@@ -259,13 +269,13 @@ namespace CrisesControl.Api.Application.Helpers
             return rolelist.ToArray();
         }
 
-        public string getapiversion()
+        public async Task<string> getapiversion()
         {
             string tapiversion = Convert.ToString(System.Configuration.ConfigurationManager.AppSettings["WebApiVersion"])!;
             return (string.IsNullOrEmpty(tapiversion) ? "" : tapiversion + "/");
         }
 
-        public string PWDencrypt(string strPwdString)
+        public async Task<string> PWDencrypt(string strPwdString)
         {
             MD5 md5 = new MD5CryptoServiceProvider();
             // Convert the input string to a byte array and compute the hash.
@@ -282,12 +292,12 @@ namespace CrisesControl.Api.Application.Helpers
             return sBuilder.ToString();
         }
 
-        public string ToCurrency(decimal amount, int points = 2)
+        public async Task<string> ToCurrency(decimal amount, int points = 2)
         {
             return "&pound;" + amount.ToString("n" + points);
         }
 
-        public DateTimeOffset GetDateTimeOffset(DateTime crTime, string timeZoneId = "GMT Standard Time")
+        public async Task<DateTimeOffset> GetDateTimeOffset(DateTime crTime, string timeZoneId = "GMT Standard Time")
         {
             if (crTime.Year <= 2000)
                 return crTime;
@@ -307,7 +317,7 @@ namespace CrisesControl.Api.Application.Helpers
             return convertedtime;
         }
 
-        public DateTime GetLocalTime(string timeZoneId, DateTime? paramTime = null)
+        public async Task<DateTime> GetLocalTime(string timeZoneId, DateTime? paramTime = null)
         {
             if (string.IsNullOrEmpty(timeZoneId))
                 timeZoneId = "GMT Standard Time";
@@ -324,20 +334,20 @@ namespace CrisesControl.Api.Application.Helpers
             return retDate;
         }
 
-        public void CreateObjectRelationship(int targetObjectId, int sourceObjectId, string relationName, int companyId, int createdUpdatedBy, string timeZoneId, string relatinFilter = "")
+        public async Task  CreateObjectRelationship(int targetObjectId, int sourceObjectId, string relationName, int companyId, int createdUpdatedBy, string timeZoneId, string relatinFilter = "")
         {
             try
             {
-                if (relationName.ToUpper() == "GROUP" || relationName.ToUpper() == "LOCATION")
+                if (relationName.ToUpper() == GroupType.GROUP.ToGrString()  || relationName.ToUpper() == GroupType.LOCATION.ToGrString())
                 {
                     if (targetObjectId > 0)
                     {
                         int newSourceObjectId = 0;
 
-                        var ObjMapId =  _context.Set<ObjectMapping>()
-                                       .Include(OBJ=>OBJ.Object) 
-                                       .Where(OBJ=> OBJ.Object.ObjectTableName == relationName)
-                                       .Select(a => a.ObjectMappingId).FirstOrDefault();
+                        var ObjMapId = await _context.Set<ObjectMapping>()
+                                       .Include(OBJ => OBJ.Object)
+                                       .Where(OBJ => OBJ.Object.ObjectTableName == relationName)
+                                       .Select(a => a.ObjectMappingId).FirstOrDefaultAsync();
 
                         if (sourceObjectId > 0)
                         {
@@ -347,11 +357,11 @@ namespace CrisesControl.Api.Application.Helpers
 
                         if (!string.IsNullOrEmpty(relatinFilter))
                         {
-                            if (relationName.ToUpper() == "GROUP")
+                            if (relationName.ToUpper() == GroupType.GROUP.ToGrString())
                             {
                                 newSourceObjectId = _context.Set<Core.Groups.Group>().Where(t => t.GroupName == relatinFilter && t.CompanyId == companyId).Select(t => t.GroupId).FirstOrDefault();
                             }
-                            else if (relationName.ToUpper() == "LOCATION")
+                            else if (relationName.ToUpper() == GroupType.LOCATION.ToGrString())
                             {
                                 newSourceObjectId = _context.Set<Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
                             }
@@ -361,7 +371,7 @@ namespace CrisesControl.Api.Application.Helpers
                 }
                 else if (relationName.ToUpper() == "DEPARTMENT")
                 {
-                    _ = UpdateUserDepartment(targetObjectId, sourceObjectId, createdUpdatedBy, companyId, timeZoneId);
+                   await UpdateUserDepartment(targetObjectId, sourceObjectId, createdUpdatedBy, companyId, timeZoneId);
                 }
             }
             catch (Exception ex)
@@ -370,7 +380,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        private async Task UpdateUserDepartment(int userId, int departmentId, int createdUpdatedBy, int companyId, string timeZoneId)
+        public async Task UpdateUserDepartment(int userId, int departmentId, int createdUpdatedBy, int companyId, string timeZoneId)
         {
             try
             {
@@ -379,8 +389,9 @@ namespace CrisesControl.Api.Application.Helpers
                 {
                     user.DepartmentId = departmentId;
                     user.UpdatedBy = createdUpdatedBy;
-                    user.UpdatedOn = GetDateTimeOffset(DateTime.Now, timeZoneId);
-                    await _context.SaveChangesAsync();
+                    user.UpdatedOn = await GetDateTimeOffset(DateTime.Now, timeZoneId);
+                    _context.Update(user);
+                   await _context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
@@ -406,11 +417,11 @@ namespace CrisesControl.Api.Application.Helpers
                         CreatedBy = createdUpdatedBy,
                         UpdatedBy = createdUpdatedBy,
                         CreatedOn = System.DateTime.Now,
-                        UpdatedOn = GetLocalTime(timeZoneId, System.DateTime.Now),
+                        UpdatedOn = await  GetLocalTime(timeZoneId, System.DateTime.Now),
                         ReceiveOnly = false
                     };
-                    await _context.Set<ObjectRelation>().AddAsync(tblDepObjRel);
-                    await _context.SaveChangesAsync();
+                   await _context.AddAsync(tblDepObjRel);
+                   await _context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
@@ -426,8 +437,8 @@ namespace CrisesControl.Api.Application.Helpers
                 PasswordChangeHistory PH = new PasswordChangeHistory();
                 PH.UserId = userId;
                 PH.LastPassword = newPassword;
-                PH.ChangedDateTime = GetDateTimeOffset(DateTime.Now);
-                await _context.Set<PasswordChangeHistory>().AddAsync(PH);
+                PH.ChangedDateTime = await GetDateTimeOffset(DateTime.Now);
+                await _context.AddAsync(PH);
                 await _context.SaveChangesAsync();
                 return PH.Id;
             }
@@ -437,7 +448,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public DateTimeOffset ConvertToLocalTime(string timezoneId, DateTimeOffset paramTime)
+        public async Task<DateTimeOffset> ConvertToLocalTime(string timezoneId, DateTimeOffset paramTime)
         {
             try
             {
@@ -462,7 +473,7 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
-               await _scheduler.DeleteJob(new JobKey(jobName, group));
+                await _scheduler.DeleteJob(new JobKey(jobName, group));
             }
             catch (Exception ex)
             {
@@ -475,9 +486,9 @@ namespace CrisesControl.Api.Application.Helpers
             try
             {
                 string tmpZoneVal = "GMT Standard Time";
-                var userInfo = await  _context.Set<User>().Include(c=>c.Company)
-                                .Where(U=> U.UserId == userId)
-                                .Select(T=> new
+                var userInfo = await _context.Set<User>().Include(c => c.Company)
+                                .Where(U => U.UserId == userId)
+                                .Select(T => new
                                 {
                                     UserTimezone = T.Company.StdTimeZone.ZoneLabel
                                 }).FirstOrDefaultAsync();
@@ -500,23 +511,23 @@ namespace CrisesControl.Api.Application.Helpers
             return str.Substring(stpoint, Math.Min(str.Length, lngth));
         }
 
-        public string FixMobileZero(string strNumber)
+        public async Task<string> FixMobileZero(string strNumber)
         {
             strNumber = (strNumber == null) ? string.Empty : Regex.Replace(strNumber, @"\D", string.Empty);
-            strNumber = Left(strNumber, 1) == "0" ? Left(strNumber, strNumber.Length - 1, 1) : strNumber;
+            strNumber = Left(strNumber, 1) == "0" ?  Left(strNumber, strNumber.Length - 1, 1) : strNumber;
             return strNumber;
         }
-        public string GetTimeZoneByCompany(int companyId)
+        public async Task<string> GetTimeZoneByCompany(int companyId)
         {
             try
             {
                 string tmpZoneVal = "GMT Standard Time";
-                var Companytime =  _context.Set<Company>().Include(st=>st.StdTimeZone)
-                                   .Where(C=> C.CompanyId == companyId)
-                                   .Select(T=> new
+                var Companytime = await _context.Set<Company>().Include(st => st.StdTimeZone)
+                                   .Where(C => C.CompanyId == companyId)
+                                   .Select(T => new
                                    {
                                        CompanyTimezone = T.StdTimeZone.ZoneLabel
-                                   }).FirstOrDefault();
+                                   }).FirstOrDefaultAsync();
                 if (Companytime != null)
                 {
                     tmpZoneVal = Companytime.CompanyTimezone;
@@ -526,12 +537,12 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex) { throw ex; }
             return "GMT Standard Time";
         }
-        public void CreateLog(string level, string message, Exception ex = null, string controller = "", string method = "", int companyId = 0)
+        public async Task CreateLog(string level, string message, Exception ex = null, string controller = "", string method = "", int companyId = 0)
         {
 
             if (level.ToUpper() == "INFO")
             {
-                string CreateLog = LookupWithKey("COLLECT_PERFORMANCE_LOG");
+                string CreateLog = await LookupWithKey("COLLECT_PERFORMANCE_LOG");
                 if (CreateLog == "false")
                     return;
             }
@@ -558,11 +569,11 @@ namespace CrisesControl.Api.Application.Helpers
                 Console.WriteLine(message + ex.ToString());
         }
 
-        public void UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
+        public async Task UpdateLog(string strErrorID, string strErrorMessage, string strControllerName, string strMethodName, int intCompanyId)
         {
             try
             {
-                CreateLog("INFO", Left(strErrorMessage, 8000), null, strControllerName, strMethodName, intCompanyId);
+               await CreateLog("INFO",  Left(strErrorMessage, 8000), null, strControllerName, strMethodName, intCompanyId);
             }
             catch (Exception ex)
             {
@@ -573,9 +584,9 @@ namespace CrisesControl.Api.Application.Helpers
         {
             try
             {
-                DBCommon DBC = new DBCommon(_context,_httpContextAccessor);
-                var comp_pp = await  _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == companyId).FirstOrDefaultAsync();
-                var comp = await _context.Set<Company>().Where(C=> C.CompanyId == companyId).FirstOrDefaultAsync();
+            
+                var comp_pp = await _context.Set<CompanyPaymentProfile>().Where(CPP => CPP.CompanyId == companyId).FirstOrDefaultAsync();
+                var comp = await _context.Set<Company>().Where(C => C.CompanyId == companyId).FirstOrDefaultAsync();
                 if (comp_pp != null && comp != null)
                 {
 
@@ -607,41 +618,41 @@ namespace CrisesControl.Api.Application.Helpers
                         if (comp_pp.CreditBalance > comp_pp.MinimumBalance)
                         { //Have positive balance + More than the minimum balance required.
                             comp.CompanyProfile = "SUBSCRIBED";
-                            await _set_comms_status(companyId, stopped_comms, true);
+                           await _set_comms_status(companyId, stopped_comms, true);
                         }
                         else if (comp_pp.CreditBalance < -comp_pp.CreditLimit)
                         { //Used the overdraft amount as well, so stop their SMS and Phone
                             comp.CompanyProfile = "STOP_MESSAGING";
                             sendAlert = true;
-                            await _set_comms_status(companyId, stopped_comms, false);
+                           await _set_comms_status(companyId, stopped_comms, false);
                         }
                         else if (comp_pp.CreditBalance < 0 && comp_pp.CreditBalance > -comp_pp.CreditLimit)
                         { //Using the overdraft facility, can still use the system
                             comp.CompanyProfile = "ON_CREDIT";
                             sendAlert = true;
-                            await _set_comms_status(companyId, stopped_comms, true);
+                          await  _set_comms_status(companyId, stopped_comms, true);
                         }
                         else if (comp_pp.CreditBalance < comp_pp.MinimumBalance)
                         { //Less than the minimum balance, just send an alert, can still use the system.
                             comp.CompanyProfile = "LOW_BALANCE";
                             sendAlert = true;
-                            await _set_comms_status(companyId, stopped_comms, true);
+                           await _set_comms_status(companyId, stopped_comms, true);
                         }
-                        comp_pp.UpdatedOn = GetDateTimeOffset(DateTime.Now);
+                        comp_pp.UpdatedOn = await GetDateTimeOffset(DateTime.Now);
                         _context.Update(comp_pp);
-                       await  _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync();
 
                         if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
                         {
                             sendAlert = false;
                         }
 
-                        string CommsDebug = LookupWithKey("COMMS_DEBUG_MODE");
+                        string CommsDebug = await LookupWithKey("COMMS_DEBUG_MODE");
 
                         if (sendAlert && CommsDebug == "false")
                         {
-                            SendEmail SDE = new SendEmail(_context,DBC);
-                            await SDE.UsageAlert(companyId);
+                           
+                         // await _userRepository.UsageAlert(companyId);
                         }
 
                     }
@@ -657,10 +668,10 @@ namespace CrisesControl.Api.Application.Helpers
         {
             try
             {
-                 _context.Set<CompanyComm>().Include( CO => CO.CommsMethod)
-                 .Where(CM=> CM.CompanyId == companyId && methods.Contains(CM.CommsMethod.MethodCode)
-                 ).ToList().ForEach(x => x.ServiceStatus = status);
-                await _context.SaveChangesAsync();
+               _context.Set<CompanyComm>().Include(CO => CO.CommsMethod)
+                .Where(CM => CM.CompanyId == companyId && methods.Contains(CM.CommsMethod.MethodCode)
+                ).ToList().ForEach(x => x.ServiceStatus = status);
+               await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -671,19 +682,19 @@ namespace CrisesControl.Api.Application.Helpers
         {
             string retVal = string.Empty;
             itemCode = itemCode.Trim();
-            var ItemRec = await  _context.Set<CompanyPackageItem>().Where(PI=> PI.ItemCode == itemCode && PI.CompanyId == companyId).FirstOrDefaultAsync();
+            var ItemRec = await _context.Set<CompanyPackageItem>().Where(PI => PI.ItemCode == itemCode && PI.CompanyId == companyId).FirstOrDefaultAsync();
             if (ItemRec != null)
             {
                 retVal = ItemRec.ItemValue;
             }
             else
             {
-                var LibItemRec = await _context.Set<LibPackageItem>().Where(PI=> PI.ItemCode == itemCode).FirstOrDefaultAsync();
+                var LibItemRec = await _context.Set<LibPackageItem>().Where(PI => PI.ItemCode == itemCode).FirstOrDefaultAsync();
                 retVal = LibItemRec.ItemValue;
             }
             return retVal;
         }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset currentDateTime, string frequency)
+        public async Task<DateTimeOffset> GetNextReviewDate(DateTimeOffset currentDateTime, string frequency)
         {
             DateTimeOffset NewReviewDate = currentDateTime;
 
@@ -707,7 +718,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return NewReviewDate;
         }
-        public DateTimeOffset GetNextReviewDate(DateTimeOffset currentReviewDate, int companyID, int reminderCount, out int reminderCounter)
+        public async Task<DateTimeOffset> GetNextReviewDate(DateTimeOffset currentReviewDate, int companyID, int reminderCount,  int reminderCounter)
         {
             try
             {
@@ -716,9 +727,9 @@ namespace CrisesControl.Api.Application.Helpers
                 int reminder2 = 15;
                 int reminder3 = 7;
 
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", companyID), out reminder1);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", companyID), out reminder2);
-                int.TryParse(GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", companyID), out reminder3);
+                int.TryParse(await GetCompanyParameter("SOP_DOCUMENT_REMINDER_1", companyID), out reminder1);
+                int.TryParse(await GetCompanyParameter("SOP_DOCUMENT_REMINDER_2", companyID), out reminder2);
+                int.TryParse(await GetCompanyParameter("SOP_DOCUMENT_REMINDER_3", companyID), out reminder3);
 
                 DateTime CheckDate = currentReviewDate.AddDays(-reminder1).Date;
 
@@ -750,7 +761,7 @@ namespace CrisesControl.Api.Application.Helpers
                 return currentReviewDate.AddYears(-1).Date;
             }
         }
-        public bool verifyLength(string str, int minLength, int maxLength)
+        public async Task<bool> verifyLength(string str, int minLength, int maxLength)
         {
             if (str.Length >= minLength && str.Length <= maxLength)
             {
@@ -761,12 +772,12 @@ namespace CrisesControl.Api.Application.Helpers
                 return false;
             }
         }
-        public bool IsPropertyExist(dynamic settings, string name)
+        public async  Task<bool> IsPropertyExist(dynamic settings, string name)
         {
             return settings.GetType().GetProperty(name) != null;
         }
 
-        public LatLng GetCoordinates(string address)
+        public async Task<LatLng> GetCoordinates(string address)
         {
             LatLng lt = new LatLng();
             lt.Lat = "0";
@@ -775,7 +786,7 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 if (address.Length > 5)
                 {
-                    string apiUrl = LookupWithKey("GOOGLE_MAPS_API_URL");
+                    string apiUrl = await  LookupWithKey("GOOGLE_MAPS_API_URL");
 
                     var requestUri = string.Format(apiUrl, Uri.EscapeDataString(address));
                     try
@@ -792,8 +803,8 @@ namespace CrisesControl.Api.Application.Helpers
                             lt.Lng = locationElement.Element("lng").Value.ToString();
                         }
 
-                        lt.Lat = Left(lt.Lat, 15);
-                        lt.Lng = Left(lt.Lng, 15);
+                        lt.Lat =  Left(lt.Lat, 15);
+                        lt.Lng =  Left(lt.Lng, 15);
                         return lt;
                     }
                     catch (Exception ex)
@@ -812,7 +823,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public bool connectUNCPath(string uncPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "")
+        public async Task<bool> connectUNCPath(string uncPath = "", string strUncUsername = "", string strUncPassword = "", string UseUNC = "")
         {
             try
             {
@@ -844,7 +855,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return true;
         }
-        public string PureAscii(string str, bool keepAccent = false)
+        public async Task<string> PureAscii(string str, bool keepAccent = false)
         {
             if (!keepAccent)
             {
@@ -856,7 +867,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public string RandomPassword(int length = 8, int complexity = 4)
+        public async Task<string> RandomPassword(int length = 8, int complexity = 4)
         {
             RNGCryptoServiceProvider csp = new RNGCryptoServiceProvider();
             // Define the possible character classes where complexity defines the number
@@ -912,22 +923,22 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 if (relationName.ToUpper() == "GROUP" || relationName.ToUpper() == "LOCATION")
                 {
-                    var ObjMapId =  await _context.Set<ObjectMapping>().Include(o=>o.Object) 
-                                    .Where(OBJ=> OBJ.Object.ObjectTableName == relationName
+                    var ObjMapId = await _context.Set<ObjectMapping>().Include(o => o.Object)
+                                    .Where(OBJ => OBJ.Object.ObjectTableName == relationName
                                     ).Select(a => a.ObjectMappingId).FirstOrDefaultAsync();
 
-                    var getRelationRec =  await _context.Set<ObjectRelation>()
-                                          .Where(OR=> OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == userId &&
+                    var getRelationRec = await _context.Set<ObjectRelation>()
+                                          .Where(OR => OR.ObjectMappingId == ObjMapId && OR.TargetObjectPrimaryId == userId &&
                                           OR.SourceObjectPrimaryId == sourceObjectId).FirstOrDefaultAsync();
                     if (getRelationRec != null)
                     {
-                        _context.Set<ObjectRelation>().Remove(getRelationRec);
+                        _context.Remove(getRelationRec);
                         await _context.SaveChangesAsync();
                     }
                 }
                 else if (relationName.ToUpper() == "DEPARTMENT")
                 {
-                    await UpdateUserDepartment(userId, 0, currentUserId, companyId, timeZoneId);
+                  await  UpdateUserDepartment(userId, 0, currentUserId, companyId, timeZoneId);
                 }
             }
             catch (Exception ex)
@@ -942,16 +953,16 @@ namespace CrisesControl.Api.Application.Helpers
         {
             try
             {
-                var devices = await (from UD in _context.Set<UserDevice>() where UD.UserId == userId select UD).ToListAsync();
+                var devices = await _context.Set<UserDevice>().Where(UD=> UD.UserId == userId).ToListAsync();
                 if (!tokenReset)
                 {
-                    _context.Set<UserDevice>().RemoveRange(devices);
+                    _context.RemoveRange(devices);
                 }
                 else
                 {
                     devices.ForEach(s => s.DeviceToken = "");
                 }
-                await _context.SaveChangesAsync();
+               await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -959,7 +970,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        
+
         public async Task MessageProcessLog(int messageId, string eventName, string methodName = "", string queueName = "", string additionalInfo = "")
         {
             try
@@ -978,12 +989,12 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 throw ex;
             }
-        }    
-        public string Getconfig(string key, string defaultVal = "")
+        }
+        public async Task<string> Getconfig(string key, string defaultVal = "")
         {
             try
             {
-                string value = _context.Database.GetConnectionString();
+                string value =  _context.Database.GetConnectionString();
                 if (value != null)
                 {
                     return value;
@@ -998,7 +1009,7 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public string FormatMobile(string ISD, string mobile)
+        public async Task<string> FormatMobile(string ISD, string mobile)
         {
             if (!string.IsNullOrEmpty(mobile))
             {
@@ -1018,7 +1029,7 @@ namespace CrisesControl.Api.Application.Helpers
                 return "";
             }
         }
-        public bool IsTrue(string boolVal, bool Default = true)
+        public async Task<bool> IsTrue(string boolVal, bool Default = true)
         {
             if (boolVal == "true")
             {
@@ -1033,30 +1044,30 @@ namespace CrisesControl.Api.Application.Helpers
                 return Default;
             }
         }
-        public int ChunkString(string str, int chunkSize)
+        public async Task<int> ChunkString(string str, int chunkSize)
         {
             int result = 1;
             Math.DivRem(str.Length, chunkSize, out result);
             int z = (str.Length / chunkSize) + (result > 0 ? 1 : 0);
             return z;
         }
-        public dynamic InitComms(string API_CLASS, string apiClass = "", string clientId = "", string clientSecret = "")
+        public async Task<dynamic> InitComms(string API_CLASS, string apiClass = "", string clientId = "", string clientSecret = "")
         {
-            DBCommon DBC = new DBCommon(_context, _httpContextAccessor);
+            
             try
             {
 
                 int RetryCount = 2;
-                int.TryParse(DBC.LookupWithKey(API_CLASS + "_MESSAGE_RETRY_COUNT"), out RetryCount);
+                int.TryParse(await LookupWithKey(API_CLASS + "_MESSAGE_RETRY_COUNT"), out RetryCount);
 
                 if (string.IsNullOrEmpty(apiClass))
-                    apiClass = DBC.LookupWithKey(API_CLASS + "_API_CLASS");
+                    apiClass = await LookupWithKey(API_CLASS + "_API_CLASS");
 
                 if (string.IsNullOrEmpty(clientId))
-                    clientId = DBC.LookupWithKey(API_CLASS + "_CLIENTID");
+                    clientId = await LookupWithKey(API_CLASS + "_CLIENTID");
 
                 if (string.IsNullOrEmpty(clientSecret))
-                    clientSecret = DBC.LookupWithKey(API_CLASS + "_CLIENT_SECRET");
+                    clientSecret = await LookupWithKey(API_CLASS + "_CLIENT_SECRET");
 
                 string[] TmpClass = apiClass.Trim().Split('|');
 
@@ -1075,7 +1086,7 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex)
             {
                 throw ex;
-                return null;
+              
             }
         }
         public async Task<List<NotificationUserList>> GetUniqueUsers(List<NotificationUserList> list1, List<NotificationUserList> list2, bool participantCheck = true)
@@ -1116,10 +1127,10 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex)
             {
                 throw ex;
-                return null;
+               
             }
         }
-        public string GetValueByIndex(List<string> valueList, int indexVal)
+        public async Task<string> GetValueByIndex(List<string> valueList, int indexVal)
         {
             try
             {
@@ -1143,7 +1154,7 @@ namespace CrisesControl.Api.Application.Helpers
                 }
                 else
                 {
-                    return GetValueByIndex(valueList, 0);
+                    return await GetValueByIndex(valueList, 0);
                 }
             }
             catch (Exception ex)
@@ -1165,7 +1176,7 @@ namespace CrisesControl.Api.Application.Helpers
             await _context.AddAsync(el);
             await _context.SaveChangesAsync();
         }
-        public bool IsDayLightOn(DateTime thisDate)
+        public async Task<bool> IsDayLightOn(DateTime thisDate)
         {
             try
             {
@@ -1182,18 +1193,18 @@ namespace CrisesControl.Api.Application.Helpers
             return false;
         }
 
-        public void CancelJobsByGroup(string jobGroup)
+        public async Task CancelJobsByGroup(string jobGroup)
         {
             try
             {
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
-                IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+                IScheduler _scheduler =  schedulerFactory.GetScheduler().Result;
                 var groupMatcher = GroupMatcher<JobKey>.GroupContains(jobGroup);
                 var jobKeys = _scheduler.GetJobKeys(groupMatcher).Result;
                 foreach (var jobKey in jobKeys)
                 {
 
-                    _scheduler.DeleteJob(jobKey);
+                   await _scheduler.DeleteJob(jobKey);
                 }
             }
             catch (Exception ex)
@@ -1201,7 +1212,7 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public void DeleteOldFiles(string dirName)
+        public async Task DeleteOldFiles(string dirName)
         {
             string[] files = Directory.GetFiles(@dirName);
 
@@ -1217,7 +1228,7 @@ namespace CrisesControl.Api.Application.Helpers
             try
             {
 
-                await DeleteScheduledJob("SOP_REVIEW_" + sopHeaderId, "REVIEW_REMINDER");
+               await DeleteScheduledJob("SOP_REVIEW_" + sopHeaderId, "REVIEW_REMINDER");
 
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
@@ -1230,16 +1241,16 @@ namespace CrisesControl.Api.Application.Helpers
                 jobDetail.JobDataMap["SOPHeaderID"] = sopHeaderId;
 
                 int Counter = 0;
-                DateTimeOffset DateCheck =GetNextReviewDate(nextReviewDate, companyId, reminderCount, out Counter);
+                DateTimeOffset DateCheck = await GetNextReviewDate(nextReviewDate, companyId, reminderCount,  Counter);
                 jobDetail.JobDataMap["Counter"] = Counter;
 
-                var sop_head =  _context.Set<Sopheader>().Where(SH=> SH.SopheaderId == sopHeaderId).FirstOrDefault();
+                var sop_head = await _context.Set<Sopheader>().Where(SH => SH.SopheaderId == sopHeaderId).FirstOrDefaultAsync();
                 sop_head.ReminderCount = Counter;
                 _context.Update(sop_head);
                 await _context.SaveChangesAsync();
 
                 //if(DateCheck.Date >= DateTime.Now.Date && Counter <= 3) {
-                if (DateTimeOffset.Compare(DateCheck, GetDateTimeOffset(DateTime.Now)) >= 0 && Counter <= 3)
+                if (DateTimeOffset.Compare(DateCheck, await GetDateTimeOffset(DateTime.Now)) >= 0 && Counter <= 3)
                 {
                     //string TimeZoneVal = DBC.GetTimeZoneByCompany(CompanyID);
                     //DateCheck = DBC.GetServerTime(TimeZoneVal, DateCheck);
@@ -1254,11 +1265,11 @@ namespace CrisesControl.Api.Application.Helpers
                                                               .StartAt(DateCheck.ToUniversalTime())
                                                               .ForJob(jobDetail)
                                                               .Build();
-                  await   _scheduler.ScheduleJob(jobDetail, trigger);
+                    await _scheduler.ScheduleJob(jobDetail, trigger);
                 }
                 else
                 {
-                    DateTimeOffset newReviewDate = GetNextReviewDate(nextReviewDate, reviewFrequency);
+                    DateTimeOffset newReviewDate = await GetNextReviewDate(nextReviewDate, reviewFrequency);
 
                     if (sop_head != null)
                     {
@@ -1281,7 +1292,7 @@ namespace CrisesControl.Api.Application.Helpers
             try
             {
                 List<SocialHandles> SH = new List<SocialHandles>();
-                var syspr = await _context.Set<SysParameter>().Where(SP=> SP.Category == "SOCIAL_HANDLE" && SP.Status == 1).ToListAsync();
+                var syspr = await _context.Set<SysParameter>().Where(SP => SP.Category == "SOCIAL_HANDLE" && SP.Status == 1).ToListAsync();
                 foreach (var spvar in syspr)
                 {
                     SH.Add(new SocialHandles { ProviderCode = spvar.Name, ProviderName = spvar.Value });
@@ -1293,24 +1304,24 @@ namespace CrisesControl.Api.Application.Helpers
                 throw ex;
             }
         }
-        public async Task<int> SegregationWarning(int  companyId, int userID, int incidentId)
+        public async Task<int> SegregationWarning(int companyId, int userID, int incidentId)
         {
             var pIncidentId = new SqlParameter("@IncidentID", incidentId);
             var pUserID = new SqlParameter("@UserID", userID);
             var pCompanyId = new SqlParameter("@CompanyID", companyId);
 
-            int SegWarning =await _context.Database.ExecuteSqlRawAsync("SELECT [dbo].[Incident_Segregation](@IncidentID,@UserID,@CompanyID)", pIncidentId, pUserID, pCompanyId);
+            int SegWarning = await _context.Database.ExecuteSqlRawAsync("SELECT [dbo].[Incident_Segregation](@IncidentID,@UserID,@CompanyID)", pIncidentId, pUserID, pCompanyId);
             return SegWarning;
         }
 
-        public List<SocialIntegraion> GetSocialIntegration(int companyId, string accountType)
+        public async Task<List<SocialIntegraion>> GetSocialIntegration(int companyId, string accountType)
         {
             try
             {
                 var pCompanyID = new SqlParameter("@CompanyID", companyId);
                 var pAccountType = new SqlParameter("@AccountType", accountType);
 
-                var result = _context.Set<SocialIntegraion>().FromSqlRaw("EXEC Pro_Get_Social_Integration @CompanyID, @AccountType", pCompanyID, pAccountType).ToList();
+                var result = await  _context.Set<SocialIntegraion>().FromSqlRaw("EXEC Pro_Get_Social_Integration @CompanyID, @AccountType", pCompanyID, pAccountType).ToListAsync();
                 return result;
             }
             catch (Exception ex)
@@ -1325,7 +1336,7 @@ namespace CrisesControl.Api.Application.Helpers
                 if (parameterID > 0)
                 {
                     var CompanyParameter = await _context.Set<CompanyParameter>()
-                                            .Where(CP=> CP.CompanyId == companyID && CP.CompanyParametersId == parameterID
+                                            .Where(CP => CP.CompanyId == companyID && CP.CompanyParametersId == parameterID
                                             ).FirstOrDefaultAsync();
 
                     if (CompanyParameter != null)
@@ -1344,7 +1355,7 @@ namespace CrisesControl.Api.Application.Helpers
                                 CompanyParameter.Value = parameterValue;
                             }
                         }
-                        CompanyParameter.UpdatedOn = GetDateTimeOffset(DateTime.Now, timeZoneId);
+                        CompanyParameter.UpdatedOn = await GetDateTimeOffset(DateTime.Now, timeZoneId);
                         CompanyParameter.UpdatedBy = currentUserID;
                         _context.Update(CompanyParameter);
                         await _context.SaveChangesAsync();
@@ -1353,7 +1364,7 @@ namespace CrisesControl.Api.Application.Helpers
                 else if (!string.IsNullOrEmpty(parameterName))
                 {
                     var CompanyParameter = await _context.Set<CompanyParameter>()
-                                            .Where(CP=> CP.CompanyId == companyID && CP.Name == parameterName).FirstOrDefaultAsync();
+                                            .Where(CP => CP.CompanyId == companyID && CP.Name == parameterName).FirstOrDefaultAsync();
 
                     if (CompanyParameter != null)
                     {
@@ -1368,7 +1379,7 @@ namespace CrisesControl.Api.Application.Helpers
                                 CompanyParameter.Value = parameterValue;
                             }
                         }
-                        CompanyParameter.UpdatedOn = GetDateTimeOffset(DateTime.Now, timeZoneId);
+                        CompanyParameter.UpdatedOn =await GetDateTimeOffset(DateTime.Now, timeZoneId);
                         CompanyParameter.UpdatedBy = currentUserID;
                         _context.Update(CompanyParameter);
                         await _context.SaveChangesAsync();
@@ -1381,7 +1392,7 @@ namespace CrisesControl.Api.Application.Helpers
 
                 if (parameterName.ToUpper() == "RECHARGE_BALANCE_TRIGGER")
                 {
-                    var profile = await _context.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == companyID).FirstOrDefaultAsync();
+                    var profile = await _context.Set<CompanyPaymentProfile>().Where(CP => CP.CompanyId == companyID).FirstOrDefaultAsync();
                     if (profile != null)
                     {
                         profile.MinimumBalance = Convert.ToDecimal(parameterValue);
@@ -1399,7 +1410,7 @@ namespace CrisesControl.Api.Application.Helpers
         {
             try
             {
-                var comp_param = await _context.Set<CompanyParameter>().Where(CP=> CP.CompanyId == companyId && CP.Name == name).AnyAsync();
+                var comp_param = await _context.Set<CompanyParameter>().Where(CP => CP.CompanyId == companyId && CP.Name == name).AnyAsync();
                 if (!comp_param)
                 {
                     CompanyParameter NewCompanyParameters = new CompanyParameter()
@@ -1411,7 +1422,7 @@ namespace CrisesControl.Api.Application.Helpers
                         CreatedBy = currentUserId,
                         UpdatedBy = currentUserId,
                         CreatedOn = DateTime.Now,
-                        UpdatedOn = GetDateTimeOffset(DateTime.Now, timeZoneId)
+                        UpdatedOn = await GetDateTimeOffset(DateTime.Now, timeZoneId)
                     };
                     await _context.AddAsync(NewCompanyParameters);
                     await _context.SaveChangesAsync();
@@ -1424,7 +1435,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
             return 0;
         }
-        public bool OnTrialStatus(string companyProfile, bool currentTrial)
+        public async Task<bool> OnTrialStatus(string companyProfile, bool currentTrial)
         {
             if (companyProfile == "SUBSCRIBED")
             {
@@ -1473,7 +1484,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
         }
 
-        public Return Return(int errorId = 100, string errorCode = "E100", bool status = false, string message = "FAILURE", object data = null, int resultId = 0)
+        public async Task<Return> Return(int errorId = 100, string errorCode = "E100", bool status = false, string message = "FAILURE", object data = null, int resultId = 0)
         {
             Return rtn = new Return();
             rtn.ErrorId = errorId;
@@ -1485,7 +1496,7 @@ namespace CrisesControl.Api.Application.Helpers
             return rtn;
         }
 
-        public string PhoneNumber(PhoneNumber strPhoneNumber)
+        public async Task<string> PhoneNumber(PhoneNumber strPhoneNumber)
         {
             try
             {
@@ -1497,7 +1508,7 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex)
             {
                 throw ex;
-            } 
+            }
             return "";
         }
         public async Task<DateTimeOffset> LookupLastUpdate(string Key)
@@ -1506,7 +1517,7 @@ namespace CrisesControl.Api.Application.Helpers
             {
 
                 var LKP = await _context.Set<SysParameter>()
-                           .Where(L=> L.Name == Key
+                           .Where(L => L.Name == Key
                            ).FirstOrDefaultAsync();
                 if (LKP != null)
                 {
@@ -1517,7 +1528,7 @@ namespace CrisesControl.Api.Application.Helpers
             catch (Exception ex)
             {
                 throw ex;
-                return new DateTimeOffset();
+                
             }
         }
         public async Task<DateTimeOffset> GetCompanyParameterLastUpdate(string Key, int CompanyId)
@@ -1526,7 +1537,7 @@ namespace CrisesControl.Api.Application.Helpers
             {
 
                 var LKP = await _context.Set<CompanyParameter>()
-                           .Where(L=> L.Name == Key && L.CompanyId == CompanyId).FirstOrDefaultAsync ();
+                           .Where(L => L.Name == Key && L.CompanyId == CompanyId).FirstOrDefaultAsync();
                 if (LKP != null)
                 {
                     return LKP.UpdatedOn;
@@ -1539,17 +1550,17 @@ namespace CrisesControl.Api.Application.Helpers
                 return new DateTimeOffset();
             }
         }
-        public DateTime DbDate()
+        public async Task<DateTime> DbDate()
         {
             return new DateTime(1900, 01, 01, 0, 0, 0);
         }
 
-        
-        public string RetrieveFormatedAddress(string lat, string lng)
+
+        public async Task<string> RetrieveFormatedAddress(string lat, string lng)
         {
             try
             {
-                string APIKey = LookupWithKey("GOOGLE_LEGACY_API_KEY");
+                string APIKey = await  LookupWithKey("GOOGLE_LEGACY_API_KEY");
                 string baseUri = "https://maps.googleapis.com/maps/api/" +
                           "geocode/xml?latlng={0},{1}&sensor=false&key={2}";
                 string requestUri = string.Format(baseUri, lat, lng, APIKey);
@@ -1561,7 +1572,7 @@ namespace CrisesControl.Api.Application.Helpers
 
                 var xmlElm = XElement.Parse(result.Result);
 
-                var status = (from elm in xmlElm.Descendants()
+                var status =(from elm in xmlElm.Descendants()
                               where elm.Name == "status"
                               select elm).FirstOrDefault();
 
@@ -1591,7 +1602,7 @@ namespace CrisesControl.Api.Application.Helpers
                             int retrycount = 0;
                             while (tryagain == "" && retrycount < 3)
                             {
-                                tryagain = RetrieveFormatedAddress(lat, lng);
+                                tryagain = await RetrieveFormatedAddress(lat, lng);
                                 isretry = true;
                                 retrycount++;
                             }
@@ -1606,7 +1617,7 @@ namespace CrisesControl.Api.Application.Helpers
             }
 
         }
-        public async Task UpdateUserLocation(int userid, int companyid, string latitude, string longitude, string timeZoneId)
+        public async Task UpdateUserLocation(int userid,  string latitude, string longitude, string timeZoneId)
         {
             try
             {
@@ -1617,19 +1628,19 @@ namespace CrisesControl.Api.Application.Helpers
                     {
                         updatelocation.Lat = Left(latitude, 10).Replace(",", ".");
                         updatelocation.Lng = Left(longitude, 10).Replace(",", ".");
-                        updatelocation.LastLocationUpdate = GetDateTimeOffset(DateTime.Now, timeZoneId);
+                        updatelocation.LastLocationUpdate = await GetDateTimeOffset(DateTime.Now, timeZoneId);
                         _context.Update(updatelocation);
-                       await  _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync();
                     }
                 }
             }
-           
+
             catch (Exception ex)
             {
                 throw ex;
             }
         }
-        public string ToCSVHighPerformance(DataTable dataTable, bool includeHeaderAsFirstRow = true, string separator = ",")
+        public async Task<string> ToCSVHighPerformance(DataTable dataTable, bool includeHeaderAsFirstRow = true, string separator = ",")
         {
             //DataTable dataTable = new DataTable();
             StringBuilder csvRows = new StringBuilder();
@@ -1697,31 +1708,31 @@ namespace CrisesControl.Api.Application.Helpers
             {
                 throw ex;
             }
-            
+
         }
-        public void ModelInputLog(string controllerName, string methodName, int userID, int companyID, dynamic data)
+        public async Task ModelInputLog(string controllerName, string methodName, int userID, int companyID, dynamic data)
         {
             try
             {
-             
-                    string json = JsonConvert.SerializeObject(data);
 
-                    var pControllerName = new SqlParameter("@ControllerName", controllerName);
-                    var pMethodName = new SqlParameter("@MethodName", methodName);
-                    var pUserID = new SqlParameter("@UserID", userID);
-                    var pCompanyID = new SqlParameter("@CompanyID", companyID);
-                    var pData = new SqlParameter("@Data", json);
+                string json = JsonConvert.SerializeObject(data);
 
-                    _context.Database.ExecuteSqlRawAsync("Pro_Log_Model_Data @ControllerName, @MethodName, @UserID, @CompanyID, @Data",
-                    pControllerName, pMethodName, pUserID, pCompanyID, pData);
-             
+                var pControllerName = new SqlParameter("@ControllerName", controllerName);
+                var pMethodName = new SqlParameter("@MethodName", methodName);
+                var pUserID = new SqlParameter("@UserID", userID);
+                var pCompanyID = new SqlParameter("@CompanyID", companyID);
+                var pData = new SqlParameter("@Data", json);
+
+               await _context.Database.ExecuteSqlRawAsync("Pro_Log_Model_Data @ControllerName, @MethodName, @UserID, @CompanyID, @Data",
+                pControllerName, pMethodName, pUserID, pCompanyID, pData);
+
             }
             catch (Exception ex)
             {
                 throw ex;
             }
         }
-        public DateTimeOffset ToNullIfTooEarlyForDb(DateTimeOffset date, bool convertUTC = false)
+        public async Task<DateTimeOffset> ToNullIfTooEarlyForDb(DateTimeOffset date, bool convertUTC = false)
         {
             DateTimeOffset retDate = (date.Year >= 1990) ? date : DateTime.Now;
             if (!convertUTC)
@@ -1731,25 +1742,25 @@ namespace CrisesControl.Api.Application.Helpers
             else
             {
                 //retDate = GetLocalTimeScheduler("GMT Standard Time", retDate);
-                retDate = GetDateTimeOffset(retDate.LocalDateTime);
+                retDate = await GetDateTimeOffset(retDate.LocalDateTime);
             }
             return retDate;
         }
         public string LogWrite(string str, string strType = "I")
         {
             return (strType == "I" ? "Info: " : "Error: ") + str + Environment.NewLine;
-        }
-
-        public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
+        }   
+       public async Task<bool> AddUserTrackingDevices(int userID, int messageListID = 0)
         {
-            var devices = await _context.Set<UserDevice>().Where(UD=> UD.UserId == userID).ToListAsync();
-            if (devices!=null) { 
-            foreach (var device in devices)
+            var devices = await _context.Set<UserDevice>().Where(UD => UD.UserId == userID).ToListAsync();
+            if (devices != null)
             {
-                if (device.DeviceType.ToUpper().Contains("ANDROID") || device.DeviceType.ToUpper().Contains("WINDOWS"))
-                   await AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
-               
-            }
+                foreach (var device in devices)
+                {
+                    if (device.DeviceType.ToUpper().Contains("ANDROID") || device.DeviceType.ToUpper().Contains("WINDOWS"))
+                        await AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
+
+                }
                 return true;
             }
             return false;
@@ -1772,8 +1783,8 @@ namespace CrisesControl.Api.Application.Helpers
                 MessageDev.Status = "PENDING";
                 MessageDev.SirenOn = false;
                 MessageDev.OverrideSilent = false;
-                MessageDev.CreatedOn = GetDateTimeOffset(DateTime.Now);
-                MessageDev.UpdatedOn = GetDateTimeOffset(DateTime.Now);
+                MessageDev.CreatedOn = await GetDateTimeOffset(DateTime.Now);
+                MessageDev.UpdatedOn =await GetDateTimeOffset(DateTime.Now);
                 MessageDev.CreatedBy = 0;
                 MessageDev.UpdatedBy = 0;
                 MessageDev.DateSent = System.Data.SqlTypes.SqlDateTime.MinValue.Value;
@@ -1789,6 +1800,85 @@ namespace CrisesControl.Api.Application.Helpers
             }
 
         }
+        public async Task GetFormatedNumber(string inputNumber,  string isdCode, string phoneNum, string defaultISD = "44")
+        {
+
+            phoneNum = Regex.Replace(inputNumber, @"\D", string.Empty);
+            isdCode = defaultISD;
+            IsValidPhone = false;
+
+            if (Left(inputNumber, 1) != "+")
+                inputNumber = isdCode + inputNumber;
+
+            try
+            {
+                string ClientId =await LookupWithKey("TWILIO_CLIENTID");
+                string ClientSecret =await LookupWithKey("TWILIO_CLIENT_SECRET");
+                TwilioClient.Init(ClientId, ClientSecret);
+
+                var phoneNumber = PhoneNumberResource.Fetch(pathPhoneNumber: new Twilio.Types.PhoneNumber(inputNumber));
+                if (phoneNumber != null)
+                {
+                    string countryCode = phoneNumber.CountryCode;
+                    phoneNum = Regex.Replace(phoneNumber.NationalFormat, @"\D", string.Empty).TrimStart('0');
+                    IsValidPhone = true;
+                    var isd_rec =await  _context.Set<Country>().Where(w => w.Iso2code == countryCode).FirstOrDefaultAsync();
+                    if (isd_rec != null)
+                    {
+                        isdCode = Left(isd_rec.CountryPhoneCode, 1) != "+" ? "+" + isd_rec.CountryPhoneCode : isd_rec.CountryPhoneCode;
+                    }
+                }
+                else
+                {
+                    phoneNum = Regex.Replace(inputNumber, @"\D", string.Empty);
+                    IsValidPhone = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                IsValidPhone = false;
+            }
+        }
+        public async Task AddUserInvitationLog(int companyId, int userID, string actionType, int currentUserId, string timeZoneId)
+        {
+            try
+            {
+                DateTimeOffset dtNow =await GetDateTimeOffset(DateTime.Now, timeZoneId);
+
+                var pCompanyId = new SqlParameter("@CompanyID", companyId);
+                var pUserID = new SqlParameter("@UserID", userID);
+                var pActionType = new SqlParameter("@ActionType", actionType);
+                var pActionDate = new SqlParameter("@ActionDate", dtNow);
+                var pCreatedBy = new SqlParameter("@CreatedBy", currentUserId);
+
+               await _context.Database.ExecuteSqlRawAsync("Pro_Add_User_InviationLog @CompanyID,@UserID,@ActionType,@ActionDate,@CreatedBy", pCompanyId, pUserID, pActionType, pActionDate, pCreatedBy);
+
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public async Task DeleteRecording(string recordingID)
+        {
+            try
+            {
+                bool SendInDirect = await IsTrue(await LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string TwilioRoutingApi = await LookupWithKey("TWILIO_ROUTING_API");
+
+                dynamic CommsAPI = this.InitComms("TWILIO");
+                CommsAPI.SendInDirect = SendInDirect;
+                CommsAPI.TwilioRoutingApi = TwilioRoutingApi;
+
+                CommsAPI.DeleteRecording(recordingID);
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
 
     }
 }

@@ -12,9 +12,10 @@ namespace CrisesControl.Api.Application.Commands.Incidents.GetIncidentLibrary
             _logger = logger;
             _incidentQuery = incidentQuery;
         }
-        public Task<GetIncidentLibraryResponse> Handle(GetIncidentLibraryRequest request, CancellationToken cancellationToken)
+        public async Task<GetIncidentLibraryResponse> Handle(GetIncidentLibraryRequest request, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var result = await _incidentQuery.GetIncidentLibrary(request);
+            return result;
         }
     }
 }

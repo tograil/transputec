@@ -28,6 +28,7 @@ using CrisesControl.Api.Application.Helpers;
 using CrisesControl.Api.Maintenance.Interfaces;
 using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Core.Compatibility;
+using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Incidents.Repositories;
 using CrisesControl.Core.Models;
@@ -48,11 +49,11 @@ namespace CrisesControl.Api.Application.Query
         private readonly IUserRepository _userRepository;
         //private readonly IUserRepository _userRepository;
         //private readonly ICompanyRepository _companyRepository;
-        private readonly DBCommon _dBCommon;
+        private readonly IDBCommonRepository _dBCommon;
         private string MessageSourceAction = string.Empty;
         private readonly IPaging _paging;
 
-        public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, IUserRepository userRepository, IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser, DBCommon dBCommon, IPaging paging)
+        public ActiveIncidentQuery(IActiveIncidentRepository activeIncidentRepository, IUserRepository userRepository, IMapper mapper, ILogger<ActiveIncidentQuery> logger, ICurrentUser currentUser, IDBCommonRepository dBCommon, IPaging paging)
         {
             this._activeIncidentRepository = activeIncidentRepository;
             this._mapper = mapper;
@@ -124,7 +125,7 @@ namespace CrisesControl.Api.Application.Query
                         task.TaskOwnerId = _currentUser.UserId;
                         task.TaskStatus = 2;
 
-                        task.UpdatedDate = DateTime.Now.GetDateTimeOffset(_currentUser.TimeZone);
+                        task.UpdatedDate =await _dBCommon.GetDateTimeOffset(DateTime.Now,_currentUser.TimeZone);
                         task.UpdatedBy = _currentUser.UserId;
                         var ActivetaskId = await _activeIncidentRepository.UpdateTaskActiveIncident(task);
                     }
