@@ -49,6 +49,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("{CurrentUserId:int}/NotificationCount")]
+        [Authorize]
         public async Task<IActionResult> GetNotificationsCount([FromRoute] GetNotificationsCountRequest request, CancellationToken cancellationToken) {
             var result = await _mediator.Send(request, cancellationToken);
 
@@ -63,6 +64,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetMessageResponse/{MessageType}/{ResponseID:int}")]
+        [Authorize]
         public async Task<IActionResult> GetMessageResponse([FromRoute] GetMessageResponseRequest request, CancellationToken cancellationToken) {
             var result = await _mediator.Send(request, cancellationToken);
 
@@ -77,6 +79,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetMessageResponses/{MessageType}/{Status:int}")]
+        [Authorize]
         public async Task<IActionResult> GetMessageResponses([FromRoute] GetMessageResponsesRequest request, CancellationToken cancellationToken) {
             var result = await _messageQuery.GetMessageResponses(request, cancellationToken);
 
@@ -91,6 +94,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetMessages/{TargetUserId:int}/{MessageType}/{IncidentActivationId:int}")]
+        [Authorize]
         public async Task<IActionResult> GetMessages([FromRoute] GetMessagesRequest request, CancellationToken cancellationToken) {
             var result = await _messageQuery.GetMessages(request);
 
@@ -104,6 +108,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetMessageDetails/{CloudMsgId}/{MessageId}")]
+        [Authorize]
         public async Task<IActionResult> GetMessageDetails([FromRoute] GetMessageDetailsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -118,6 +123,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetMessageAttachment/{MessageListID}/{MessageID}")]
+        [Authorize]
         public async Task<IActionResult> GetMessageAttachment([FromRoute]  GetMessageAttachmentRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -132,6 +138,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetAttachment/{MessageAttachmentID}")]
+        [Authorize]
         public async Task<IActionResult> GetAttachment([FromRoute] GetAttachmentRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -147,6 +154,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpPut]
         [Route("MessageAcknowledge/{MsgListId:int}")]
+        [Authorize]
         public async Task<IActionResult> MessageAcknowledge([FromRoute] int MsgListId, [FromBody] MessageAcknowledgeRequestRoute requestRoute, CancellationToken cancellationToken) {
 
             MessageAcknowledgeRequest request = new MessageAcknowledgeRequest();
@@ -169,6 +177,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetReplies/{ParentId:int}")]
+        [Authorize]
         public async Task<IActionResult> GetReplies([FromRoute] GetRepliesRequest request, CancellationToken cancellationToken)
         {
             var result = await _messageQuery.GetReplies(request);
@@ -183,6 +192,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetMessageGroupList/{MessageID}")]
+        [Authorize]
         public async Task<IActionResult> GetMessageGroupList([FromRoute] GetMessageGroupListRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -197,6 +207,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetConfRecordings")]
+        [Authorize]
         public async Task<IActionResult> GetConfRecordings([FromBody] GetConfRecordingsRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -210,6 +221,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("[action]/{ObjectType}/{ObjectId}")]
+        [Authorize]
         public async Task<IActionResult> GetConfUser([FromRoute] GetConfUserRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -223,9 +235,10 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetNotifications")]
+        [Authorize]
         public async Task<IActionResult> GetNotifications([FromRoute] GetNotificationsRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _messageQuery.GetNotifications(request);
             return Ok(result);
         }
         /// <summary>
@@ -236,6 +249,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetPingInfo/{MessageId:int}")]
+        [Authorize]
         public async Task<IActionResult> GetPingInfo([FromRoute] GetPingInfoRequest request, CancellationToken cancellationToken)
         {
             var result = await _messageQuery.GetPingInfo(request);
@@ -249,6 +263,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpPost]
         [Route("PingMessage")]
+        [Authorize]
         public async Task<IActionResult> PingMessage([FromBody] PingMessageRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -262,6 +277,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpPost]
         [Route("[action]")]
+        [Authorize]
         public async Task<IActionResult> StartConference([FromBody] StartConferenceRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -275,6 +291,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpPost]
         [Route("SaveMessageResponse")]
+        [Authorize]
         public async Task<IActionResult> SaveMessageResponse([FromBody] SaveMessageResponseRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -301,6 +318,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpPost]
         [Route("UploadAttachment")]
+        [Authorize]
         public async Task<IActionResult> UploadAttachment([FromBody]  UploadAttachmentRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -314,6 +332,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpPost]
         [Route("ReplyToMessage")]
+        [Authorize]
         public async Task<IActionResult> ReplyToMessage([FromBody] ReplyToMessageRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -327,6 +346,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpPost]
         [Route("SendPublicAlert")]
+        [Authorize]
         public async Task<IActionResult> SendPublicAlert([FromBody] SendPublicAlertRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -340,6 +360,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetPublicAlertTemplate/{MessageId}")]
+        [Authorize]
         public async Task<IActionResult> GetPublicAlertTemplate([FromRoute] GetPublicAlertTemplateRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -353,6 +374,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GetPublicAlert")]
+        [Authorize]
         public async Task<IActionResult> GetPublicAlert([FromRoute] GetPublicAlertRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -366,6 +388,7 @@ namespace CrisesControl.Api.Controllers {
         /// <returns></returns>
         [HttpPost]
         [Route("ProcessPAFile")]
+        [Authorize]
         public async Task<IActionResult> ProcessPAFile([FromBody] ProcessPAFileRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

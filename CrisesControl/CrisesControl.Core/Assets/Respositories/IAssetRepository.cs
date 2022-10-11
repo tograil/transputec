@@ -22,7 +22,7 @@ namespace CrisesControl.Core.Assets.Respositories
         public Task<int> UpdateAsset(Assets asset, CancellationToken cancellationToken);
 
         public Task<bool> CheckDuplicate(Assets asset);
-        Task CreateAssetReviewReminder(int assetId, int companyID, DateTimeOffset nextReviewDate, string reviewFrequency, int reminderCount);
+        Task CreateAssetReviewReminder(int assetId, int companyID, DateTimeOffset? nextReviewDate, string reviewFrequency, int reminderCount);
         Task<List<AssetLink>> GetAssetLink(int assetId);
         Task<int> DeleteAssetLink(int assetId);
         Task<bool> CheckForExistance(int assetId);

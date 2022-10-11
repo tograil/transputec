@@ -4,6 +4,7 @@ using CrisesControl.Api.Application.Commands.Messaging.GetMessageGroupList;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponse;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessageResponses;
 using CrisesControl.Api.Application.Commands.Messaging.GetMessages;
+using CrisesControl.Api.Application.Commands.Messaging.GetNotifications;
 using CrisesControl.Api.Application.Commands.Messaging.GetNotificationsCount;
 using CrisesControl.Api.Application.Commands.Messaging.GetPingInfo;
 using CrisesControl.Api.Application.Commands.Messaging.GetReplies;
@@ -32,6 +33,14 @@ namespace CrisesControl.Api.Application.Query {
             var countresult = await _messageRepository.GetNotificationsCount(request.CurrentUserId);
             GetNotificationsCountResponse result = _mapper.Map<UserMessageCount, GetNotificationsCountResponse>(countresult);
             return result;
+        }
+
+        public async Task<GetNotificationsResponse> GetNotifications(GetNotificationsRequest request) {
+            var countresult = await _messageRepository.MessageNotifications(_currentUser.CompanyId, _currentUser.UserId);
+            var result = _mapper.Map<NotificationDetails>(countresult);
+            var response = new GetNotificationsResponse();
+            response.Data = result;
+            return response;
         }
 
         public async Task<GetMessageResponseResponse> GetMessageResponse(GetMessageResponseRequest request) {

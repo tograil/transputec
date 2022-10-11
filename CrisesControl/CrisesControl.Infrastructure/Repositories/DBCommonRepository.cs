@@ -37,6 +37,7 @@ using CrisesControl.Infrastructure.Services;
 using Microsoft.Data.SqlClient;
 using Twilio;
 using Twilio.Rest.Lookups.V1;
+using Microsoft.Extensions.Configuration;
 
 namespace CrisesControl.Infrastructure.Repositories
 {
@@ -47,6 +48,7 @@ namespace CrisesControl.Infrastructure.Repositories
         private int companyId;
         private readonly string timeZoneId = "GMT Standard Time";
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private IConfiguration _config;
         // private readonly ISenderEmailService _SDE;
         //private readonly IUserRepository _userRepository;
         ILog Logger = LogManager.GetLogger(System.Environment.MachineName);
@@ -54,10 +56,11 @@ namespace CrisesControl.Infrastructure.Repositories
         public delegate void UpdateHandler(object sender, UpdateEventArgs e);
         public bool isValidPhone = false;
 
-        public DBCommonRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor /*,ISenderEmailService SDE*/)
+        public DBCommonRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor, IConfiguration iconfig /*,ISenderEmailService SDE*/)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _config = iconfig;
             //_SDE = SDE;
         }
 
@@ -994,7 +997,7 @@ namespace CrisesControl.Infrastructure.Repositories
         {
             try
             {
-                string value =  _context.Database.GetConnectionString();
+                string value = _config.GetValue<string>(key);
                 if (value != null)
                 {
                     return value;

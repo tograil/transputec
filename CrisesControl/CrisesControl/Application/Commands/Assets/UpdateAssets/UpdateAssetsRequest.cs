@@ -1,9 +1,9 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Mvc;
 
-namespace CrisesControl.Api.Application.Commands.Assets.UpdateAssets
-{
-    public class UpdateAssetsRequest:IRequest<UpdateAssetsResponse>
-    {
+namespace CrisesControl.Api.Application.Commands.Assets.UpdateAssets {
+    public class UpdateAssetsRequest : IRequest<UpdateAssetsResponse> {
+        [FromRoute]
         public int AssetId { get; set; }
         public int CompanyId { get; set; }
         public string AssetTitle { get; set; } = null!;

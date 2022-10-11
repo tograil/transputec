@@ -94,11 +94,9 @@ namespace CrisesControl.Infrastructure.Services.Jobs {
 
                 await _queueHelper.PublishMessageQueue(MessageID, rabbithosts, Method, null, Priority);
 
-            } catch (Exception) {
+            } catch (Exception ex) {
                 throw;
             }
-
-            //return Task.WhenAll();
         }
     }
 

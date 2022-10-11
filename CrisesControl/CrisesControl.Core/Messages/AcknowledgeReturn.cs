@@ -11,6 +11,7 @@ namespace CrisesControl.Core.Messages
     {
         [NotMapped]
         public int? ActivePingMessageListId { get; set; }
+        [NotMapped]
         public int? ActivePingMessageId { get; set; }
         [NotMapped]
         public int? ActiveIncidentID { get; set; }

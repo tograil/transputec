@@ -26,6 +26,7 @@ using Quartz;
 using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.Infrastructure.Jobs;
 using Quartz.Spi;
+using CrisesControl.Core.DBCommon.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -110,6 +111,7 @@ builder.Host.UseSerilog((ctx, lc) =>
     lc.ReadFrom.Configuration(ctx.Configuration);
 });
 
+
 builder.Services.Configure<QuartzOptions>(builder.Configuration.GetSection("Quartz"));
 builder.Services.AddQuartz(q => {
     q.UseMicrosoftDependencyInjectionJobFactory();
@@ -123,6 +125,8 @@ builder.Services.AddQuartzHostedService(options =>
 {
     options.WaitForJobsToComplete = true;
 });
+
+
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder => {
     containerBuilder.RegisterModule(new ApiModule());
@@ -183,6 +187,10 @@ if (dbcontext != null) {
             CrisesControl.SharedKernel.Utils.CCConstants.GlobalVars.Add(param.Name, param.Value);
         }
     }
+
+    var dbCommon = app.Services.GetService<IDBCommonRepository>();
+    await ParamsHelper.InitializeParamsHelper(dbCommon);
+
 }
 
 
