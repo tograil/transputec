@@ -27,9 +27,9 @@ public class IncidentService : IIncidentService
         _activeIncidentTaskService = activeIncidentTaskService;
     }
 
-    public async Task InitiateIncident(IncidentActivation activation, IncidentSubset incidentSubset, CancellationToken cancellationToken = default)
+    public void InitiateIncident(IncidentActivation activation, IncidentSubset incidentSubset, CancellationToken cancellationToken = default)
     {
-        await _incidentRepository.AddIncidentActivation(activation, cancellationToken);
+        _incidentRepository.AddIncidentActivation(activation, cancellationToken);
 
         if (incidentSubset.MessageMethod.Length > 0)
         {
@@ -42,82 +42,82 @@ public class IncidentService : IIncidentService
 
             foreach (var method in incidentSubset.MessageMethod)
             {
-                await _messageRepository.CreateMessageMethod(0, method, activation.IncidentActivationId);
+                _messageRepository.CreateMessageMethod(0, method, activation.IncidentActivationId);
                 if (pushMethodId == method)
                     pushAdded = true;
             }
 
             if (incidentSubset.TrackUser && !pushAdded)
             {
-                await _messageRepository.CreateMessageMethod(0, pushMethodId,
+                 _messageRepository.CreateMessageMethod(0, pushMethodId,
                     activation.IncidentActivationId);
             }
         }
 
         if (incidentSubset.UsersToNotify.Length > 0)
         {
-            await _messageRepository.AddUserToNotify(0, incidentSubset.UsersToNotify,
+             _messageRepository.AddUserToNotify(0, incidentSubset.UsersToNotify,
                 activation.IncidentActivationId);
         }
 
         if (incidentSubset.MultiResponse)
         {
-            await _messageRepository.SaveActiveMessageResponse(0, incidentSubset.AckOptions,
+             _messageRepository.SaveActiveMessageResponse(0, incidentSubset.AckOptions,
                 activation.IncidentActivationId);
         }
 
         //TODO: Clarify nominated keyholders
 
-        await _activeIncidentRepository.ProcessImpactedLocation(incidentSubset.ImpactedLocationIds,
+         _activeIncidentRepository.ProcessImpactedLocation(incidentSubset.ImpactedLocationIds,
             activation.IncidentActivationId, activation.CompanyId, "INITIATE");
 
-        await _activeIncidentRepository.ProcessAffectedLocation(incidentSubset.AffectedLocations,
+         _activeIncidentRepository.ProcessAffectedLocation(incidentSubset.AffectedLocations,
             activation.IncidentActivationId,
             activation.CompanyId);
     }
 
-    public async Task InitiateAndLaunchIncident(IncidentActivation incidentActivation, IncidentSubset incidentSubset, CancellationToken cancellationToken = default)
+    public void InitiateAndLaunchIncident(IncidentActivation incidentActivation, IncidentSubset incidentSubset, CancellationToken cancellationToken = default)
     {
-        await _incidentRepository.AddIncidentActivation(incidentActivation, cancellationToken);
+         _incidentRepository.AddIncidentActivation(incidentActivation, cancellationToken);
 
-        await _activeIncidentRepository.ProcessImpactedLocation(incidentSubset.ImpactedLocationId,
+         _activeIncidentRepository.ProcessImpactedLocation(incidentSubset.ImpactedLocationId,
             incidentActivation.IncidentActivationId, incidentActivation.CompanyId, "COMBINED");
 
-        await _activeIncidentRepository.ProcessAffectedLocation(incidentSubset.AffectedLocations,
+         _activeIncidentRepository.ProcessAffectedLocation(incidentSubset.AffectedLocations,
             incidentActivation.IncidentActivationId, incidentActivation.CompanyId, "COMBINED");
 
-        await _activeIncidentRepository.CreateActiveKeyContact(incidentActivation.IncidentActivationId,
+         _activeIncidentRepository.CreateActiveKeyContact(incidentActivation.IncidentActivationId,
             incidentActivation.IncidentId,
             incidentSubset.InitiateIncidentKeyHldLst, incidentSubset.UserId, incidentActivation.CompanyId, "GMT Standard Time");
 
-        var priority = SharedKernel.Utils.Common.GetPriority(incidentActivation.Severity);
+        var priority = Common.GetPriority(incidentActivation.Severity);
 
-        await _messageRepository.DeleteMessageMethod(0, incidentActivation.IncidentActivationId);
+        _messageRepository.DeleteMessageMethod(0, incidentActivation.IncidentActivationId);
 
-        var messageId = await _messageRepository.CreateMessage(incidentActivation.CompanyId,
+        var messageId = _messageRepository.CreateMessage(incidentActivation.CompanyId,
             incidentActivation.IncidentDescription,
             "Incident", incidentActivation.IncidentActivationId, priority, incidentSubset.UserId, 1,
             DateTime.Now.GetDateTimeOffset(),
             incidentSubset.MultiResponse, incidentSubset.AckOptions, 99, incidentSubset.AudioAssetId, 0, incidentSubset.TrackUser,
             incidentSubset.SilentMessage,
-            incidentSubset.MessageMethod);
+            incidentSubset.MessageMethod).Result;
 
         if (incidentSubset.UsersToNotify != null)
         {
-            await _messageRepository.AddUserToNotify(messageId, incidentSubset.UsersToNotify,
+            _messageRepository.AddUserToNotify(messageId, incidentSubset.UsersToNotify,
                 incidentActivation.IncidentActivationId);
         }
 
-        await _messageRepository.CreateIncidentNotificationList(incidentActivation.IncidentActivationId, messageId,
+        _messageRepository.CreateIncidentNotificationList(incidentActivation.IncidentActivationId, messageId,
             incidentSubset.InitiateIncidentNotificationObjLst.ToList(), incidentSubset.UserId, incidentActivation.CompanyId);
 
         if (incidentSubset.HasTask)
         {
-            await _activeIncidentTaskService.StartTaskAllocation(incidentActivation.IncidentId,
+            _activeIncidentTaskService.StartTaskAllocation(incidentActivation.IncidentId,
                 incidentActivation.IncidentActivationId, incidentSubset.UserId, incidentActivation.CompanyId);
         }
 
-        await _activeIncidentTaskService.CopyAssets(incidentActivation.IncidentId,
+        _activeIncidentTaskService.CopyAssets(incidentActivation.IncidentId,
             incidentActivation.IncidentActivationId, messageId);
     }
 }

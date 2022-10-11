@@ -101,7 +101,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 if (minimumBalance != 9999999999)
                 {
                     c_pp.MinimumBalance = minimumBalance;
-                    await DBC.SaveParameter(0, "RECHARGE_BALANCE_TRIGGER", minimumBalance.ToString(), currntUserId, companyId, timeZoneId);
+                    DBC.SaveParameter(0, "RECHARGE_BALANCE_TRIGGER", minimumBalance.ToString(), currntUserId, companyId, timeZoneId);
                 }
                 c_pp.TextUplift = textUplift;
                 c_pp.PhoneUplift = phoneUplift;

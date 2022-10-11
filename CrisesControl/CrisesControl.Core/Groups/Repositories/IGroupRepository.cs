@@ -7,7 +7,7 @@ namespace CrisesControl.Core.Groups.Repositories
 {
     public interface IGroupRepository
     {
-        Task<List<GroupDetail>> GetAllGroups(int companyId, int userId = 0, int incidentId = 0 , bool filterVirtual = false);
+        Task<List<GroupDetail>> GetAllGroups(int companyId, int incidentId = 0 , bool filterVirtual = false);
         Task<GroupDetail> GetGroup(int companyId, int groupId);
         Task<int> CreateGroup(Group payload, CancellationToken token);
         Task<int> UpdateGroup(Group payload, CancellationToken token);

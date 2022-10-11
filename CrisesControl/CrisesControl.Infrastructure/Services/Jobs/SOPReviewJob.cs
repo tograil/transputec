@@ -45,14 +45,14 @@ namespace CrisesControl.Infrastructure.Services.Jobs
                         SDE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, (int)incident.I.CompanyId, "SOP");
 
                         incident.SH.ReminderCount = Counter;
-                        db.SaveChanges();
-                       
+                        await db.SaveChangesAsync();
+
                         await DBC.CreateSOPReviewReminder(IncidentID, incident.SH.SopheaderId, (int)incident.I.CompanyId, incident.SH.ReviewDate, incident.SH.ReviewFrequency, Counter);
 
                     }
                     else
                     {
-                        DBC.DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
+                        await DBC.DeleteScheduledJob("SOP_REVIEW_" + SOPHeaderID, "REVIEW_REMINDER");
                     }
                 }
                 await Task.WhenAll();

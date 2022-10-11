@@ -12,7 +12,7 @@ namespace CrisesControl.Api.Application.Query {
     public interface IMessageQuery {
         public Task<GetNotificationsCountResponse> GetNotificationsCount(GetNotificationsCountRequest request);
         public Task<GetMessageResponseResponse> GetMessageResponse(GetMessageResponseRequest request);
-        public Task<GetMessageResponsesResponse> GetMessageResponses(GetMessageResponsesRequest request);
+        public Task<GetMessageResponsesResponse> GetMessageResponses(GetMessageResponsesRequest request, CancellationToken cancellationToken);
         public Task<GetMessagesResponse> GetMessages(GetMessagesRequest request);
         public Task<GetMessageDetailsResponse> GetMessageDetails(GetMessageDetailsRequest request);
         public Task<GetRepliesResponse> GetReplies(GetRepliesRequest request);

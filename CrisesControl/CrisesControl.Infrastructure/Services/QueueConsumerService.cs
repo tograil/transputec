@@ -50,27 +50,26 @@ namespace CrisesControl.Infrastructure.Services
         public bool IsFundAvailable { 
             get=> isFundAvailable; 
             set=> isFundAvailable=value; }
-        public  async Task<int> CreateMessageList(int messageID, string replyTo = "")
-        {
+        public async Task<int> CreateMessageList(int messageID, string replyTo = "", bool sendToAllRecipient = false)
+            {
 
-         
+
             string MessageType = string.Empty;
             int Priority = 999;
             int QueueSize = 0;
             int CascadePlanID = 0;
-            try
-            {
-               
+            try {
 
-                    //_db.Database.ti = 300;
 
-                    var msg = _db.Set<Message>().Where(M=> M.MessageId == messageID).FirstOrDefault();
-                    if (msg != null)
+                //_db.Database.ti = 300;
+
+                var msg = await _db.Set<Message>().Where(M => M.MessageId == messageID).FirstOrDefaultAsync();
+                if (msg != null)
                     {
 
-                        CascadePlanID = msg.CascadePlanId;
+                    CascadePlanID = msg.CascadePlanId;
 
-                        string TimeZoneId = await _DBC.GetTimeZoneVal(msg.CreatedBy);
+                    string TimeZoneId = await _DBC.GetTimeZoneVal(msg.CreatedBy);
 
                         bool notifySender = false;
                         bool.TryParse(await _DBC.GetCompanyParameter("INC_SENDER_INCIDENT_UPDATE", msg.CompanyId), out notifySender);
@@ -78,45 +77,38 @@ namespace CrisesControl.Infrastructure.Services
                         bool NotifyKeyholders = false;
                         bool.TryParse(await _DBC.GetCompanyParameter("NOTIFY_KEYHOLDER_BY_PING", msg.CompanyId), out NotifyKeyholders);
 
-                        MessageType = msg.MessageType.ToUpper();
-                        Priority = msg.Priority;
+                    MessageType = msg.MessageType.ToUpper();
+                    Priority = msg.Priority;
 
-                        string rpl_sp_name = "Pro_Create_Reply_Message_List ";
+                    string rpl_sp_name = "Pro_Create_Reply_Message_List ";
 
-                        if (CascadePlanID > 0)
-                            rpl_sp_name = "Pro_Create_Message_Queue_Cascading ";
+                    if (CascadePlanID > 0)
+                        rpl_sp_name = "Pro_Create_Message_Queue_Cascading ";
 
 
-                        if (msg.MessageType.ToUpper() == "PING")
-                        {
-                            //Check for incident closure ping.
-                            if (NotifyKeyholders && msg.IncidentActivationId > 0 && msg.Source != 7)
-                            {
-                                try
-                                {
-                                    var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
-                                    var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
-
-                                    _db.Database.ExecuteSqlRaw("Pro_Create_Keyholder_Message_List @MessageID, @CustomerTime", pMessageId, pCustomerTime);
-                                }
-                                catch (Exception ex)
-                                {
-                                   
-                                    throw ex;
-                                }
-                            }
-                            else
-                            { //Normal ping message
+                    if (msg.MessageType.ToUpper() == "PING") {
+                        //Check for incident closure ping.
+                        if (NotifyKeyholders && msg.IncidentActivationId > 0 && msg.Source != 7) {
+                            try {
                                 var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
-                                var pNotifySender = new SqlParameter("@NotifySender", notifySender);
                                 var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+
+                                await _db.Database.ExecuteSqlRawAsync("Pro_Create_Keyholder_Message_List @MessageID, @CustomerTime", pMessageId, pCustomerTime);
+                            } catch (Exception ex) {
+
+                                throw;
+                            }
+                        } else { //Normal ping message
+                            var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
+                            var pNotifySender = new SqlParameter("@NotifySender", notifySender);
+                            var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
 
                                 if (msg.ParentId == 0 && replyTo.ToUpper() != "RENOTIFY")
                                 {
                                     try
                                     {
-                                        _db.Database.ExecuteSqlRaw("Pro_Create_Message_List @MessageID, @NotifySender,@CustomerTime", pMessageId, pNotifySender, pCustomerTime);
-                                    }
+                                    await _db.Database.ExecuteSqlRawAsync("Pro_Create_Message_List @MessageID, @NotifySender,@CustomerTime", pMessageId, pNotifySender, pCustomerTime);
+                                }
                                     catch (Exception ex)
                                     {
                                      
@@ -129,8 +121,8 @@ namespace CrisesControl.Infrastructure.Services
                                     var pReplyTo = new SqlParameter("@ReplyTo", replyTo);
                                     try
                                     {
-                                        var result = _db.Set<Result>().FromSqlRaw(rpl_sp_name + " @MessageID, @ReplyTo, @CustomerTime", pMessageId, pReplyTo, pCustomerTime).FirstOrDefault();
-                                        if (result != null)
+                                    var result = await _db.Set<Result>().FromSqlRaw(rpl_sp_name + " @MessageID, @ReplyTo, @CustomerTime", pMessageId, pReplyTo, pCustomerTime).FirstOrDefaultAsync();
+                                    if (result != null)
                                         {
                                             QueueSize = result.ResultID;
                                         }
@@ -146,18 +138,19 @@ namespace CrisesControl.Infrastructure.Services
                         else if (msg.MessageType.ToUpper() == "INCIDENT")
                         {
 
-                            var pIncidentActivationId = new SqlParameter("@IncidentActivationID", msg.IncidentActivationId);
-                            var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
-                            var pNotifySender = new SqlParameter("@NotifySender", notifySender);
-                            var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+                        var pIncidentActivationId = new SqlParameter("@IncidentActivationID", msg.IncidentActivationId);
+                        var pMessageId = new SqlParameter("@MessageID", msg.MessageId);
+                        var pNotifySender = new SqlParameter("@NotifySender", notifySender);
+                        var pCustomerTime = new SqlParameter("@CustomerTime", _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId));
+                        var pSendToAllRecipient = new SqlParameter("@SendToAllRecipient", sendToAllRecipient);
 
                             if (msg.ParentId == 0 && replyTo.ToUpper() != "RENOTIFY")
                             {
                                 try
                                 {
-                                    _db.Database.ExecuteSqlRaw("Pro_Create_Incident_Message_List @IncidentActivationID, @MessageID, @NotifySender,@CustomerTime",
-                                            pIncidentActivationId, pMessageId, pNotifySender, pCustomerTime);
-                                }
+                                await _db.Database.ExecuteSqlRawAsync("Pro_Create_Incident_Message_List @IncidentActivationID, @MessageID, @NotifySender,@CustomerTime,@SendToAllRecipient",
+                                    pIncidentActivationId, pMessageId, pNotifySender, pCustomerTime, pSendToAllRecipient);
+                            }
                                 catch (Exception ex)
                                 {
                                     
@@ -186,7 +179,7 @@ namespace CrisesControl.Infrastructure.Services
 
                        await  CreateCascadingJobs(CascadePlanID, messageID, msg.IncidentActivationId, msg.CompanyId, TimeZoneId);
 
-                       await  _DBC.MessageProcessLog(msg.MessageId, "MESSAGE_LIST_CREATED", "", "", "Total count: " + QueueSize);
+                     await _DBC.MessageProcessLog(msg.MessageId, "MESSAGE_LIST_CREATED", "", "", "Total count: " + QueueSize);
 
                         IsFundAvailable =await _MSG.CalculateMessageCost(msg.CompanyId, messageID, msg.MessageText);
                     }
@@ -200,12 +193,18 @@ namespace CrisesControl.Infrastructure.Services
             {
                 if (replyTo.ToUpper() != "RENOTIFY")
                 {
-                   await Task.Factory.StartNew(() => _queueHelper.MessageDeviceQueue(messageID, MessageType, 1, CascadePlanID));
+                    await _queueHelper.MessageDeviceQueue(messageID, MessageType, 1, CascadePlanID);
                 }
                 else
                 {
-                  await   Task.Factory.StartNew(() => _queueHelper.MessageDevicePublish(messageID, 1, ""));
+                    await _queueHelper.MessageDevicePublish(messageID, 1, "");
                 }
+
+                //Todo do it in quartz
+                //Task.Factory.StartNew(() => {
+                //    CCWebSocketHelper.SendCountToUsersByMessage(MessageID);
+                //});
+
                 //CreateMessageDevice(MessageID);
             }
             return QueueSize;
@@ -218,21 +217,20 @@ namespace CrisesControl.Infrastructure.Services
                 if (planID > 0)
                 {
 
-                   
-                        var steps = (from PI in _db.Set<PriorityInterval>()
-                                     where PI.CascadingPlanId == planID && PI.CompanyId == companyID && PI.Interval > 0 && PI.Priority > 1
-                                     select PI).ToList();
 
-                        ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
-                        IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
+                    var steps = await (from PI in _db.Set<PriorityInterval>()
+                                       where PI.CascadingPlanId == planID && PI.CompanyId == companyID && PI.Interval > 0 && PI.Priority > 1
+                                       select PI).ToListAsync();
+
+                    ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
+                    IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
 
                         DateTimeOffset StartMessageTime =await  _DBC.GetDateTimeOffset(DateTime.Now, timeZoneId);
                         int LastPriority = 1;
 
-                        foreach (var step in steps)
-                        {
-                            LastPriority = step.Priority;
-                            StartMessageTime = StartMessageTime.AddMinutes(step.Interval);
+                    foreach (var step in steps) {
+                        LastPriority = step.Priority;
+                        StartMessageTime = StartMessageTime.AddMinutes(step.Interval);
 
                             string jobName = "MESSAGE_ATTEMPT_" + messageID + "_" + step.Priority;
                             var jobKey = new JobKey(jobName, "MESSAGE_CASCADE_" + activeIncidentID);
@@ -308,9 +306,7 @@ namespace CrisesControl.Infrastructure.Services
                                                 .Build();
 
                 var triggered = _scheduler.ScheduleJob(jobDetail, trigger);
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }

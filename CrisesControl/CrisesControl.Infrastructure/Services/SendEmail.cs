@@ -283,7 +283,7 @@ namespace CrisesControl.Api.Application.Helpers
                                       orderby U.UserId
                                       select new { U.UserId, UserName = new UserFullName { Firstname = U.FirstName, Lastname = U.LastName }, U.PrimaryEmail, SC.SectionName }).ToList();
 
-                        int CurrentUserID = 0;
+                        int currentUserId = 0;
                         string CurrentEmail = "";
                         string CurrentUser = "";
                         StringBuilder sections = new StringBuilder();
@@ -291,7 +291,7 @@ namespace CrisesControl.Api.Application.Helpers
                         foreach (var k in owners)
                         {
 
-                            if (CurrentUserID != k.UserId && CurrentUserID != 0)
+                            if (currentUserId != k.UserId && currentUserId != 0)
                             {
                                 string sendbody = messagebody;
                                 sendbody = sendbody.Replace("{RECIPIENT_NAME}", CurrentUser);
@@ -303,7 +303,7 @@ namespace CrisesControl.Api.Application.Helpers
 
                             CurrentUser = _DBC.UserName(k.UserName);
                             CurrentEmail = k.PrimaryEmail;
-                            CurrentUserID = k.UserId;
+                            currentUserId = k.UserId;
 
                             sections.AppendLine("<li>" + k.SectionName + "</li>");
                         }

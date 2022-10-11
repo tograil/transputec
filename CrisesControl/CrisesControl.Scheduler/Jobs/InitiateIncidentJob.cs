@@ -43,8 +43,7 @@ public class InitiateIncidentJob : IJob
             var simulationText = string.Empty;
             if (request.LaunchMode == 4)
             {
-                simulationText =
-                    await _companyRepository.GetCompanyParameter("INCIDENT_SIMULATION_TEXT", request.CompanyId) +
+                simulationText = await _companyRepository.GetCompanyParameter("INCIDENT_SIMULATION_TEXT", request.CompanyId) +
                     " ";
             }
 
@@ -88,7 +87,7 @@ public class InitiateIncidentJob : IJob
                 AffectedLocations = request.AffectedLocations
             };
 
-            await _incidentService.InitiateIncident(incidentActivation, incidentSubset);
+            _incidentService.InitiateIncident(incidentActivation, incidentSubset);
 
 
             _logger.LogInformation("Incident initiated");

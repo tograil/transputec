@@ -21,10 +21,11 @@ namespace CrisesControl.Api.Controllers
     public class DepartmentController : Controller
     {
         private readonly IMediator _mediator;
+        private readonly IDepartmentQuery _departmentQuery;
 
-        public DepartmentController(IMediator mediator)
-        {
+        public DepartmentController(IMediator mediator, IDepartmentQuery departmentQuery) {
             _mediator = mediator;
+            _departmentQuery = departmentQuery;
         }
         /// <summary>
         /// Get all department the list 
@@ -34,10 +35,10 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
 
         [HttpGet]
-        [Route("{CompanyId:int}")]
+        [Route("{CompanyId:int}/{FilterVirtual}")]
         public async Task<IActionResult> Index([FromRoute] GetDepartmentsRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _departmentQuery.GetDepartments(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>
@@ -61,7 +62,7 @@ namespace CrisesControl.Api.Controllers
         /// <returns></returns>
 
         [HttpGet]
-        [Route("{CompanyId:int}/{DepartmentId:int}")]
+        [Route("[action]/{CompanyId:int}/{DepartmentId:int}")]
         public async Task<IActionResult> GetDepartment([FromRoute] GetDepartmentRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);

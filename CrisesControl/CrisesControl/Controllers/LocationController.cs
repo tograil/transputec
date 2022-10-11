@@ -25,7 +25,7 @@ public class LocationController : Controller
     }
 
     [HttpGet]
-    [Route("{CompanyId:int}")]
+    [Route("{CompanyId:int}/{FilterVirtual}")]
     public async Task<IActionResult> Index([FromRoute] GetLocationsRequest request, CancellationToken cancellationToken)
     {
         var result = await _locationQuery.GetLocations(request, cancellationToken);
@@ -34,7 +34,7 @@ public class LocationController : Controller
     }
 
     [HttpGet]
-    [Route("{CompanyId:int}/{LocationId:int}")]
+    [Route("[action]/{CompanyId:int}/{LocationId:int}")]
     public async Task<IActionResult> GetLocation([FromRoute] GetLocationRequest request, CancellationToken cancellationToken)
     {
         var result = await _locationQuery.GetLocation(request, cancellationToken);

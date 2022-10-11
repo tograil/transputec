@@ -5,6 +5,6 @@ namespace CrisesControl.Core.Incidents.Services;
 
 public interface IIncidentService
 {
-    Task InitiateIncident(IncidentActivation activation, IncidentSubset incidentSubset, CancellationToken cancellationToken = default);
-    Task InitiateAndLaunchIncident(IncidentActivation activation, IncidentSubset incidentSubset, CancellationToken cancellationToken = default);
+    void InitiateIncident(IncidentActivation activation, IncidentSubset incidentSubset, CancellationToken cancellationToken = default);
+    void InitiateAndLaunchIncident(IncidentActivation activation, IncidentSubset incidentSubset, CancellationToken cancellationToken = default);
 }

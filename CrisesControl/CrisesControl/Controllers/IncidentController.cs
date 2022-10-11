@@ -143,9 +143,8 @@ public class IncidentController : Controller
     /// <returns></returns>
     [HttpGet]
     [Route("[action]/{Status}")]
-    public async Task<IActionResult> GetAllActiveCompanyIncident([FromRoute] GetAllActiveCompanyIncidentRequest request, CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(request, cancellationToken);
+    public async Task<IActionResult> GetAllActiveCompanyIncident([FromRoute] string? status, CancellationToken cancellationToken) {
+        var result = await _incidentQuery.GetAllActiveCompanyIncident(status);
         return Ok(result);
     }
 

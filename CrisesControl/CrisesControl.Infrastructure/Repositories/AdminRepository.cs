@@ -521,7 +521,7 @@ namespace CrisesControl.Infrastructure.Repositories
         }
 
         public async Task<int> SaveEmailTemplate(int TemplateID, string Type, string Code, string Name, string Description, string HtmlData, string EmailSubject,
-            string Locale, int Status, int CurrentUserID, int CompanyID = 0, string TimeZoneId = "GMT Standard Time")
+            string Locale, int Status, int currentUserId, int CompanyID = 0, string TimeZoneId = "GMT Standard Time")
         {
             try
             {
@@ -555,14 +555,14 @@ namespace CrisesControl.Infrastructure.Repositories
 
                         item.CompanyId = CompanyID;
                         item.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
-                        item.UpdatedBy = CurrentUserID;
+                        item.UpdatedBy = currentUserId;
                         _context.Update(item);
                        await _context.SaveChangesAsync();
                         return item.TemplateId;
                     }
                     else
                     {
-                        return await CreateEmailTemplate("COMPANY", Code, Name, Description, HtmlData, EmailSubject, Locale, Status, CurrentUserID, CompanyID, TimeZoneId);
+                        return await CreateEmailTemplate("COMPANY", Code, Name, Description, HtmlData, EmailSubject, Locale, Status, currentUserId, CompanyID, TimeZoneId);
                     }
                 }
                 else
@@ -573,11 +573,11 @@ namespace CrisesControl.Infrastructure.Repositories
                         var citem = await _context.Set<EmailTemplate>().Where(T=> T.Code == Code && T.CompanyId == 0).FirstOrDefaultAsync();
                         if (citem != null)
                         {
-                         return  await CreateEmailTemplate(citem.Type, citem.Code, citem.Name, citem.Description, HtmlData, EmailSubject, citem.Locale, citem.Status, CurrentUserID, CompanyID, TimeZoneId);
+                         return  await CreateEmailTemplate(citem.Type, citem.Code, citem.Name, citem.Description, HtmlData, EmailSubject, citem.Locale, citem.Status, currentUserId, CompanyID, TimeZoneId);
                         }
                         else
                         {
-                            return await CreateEmailTemplate(Type, Code, Name, Description, HtmlData, EmailSubject, Locale, Status, CurrentUserID, CompanyID, TimeZoneId);
+                            return await CreateEmailTemplate(Type, Code, Name, Description, HtmlData, EmailSubject, Locale, Status, currentUserId, CompanyID, TimeZoneId);
                         }
                        
                     }
@@ -597,7 +597,7 @@ namespace CrisesControl.Infrastructure.Repositories
         }
 
         public async Task<int> CreateEmailTemplate(string Type, string Code, string Name, string Description, string HtmlData, string EmailSubject, string Locale,
-            int Status, int CurrentUserID, int CompanyID, string TimeZoneId)
+            int Status, int currentUserId, int CompanyID, string TimeZoneId)
         {
             try
             {
@@ -610,7 +610,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 ET.HtmlData = HtmlData;
                 ET.EmailSubject = EmailSubject;
                 ET.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
-                ET.UpdatedBy = CurrentUserID;
+                ET.UpdatedBy = currentUserId;
                 ET.CompanyId = CompanyID;
                 ET.Status = Status;
                 await _context.AddAsync(ET);
@@ -786,7 +786,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                 comp_pp.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                                 comp_pp.UpdatedBy = CurrentUserId;
                                 _context.Update(comp_pp);
-                                _context.SaveChanges();
+                                await _context.SaveChangesAsync();
 
                                await GetSetCompanyComms(CompanyId);
 
@@ -1194,7 +1194,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         }
                         comp_pp.UpdatedOn = DateTime.Now.GetDateTimeOffset();
                         _context.Update(comp_pp);
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
 
                         if (DateTimeOffset.Now.Subtract(LastUpdate).TotalHours < 24)
                         {
@@ -1469,13 +1469,13 @@ namespace CrisesControl.Infrastructure.Repositories
                 throw ex;
             }
         }
-        public async Task<string> CreateActivationKey(int CustomerID, int CurrentUserID, int SalesSource = 0)
+        public async Task<string> CreateActivationKey(int CustomerID, int currentUserId, int SalesSource = 0)
         {
             string key = await GenerateActivationKey();
             CompanyActivation CA = new CompanyActivation();
             CA.ActivationKey = key;
             CA.CompanyId = CustomerID;
-            CA.CreatedBy = CurrentUserID;
+            CA.CreatedBy = currentUserId;
             CA.CreatedOn = DateTime.Now.GetDateTimeOffset();
             CA.SalesSource = SalesSource;
             CA.Status = 0;
@@ -1696,13 +1696,13 @@ namespace CrisesControl.Infrastructure.Repositories
                     await CreateMessageJobs(Company); //create messaging job
 
                 if (JobType == "ALL" || JobType == "ASSETREVIEW")
-                    CreateAssetReminderJob(Company);//Asset review jobs
+                    await CreateAssetReminderJob(Company);//Asset review jobs
 
                 if (JobType == "ALL" || JobType == "OFFDUTY")
-                    CreateOffDutyJobs(Company);  //OffDuty Jobs
+                    await CreateOffDutyJobs(Company);  //OffDuty Jobs
 
                 if (JobType == "ALL" || JobType == "SOREVIEW")
-                    CreateSOPReviewJobs(Company); //SOP Review Reminder job
+                    await CreateSOPReviewJobs(Company); //SOP Review Reminder job
                 return true;
             }
             catch (Exception ex)
@@ -1849,7 +1849,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        private async void CreateSOPReviewJobs(string Company)
+        private async Task CreateSOPReviewJobs(string Company)
         {
             try
             {

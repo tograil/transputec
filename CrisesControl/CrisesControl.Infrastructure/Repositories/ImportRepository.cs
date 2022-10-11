@@ -779,7 +779,7 @@ namespace CrisesControl.Infrastructure.Repositories
 
                             string TZone = Convert.ToString(await _context.Set<Company>().Where(c=> c.CompanyId == uploadData.CompanyId).Select(c=> c.TimeZone).FirstOrDefaultAsync());
 
-                            Core.Locations.Location newLocation = new Core.Locations.Location();
+                            Location newLocation = new Location();
                             newLocation.CompanyId = uploadData.CompanyId;
                             newLocation.LocationName = uploadData.Location;
                             newLocation.Lat = LL.Lat;
@@ -818,7 +818,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                     locUpdate.Long = _DBC.Left(LL.Lng, 15);
                                     locUpdate.UpdatedBy = userId;
                                     locUpdate.UpdatedOn =await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneId);
-                                    _context.SaveChanges();
+                                    await _context.SaveChangesAsync();
                                     uploadData.ActionCheck = OverrideCheck;
                                     UpdateActionMessage += "Location details updated" + Environment.NewLine;
                                 }
@@ -834,7 +834,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         uploadData.ValidationMessage = UpdateActionMessage;
 
                         uploadData.ImportAction = "Imported";
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                         Result.ErrorId = 0;
                         Result.Message = UpdateActionMessage;
                     }
@@ -1859,9 +1859,9 @@ namespace CrisesControl.Infrastructure.Repositories
 
                     DateTime DelTime = DateTime.Now.AddHours(-1);
 
-                    var DelImprtData = (from UIT in _context.Set<ImportDump>()
+                    var DelImprtData = await (from UIT in _context.Set<ImportDump>()
                                         where UIT.SessionId == sessionId
-                                        select UIT).ToList();
+                                        select UIT).ToListAsync();
                     try
                     {
 
@@ -1871,11 +1871,11 @@ namespace CrisesControl.Infrastructure.Repositories
                         if (fileCreated)
                             ImpDTO.ResultFile = FileName;
 
-                        var DelRecs = (from UIT in _context.Set<ImportDump>()
+                        var DelRecs = await (from UIT in _context.Set<ImportDump>()
                                        where UIT.CreatedOn <= DelTime
-                                       select UIT).ToList();
+                                       select UIT).ToListAsync();
                         _context.Set<ImportDump>().RemoveRange(DelRecs);
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
 
                     }
                     catch (Exception ex)

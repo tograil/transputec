@@ -5,6 +5,6 @@ namespace CrisesControl.Api.Application.Commands.Departments.GetDepartments
 {
     public class GetDepartmentsResponse
     {
-        public List<Department> Data { get; set; }
+        public List<DepartmentDetail> Data { get; set; }
     }
 }

@@ -51,10 +51,10 @@ public class ActiveIncidentTaskService : IActiveIncidentTaskService
 
                 if (activeIncidentTaskId > 0)
                 {
-                    await _activeIncidentRepository.CreateActiveCheckList(activeIncidentTaskId,
+                    _activeIncidentRepository.CreateActiveCheckList(activeIncidentTaskId,
                         taskIncident.IncidentTaskId, currentUserId);
 
-                    await _activeIncidentRepository.CreateTaskRecipient(activeIncidentId, activeIncidentTaskId,
+                     _activeIncidentRepository.CreateTaskRecipient(activeIncidentId, activeIncidentTaskId,
                         taskIncident.IncidentTaskId);
 
                     var activePdList = await _context.Set<TaskIncidentPredecessor>()

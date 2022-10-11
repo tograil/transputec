@@ -3,14 +3,17 @@ using CrisesControl.Core.Incidents;
 using CrisesControl.Core.Locations;
 using CrisesControl.Core.Locations.Services;
 using CrisesControl.Core.Models;
+using CrisesControl.Core.Users;
 using CrisesControl.Infrastructure.Context;
 using CrisesControl.SharedKernel.Enums;
 using CrisesControl.SharedKernel.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,10 +24,17 @@ namespace CrisesControl.Infrastructure.Repositories
     public class LocationRepository: ILocationRepository
     {
         private readonly CrisesControlContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private int currentUserId;
+        private int currentCompanyId;
 
-        public LocationRepository(CrisesControlContext context)
+        public LocationRepository(CrisesControlContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
+
+            currentUserId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("sub"));
+            currentCompanyId = Convert.ToInt32(_httpContextAccessor.HttpContext.User.FindFirstValue("company_id"));
         }
 
         public async Task<int> CreateLocation(Location location, CancellationToken token)
@@ -43,9 +53,25 @@ namespace CrisesControl.Infrastructure.Repositories
             return locationId;
         }
 
-        public async Task<IEnumerable<Location>> GetAllLocations(int companyId)
+        public async Task<List<LocationDetail>> GetAllLocations(int companyId, bool filterVirtual = false)
         {
-            return await _context.Set<Location>().AsNoTracking().Where(t=>t.CompanyId == companyId).ToListAsync();
+            try {
+                var pCompanyID = new SqlParameter("@CompanyID", companyId);
+                var pUserID = new SqlParameter("@UserID", currentUserId);
+                var pFilterVirtual = new SqlParameter("@FilterVirtual", filterVirtual);
+
+                var result = await _context.Set<LocationDetail>().FromSqlRaw("exec Pro_Get_Location_List @CompanyID, @UserID, @FilterVirtual",
+                    pCompanyID, pUserID, pFilterVirtual).ToListAsync();
+
+                result.Select(async c => {
+                    c.CreatedByName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
+                }).ToList();
+
+                return result;
+            } catch (Exception ex) {
+                throw;
+            }
+            
         }
 
         public async Task<Location> GetLocationById(int locationId)

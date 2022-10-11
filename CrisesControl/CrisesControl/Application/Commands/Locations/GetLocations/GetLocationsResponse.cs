@@ -5,6 +5,6 @@ namespace CrisesControl.Api.Application.Commands.Locations.GetLocations
 {
     public class GetLocationsResponse
     {
-        public List<Location> Data { get; set; }
+        public List<LocationDetail> Data { get; set; }
     }
 }

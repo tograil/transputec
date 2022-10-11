@@ -30,12 +30,12 @@ namespace CrisesControl.Api.Controllers
         /// </summary>
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
+        /// <returns></returns> 
         [HttpGet]
-        [Route("{CompanyId:int}/{UserId:int}/{IncidentId:int}")]
+        [Route("{CompanyId:int}/{IncidentId:int}/{FilterVirtual}")]
         public async Task<IActionResult> GetAllGroup([FromRoute] GetAllGroupRequest request, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(request, cancellationToken);
+            var result = await _groupQuery.GetAllGroup(request, cancellationToken);
             return Ok(result);
         }
         /// <summary>

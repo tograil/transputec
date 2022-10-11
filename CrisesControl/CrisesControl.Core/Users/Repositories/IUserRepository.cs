@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System;
 using CrisesControl.Core.Billing;
+using CrisesControl.Core.Compatibility;
 
 namespace CrisesControl.Core.Users.Repositories;
 
@@ -16,11 +17,12 @@ public interface IUserRepository
     bool EmailExists(string email);
     Task<User?> GetUserById(int id);
     Task<int> UpdateUser(User user, CancellationToken cancellationToken);
-    int AddPwdChangeHistory(int userId, string newPassword, string timeZoneId);
+    Task<int> AddPwdChangeHistory(int userId, string newPassword, string timeZoneId);
 
     Task CreateUserSearch(int userId, string firstName, string lastName, string isdCode, string mobileNo,
         string primaryEmail, int companyId);
-    Task<IEnumerable<User>> GetAllUsers(GetAllUserRequestList userRequest);
+    Task<DataTablePaging> GetAllUsers(int companyId, bool activeOnly, bool skipInActive, bool skipDeleted, bool keyHolderOnly, int recordStart, int recordLength,
+           string searchString = "", string orderBy = "FirstName", string orderDir = "asc", string filters = "", string uniqueKey = "");
     Task<User> GetUser(int companyId, int userId);
     Task<User> DeleteUser(User user, CancellationToken token);
     bool CheckDuplicate(User user);
@@ -32,9 +34,9 @@ public interface IUserRepository
     Task<List<UserComm>> GetUserComms(int commsUserId, CancellationToken cancellationToken);
     Task<int> UpdateProfile(User user);
     Task<string> GetCompanyParameter(string Key, int CompanyId, string Default = "", string CustomerId = "");
-    void CreateSMSTriggerRight(int CompanyId, int UserId, string UserRole, bool SMSTrigger, string ISDCode, string MobileNo, bool Self = false);
-    void UserCommsPriority(int UserID, List<CommsMethodPriority> CommsMethod, int CurrentUserID, int CompanyID, CancellationToken token);
-    void UserCommsMethods(int UserId, string MethodType, int[] MethodId, int CurrentUserID, int CompanyID, string TimeZoneId);
+    Task CreateSMSTriggerRight(int CompanyId, int UserId, string UserRole, bool SMSTrigger, string ISDCode, string MobileNo, bool Self = false);
+    Task UserCommsPriority(int UserID, List<CommsMethodPriority> CommsMethod, int currentUserId, int CompanyID, CancellationToken token);
+    Task UserCommsMethods(int UserId, string MethodType, int[] MethodId, int currentUserId, int CompanyID, string TimeZoneId);
     Task<bool> UpdateGroupMember(int TargetID, int UserID, int ObjMapID, string Action);
     Task<User> GetRegisteredUserInfo(int CompanyId, int userId);
     Task<bool> UpdateUserMsgGroups(List<UserGroup> UserGroups);
@@ -76,7 +78,7 @@ public interface IUserRepository
     Task<UserRelations> UserRelations(int userId, int companyId, string timeZoneId, CancellationToken cancellationToken);
     Task<dynamic> GetUserDashboard(string modulePage, int userId, bool reverse = false);
     Task<dynamic> SaveDashboard(List<DashboardModule> moduleItems, string modulePage, int userId, CancellationToken cancellationToken);
-    void AddUserModuleItem(int userId, int moduleId, decimal xPos, decimal yPos, decimal width, decimal height, CancellationToken cancellationToken);
+    Task AddUserModuleItem(int userId, int moduleId, decimal xPos, decimal yPos, decimal width, decimal height, CancellationToken cancellationToken);
     Task<dynamic> AddDashlet(int moduleId, int userId, decimal xPos, decimal yPos);
     Task<List<KeyHolderResponse>> GetKeyHolders(int OutUserCompanyId);
     Task<string> ForgotPassword(string email, string method, string customerId, string otpMessage, string returns, int companyID, string timeZoneId = "GMT Standard Time", string source = "WEB");

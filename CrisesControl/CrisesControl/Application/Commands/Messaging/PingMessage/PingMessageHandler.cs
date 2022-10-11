@@ -25,29 +25,47 @@ namespace CrisesControl.Api.Application.Commands.Messaging.PingMessage
         public async Task<PingMessageResponse> Handle(PingMessageRequest request, CancellationToken cancellationToken)
         {
             Guard.Against.Null(request, nameof(PingMessageRequest));
+
+            bool hasRecipient = await _messageRepository.HasRecipients(0, request.IncidentActivationId, request.UsersToNotify, request.PingMessageObjLst, "ALL", request.SendToAllRecipient);
+
             var response = new PingMessageResponse();
-            //var mappedRequest = _mapper.Map<PingMessageQuery>(request);
-            PingMessageQuery pingMessage = new PingMessageQuery();
-            pingMessage.AckOptions = request.AckOptions;
-            pingMessage.AssetId = request.AssetId;
-            pingMessage.CascadePlanID = request.CascadePlanID;
-            pingMessage.CompanyId = _currentUser.CompanyId;
-            pingMessage.CurrentUserId = _currentUser.UserId;
-            pingMessage.IncidentActivationId = request.IncidentActivationId;
-            pingMessage.MediaAttachments = request.MediaAttachments;
-            pingMessage.MessageMethod = request.MessageMethod;
-            pingMessage.MessageText = request.MessageText;
-            pingMessage.MessageType = request.MessageType;
-            pingMessage.TimeZoneId = _currentUser.TimeZone;
-            pingMessage.SilentMessage = request.SilentMessage;
-            pingMessage.SocialHandle = request.SocialHandle;
-            pingMessage.PingMessageObjLst = request.PingMessageObjLst;
-            pingMessage.Priority = request.Priority;
-            pingMessage.UsersToNotify = request.UsersToNotify;
-            pingMessage.MultiResponse = request.MultiResponse;
-            var result = await _messageRepository.PingMessages(pingMessage);
-            response.MessageId = result;
-            response.Message = "success";
+
+            if (hasRecipient) {
+    
+                //var mappedRequest = _mapper.Map<PingMessageQuery>(request);
+                PingMessageQuery pingMessage = new PingMessageQuery();
+                pingMessage.CompanyId = _currentUser.CompanyId;
+                pingMessage.MessageText = request.MessageText;
+                pingMessage.AckOptions = request.AckOptions;
+                pingMessage.Priority = request.Priority;
+                pingMessage.MultiResponse = request.MultiResponse;
+                pingMessage.MessageType = request.MessageType;
+                pingMessage.IncidentActivationId = request.IncidentActivationId;
+                pingMessage.CurrentUserId = _currentUser.UserId;
+                pingMessage.TimeZoneId = _currentUser.TimeZone;
+                pingMessage.PingMessageObjLst = request.PingMessageObjLst;
+                pingMessage.UsersToNotify = request.UsersToNotify;
+                pingMessage.AudioAssetId = request.AudioAssetId;
+                pingMessage.SilentMessage = request.SilentMessage;
+                pingMessage.MessageMethod = request.MessageMethod;
+                pingMessage.MediaAttachments = request.MediaAttachments;
+                pingMessage.CascadePlanID = request.CascadePlanID;
+                pingMessage.SocialHandle = request.SocialHandle;
+                pingMessage.CascadePlanID = request.CascadePlanID;
+                pingMessage.SendToAllRecipient = request.SendToAllRecipient;
+
+                var result = await _messageRepository.PingMessages(pingMessage);
+
+                bool isFundAvailable = _messageRepository.IsFundAvailable();
+                response.IsFundAvailable = isFundAvailable;
+                response.MessageId = result;
+                response.Message = "success";
+            } else {
+                response.MessageId = 0;
+                response.Message = "error";
+                response.ErrorId = 236;
+            }
+            
             return response;
         }
     }

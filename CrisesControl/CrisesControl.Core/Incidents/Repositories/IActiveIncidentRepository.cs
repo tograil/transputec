@@ -38,7 +38,7 @@ public interface IActiveIncidentRepository
 
     Task CreateTaskRecipient(int activeIncidentId, int activeIncidentTaskId, int incidentTaskId);
 
-    List<UpdateIncidentStatusReturn> GetCompanyActiveIncident(int companyId, int userId, string status, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc");
+    Task<List<UpdateIncidentStatusReturn>> GetCompanyActiveIncident(int companyId, int userId, string status, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc");
     Task<List<UserTaskHead>> GetUserTasks(int currentUserId);
     Task<TaskIncidentHeader> TaskIncidentHeader(int activeIncidentId);
     Task<TaskIncidentHeader> GetActiveIncidentWorkflow(int activeIncidentID);
@@ -57,7 +57,7 @@ public interface IActiveIncidentRepository
     Task<int> GetTaskActiveIncidentParticipantIdByStatus(int activeIncidentTaskId);
     Task notify_users(int ActiveIncidentID, int ActiveIncidentTaskID, List<NotificationUserList> userToNotify, string message, int currentUserId,
         int companyId, string timeZoneId, bool includeKeyContact = true, int source = 1, int[] messageMetod = null, int cascadePlanId = 0);
-    Task<int> AddTaskAction(int ActiveIncidentTaskID, string ActionDescription, int CurrentUserID, int TaskActionTypeID, string TimeZoneId);
+    Task<int> AddTaskAction(int ActiveIncidentTaskID, string ActionDescription, int currentUserId, int TaskActionTypeID, string TimeZoneId);
     Task send_notifiation_to_groups(List<string> groupType, int activeIncidentId, int activeIncidentTaskId,
            string message, int currentUserId, int companyId, string timeZoneId, bool includeKeyContact = true,
            int source = 1, int[] messageMethod = null, List<NotificationUserList> userToNotify = null, int cascadePlanId = 0, string sourceAction = "");

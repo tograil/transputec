@@ -35,7 +35,7 @@ namespace CrisesControl.Api.Application.Query {
         }
         public async Task<GetCascadingResponse> GetCascading(GetCascadingRequest request)
         {
-            var cascades = await _companyParametersRepository.GetCascading(request.PlanID, request.PlanType, request.CompanyID);
+            var cascades = await _companyParametersRepository.GetCascading(request.PlanID, request.PlanType, _currentUser.CompanyId);
             var response = _mapper.Map<List<CascadingPlanReturn>>(cascades);
             var result = new GetCascadingResponse();
             result.Data = response;
@@ -104,24 +104,24 @@ namespace CrisesControl.Api.Application.Query {
                 if (param.ParameterName == "SOS_ENABLED" && param.ParameterValue == "true")
                 {
 
-                   await _incidentRepository.CheckSOSIncident(_currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
+                        await _incidentRepository.CheckSOSIncident(_currentUser.CompanyId, _currentUser.UserId, _currentUser.TimeZone);
                 }
 
                 if (param.ParameterName == "ALLOW_CHANNEL_PRIORITY" || param.ParameterName == "ALLOW_CHANGE_PRIORITY_USER")
                 {
                     
-                  await  _companyParametersRepository.UpdateCascadingAsync(_currentUser.CompanyId);
+                   _companyParametersRepository.UpdateCascadingAsync(_currentUser.CompanyId);
                 }
 
                 if (param.ParameterName == "ALLOW_OFF_DUTY" && param.ParameterValue == "false")
                 {
                    
-                   await _companyParametersRepository.UpdateOffDuty(_currentUser.CompanyId);
+                   _companyParametersRepository.UpdateOffDuty(_currentUser.CompanyId);
                 }
             }
 
 
-              await _companyParametersRepository.SetSSOParameters(_currentUser.CompanyId);
+              _companyParametersRepository.SetSSOParameters(_currentUser.CompanyId);
               response.Message = "Data Added";
             }
             else

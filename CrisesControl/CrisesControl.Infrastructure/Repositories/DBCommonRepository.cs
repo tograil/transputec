@@ -352,7 +352,7 @@ namespace CrisesControl.Infrastructure.Repositories
                         if (sourceObjectId > 0)
                         {
                             newSourceObjectId = sourceObjectId;
-                            CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
+                            _ = CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
                         }
 
                         if (!string.IsNullOrEmpty(relatinFilter))
@@ -365,7 +365,7 @@ namespace CrisesControl.Infrastructure.Repositories
                             {
                                 newSourceObjectId = _context.Set<Location>().Where(t => t.LocationName == relatinFilter && t.CompanyId == companyId).Select(t => t.LocationId).FirstOrDefault();
                             }
-                            CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
+                            _ = CreateNewObjectRelation(newSourceObjectId, targetObjectId, ObjMapId, createdUpdatedBy, timeZoneId, companyId);
                         }
                     }
                 }
@@ -981,10 +981,9 @@ namespace CrisesControl.Infrastructure.Repositories
                 var pQueueName = new SqlParameter("@QueueName", queueName);
                 var pAdditionalInfo = new SqlParameter("@AdditionalInfo", additionalInfo);
 
-                var result = _context.Set<CrisesControl.Core.Messages.Results>().FromSqlRaw("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
-                      pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo).AsEnumerable();
+                await _context.Database.ExecuteSqlRawAsync("exec Pro_Message_Process_Log_Insert @MessageID, @EventName, @MethodName, @QueueName, @AdditionalInfo",
+                      pMessageID, pEventName, pMethodName, pQueueName, pAdditionalInfo);
 
-                result.FirstOrDefault();
             }
             catch (Exception ex)
             {

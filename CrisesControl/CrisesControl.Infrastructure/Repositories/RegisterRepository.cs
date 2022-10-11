@@ -626,7 +626,7 @@ namespace CrisesControl.Infrastructure.Repositories
                 if (registration != null)
                 {
                     _context.Remove(registration);
-                    _context.SaveChanges();
+                    await _context.SaveChangesAsync();
                     return true;
                 }
                 else
@@ -964,7 +964,7 @@ namespace CrisesControl.Infrastructure.Repositories
             }
         }
 
-        public async void SetupCompanyPaymentProfile(int companyId, int userId, int packagePlanId, string timeZoneId)
+        public async Task SetupCompanyPaymentProfile(int companyId, int userId, int packagePlanId, string timeZoneId)
         {
             var comp_profile = await (from CP in _context.Set<CompanyPaymentProfile>() where CP.CompanyId == companyId select CP).AnyAsync();
             if (comp_profile)
@@ -1138,7 +1138,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                     {
 
                                         //Setup company payment profile
-                                        SetupCompanyPaymentProfile(CompanyID, NewUserId, (int)reg.PackagePlanId, TimeZoneId);
+                                        await SetupCompanyPaymentProfile(CompanyID, NewUserId, (int)reg.PackagePlanId, TimeZoneId);
 
                                         //Add license item in the company transaction type table.
                                         //DateTime firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
@@ -1150,7 +1150,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                         int id = await UpdateCompanyTranscationType(CompanyID, NewUserId, TimeZoneId, transac_type.TransactionTypeId, transac_type.Rate, 0, "MONTHLY", NextRun);
 
                                         _context.Set<Registration>().Remove(reg);
-                                        _context.SaveChanges();
+                                        await _context.SaveChangesAsync();
 
                                         //Confirm the account and send the account details to the user.
                                         await _SDE.CompanySignUpConfirm(reg.Email, reg.FirstName + " " + reg.LastName, reg.MobileIsd + reg.MobileNo, reg.PaymentMethod, Plan, reg.Password, CompanyID);
@@ -1365,8 +1365,8 @@ namespace CrisesControl.Infrastructure.Repositories
                 ChangedDateTime = DateTime.Now.GetDateTimeOffset(timeZoneId)
             };
 
-            _context.Add(ph);
-            _context.SaveChanges();
+            await _context.AddAsync(ph);
+            await _context.SaveChangesAsync();
             return ph.Id;
 
         }

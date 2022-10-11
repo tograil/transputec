@@ -36,18 +36,14 @@ namespace CrisesControl.Api.Application.Query
             
             var response = new GetAllAssetsResponse();
            
-            var RecordStart = _paging.PageNumber == 0 ? 0 : _paging.PageNumber;
-            var RecordLength = _paging.PageSize == 0 ? int.MaxValue : _paging.PageSize;
-            var SearchString = (request.Search != null) ? request.Search: string.Empty;
-             string OrderDir = request.OrderDir != null ? request.OrderDir : "asc";
-            string OrderBy = _paging.OrderBy != string.Empty ? _paging.OrderBy: "AssetTitle";
+            string OrderBy = string.IsNullOrEmpty(_paging.OrderBy) ? "AssetTitle" : _paging.OrderBy;
             int AssetFilter = request.AssetFilter != null ? request.AssetFilter : 0;            
 
             int totalRecord = 0;
             DataTablePaging rtn = new DataTablePaging();
-            rtn.Draw = request.Draw;
+            rtn.Draw = _paging.Draw;
 
-            var Assets = await  _assetRepository.GetAssets(_currentUser.CompanyId, RecordStart, RecordLength, SearchString, OrderBy, OrderDir, AssetFilter, _currentUser.UserId);
+            var Assets = await  _assetRepository.GetAssets(_currentUser.CompanyId, _paging.Start, _paging.Length, _paging.Search, OrderBy, _paging.Dir, AssetFilter, _currentUser.UserId);
 
             if (Assets != null)
             {
@@ -79,8 +75,8 @@ namespace CrisesControl.Api.Application.Query
 
         public async Task<GetAssetResponse> GetAsset(GetAssetRequest request, CancellationToken cancellationToken)
         {
-            var asset = await _assetRepository.GetAsset(request.CompanyId, request.AssetId);
-            var result = _mapper.Map<Assets>(asset);
+            var asset = await _assetRepository.GetAsset(_currentUser.CompanyId, request.AssetId);
+            var result = _mapper.Map<AssetsDetails>(asset);
             var response = new GetAssetResponse();
             response.Data = result;
             return response;

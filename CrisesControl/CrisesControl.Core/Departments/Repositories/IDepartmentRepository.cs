@@ -8,7 +8,7 @@ namespace CrisesControl.Core.Departments.Repositories
 {
     public interface IDepartmentRepository
     {
-        Task<IEnumerable<Department>> GetAllDepartments(int companyId);
+        Task<List<DepartmentDetail>> GetAllDepartments(int companyId, bool filterVirtual);
         Task<Department> GetDepartment(int companyId, int departmentId);
         Task<int> CreateDepartment(Department department, CancellationToken token);
         Task<int> UpdateDepartment(Department department, CancellationToken token);

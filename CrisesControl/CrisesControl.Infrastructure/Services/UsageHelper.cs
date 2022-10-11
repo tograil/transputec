@@ -17,10 +17,8 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CrisesControl.Infrastructure.Services
-{
-    public class UsageHelper
-    {
+namespace CrisesControl.Infrastructure.Services {
+    public class UsageHelper {
         private decimal VATRate = 0M;
         private string CommsDebug = "true";
         private readonly CrisesControlContext _context;
@@ -42,31 +40,26 @@ namespace CrisesControl.Infrastructure.Services
 
 
         }
-        public async Task BalanceCheckNDebit(int CompanyID, decimal BalanceAfterCompute)
-        {
+        public async Task BalanceCheckNDebit(int CompanyID, decimal BalanceAfterCompute) {
             //Recharege the credit balance if balance falls down below the threshold.
-            var comp_profile =await  _context.Set<CompanyPaymentProfile>()
-                                .Where(CPP=> CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
+            var comp_profile = await _context.Set<CompanyPaymentProfile>()
+                                .Where(CPP => CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
 
-            if (comp_profile != null)
-            {
-                if (!string.IsNullOrEmpty(comp_profile.AgreementNo) && comp_profile.AgreementNo.Length > 4)
-                {
+            if (comp_profile != null) {
+                if (!string.IsNullOrEmpty(comp_profile.AgreementNo) && comp_profile.AgreementNo.Length > 4) {
                     decimal recharge_th = 10M;
                     decimal recharge_value = 0M;
                     decimal.TryParse(await DBC.GetCompanyParameter("RECHARGE_BALANCE_TRIGGER", CompanyID), out recharge_th);
                     decimal.TryParse(await DBC.GetCompanyParameter("CREDIT_BALANCE_RECHARGE", CompanyID), out recharge_value);
 
-                    if (BalanceAfterCompute <= recharge_th)
-                    {
+                    if (BalanceAfterCompute <= recharge_th) {
 
-                        int ttype =await _billing.GetTransactionTypeID("TOPUP");
+                        int ttype = _billing.GetTransactionTypeID("TOPUP").Result;
 
                         decimal TotalValueToRecharge = BalanceAfterCompute;
                         int NoOfTopUps = 0;
 
-                        while (TotalValueToRecharge < recharge_th)
-                        {
+                        while (TotalValueToRecharge < recharge_th) {
                             TotalValueToRecharge += recharge_value;
                             NoOfTopUps++;
                         }
@@ -84,19 +77,17 @@ namespace CrisesControl.Infrastructure.Services
                         string CardSuccessResponse =await DBC.LookupWithKey("WP_CARD_SUCCESS_RESPONSE");
                         string ResponseMessages = string.Empty;
 
-                        while (AmountLeftForDebit > 0 && continuepayment == true && Attempt <= MaxAttempt)
-                        {
+                        while (AmountLeftForDebit > 0 && continuepayment == true && Attempt <= MaxAttempt) {
 
                             //Check if the transaction amount is greater then the agreement limit
                             //Then break the transaction into multiple
                             decimal TransactionAmount = AmountLeftForDebit;
-                            if (TransactionAmount > comp_profile.MaxTransactionLimit)
-                            {
+                            if (TransactionAmount > comp_profile.MaxTransactionLimit) {
                                 TransactionAmount = comp_profile.MaxTransactionLimit;
                             }
 
                             //initiate the worldpay transaction and record the status
-                            PaymentResponse response = await CompanyPaymentTranaction(CompanyID, comp_profile.AgreementNo, TransactionAmount);
+                            PaymentResponse response = CompanyPaymentTranaction(CompanyID, comp_profile.AgreementNo, TransactionAmount).Result;
 
                             if (response != null)
                             {
@@ -108,8 +99,8 @@ namespace CrisesControl.Infrastructure.Services
                                     AmountLeftForDebit -= TransactionAmount;
                                     await _context.SaveChangesAsync();
 
-                                   await _billing.UpdateTransactionDetails(0, CompanyID, ttype, TransactionAmount, TransactionAmount, 1,
-                                        TransactionAmount, TransactionAmount, 0, TransactionAmount, 0, DateTime.Now, 0, response.TransactionID, "GMT Standard Time", 1, 0, "CR");
+                                    _ = _billing.UpdateTransactionDetails(0, CompanyID, ttype, TransactionAmount, TransactionAmount, 1,
+                                         TransactionAmount, TransactionAmount, 0, TransactionAmount, 0, DateTime.Now, 0, response.TransactionID, "GMT Standard Time", 1, 0, "CR");
 
                                     //Send the debit success alert
                                     if (AmountLeftForDebit <= 0)
@@ -127,18 +118,14 @@ namespace CrisesControl.Infrastructure.Services
                                         continuepayment = false;
                                     }
                                     //} else if(response.ResponseCode.ToUpper() == "ERROR") {
-                                }
-                                else
-                                {
+                                } else {
                                     Attempt++;
                                     ResponseMessages += (string.IsNullOrEmpty(ResponseMessages) ? "," : "") + response.ResponseMessage;
 
                                     await DBC.CreateLog("INFO", response.ResponseMessage, null, "UsageHelper", "BalanceCheckNDebit", CompanyID);
 
-                                    if (Attempt > MaxAttempt)
-                                    {
-                                        if (CommsDebug == "true")
-                                        {
+                                    if (Attempt > MaxAttempt) {
+                                        if (CommsDebug == "true") {
                                             DBC.CreateLog("INFO", "Payment Transaction Failure Alert " + TransactionAmount + " Error:" + ResponseMessages, null, "UsageHelper", "BalanceCheckNDebIt", CompanyID);
                                         }
                                         else
@@ -147,11 +134,10 @@ namespace CrisesControl.Infrastructure.Services
                                            await  _SDE.SendFailedPaymentAlert(CompanyID, TransactionAmount, ResponseMessages);
                                         }
 
-                                       await _billing.UpdateTransactionDetails(0, CompanyID, ttype, 0, TransactionAmount, 1,
-                                       0, 0, 0, 0, 0, DateTime.Now, 0, DBC.Left(ResponseMessages, 150), "GMT Standard Time", 1, 0, "ER");
+                                        _ = _billing.UpdateTransactionDetails(0, CompanyID, ttype, 0, TransactionAmount, 1,
+                                        0, 0, 0, 0, 0, DateTime.Now, 0, DBC.Left(ResponseMessages, 150), "GMT Standard Time", 1, 0, "ER");
 
-                                        if (response.ResponseCode.ToUpper() == CardFailedErrorResponse)
-                                        {
+                                        if (response.ResponseCode.ToUpper() == CardFailedErrorResponse) {
                                             comp_profile.CardExpiryDate = DateTime.Now.AddMonths(-1);
                                             comp_profile.CardFailed = true;
                                             await _context.SaveChangesAsync();
@@ -164,15 +150,13 @@ namespace CrisesControl.Infrastructure.Services
                             }
                         }
 
-                       await DBC.GetSetCompanyComms(CompanyID);
+                        await DBC.GetSetCompanyComms(CompanyID);
                     }
                 }
             }
         }
-        public async Task<PaymentResponse> CompanyPaymentTranaction(int CompanyID, string AgreementNo = "", decimal RechargeAmount = 0M, string TransactinRef = "")
-        {
-            try
-            {
+        public async Task<PaymentResponse> CompanyPaymentTranaction(int CompanyID, string AgreementNo = "", decimal RechargeAmount = 0M, string TransactinRef = "") {
+            try {
                 decimal recharge_value = 10;
                 string wp_amdin_url =await  DBC.LookupWithKey("WP_IADMIN_URL");
                 string wp_inst_id =await DBC.LookupWithKey("WP_IADMIN_INST_ID");
@@ -180,13 +164,10 @@ namespace CrisesControl.Infrastructure.Services
 
                 string agreement_no = "";
 
-                if (string.IsNullOrEmpty(AgreementNo) && CompanyID > 0)
-                {
-                    var comp_pp = await _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
+                if (string.IsNullOrEmpty(AgreementNo) && CompanyID > 0) {
+                    var comp_pp = await _context.Set<CompanyPaymentProfile>().Where(CPP => CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
                     agreement_no = comp_pp.AgreementNo;
-                }
-                else
-                {
+                } else {
                     agreement_no = AgreementNo;
                 }
 
@@ -199,17 +180,13 @@ namespace CrisesControl.Infrastructure.Services
                     recharge_value = RechargeAmount;
                 }
 
-                if (CommsDebug == "true")
-                {
+                if (CommsDebug == "true") {
                     return PrepareResponse("Y,1234,A,Payment success,Payment successful", recharge_value);
                 }
 
-                if (agreement_no != "" && agreement_no.Length >= 4)
-                {
-                    using (WebClient client = new WebClient())
-                    {
-                        try
-                        {
+                if (agreement_no != "" && agreement_no.Length >= 4) {
+                    using (WebClient client = new WebClient()) {
+                        try {
                             ServicePointManager.SecurityProtocol =
                                             SecurityProtocolType.Tls
                                             | SecurityProtocolType.Tls11
@@ -227,76 +204,60 @@ namespace CrisesControl.Infrastructure.Services
                                       });
                             string result = Encoding.UTF8.GetString(response);
                             return PrepareResponse(result, recharge_value);
-                        }
-                        catch (WebException ex)
-                        {
+                        } catch (WebException ex) {
                             throw ex;
                         }
                     }
                 }
                 return PrepareResponse("");
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
 
-        public PaymentResponse PrepareResponse(string result, decimal Amount = 0M)
-        {
+        public PaymentResponse PrepareResponse(string result, decimal Amount = 0M) {
             PaymentResponse PR = new PaymentResponse();
-            try
-            {
-                if (!string.IsNullOrEmpty(result))
-                {
+            try {
+                if (!string.IsNullOrEmpty(result)) {
                     string[] resultset = result.Split(',');
-                    if (resultset.Length > 2)
-                    {
+                    if (resultset.Length > 2) {
                         PR.ResponseCode = resultset[0];
                         PR.TransactionID = resultset[1];
                         PR.AuthCode = resultset[2];
                         PR.RawMessage = resultset[3];
                         PR.ResponseMessage = resultset[4];
-                    }
-                    else
-                    {
+                    } else {
                         PR.ResponseCode = resultset[0];
                         PR.ResponseMessage = resultset[1];
                     }
                     PR.Amount = Amount;
                 }
                 return PR;
-            }
-            catch (Exception ex)
-            {
-                
+            } catch (Exception ex) {
+
                 PR.ResponseCode = "ERROR";
                 return PR;
             }
         }
-        public async Task GenerateProrataInvoice(int CompanyID)
-        {
-            try
-            {
-                var profile = await  _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
-                if (profile != null)
-                {
-                    int TransactionTypeID =await _billing.GetTransactionTypeID("LICENSEFEE");
+        public async Task GenerateProrataInvoice(int CompanyID) {
+            try {
+                var profile = await _context.Set<CompanyPaymentProfile>().Where(CPP => CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
+                if (profile != null) {
+                    int TransactionTypeID = await _billing.GetTransactionTypeID("LICENSEFEE");
                     var comp_trans = await _context.Set<CompanyTransactionType>().Where(w => w.CompanyId == CompanyID && w.TransactionTypeId == TransactionTypeID).FirstOrDefaultAsync();
-                    if (comp_trans != null)
-                    {
+                    if (comp_trans != null) {
                         decimal contract_value = comp_trans.TransactionRate;
                         decimal prorata_value = GetProrataPayment(contract_value, profile.ContractStartDate, profile.PaymentPeriod);
 
-                        int trans_id =await _billing.AddMonthTransaction(0, CompanyID, 0, "PRORATALICENSEFEE", prorata_value, TransactionTypeID, profile.ContractStartDate);
-                        _billing.UpdateThisMonthOnly(trans_id, true, true);
+                        int trans_id = await _billing.AddMonthTransaction(0, CompanyID, 0, "PRORATALICENSEFEE", prorata_value, TransactionTypeID, profile.ContractStartDate);
+                        await _billing.UpdateThisMonthOnly(trans_id, true, true);
                         DateTime NextAnniversary = LastDayofMonth(profile.ContractStartDate);
                         profile.ContractAnniversary = NextAnniversary;
                         comp_trans.NextRunDate = NextAnniversary;
-                       await  _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync();
 
 
-                        var reprofile = await  _context.Set<CompanyPaymentProfile>().Where(CPP=> CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
+                        var reprofile = await _context.Set<CompanyPaymentProfile>().Where(CPP => CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
 
                         //Charge or generate the invoice
                        await AddMonthlyItemsToTransactions(CompanyID);
@@ -312,36 +273,27 @@ namespace CrisesControl.Infrastructure.Services
                     }
 
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public decimal PerDayCharge(decimal BaseValue)
-        {
+        public decimal PerDayCharge(decimal BaseValue) {
             return (BaseValue * 12) / 365;
         }
 
-        public DateTime LastDayofMonth(DateTimeOffset DateVal)
-        {
+        public DateTime LastDayofMonth(DateTimeOffset DateVal) {
             DateTime FirstDay = new DateTime(DateVal.Year, DateVal.Month, 1);
             DateTime LastDay = FirstDay.AddMonths(1).AddDays(-1);
             return LastDay;
         }
 
-        public decimal GetProrataPayment(decimal BasePrice, DateTimeOffset EntityDate, string Period = "MONTHLY")
-        {
+        public decimal GetProrataPayment(decimal BasePrice, DateTimeOffset EntityDate, string Period = "MONTHLY") {
             decimal ProrataPrice = BasePrice;
-            try
-            {
+            try {
                 decimal per_day_rate = 0;
-                if (Period == "MONTHLY")
-                {
+                if (Period == "MONTHLY") {
                     per_day_rate = (BasePrice * 12) / 365;
-                }
-                else if (Period == "YEARLY")
-                {
+                } else if (Period == "YEARLY") {
                     per_day_rate = BasePrice / 365;
                 }
                 DateTime firstDayOfMonth = new DateTime(EntityDate.Year, EntityDate.Month, 1);
@@ -349,23 +301,17 @@ namespace CrisesControl.Infrastructure.Services
                 double days_left_in_month = lastDayOfMonth.Subtract(EntityDate).TotalDays + 1;
                 ProrataPrice = per_day_rate * (decimal)days_left_in_month;
                 ProrataPrice = decimal.Round(ProrataPrice, 2);
-            }
-            catch (Exception)
-            {
+            } catch (Exception) {
                 throw;
             }
             return ProrataPrice;
         }
-        public async Task DebitAccount(int CompanyID)
-        {
-            try
-            {
+        public async Task DebitAccount(int CompanyID) {
+            try {
                 var comp_profile = await _context.Set<CompanyPaymentProfile>()
                                     .Where(CPP => CPP.CompanyId == CompanyID).FirstOrDefaultAsync();
-                if (comp_profile != null)
-                {
-                    if (!string.IsNullOrEmpty(comp_profile.AgreementNo) && comp_profile.AgreementNo.Length > 4)
-                    {
+                if (comp_profile != null) {
+                    if (!string.IsNullOrEmpty(comp_profile.AgreementNo) && comp_profile.AgreementNo.Length > 4) {
                         decimal NetTotal = 0M;
 
                         var monthly_items = (from MT in _context.Set<MonthlyTransactionItem>()
@@ -375,8 +321,7 @@ namespace CrisesControl.Infrastructure.Services
                         string email_items = "<table width=\"100%\"><tbody><tr><th style=\"margin: 0;font-size:14px;\"><strong>Description</strong></th>";
                         email_items += "<th style=\"margin:0;font-size:16px;line-height:21px;text-align:right;\"><strong>Amount</strong></th></tr>";
 
-                        foreach (var item in monthly_items)
-                        {
+                        foreach (var item in monthly_items) {
                             NetTotal += item.MT.ItemValue;
                             email_items += "<tr><td class=\"auto-style1\">" + item.TT.TransactionDescription + "</td><td style=\"text-align:right\">&pound; " + item.MT.ItemValue + "</td></tr>";
                         }
@@ -395,7 +340,7 @@ namespace CrisesControl.Infrastructure.Services
                         decimal TotalAmountDebited = 0;
                         bool continuepayment = true;
 
-                        int ttype =await _billing.GetTransactionTypeID("MONTHLYPAYMENT");
+                        int ttype = await _billing.GetTransactionTypeID("MONTHLYPAYMENT");
 
                         int Attempt = 0;
                         int MaxAttempt = Convert.ToInt16(DBC.LookupWithKey("WP_FAILED_PAYMENT_ATTEMPT"));
@@ -405,34 +350,28 @@ namespace CrisesControl.Infrastructure.Services
                         string ResponseMessages = string.Empty;
 
 
-                        while (AmountLeftForDebit > 0 && continuepayment == true && Attempt <= MaxAttempt)
-                        {
+                        while (AmountLeftForDebit > 0 && continuepayment == true && Attempt <= MaxAttempt) {
 
                             //Check if the transaction amount is greater then the agreement limit
                             //Then break the transaction into multiple
                             decimal TransactionAmount = AmountLeftForDebit;
-                            if (TransactionAmount > comp_profile.MaxTransactionLimit)
-                            {
+                            if (TransactionAmount > comp_profile.MaxTransactionLimit) {
                                 TransactionAmount = comp_profile.MaxTransactionLimit;
                             }
 
                             //initiate the worldpay transaction and record the status
-                            PaymentResponse response =await CompanyPaymentTranaction(CompanyID, comp_profile.AgreementNo, TransactionAmount);
+                            PaymentResponse response = await CompanyPaymentTranaction(CompanyID, comp_profile.AgreementNo, TransactionAmount);
 
-                            if (response != null)
-                            {
-                                if (response.ResponseCode.ToUpper() == CardSuccessResponse)
-                                {
+                            if (response != null) {
+                                if (response.ResponseCode.ToUpper() == CardSuccessResponse) {
                                     TotalAmountDebited += TransactionAmount;
                                     AmountLeftForDebit -= TransactionAmount;
-                                   await _billing.UpdateTransactionDetails(0, CompanyID, ttype, NetTotal, NetTotal, 1,
-                                           NetTotal, NetTotal, VatAmount, TransactionAmount, 0, DateTime.Now, 0, response.TransactionID, "GMT Standard Time", 1, 0, "CR");
+                                    await _billing.UpdateTransactionDetails(0, CompanyID, ttype, NetTotal, NetTotal, 1,
+                                            NetTotal, NetTotal, VatAmount, TransactionAmount, 0, DateTime.Now, 0, response.TransactionID, "GMT Standard Time", 1, 0, "CR");
 
                                     //} else if(response.ResponseCode.ToUpper() == "ERROR") {
                                     //todo - dump the transaction details  error log with 0 value.
-        }
-                                else
-                                {
+                                } else {
                                     //todo - remove the above else if and send the email on the last attempt, also capture the logs.
                                     //SendEmail SDE = new SendEmail();
                                     //SDE.SendFailedPaymentAlert(CompanyID, TransactionAmount, response.ResponseMessage);
@@ -442,17 +381,15 @@ namespace CrisesControl.Infrastructure.Services
 
                                     await DBC.CreateLog("INFO", response.ResponseMessage, null, "UsageHelper", "DebitAccount", CompanyID);
 
-                                   await _billing.UpdateTransactionDetails(0, CompanyID, ttype, 0, TransactionAmount, 1,
-                                           0, 0, 0, 0, 0, DateTime.Now, 0, DBC.Left(ResponseMessages, 150), "GMT Standard Time", 1, 0, "ER");
+                                    await _billing.UpdateTransactionDetails(0, CompanyID, ttype, 0, TransactionAmount, 1,
+                                            0, 0, 0, 0, 0, DateTime.Now, 0, DBC.Left(ResponseMessages, 150), "GMT Standard Time", 1, 0, "ER");
 
-                                    if (Attempt > MaxAttempt)
-                                    {
-                                        if (response.ResponseCode.ToUpper() == CardFailedErrorResponse)
-                                        {
+                                    if (Attempt > MaxAttempt) {
+                                        if (response.ResponseCode.ToUpper() == CardFailedErrorResponse) {
                                             comp_profile.CardExpiryDate = DateTime.Now.AddMonths(-1);
                                             comp_profile.CardFailed = true;
                                             _context.Update(comp_profile);
-                                            _context.SaveChanges();
+                                            await _context.SaveChangesAsync();
                                         }
 
                                         continuepayment = false;
@@ -462,8 +399,7 @@ namespace CrisesControl.Infrastructure.Services
                         } //End while loop
 
 
-                        if (TotalMonthlyDebitAmount == TotalAmountDebited)
-                        {
+                        if (TotalMonthlyDebitAmount == TotalAmountDebited) {
 
                             if (CommsDebug == "true")
                             {
@@ -506,25 +442,19 @@ namespace CrisesControl.Infrastructure.Services
                         }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
 
         }
 
-        public decimal DecimalToMoney(decimal Amount, int DecimalPlace = 2)
-        {
+        public decimal DecimalToMoney(decimal Amount, int DecimalPlace = 2) {
             return decimal.Round(Amount, DecimalPlace, MidpointRounding.AwayFromZero);
         }
         public async Task<int> AddTransactionHeader(int CompanyId, decimal NetTotal, decimal VatRate, decimal VatAmount, decimal Total, decimal CreditBalance, decimal CreditLimit,
-           int AdminLimit, int AdminUsers, int StaffLimit, int StaffUsers, int StorageLimit, double StorageSize, DateTimeOffset StatementStartDate, DateTimeOffset StatementEndDate)
-        {
-            try
-            {
-                TransactionHeader NewTransactionHeader = new TransactionHeader()
-                {
+           int AdminLimit, int AdminUsers, int StaffLimit, int StaffUsers, int StorageLimit, double StorageSize, DateTimeOffset StatementStartDate, DateTimeOffset StatementEndDate) {
+            try {
+                TransactionHeader NewTransactionHeader = new TransactionHeader() {
                     CompanyId = CompanyId,
                     NetTotal = NetTotal,
                     VatRate = VatRate,
@@ -551,24 +481,19 @@ namespace CrisesControl.Infrastructure.Services
                 return NewTransactionHeader.TransactionHeaderId;
                 //}
 
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
             return 0;
         }
 
-        public async Task AddMonthlyItemsToTransactions(int CompanyID)
-        {
-            try
-            {
-                var billing_items = await  _context.Set<MonthlyTransactionItem>().Where(MT=> MT.CompanyId == CompanyID).ToListAsync();
-                decimal VATRate = await _context.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == CompanyID).Select(CP=> (decimal)CP.Vatrate).FirstOrDefaultAsync();
+        public async Task AddMonthlyItemsToTransactions(int CompanyID) {
+            try {
+                var billing_items = await _context.Set<MonthlyTransactionItem>().Where(MT => MT.CompanyId == CompanyID).ToListAsync();
+                decimal VATRate = await _context.Set<CompanyPaymentProfile>().Where(CP => CP.CompanyId == CompanyID).Select(CP => (decimal)CP.Vatrate).FirstOrDefaultAsync();
                 decimal LineVat = 0M;
                 decimal TotalLineValue = 0M;
-                foreach (var item in billing_items)
-                {
+                foreach (var item in billing_items) {
 
                     LineVat = (item.ItemValue * VATRate) / 100;
                     LineVat = DecimalToMoney(LineVat);
@@ -580,16 +505,14 @@ namespace CrisesControl.Infrastructure.Services
                     if (item.UserRole == "PRORATALICENSEFEE")
                         TransactionRef = "Prorata license fee";
 
-                    int Transid =await _billing.UpdateTransactionDetails(0, CompanyID, item.TransactionTypeId, item.ItemValue, item.ItemValue, 1, item.ItemValue,
+                    int Transid = await _billing.UpdateTransactionDetails(0, CompanyID, item.TransactionTypeId, item.ItemValue, item.ItemValue, 1, item.ItemValue,
                         item.ItemValue, LineVat, TotalLineValue, 0, item.TransactionDate, 0, TransactionRef);
 
                     if (item.ThisMonthOnly == true)
                         _context.Remove(item);
-            }
-               await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
+                }
+                await _context.SaveChangesAsync();
+            } catch (Exception ex) {
                 throw ex;
             }
         }
@@ -603,27 +526,23 @@ namespace CrisesControl.Infrastructure.Services
                              where CT.CompanyId == CompanyID && TT.TransactionCode != "LICENSEFEE"
                              select CT).ToListAsync();
 
-                var profile = await _context.Set<CompanyPaymentProfile>().Where(CP=> CP.CompanyId == CompanyID).FirstOrDefaultAsync();
+                var profile = await _context.Set<CompanyPaymentProfile>().Where(CP => CP.CompanyId == CompanyID).FirstOrDefaultAsync();
                 DateTime firstDayOfMonth = DateTime.Now;
                 DateTime lastDayOfMonth = DateTime.Now;
                 DateTimeOffset TransactionDate = DateTimeOffset.Now;
-                foreach (var item in items)
-                {
+                foreach (var item in items) {
 
                     TransactionDate = item.CreatedOn;
 
                     decimal this_month_charge = 0M;
-                    if (item.NextRunDate <= DateTime.Now)
-                    {
+                    if (item.NextRunDate <= DateTime.Now) {
 
-                        var monthly_item = await  _context.Set<MonthlyTransactionItem>()
-                                            .Where(MT=> MT.TransactionTypeId == item.TransactionTypeId
+                        var monthly_item = await _context.Set<MonthlyTransactionItem>()
+                                            .Where(MT => MT.TransactionTypeId == item.TransactionTypeId
                                             && MT.CompanyId == CompanyID && MT.ThisMonthOnly == false).FirstOrDefaultAsync();
 
-                        if (monthly_item == null)
-                        {
-                            if (item.CreatedOn.Date <= DateTime.Now.Date && item.CreatedOn.Date == item.NextRunDate.Date)
-                            {
+                        if (monthly_item == null) {
+                            if (item.CreatedOn.Date <= DateTime.Now.Date && item.CreatedOn.Date == item.NextRunDate.Date) {
                                 this_month_charge = GetProrataPayment(item.TransactionRate, item.NextRunDate, item.PaymentPeriod);
                                 int mt_trans_id = await _billing.AddMonthTransaction(0, CompanyID, 0, "", this_month_charge, item.TransactionTypeId, TransactionDate);
                                 _billing.UpdateThisMonthOnly(mt_trans_id, true, true);
@@ -633,9 +552,7 @@ namespace CrisesControl.Infrastructure.Services
                                 _context.Update(item);
                                 await _context.SaveChangesAsync();
 
-                            }
-                            else
-                            {
+                            } else {
                                 TransactionDate = LastDayofMonth(item.NextRunDate).AddDays(1);
 
                                 if (item.PaymentPeriod == "MONTHLY")
@@ -665,9 +582,7 @@ namespace CrisesControl.Infrastructure.Services
                                 {
                                     _billing.UpdateThisMonthOnly(monthly_item.TransactionId, true, false);
                                     monthly_item.ItemValue = item.TransactionRate;
-                                }
-                                else if (item.PaymentPeriod.ToUpper() == "YEARLY")
-                                {
+                                } else if (item.PaymentPeriod.ToUpper() == "YEARLY") {
                                     _context.Remove(monthly_item);
                                     next_run_date = _billing.GetNextRunDate(profile.ContractAnniversary, item.PaymentPeriod.ToUpper(), 0);
                                 }
@@ -677,28 +592,24 @@ namespace CrisesControl.Infrastructure.Services
                             monthly_item.TransactionDate = next_run_date;
                             item.NextRunDate = next_run_date;
                             _context.Update(item);
-                           await _context.SaveChangesAsync();
+                            await _context.SaveChangesAsync();
                         }
                     }
                 }
-    }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
         }
-        public async Task<bool> CheckContractFee(int CompanyID, DateTimeOffset ContractStartDate, DateTimeOffset ContractAnniversary, DateTimeOffset StatementEndTime, decimal ContractValue)
-        {
+        public async Task<bool> CheckContractFee(int CompanyID, DateTimeOffset ContractStartDate, DateTimeOffset ContractAnniversary, DateTimeOffset StatementEndTime, decimal ContractValue) {
             ContractValue = 0M;
-            try
-            {
+            try {
                 int TransactionTypeID = await _billing.GetTransactionTypeID("LICENSEFEE");
-                var contract = await  _context.Set<MonthlyTransactionItem>()
-                                .Where(MT=> MT.CompanyId == CompanyID && MT.TransactionTypeId == TransactionTypeID).FirstOrDefaultAsync();
+                var contract = await _context.Set<MonthlyTransactionItem>()
+                                .Where(MT => MT.CompanyId == CompanyID && MT.TransactionTypeId == TransactionTypeID).FirstOrDefaultAsync();
 
-                var comp_profile =await _context.Set<CompanyPaymentProfile>().Where(w => w.CompanyId == CompanyID).FirstOrDefaultAsync();
+                var comp_profile = await _context.Set<CompanyPaymentProfile>().Where(w => w.CompanyId == CompanyID).FirstOrDefaultAsync();
                 var comp_trans = await _context.Set<CompanyTransactionType>().Where(w => w.CompanyId == CompanyID && w.TransactionTypeId == TransactionTypeID).FirstOrDefaultAsync();
-                int PackagePlan =(int)await _context.Set<Company>().Where(w => w.CompanyId == CompanyID).Select(s => s.PackagePlanId).FirstOrDefaultAsync();
+                int PackagePlan = (int)await _context.Set<Company>().Where(w => w.CompanyId == CompanyID).Select(s => s.PackagePlanId).FirstOrDefaultAsync();
 
                 decimal contract_value = comp_trans.TransactionRate;
 
@@ -708,47 +619,33 @@ namespace CrisesControl.Infrastructure.Services
                 DateTimeOffset TransactionDate = comp_profile.CurrentStatementEndDate.AddDays(1);
 
 
-                if (ContractAnniversary.Date <= DateTimeOffset.Now.Date)
-                {
+                if (ContractAnniversary.Date <= DateTimeOffset.Now.Date) {
 
-                    if (contract == null)
-                    {
+                    if (contract == null) {
 
-                        if (comp_profile.PaymentPeriod.ToUpper() == "MONTHLY")
-                        {
-                            int trans_id =await _billing.AddMonthTransaction(0, CompanyID, 0, "LICENSEFEE", contract_value, TransactionTypeID, TransactionDate);
-                            _billing.UpdateThisMonthOnly(trans_id, true, false);
-                        }
-                        else if (comp_profile.PaymentPeriod.ToUpper() == "YEARLY")
-                        {
-                            int trans_id =await _billing.AddMonthTransaction(0, CompanyID, 0, "LICENSEFEE", contract_value, TransactionTypeID, TransactionDate);
-                            _billing.UpdateThisMonthOnly(trans_id, true, true);
+                        if (comp_profile.PaymentPeriod.ToUpper() == "MONTHLY") {
+                            int trans_id = await _billing.AddMonthTransaction(0, CompanyID, 0, "LICENSEFEE", contract_value, TransactionTypeID, TransactionDate);
+                            await _billing.UpdateThisMonthOnly(trans_id, true, false);
+                        } else if (comp_profile.PaymentPeriod.ToUpper() == "YEARLY") {
+                            int trans_id = await _billing.AddMonthTransaction(0, CompanyID, 0, "LICENSEFEE", contract_value, TransactionTypeID, TransactionDate);
+                            await _billing.UpdateThisMonthOnly(trans_id, true, true);
                         }
                         comp_profile.ContractAnniversary = next_run_date;
                         _context.Update(comp_profile);
-                       await _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync();
 
                         ContractValue = DecimalToMoney(contract_value);
                         return true;
-                    }
-                    else if (contract != null)
-                    {
-                        if (contract.ThisMonthOnly)
-                        {
-                            if (comp_profile.PaymentPeriod.ToUpper() == "MONTHLY")
-                            {
-                                if (contract.UserRole == "PRORATALICENSEFEE")
-                                {
+                    } else if (contract != null) {
+                        if (contract.ThisMonthOnly) {
+                            if (comp_profile.PaymentPeriod.ToUpper() == "MONTHLY") {
+                                if (contract.UserRole == "PRORATALICENSEFEE") {
                                     _context.Remove(contract);
-                                }
-                                else
-                                {
-                                    _billing.UpdateThisMonthOnly(contract.TransactionId, true, false);
+                                } else {
+                                    await _billing.UpdateThisMonthOnly(contract.TransactionId, true, false);
                                     contract.ItemValue = contract_value;
                                 }
-                            }
-                            else if (comp_profile.PaymentPeriod.ToUpper() == "YEARLY")
-                            {
+                            } else if (comp_profile.PaymentPeriod.ToUpper() == "YEARLY") {
                                 _context.Remove(contract);
                             }
                         }
@@ -761,26 +658,22 @@ namespace CrisesControl.Infrastructure.Services
                     }
                 }
                 return false;
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
             return false;
         }
-        public async Task<LicenseCheckResult> GetUserLicenseInfo(int companyId, List<UserRoles> userList)
-        {
+        public async Task<LicenseCheckResult> GetUserLicenseInfo(int companyId, List<UserRoles> userList) {
             LicenseCheckResult Rslt = new LicenseCheckResult();
-            try
-            {
+            try {
                 int UserLimit = 0;
                 int AdminUserLimit = 0;
                 double UserRate = 0;
                 double AdminUserRate = 0;
 
-                var comp_pp =await  _context.Set<CompanyPaymentProfile>().Include(x=>x.Company)
-                                   .Where(CPP=> CPP.CompanyId == companyId)
-                                   .Select(CPP=> new { CPP.PaymentPeriod, CPP.Company.CompanyProfile, CPP.Company.OnTrial }).FirstOrDefaultAsync();
+                var comp_pp = await _context.Set<CompanyPaymentProfile>().Include(x => x.Company)
+                                   .Where(CPP => CPP.CompanyId == companyId)
+                                   .Select(CPP => new { CPP.PaymentPeriod, CPP.Company.CompanyProfile, CPP.Company.OnTrial }).FirstOrDefaultAsync();
 
                 int.TryParse(await DBC.GetPackageItem("USER_LIMIT", companyId), out UserLimit);
                 int.TryParse(await DBC.GetPackageItem("ADMIN_USER_LIMIT", companyId), out AdminUserLimit);
@@ -795,29 +688,25 @@ namespace CrisesControl.Infrastructure.Services
                 var roles =await DBC.CCRoles(true);
 
                 List<int> UserIds = new List<int>();
-                foreach (UserRoles ur in userList)
-                {
+                foreach (UserRoles ur in userList) {
                     UserIds.Add(ur.UserId);
                     if (string.IsNullOrEmpty(ur.UserRole))
                         ur.UserRole = "USER";
 
-                    if (roles.Contains(ur.UserRole.ToUpper()))
-                    {
+                    if (roles.Contains(ur.UserRole.ToUpper())) {
                         _keyholder_count++;
-                    }
-                    else
-                    {
+                    } else {
                         _staff_count++;
                     }
                 }
 
-                var users = await  _context.Set<User>().Where(U=> U.CompanyId == companyId && U.Status != 3).ToListAsync();
+                var users = await _context.Set<User>().Where(U => U.CompanyId == companyId && U.Status != 3).ToListAsync();
 
-                int total_existing_kh =  users.Where(TK=> (roles.Contains(TK.UserRole.ToUpper()))).Count();
-                int total_existing_staff = users.Where(TK=> TK.UserRole.ToUpper() == "USER").Count();
+                int total_existing_kh = users.Where(TK => (roles.Contains(TK.UserRole.ToUpper()))).Count();
+                int total_existing_staff = users.Where(TK => TK.UserRole.ToUpper() == "USER").Count();
 
-                int keyholders =  users
-                                  .Where(KH=> (roles.Contains(KH.UserRole.ToUpper())) &&
+                int keyholders = users
+                                  .Where(KH => (roles.Contains(KH.UserRole.ToUpper())) &&
                                   !UserIds.Contains(KH.UserId)).Count();
 
                 int staff = (from KH in users where KH.UserRole.ToUpper() == "USER" && !UserIds.Contains(KH.UserId) select KH).Count();
@@ -828,12 +717,9 @@ namespace CrisesControl.Infrastructure.Services
                 int extra_keyholder = new_keyholder_count - Math.Max(total_existing_kh, AdminUserLimit);
                 int extra_staff = new_staff_count - Math.Max(total_existing_staff, UserLimit);
 
-                if ((extra_keyholder > 0) || extra_staff > 0)
-                {
+                if ((extra_keyholder > 0) || extra_staff > 0) {
                     Rslt.ConfirmAction = true;
-                }
-                else
-                {
+                } else {
                     Rslt.ConfirmAction = false;
                 }
 
@@ -847,10 +733,8 @@ namespace CrisesControl.Infrastructure.Services
                 Rslt.CompanyProfile = comp_pp.CompanyProfile;
                 Rslt.OnTrial = comp_pp.OnTrial;
 
-            }
-            catch (Exception ex)
-            {
-               
+            } catch (Exception ex) {
+
                 Rslt.ConfirmAction = false;
             }
             return Rslt;

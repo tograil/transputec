@@ -490,7 +490,7 @@ public class CompanyQuery : ICompanyQuery {
     {
         try
         {
-            var check = _companyRepository.GetCompanyObject(_currentUser.CompanyId, request.ObjectName);
+            var check = await _companyRepository.GetCompanyObject(_currentUser.CompanyId, request.ObjectName);
             var result = _mapper.Map<List<CompanyObject>>(check);
 
             var response = new GetCompanyObjectResponse();

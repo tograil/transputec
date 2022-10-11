@@ -35,6 +35,8 @@ using CrisesControl.Core.Assets;
 
 using CrisesControl.Core.CCWebSocket;
 using CrisesControl.Infrastructure.Services;
+using CrisesControl.Core.Departments;
+using CrisesControl.Core.Locations;
 
 namespace CrisesControl.Infrastructure.Context
 {
@@ -103,8 +105,9 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<TrackUserCount>().HasNoKey();
             modelBuilder.Entity<IIncidentMessages>().HasNoKey();
             modelBuilder.Entity<IPingMessage>().HasNoKey();
-
-
+            modelBuilder.Entity<DepartmentDetail>().HasNoKey();
+            modelBuilder.Entity<LocationDetail>().HasNoKey();
+            modelBuilder.Entity<AssetList>().HasNoKey();
             modelBuilder.Entity<AckOption>().HasNoKey();
             modelBuilder.Entity<IncKeyCons>().HasNoKey();
             modelBuilder.Entity<IncidentAssetResponse>().HasNoKey();
@@ -129,16 +132,14 @@ namespace CrisesControl.Infrastructure.Context
             modelBuilder.Entity<MessageGroupObject>().HasNoKey();
             modelBuilder.Entity<GroupLink>().HasNoKey();
             modelBuilder.Entity<GroupDetail>().HasNoKey();
-
+            modelBuilder.Entity<UserDetail>().HasNoKey();
+            modelBuilder.Entity<UserDropdown>().HasNoKey();
             modelBuilder.Entity<JsonResults>().HasNoKey();
             modelBuilder.Entity<DeliverySummary>().HasNoKey();
-
-
             modelBuilder.Entity<LibIncident>().HasNoKey();
             modelBuilder.Entity<CommsStatus>().HasNoKey();
             modelBuilder.Entity<CompanyUser>().HasNoKey().Ignore("UserName");
             modelBuilder.Entity<GetCompanyDataResponse>().HasNoKey();
-
 
 
 

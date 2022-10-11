@@ -35,9 +35,9 @@ namespace CrisesControl.Core.Administrator.Repositories
         Task<EmailTemplate> GetEmailTemplateById(int TemplateId, int CompanyID);
         Task<List<EmailFieldLookup>> GetEmailFields(string TemplateCode, int FieldType = 1);
         Task<int> CreateEmailTemplate(string Type, string Code, string Name, string Description, string HtmlData, string EmailSubject, string Locale,
-            int Status, int CurrentUserID, int CompanyID, string TimeZoneId);
+            int Status, int currentUserId, int CompanyID, string TimeZoneId);
         Task<int> SaveEmailTemplate(int TemplateID, string Type, string Code, string Name, string Description, string HtmlData, string EmailSubject,
-            string Locale, int Status, int CurrentUserID, int CompanyID = 0, string TimeZoneId = "GMT Standard Time");
+            string Locale, int Status, int currentUserId, int CompanyID = 0, string TimeZoneId = "GMT Standard Time");
         Task<string> LookupWithKey(string Key, string Default = "");
         Task<List<AdminUsersList>> SendCustomerNotice(string EmailContent, string EmailSubject, List<string> ExtraEmailList);
         Task<bool> RestoreTemplate(EmailTemplate ctemplate);
@@ -67,7 +67,7 @@ namespace CrisesControl.Core.Administrator.Repositories
         Task<List<SysParameter>> GetAllSysParameters();
         Task<int> UpdateSysParameters(int SysParametersId, string Category, string Name, string Value, string Type, string Display, string Description, int Status, int UserId,
            int CompanyId, string TimeZoneId = "GMT Standard Time");
-        Task<string> CreateActivationKey(int CustomerID, int CurrentUserID, int SalesSource = 0);
+        Task<string> CreateActivationKey(int CustomerID, int currentUserId, int SalesSource = 0);
         Task<string> GenerateActivationKey(int keyLength = 16);
         Task<int> SaveTagCategory(int TagCategoryID, string TagCategoryName, string TagCategorySearchTerms, int CurrentUserId, string TimeZoneId);
         Task<List<TagCategory>> GetAllTagCategory();

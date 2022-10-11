@@ -62,7 +62,6 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             .ToListAsync();
 
         _context.RemoveRange(deleteExt);
-
         await _context.SaveChangesAsync();
 
         var keyHoldersToSave = incidentKeyHolders.Select(x => new IncidentKeyholder
@@ -113,7 +112,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
         foreach (var affectedLocation in affectedLocations)
         {
-            await CreateIncidentLocation(affectedLocation, incidentActivationId, companyId);
+            CreateIncidentLocation(affectedLocation, incidentActivationId, companyId);
         }
     }
 
@@ -264,7 +263,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         var pActiveIncidentTaskId = new SqlParameter("@ActiveIncidentTaskID", activeIncidentTaskId);
         var pIncidentTaskId = new SqlParameter("@IncidentTaskID", incidentTaskId);
 
-        await _context.Database.ExecuteSqlRawAsync("Pro_Create_Launch_Task_Receipient_List @IncidentActivationID, @ActiveIncidentTaskID, @IncidentTaskID",
+        _context.Database.ExecuteSqlRawAsync("Pro_Create_Launch_Task_Receipient_List @IncidentActivationID, @ActiveIncidentTaskID, @IncidentTaskID",
             pActiveIncidentId, pActiveIncidentTaskId, pIncidentTaskId);
     }
 
@@ -280,15 +279,13 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
         var pAddress = new SqlParameter("@Address", affectedLocation.Address);
         var pLocationType = new SqlParameter("@LocationType", affectedLocation.LocationType);
 
-        await _context.Database.ExecuteSqlRawAsync("Pro_Create_Incident_Location @ActiveIncidentID, @CompanyID, @LocationID, @ImpactedLocationID, @LocationName, @Lat, @Lng, @Address, @LocationType",
+        _context.Database.ExecuteSqlRawAsync("Pro_Create_Incident_Location @ActiveIncidentID, @CompanyID, @LocationID, @ImpactedLocationID, @LocationName, @Lat, @Lng, @Address, @LocationType",
             pActiveIncidentId, pCompanyId, pLocationId, pImpactedLocationId, pLocationName, pLat, pLng, pAddress, pLocationType);
     }
 
-    public List<UpdateIncidentStatusReturn> GetCompanyActiveIncident(int companyId, int userId, string status, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc")
-    {
+    public async Task<List<UpdateIncidentStatusReturn>> GetCompanyActiveIncident(int companyId, int userId, string status, int recordStart = 0, int recordLength = 100, string searchString = "", string orderBy = "Name", string orderDir = "asc") {
         List<UpdateIncidentStatusReturn> result = new();
-        try
-        {
+        try {
             var pCompanyID = new SqlParameter("@CompanyID", companyId);
             var pUserID = new SqlParameter("@UserID", userId);
             var pRecordStart = new SqlParameter("@RecordStart", recordStart);
@@ -298,20 +295,20 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             var pOrderDir = new SqlParameter("@OrderDir", orderDir);
             var pStatus = new SqlParameter("@Status", status);
 
-            result = _context.Set<UpdateIncidentStatusReturn>().FromSqlRaw("Pro_Incident_Active @CompanyID, @UserID, @Status, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir",
-                pCompanyID, pUserID, pStatus, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir).ToList().Select(c =>
-                {
+            result = await _context.Set<UpdateIncidentStatusReturn>().FromSqlRaw("Pro_Incident_Active @CompanyID, @UserID, @Status, @RecordStart, @RecordLength, @SearchString, @OrderBy, @OrderDir",
+                pCompanyID, pUserID, pStatus, pRecordStart, pRecordLength, pSearchString, pOrderBy, pOrderDir).ToListAsync();
+            
+            result.Select(c => {
                     c.InitiatedByName = new UserFullName { Firstname = c.FirstName, Lastname = c.LastName };
                     return c;
                 }).ToList();
 
             return result;
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
         }
         return result;
     }
+
     public async Task<User?> GetUserById(int id)
     {
         return await _context.Set<User>().FirstOrDefaultAsync(x => x.UserId == id);
@@ -601,7 +598,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
                     foreach (NotificationUserList lUsr in userToNotify)
                     {
-                        await _MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, _MSG.TextUsed, _MSG.PhoneUsed, _MSG.EmailUsed, _MSG.PushUsed, currentUserId, timeZoneId);
+                        _ = _MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, _MSG.TextUsed, _MSG.PhoneUsed, _MSG.EmailUsed, _MSG.PushUsed, currentUserId, timeZoneId);
                     }
                    
                     await _queueConsumer.CreateMessageList(tblmessageid);
@@ -618,17 +615,17 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 var pIncludeEscalationList = new SqlParameter("@IncludeEscalationList", IncludeEscalationList);
                 var pIncludeNotificationList = new SqlParameter("@IncludeNotificationList", IncludeNotificationList);
                 var pCustomerTime = new SqlParameter("@CustomerTime", DateTime.Now.GetDateTimeOffset(timeZoneId));
-                var pCurrentUserID = new SqlParameter("@CurrentUserID", currentUserId);
+                var pCurrentUserId = new SqlParameter("@CurrentUserID", currentUserId);
 
                 var RowsCount = await _context.Set<Result>().FromSqlRaw("exec Pro_Task_Update_Message_List @IncidentActivationID,@ActiveIncidentTaskID,@MessageID,@IncludeKeyContact,@IncludeActionList,@IncludeEscalationList,@IncludeNotificationList,@CustomerTime,@CurrentUserID",
-                       pIncidentActivationId, pActiveIncidentTaskID, pMessageId, pIncludeKeyContact, pIncludeActionList, pIncludeEscalationList, pIncludeNotificationList, pCustomerTime, pCurrentUserID).FirstOrDefaultAsync();
+                       pIncidentActivationId, pActiveIncidentTaskID, pMessageId, pIncludeKeyContact, pIncludeActionList, pIncludeEscalationList, pIncludeNotificationList, pCustomerTime, pCurrentUserId).FirstOrDefaultAsync();
 
                 IsFundAvailable = await _MSG.CalculateMessageCost(companyId, tblmessageid, message);
 
                await Task.Factory.StartNew( () => _queueHelper.MessageDeviceQueue(tblmessageid, "Incident", 1, cascadePlanId));
                 //QueueHelper.MessageDevicePublish(tblmessageid, 1);
 
-               await _queueConsumer.CreateCascadingJobs(cascadePlanId, tblmessageid, activeIncidentId, companyId, timeZoneId);
+                await _queueConsumer.CreateCascadingJobs(cascadePlanId, tblmessageid, activeIncidentId, companyId, timeZoneId);
             }
 
         }
@@ -669,7 +666,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             List<NotificationUserList> TaskPtcpntList = new List<NotificationUserList>();
             if (includeKeyContact)
             {
-                var KeyContacts = await _context.Set<ActiveIncidentKeyContact>().Where(KC => KC.IncidentActivationId == activeIncidentId).Select(KC => new { KC.UserId }).ToListAsync();
+                var KeyContacts = _context.Set<ActiveIncidentKeyContact>().Where(KC => KC.IncidentActivationId == activeIncidentId).Select(KC => new { KC.UserId }).ToList();
 
                 foreach (var Keycon in KeyContacts)
                 {
@@ -690,7 +687,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             {
                 foreach (NotificationUserList lUsr in TaskPtcpntList)
                 {
-                    await _MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, _MSG.TextUsed, _MSG.PhoneUsed, _MSG.EmailUsed, _MSG.PushUsed, currentUserId, timeZoneId);
+                    _ = _MSG.CreateMessageList(tblmessageid, lUsr.UserId, lUsr.IsTaskRecipient, _MSG.TextUsed, _MSG.PhoneUsed, _MSG.EmailUsed, _MSG.PushUsed, currentUserId, timeZoneId);
                 }
                 await _queueConsumer.CreateMessageList(tblmessageid);
                 IsFundAvailable = _queueConsumer.IsFundAvailable;
@@ -869,7 +866,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 string action_update = "Task " + task.TaskSequence + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(task.TaskTitle, 20) + "\" is reassigned to " + username + ". " + Environment.NewLine + " with comment: " + taskActionReason;
 
                 //bool NotifyKeyContact = false;
-               // bool.TryParse(_DBC.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", CompanyID), out NotifyKeyContact);
+                // bool.TryParse(_DBC.GetCompanyParameter("INC_UPDATE_GROUP_NOTIFY_KEYCONTACTS", CompanyID), out NotifyKeyContact);
 
                 await notify_users(task.ActiveIncidentId, task.ActiveIncidentTaskId, TaskPtcpntList, action_update, currentUserId, companyId, timeZoneId, false, 3, messageMethod, cascadePlanId);
 
@@ -1116,7 +1113,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                     await _context.SaveChangesAsync();
 
                     string task_action = "Task completed forcefully by " + username + " upon closing the incident.";
-                    await AddTaskAction(task.ActiveIncidentTaskId, task_action, currentUserId, task.TaskStatus, timeZoneId);
+                     _ = AddTaskAction(task.ActiveIncidentTaskId, task_action, currentUserId, task.TaskStatus, timeZoneId);
 
                     //Delete Scheduled jobs for the incident
                    await _DBC.DeleteScheduledJob("START_ACPT_TASK_" + task.ActiveIncidentTaskId, "TASK_SCHEDULE");
@@ -1222,7 +1219,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 await _context.AddAsync(ITP);
             }
 
-            await _context.SaveChangesAsync();
+             await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -1267,21 +1264,21 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     {
         try
         {
-            var tasklist = (from SU in _context.Set<TaskActiveIncidentPredecessor>()
+            var tasklist = await (from SU in _context.Set<TaskActiveIncidentPredecessor>()
                             join AIT in _context.Set<TaskActiveIncident>() on SU.ActiveIncidentTaskId equals AIT.ActiveIncidentTaskId
                             where SU.PredecessorTaskId == incidentTaskId && AIT.ActiveIncidentId == activeIncidentId
-                            select new { SU, AIT }).Distinct().ToList();
+                            select new { SU, AIT }).Distinct().ToListAsync();
 
             foreach (var task in tasklist)
             {
                 //Get all predecessor task and check if all of them are completed
                 // If completed start the escalation event for success task
                 bool all_task_completed = true;
-                var get_pd_list = (from PD in _context.Set<TaskActiveIncidentPredecessor>()
+                var get_pd_list = await (from PD in _context.Set<TaskActiveIncidentPredecessor>()
                                    join IT in _context.Set<TaskActiveIncident>() on PD.PredecessorTaskId equals IT.IncidentTaskId
                                    where PD.ActiveIncidentTaskId == task.AIT.ActiveIncidentTaskId && IT.ActiveIncidentId == activeIncidentId
                                    && IT.TaskStatus != 7
-                                   select IT.TaskStatus).Any();
+                                   select IT.TaskStatus).AnyAsync();
                 if (get_pd_list)
                 {
                     all_task_completed = false;
@@ -1555,7 +1552,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
             //Create active incident participents list
             if (activeIncidentId> 0)
             {
-               await AdHocIncidentTaskParticipants(activeIncidentId, ActiveIncidentTaskID, actionUsers, actionGroups, escalationUsers, escalationGroups);
+                await AdHocIncidentTaskParticipants(activeIncidentId, ActiveIncidentTaskID, actionUsers, actionGroups, escalationUsers, escalationGroups);
 
                 CreateTaskEscalationJob(ActiveIncidentTaskID, ActivationDate, escalationDuration, timeZoneId);
 
@@ -1563,7 +1560,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
                 grp.Add("ACTION");
 
                 string action_update = "Task " + LastTaskSeq + ": \"" + CrisesControl.SharedKernel.Utils.StringExtensions.Truncate(taskTitle, 50) + "\" is now available.";
-               await send_notifiation_to_groups(grp, activeIncidentId, ActiveIncidentTaskID, action_update, userId, companyId, timeZoneId, false, 3, sourceAction: SourceAction.NewAdHocTask);
+                await send_notifiation_to_groups(grp, activeIncidentId, ActiveIncidentTaskID, action_update, userId, companyId, timeZoneId, false, 3, sourceAction: SourceAction.NewAdHocTask);
 
                 var actincident = await _context.Set<IncidentActivation>().Where(w => w.IncidentActivationId == activeIncidentId).FirstOrDefaultAsync();
                 if (actincident != null)
@@ -1585,7 +1582,7 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
     {
         try
         {
-            var pt_type = await  _context.Set<TaskParticipantType>().ToListAsync();
+            var pt_type =   await _context.Set<TaskParticipantType>().ToListAsync();
             int action_type =pt_type.Where(w => w.TaskParticipantTypeName == "ACTION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
             int escal_type = pt_type.Where(w => w.TaskParticipantTypeName == "ESCALATION").Select(s => s.TaskParticipantTypeId).FirstOrDefault();
 
@@ -1595,15 +1592,15 @@ public class ActiveIncidentRepository : IActiveIncidentRepository
 
             //Create action list.
             if (actionUsers != null)
-               await adhoc_create_participant_list(actionUsers, activeIncidentTaskId, action_type, "USER");
+                await adhoc_create_participant_list(actionUsers, activeIncidentTaskId, action_type, "USER");
             if (actionGroups != null)
-               await adhoc_create_participant_list(actionGroups, activeIncidentTaskId, action_type, "GROUP");
+                await adhoc_create_participant_list(actionGroups, activeIncidentTaskId, action_type, "GROUP");
 
             //Create escalation list
             if (escalationUsers != null)
-               await adhoc_create_participant_list(escalationUsers, activeIncidentTaskId, escal_type, "USER");
+                await adhoc_create_participant_list(escalationUsers, activeIncidentTaskId, escal_type, "USER");
             if (escalationGroups != null)
-               await adhoc_create_participant_list(escalationGroups, activeIncidentTaskId, escal_type, "GROUP");
+                await adhoc_create_participant_list(escalationGroups, activeIncidentTaskId, escal_type, "GROUP");
 
             //Create Active Task Participent list
 

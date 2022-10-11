@@ -405,7 +405,7 @@ namespace CrisesControl.Infrastructure.Repositories
                     //Create Transactions in the transactions table
                     if (IP.ContractStartDate <= DateTime.Now.Date && IP.OrderStatus.ToUpper() == "PAYMENT_COLLECTED" && IP.Activated == 1)
                     {
-                        ProcessOrderTransactions(orderId, IP.CustomerId, IP.CurrentUserId, IP.ContractType);
+                        await ProcessOrderTransactions(orderId, IP.CustomerId, IP.CurrentUserId, IP.ContractType);
                         ProcessPendingOrder(IP.OrderId, IP.CustomerId);
                     }
 
@@ -449,17 +449,17 @@ namespace CrisesControl.Infrastructure.Repositories
             return null;
         }
 
-        public async void ProcessOrderTransactions(int OrderID, int CompanyId, int CurrentUserId, string ContractType)
+        public async Task ProcessOrderTransactions(int OrderID, int CompanyId, int CurrentUserId, string ContractType)
         {
             try
             {
-                var cpp = (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == CompanyId select CPP).FirstOrDefault();
+                var cpp = await (from CPP in _context.Set<CompanyPaymentProfile>() where CPP.CompanyId == CompanyId select CPP).FirstOrDefaultAsync();
 
                 if (cpp != null)
                 {
                     OrderListReturn order = await GetOrder(OrderID, CompanyId);
 
-                    var cp = (from C in _context.Set<Company>() where C.CompanyId == CompanyId select C).FirstOrDefault();
+                    var cp = await (from C in _context.Set<Company>() where C.CompanyId == CompanyId select C).FirstOrDefaultAsync();
                     if (cp != null)
                     {
                         string profile = "SUBSCRIBED";
@@ -531,7 +531,7 @@ namespace CrisesControl.Infrastructure.Repositories
                                 cpp.UpdatedOn = dtnow;
                                 cpp.UpdatedBy = CurrentUserId;
 
-                                var storage = (from CP in _context.Set<CompanyPackageItem>() where CP.ItemCode == "MEDIA_STORAGE" && CP.CompanyId == CompanyId select CP).FirstOrDefault();
+                                var storage = await (from CP in _context.Set<CompanyPackageItem>() where CP.ItemCode == "MEDIA_STORAGE" && CP.CompanyId == CompanyId select CP).FirstOrDefaultAsync();
                                 if (storage != null)
                                 {
                                     storage.ItemValue = cpp.StorageLimit.ToString();
@@ -588,7 +588,7 @@ namespace CrisesControl.Infrastructure.Repositories
                             Drcr = TrType,
                             IsPaid = false
                         };
-                        _context.Set<TransactionDetail>().Add(NewTransactionDetails);
+                        await _context.Set<TransactionDetail>().AddAsync(NewTransactionDetails);
                         await _context.SaveChangesAsync();
                         TDId = NewTransactionDetails.TransactionDetailsId;
 

@@ -121,40 +121,33 @@ public class IncidentQuery : IIncidentQuery
         return _incidentRepository.GetIncidentById(companyId, _currentUser.UserId, incidentId, userStatus);
     }
 
-    public async Task<GetAllActiveCompanyIncidentResponse> GetAllActiveCompanyIncident(GetAllActiveCompanyIncidentRequest request )
-    {
-       // (string? status, DataTableAjaxPostModel pagedRequest
-        var RecordStart = _paging.PageNumber == 0 ? 0 : _paging.PageNumber;
-        var RecordLength = _paging.PageSize == 0 ? int.MaxValue : _paging.PageSize;
-        var SearchString = (_paging.Search != string.Empty) ? _paging.Search : "";
-        string OrderBy = _paging.OrderBy == string.Empty ? _paging.OrderBy : "Name";
-        string OrderDir = _paging.Order != string.Empty ? _paging.Order : "asc";
-        string Status = request.Status != null ? request.Status : "1,2,3,4";
-        var response = new GetAllActiveCompanyIncidentResponse();
+    public async Task<DataTablePaging> GetAllActiveCompanyIncident(string? status) {
+        string OrderBy = _paging.Order != null ? _paging.Order : "Name";
+        string OrderDir = _paging.Dir != null ? _paging.Dir : "asc";
+
+        string Status = status != null ? status : "1,2,3,4";
 
         int totalRecord = 0;
         DataTablePaging rtn = new DataTablePaging();
         rtn.Draw = _paging.Draw;
 
-        var ActIncidentDtl = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, _paging.Start, _paging.Length, _paging.Search, OrderBy, OrderDir);
+        var ActIncidentDtl = await _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, _paging.Start, _paging.Length, _paging.Search, OrderBy, OrderDir);
 
-        if (ActIncidentDtl != null)
-        {
+        if (ActIncidentDtl != null) {
             totalRecord = ActIncidentDtl.Count;
             rtn.RecordsFiltered = ActIncidentDtl.Count;
             rtn.Data = ActIncidentDtl;
         }
 
-        var TotalList = _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, 0, int.MaxValue, "", "IncidentActivationId", "asc");
+        var TotalList = await _activeIncidentRepository.GetCompanyActiveIncident(_currentUser.CompanyId, _currentUser.UserId, Status, 0, int.MaxValue, "", "IncidentActivationId", "asc");
 
-        if (TotalList != null)
-        {
+        if (TotalList != null) {
             totalRecord = TotalList.Count;
         }
 
         rtn.RecordsTotal = totalRecord;
-        response.DataTable = rtn;
-        return response;
+
+        return rtn;
     }
 
     public async Task<GetIncidentTaskNotesResponse> GetIncidentTaskNotes(GetIncidentTaskNotesRequest request)

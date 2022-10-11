@@ -51,7 +51,7 @@ namespace CrisesControl.Infrastructure.Jobs
                        await _SDE.SendReviewAlert(IncidentID, incident.SH.SopheaderId, (int)incident.I.CompanyId, "SOP");
 
                         incident.SH.ReminderCount = Counter;
-                        db.SaveChanges();
+                        await db.SaveChangesAsync();
 
                         
                         await _sopRepository.CreateSOPReviewReminder(IncidentID, incident.SH.SopheaderId, (int)incident.I.CompanyId, incident.SH.ReviewDate, incident.SH.ReviewFrequency, Counter);

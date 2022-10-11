@@ -1,10 +1,11 @@
 ﻿using CrisesControl.Api.Application.Commands.Users.GetUser;
+using CrisesControl.Core.Compatibility;
 using CrisesControl.Core.Users;
 
 namespace CrisesControl.Api.Application.Commands.Users.GetAllUser
 {
     public class GetAllUserResponse
     {
-        public List<User> Data { get; set; }
+        public DataTablePaging Data { get; set; }
     }
 }

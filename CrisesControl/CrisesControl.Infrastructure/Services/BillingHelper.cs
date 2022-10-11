@@ -138,7 +138,7 @@ namespace CrisesControl.Infrastructure.Services
             return 0;
         }
 
-        public async void UpdateThisMonthOnly(int TransactionID, bool Switch, bool SwitchFlag = true)
+        public async Task UpdateThisMonthOnly(int TransactionID, bool Switch, bool SwitchFlag = true)
         {
             if (Switch == true && TransactionID > 0)
             {
@@ -227,7 +227,7 @@ namespace CrisesControl.Infrastructure.Services
                                 comp_pp.UpdatedOn = DateTime.Now.GetDateTimeOffset(TimeZoneId);
                                 comp_pp.UpdatedBy = CurrentUserId;
                                 _context.Update(comp_pp);
-                                _context.SaveChanges();
+                                await _context.SaveChangesAsync();
 
                                 await DBC.GetSetCompanyComms(CompanyId);
 
