@@ -58,7 +58,7 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpPost]
-        [Route("[action]")]
+        [Authorize]
         public async Task<IActionResult> CreateAsset([FromBody] CreateAssetRequest request, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(request, cancellationToken);
@@ -66,6 +66,8 @@ namespace CrisesControl.Api.Controllers
         }
 
         [HttpPut]
+        [Route("{AssetId:int}")]
+        [Authorize]
         public async Task<IActionResult> UpdateAsset([FromBody] UpdateAssetsRequest assetModel, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(assetModel, cancellationToken);

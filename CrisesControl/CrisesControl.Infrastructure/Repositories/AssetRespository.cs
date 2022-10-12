@@ -21,12 +21,11 @@ namespace CrisesControl.Infrastructure.Repositories {
     public class AssetRespository : IAssetRepository {
         private readonly CrisesControlContext _context;
         private readonly IMapper _mapper;
-        private readonly IDBCommonRepository  DBC;
-        public AssetRespository(CrisesControlContext context, IMapper mapper, IDBCommonRepository _DBC)
-        {
+        private readonly IDBCommonRepository _DBC;
+        public AssetRespository(CrisesControlContext context, IMapper mapper, IDBCommonRepository DBC) {
             _context = context;
             _mapper = mapper;
-            DBC = _DBC;
+            _DBC = DBC;
         }
 
         public async Task<int> CreateAsset(Assets asset, CancellationToken cancellationToken) {
@@ -44,10 +43,10 @@ namespace CrisesControl.Infrastructure.Repositories {
 
                 Assetsdata.Status = 3;
                 Assetsdata.UpdatedBy = currentUserId;
-                Assetsdata.UpdatedOn =await DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
+                Assetsdata.UpdatedOn = await _DBC.GetLocalTime(timeZoneId, System.DateTime.Now);
                 await _context.SaveChangesAsync();
 
-                DBC.DeleteScheduledJob("ASSET_REVIEW_" + assetId, "REVIEW_REMINDER");
+                await _DBC.DeleteScheduledJob("ASSET_REVIEW_" + assetId, "REVIEW_REMINDER");
 
                 return true;
             }
@@ -105,13 +104,13 @@ namespace CrisesControl.Infrastructure.Repositories {
         }
 
         public async Task<bool> CheckForExistance(int assetId) {
-            return _context.Set<Assets>().Where(t => t.AssetId.Equals(assetId)).Any();
+            return await _context.Set<Assets>().Where(t => t.AssetId.Equals(assetId)).AnyAsync();
         }
 
-        public async Task CreateAssetReviewReminder(int assetId, int companyID, DateTimeOffset nextReviewDate, string reviewFrequency, int reminderCount) {
+        public async Task CreateAssetReviewReminder(int assetId, int companyID, DateTimeOffset? nextReviewDate, string reviewFrequency, int reminderCount) {
             try {
 
-                DBC.DeleteScheduledJob("ASSET_REVIEW_" + assetId, "REVIEW_REMINDER");
+                await _DBC.DeleteScheduledJob("ASSET_REVIEW_" + assetId, "REVIEW_REMINDER");
 
                 ISchedulerFactory schedulerFactory = new Quartz.Impl.StdSchedulerFactory();
                 IScheduler _scheduler = schedulerFactory.GetScheduler().Result;
@@ -123,13 +122,12 @@ namespace CrisesControl.Infrastructure.Repositories {
                 jobDetail.JobDataMap["AssetId"] = assetId;
 
                 int Counter = 0;
-                DateTimeOffset DateCheck =await DBC.GetNextReviewDate(nextReviewDate, companyID, reminderCount,  Counter);
+                DateTimeOffset DateCheck = await _DBC.GetNextReviewDate((DateTimeOffset)nextReviewDate, companyID, reminderCount, Counter);
                 jobDetail.JobDataMap["Counter"] = Counter;
 
-                string TimeZoneVal =await DBC.GetTimeZoneByCompany(companyID);
+                string TimeZoneVal = await _DBC.GetTimeZoneByCompany(companyID);
 
-                if (DateTimeOffset.Compare(DateCheck, await DBC.GetDateTimeOffset(DateTime.Now, TimeZoneVal)) >= 0)
-                {
+                if (DateTimeOffset.Compare(DateCheck, await _DBC.GetDateTimeOffset(DateTime.Now, TimeZoneVal)) >= 0) {
 
                     if (DateCheck < DateTime.Now)
                         DateCheck = DateTime.Now.AddMinutes(5);
@@ -139,14 +137,11 @@ namespace CrisesControl.Infrastructure.Repositories {
                                                               .StartAt(DateCheck)
                                                               .ForJob(jobDetail)
                                                               .Build();
-                  await  _scheduler.ScheduleJob(jobDetail, trigger);
-                }
-                else
-                {
-                    DateTimeOffset NewReviewDate = await DBC.GetNextReviewDate(nextReviewDate, reviewFrequency);
-                    var asset = _context.Set<Assets>().Where(A=> A.AssetId == assetId).FirstOrDefault();
-                    if (asset != null)
-                    {
+                    await _scheduler.ScheduleJob(jobDetail, trigger);
+                } else {
+                    DateTimeOffset NewReviewDate = await _DBC.GetNextReviewDate((DateTimeOffset)nextReviewDate, reviewFrequency);
+                    var asset = _context.Set<Assets>().Where(A => A.AssetId == assetId).FirstOrDefault();
+                    if (asset != null) {
                         asset.ReviewDate = NewReviewDate;
                         _context.Update(asset);
                         await _context.SaveChangesAsync();

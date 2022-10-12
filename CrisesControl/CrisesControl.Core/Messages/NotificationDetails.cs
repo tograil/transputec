@@ -9,8 +9,8 @@ namespace CrisesControl.Core.Messages
 {
     public class NotificationDetails
     {
-        public IEnumerable<IIncidentMessages> IncidentMessages { get; set; }
-        public IEnumerable<IPingMessage> PingMessage { get; set; }
+        public List<IIncidentMessages> IncidentMessages { get; set; }
+        public List<IPingMessage> PingMessage { get; set; }
     }
    
     

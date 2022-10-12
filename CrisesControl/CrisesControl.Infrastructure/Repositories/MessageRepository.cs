@@ -52,7 +52,7 @@ public class MessageRepository : IMessageRepository {
     private readonly ICommsService _CH;
     private readonly IPingService _PH;
     private readonly IMessageService _MSG;
-   
+
 
 
     public MessageRepository(
@@ -64,14 +64,13 @@ public class MessageRepository : IMessageRepository {
         ISenderEmailService SDE,
         ICommsService CH,
         IPingService PH
-        )
-    {
+        ) {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
-       // _companyParameters = companyParameters;
-        _DBC =  DBC;
-        _MSG =MSG;
+        // _companyParameters = companyParameters;
+        _DBC = DBC;
+        _MSG = MSG;
         _SDE = SDE;
         _CH = CH;
         _PH = PH;
@@ -86,7 +85,7 @@ public class MessageRepository : IMessageRepository {
     }
 
     public async Task CreateMessageMethod(int messageId, int methodId, int activeIncidentId = 0, int incidentId = 0) {
-        var exists =  await _context.Set<MessageMethod>().AnyAsync(x => activeIncidentId > 0
+        var exists = await _context.Set<MessageMethod>().AnyAsync(x => activeIncidentId > 0
                                                             && x.ActiveIncidentId == activeIncidentId
                                                             && x.MethodId == methodId);
 
@@ -394,8 +393,8 @@ public class MessageRepository : IMessageRepository {
             var pResponseID = new SqlParameter("@ResponseID", responseID);
 
 
-            var MessageData = _context.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID,@MessageID,@MessageListID, @Latitude, @Longitude,@Mode,@Timestamp,@ResponseID",
-                                             pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode, pTimestamp, pResponseID).AsEnumerable();
+            var MessageData = await _context.Set<AcknowledgeReturn>().FromSqlRaw("exec Pro_Message_Acknowledge @UserID,@MessageID,@MessageListID, @Latitude, @Longitude,@Mode,@Timestamp,@ResponseID",
+                                             pUserID, pMessageID, pMessageListID, pLatitude, pLongitude, pMode, pTimestamp, pResponseID).ToListAsync();
             if (MessageData != null) {
                 //Todo
                 //Task.Factory.StartNew(() => {
@@ -423,8 +422,8 @@ public class MessageRepository : IMessageRepository {
 
             if (MessageData != null) {
 
-                //if (ackMethod.ToUpper() == "SMSLINK")
-                //    SendConfirmationText(companyId, currentUserId, msgListId);
+                if (ackMethod.ToUpper() == "SMSLINK")
+                    await SendConfirmationText(companyId, currentUserId, msgListId);
 
                 if (responseID > 0) {
                     int CallbackOption = await GetCallbackOption(ackMethodLink);
@@ -432,7 +431,7 @@ public class MessageRepository : IMessageRepository {
                 }
 
                 if (ackMethodLink != "APP") {
-                    AddUserTrackingDevices(currentUserId);
+                    await AddUserTrackingDevices(currentUserId);
                 }
 
                 var list = await _context.Set<MessageList>().Where(MsgList => MsgList.MessageListId == msgListId).Select(n =>
@@ -470,12 +469,12 @@ public class MessageRepository : IMessageRepository {
         }
         return CallbackOption;
     }
-    public void AddUserTrackingDevices(int userID, int messageListID = 0) {
+    public async Task AddUserTrackingDevices(int userID, int messageListID = 0) {
 
-        var devices = _context.Set<UserDevice>().Where(UD => UD.UserId == userID).ToList();
+        var devices = await _context.Set<UserDevice>().Where(UD => UD.UserId == userID).ToListAsync();
         foreach (var device in devices) {
             if (device.DeviceType.ToUpper().Contains(Enum.GetName(typeof(DeviceType), DeviceType.ANDROID)) || device.DeviceType.ToUpper().Contains(Enum.GetName(typeof(DeviceType), DeviceType.WINDOWS)))
-               _ = AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
+                await AddTrackingDevice(device.CompanyId, device.UserDeviceId, device.DeviceId, device.DeviceType, messageListID);
         }
     }
     public async Task AddTrackingDevice(int companyID, int userDeviceID, string deviceAddress, string deviceType, int messageListID = 0) {
@@ -511,19 +510,19 @@ public class MessageRepository : IMessageRepository {
     }
 
     public async Task SendConfirmationText(int CompanyId, int UserId, int MessageListId) {
-        
+
         try {
             var user = (from U in _context.Set<User>() where U.UserId == UserId && U.CompanyId == CompanyId select U).FirstOrDefault();
             if (user != null) {
 
                 string SMS_API = await _DBC.GetCompanyParameter("SMS_API", CompanyId);
                 string CoPilotSid = await _DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", CompanyId);
-                string FromNumber =await _DBC.GetCompanyParameter(SMS_API + "_FROM_NUMBER", CompanyId);
-                string TextMessageXML =await _DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
+                string FromNumber = await _DBC.GetCompanyParameter(SMS_API + "_FROM_NUMBER", CompanyId);
+                string TextMessageXML = await _DBC.LookupWithKey(SMS_API + "_SMS_CALLBACK_URL");
 
-                string sendDirect =await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION");
+                string sendDirect = await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION");
 
-                bool SendInDirect =await _DBC.IsTrue(sendDirect, false);
+                bool SendInDirect = await _DBC.IsTrue(sendDirect, false);
 
                 dynamic CommsAPI = _CH.InitComms(SMS_API);
 
@@ -666,15 +665,17 @@ public class MessageRepository : IMessageRepository {
         var pTargetUserId = new SqlParameter("@UserID", currentUserId);
         var pCompanyID = new SqlParameter("@CompanyID", companyId);
 
-        var result = _context.Set<IPingMessage>().FromSqlRaw("exec Pro_User_Ping_Notifications @UserID, @CompanyID",
-            pTargetUserId, pCompanyID).ToListAsync().Result.Select(c => {
-                c.AckOptions = new List<AckOption>(_context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
-                      new AckOption() {
-                          ResponseId = n.ResponseId,
-                          ResponseLabel = n.ResponseLabel,
-                      }).ToList());
-                return c;
-            }).ToList();
+        var result = await _context.Set<IPingMessage>().FromSqlRaw("exec Pro_User_Ping_Notifications @UserID, @CompanyID",
+            pTargetUserId, pCompanyID).ToListAsync();
+
+        result.Select(c => {
+            c.AckOptions = new List<AckOption>(_context.Set<ActiveMessageResponse>().Where(AK => AK.MessageId == c.MessageId && c.MultiResponse == true).Select(n =>
+                  new AckOption() {
+                      ResponseId = n.ResponseId,
+                      ResponseLabel = n.ResponseLabel,
+                  }).ToList());
+            return c;
+        }).ToList();
 
         return result;
 
@@ -853,44 +854,37 @@ public class MessageRepository : IMessageRepository {
         //}
     }
 
-    public async Task<object> GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId)
-    {
+    public async Task<object> GetConfRecordings(int confCallId, int objectId, string objectType, bool single, int companyId) {
         CommonDTO ResultDTO = new CommonDTO();
 
         try {
             objectType = objectType.ToUpper();
-            if (confCallId <= 0)
-            {
+            if (confCallId <= 0) {
                 var recordings = await (from CH in _context.Set<ConferenceCallLogHeader>()
-                                  join U in _context.Set<User>() on CH.InitiatedBy equals U.UserId
-                                  where CH.CompanyId == currentCompanyId && CH.TargetObjectId == objectId && CH.TargetObjectName == objectType
-                                  select new {
-                                      CH,
-                                      U.FirstName,
-                                      U.LastName,
-                                      ConferenceStart = CH.ConfrenceStart != null ? CH.ConfrenceStart : CH.CreatedOn,
-                                      ConferenceEnd = CH.ConfrenceEnd != null ? CH.ConfrenceEnd : CH.CreatedOn
-                                  }).ToListAsync();
+                                        join U in _context.Set<User>() on CH.InitiatedBy equals U.UserId
+                                        where CH.CompanyId == currentCompanyId && CH.TargetObjectId == objectId && CH.TargetObjectName == objectType
+                                        select new {
+                                            CH,
+                                            U.FirstName,
+                                            U.LastName,
+                                            ConferenceStart = CH.ConfrenceStart != null ? CH.ConfrenceStart : CH.CreatedOn,
+                                            ConferenceEnd = CH.ConfrenceEnd != null ? CH.ConfrenceEnd : CH.CreatedOn
+                                        }).ToListAsync();
 
                 return recordings;
-            }
-            else if (confCallId > 0 && single == true)
-            {
-                var recording = await  _context.Set<ConferenceCallLogHeader>()
-                                 .Where(CH=> CH.ConferenceCallId == confCallId).FirstOrDefaultAsync();
-                if (recording != null)
-                {
-                    if (recording.RecordingSid != null)
-                    {
+            } else if (confCallId > 0 && single == true) {
+                var recording = await _context.Set<ConferenceCallLogHeader>()
+                                 .Where(CH => CH.ConferenceCallId == confCallId).FirstOrDefaultAsync();
+                if (recording != null) {
+                    if (recording.RecordingSid != null) {
 
                         await _DBC.connectUNCPath();
 
                         string RecordingPath = await _DBC.LookupWithKey("RECORDINGS_PATH");
                         string SavePath = @RecordingPath + "\\" + recording.CompanyId + "\\";
 
-                        if (!File.Exists(@SavePath + recording.RecordingSid + ".mp3"))
-                        {
-                           await DownloadRecording(recording.RecordingSid, recording.CompanyId, recording.RecordingUrl);
+                        if (!File.Exists(@SavePath + recording.RecordingSid + ".mp3")) {
+                            await DownloadRecording(recording.RecordingSid, recording.CompanyId, recording.RecordingUrl);
                         }
                     }
                 }
@@ -920,12 +914,10 @@ public class MessageRepository : IMessageRepository {
         }
     }
 
-    public async Task DownloadRecording(string recordingSid, int companyId, string recordingUrl)
-    {
-        try
-        {
+    public async Task DownloadRecording(string recordingSid, int companyId, string recordingUrl) {
+        try {
             int RetryCount = 2;
-            string RecordingPath =await _DBC.LookupWithKey("RECORDINGS_PATH");
+            string RecordingPath = await _DBC.LookupWithKey("RECORDINGS_PATH");
             int.TryParse(await _DBC.LookupWithKey("TWILIO_MESSAGE_RETRY_COUNT"), out RetryCount);
             string SavePath = @RecordingPath + "\\" + companyId + "\\";
 
@@ -937,8 +929,8 @@ public class MessageRepository : IMessageRepository {
             try {
                 WebClient Client = new WebClient();
                 bool confdownloaded = false;
-                bool SendInDirect =await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
-                string RoutingApi =await _DBC.LookupWithKey("TWILIO_ROUTING_API");
+                bool SendInDirect = await _DBC.IsTrue(await _DBC.LookupWithKey("TWILIO_USE_INDIRECT_CONNECTION"), false);
+                string RoutingApi = await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
                 for (int i = 0; i < RetryCount; i++) {
                     try {
@@ -959,14 +951,10 @@ public class MessageRepository : IMessageRepository {
                         _CH.DeleteRecording(recordingSid);
                     }
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw ex;
             }
-        }
-        catch (WebException ex)
-        {
+        } catch (WebException ex) {
             throw ex;
         }
     }
@@ -1116,26 +1104,18 @@ GO
         }
     }
 
-    public async Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId)
-    {
-        try
-        {
+    public async Task<List<PublicAlertRtn>> GetPublicAlert(int companyId, int targetUserId) {
+        try {
             return await _PH.GetPublicAlert(companyId, targetUserId);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             throw ex;
         }
     }
 
-    public async Task<dynamic> GetPublicAlertTemplate(int templateId, int userId, int companyId)
-    {
-        try
-        {
-            return await  _PH.GetPublicAlertTemplate(templateId, userId, companyId);
-        }
-        catch (Exception ex)
-        {
+    public async Task<dynamic> GetPublicAlertTemplate(int templateId, int userId, int companyId) {
+        try {
+            return await _PH.GetPublicAlertTemplate(templateId, userId, companyId);
+        } catch (Exception ex) {
             throw ex;
         }
     }
@@ -1156,14 +1136,10 @@ GO
         }
     }
 
-    public async Task<dynamic> ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId)
-    {
-        try
-        {
+    public async Task<dynamic> ProcessPAFile(string userListFile, bool hasHeader, int emailColIndex, int phoneColIndex, int postcodeColIndex, int latColIndex, int longColIndex, string sessionId) {
+        try {
             return await _PH.ProcessPAFile(userListFile, hasHeader, emailColIndex, phoneColIndex, postcodeColIndex, latColIndex, longColIndex, sessionId);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             throw ex;
         }
     }
@@ -1205,17 +1181,16 @@ GO
         }
     }
 
-    public async Task<Return> UploadAttachment()
-    {
+    public async Task<Return> UploadAttachment() {
         string ServerUploadFolder = "C:\\Temp\\";
         int iUploadedCnt = 0;
         string FileName = string.Empty;
         try {
 
-            string AttachmentSavePath =await _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
-            string AttachmentUncUser =await _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
-            string AttachmentUncPwd =await _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
-            string AttachmentUseUnc =await _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
+            string AttachmentSavePath = await _DBC.LookupWithKey("ATTACHMENT_SAVE_PATH");
+            string AttachmentUncUser = await _DBC.LookupWithKey("ATTACHMENT_UNC_USER");
+            string AttachmentUncPwd = await _DBC.LookupWithKey("ATTACHMENT_UNC_PWD");
+            string AttachmentUseUnc = await _DBC.LookupWithKey("ATTACHMENT_USE_UNC");
             ServerUploadFolder = await _DBC.LookupWithKey("UPLOAD_PATH");
 
             await _DBC.connectUNCPath(AttachmentSavePath, AttachmentUncUser, AttachmentUncPwd, AttachmentUseUnc);

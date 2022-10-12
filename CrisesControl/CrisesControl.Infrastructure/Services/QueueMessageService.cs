@@ -20,33 +20,40 @@ using System.Text;
 using System.Threading.Tasks;
 using CrisesControl.Core.DBCommon.Repositories;
 using CrisesControl.Core.Messages.Services;
+using Quartz;
+using CrisesControl.Infrastructure.Services.Jobs;
 
 namespace CrisesControl.Infrastructure.Services;
 
-public class QueueMessageService : IQueueMessageService
-{
+public class QueueMessageService : IQueueMessageService {
     private readonly IMapper _mapper;
     private readonly ISettingsRepository _settingsRepository;
+    private ISchedulerFactory _schedulerFactory;
     static string ServiceHost = string.Empty;
     public static string RabbitVirtualHost = "/";
-    public static CrisesControlContext db;
-    private static IHttpContextAccessor _httpContextAccessor = new HttpContextAccessor();
-    private static IDBCommonRepository _DBC;
-    private static IMessageService _MSG;
+    public readonly CrisesControlContext _db;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IDBCommonRepository _DBC;
+    private readonly IMessageService _MSG;
 
-    public QueueMessageService(IMapper mapper,
-        ISettingsRepository settingsRepository)
-    {
+    public QueueMessageService(CrisesControlContext db,
+        IMapper mapper,
+        ISettingsRepository settingsRepository,
+        ISchedulerFactory schedulerFactory,
+        IDBCommonRepository DBC,
+        IMessageService MSG) {
+        _db = db;
         _mapper = mapper;
         _settingsRepository = settingsRepository;
+        _schedulerFactory = schedulerFactory;
+        _DBC = DBC;
+        _MSG = MSG;
     }
 
-    public T GetMessage<T>(MessageQueueItem baseMessage) where T : MessageQueueItem
-    {
+    public T GetMessage<T>(MessageQueueItem baseMessage) where T : MessageQueueItem {
         var initialValue = _mapper.Map<T>(baseMessage);
 
-        switch (initialValue)
-        {
+        switch (initialValue) {
             case TextMessage textMessage:
                 FillText(ref textMessage);
                 break;
@@ -64,16 +71,14 @@ public class QueueMessageService : IQueueMessageService
         return initialValue;
     }
 
-    private void FillText(ref TextMessage baseText)
-    {
+    private void FillText(ref TextMessage baseText) {
         baseText.TaskURL = _settingsRepository.GetSetting("INCIDENT_TASK_URL");
         baseText.TaskURLLabel = _settingsRepository.GetSetting("TASK_URL_LABEL");
 
         baseText.UseCopilot = Convert.ToBoolean(_settingsRepository.GetSetting("USE_MESSAGING_COPILOT"));
     }
 
-    private void FillEmail(ref EmailMessage baseEmail)
-    {
+    private void FillEmail(ref EmailMessage baseEmail) {
         baseEmail.TwitterPage = _settingsRepository.GetSetting("CC_TWITTER_PAGE");
         baseEmail.TwitterIcon = _settingsRepository.GetSetting("CC_TWITTER_ICON");
         baseEmail.FacebookPage = _settingsRepository.GetSetting("CC_FB_PAGE");
@@ -97,8 +102,7 @@ public class QueueMessageService : IQueueMessageService
         baseEmail.Office365Host = _settingsRepository.GetSetting("OFFICE365_HOST");
     }
 
-    private void FillPush(ref PushMessage basePush)
-    {
+    private void FillPush(ref PushMessage basePush) {
         basePush.AppleCertPwd = _settingsRepository.GetSetting("APPLECERPWD");
         basePush.AppleCertPath = _settingsRepository.GetSetting("APPLECERTPATH");
         basePush.ApplePushMode = Convert.ToBoolean(_settingsRepository.GetSetting("APPLEPUSHMODE"));
@@ -112,15 +116,12 @@ public class QueueMessageService : IQueueMessageService
         basePush.WinClientSecret = _settingsRepository.GetSetting("WINDESK_CLIENT_SECRET");
     }
 
-    private void FillPhone(ref PhoneMessage basePhone)
-    {
+    private void FillPhone(ref PhoneMessage basePhone) {
         //TODO: Nothing to fill. Find
     }
-    public async Task MessageDeviceQueue(int messageID, string messageType, int priority, int cascadePlanID = 0)
-    {
+    public async Task MessageDeviceQueue(int messageID, string messageType, int priority, int cascadePlanID = 0) {
 
-        try
-        {
+        try {
 
             var pMessageId = new SqlParameter("@MessageID", messageID);
             var pMessageType = new SqlParameter("@MessageType", messageType);
@@ -134,57 +135,49 @@ public class QueueMessageService : IQueueMessageService
 
             // _DBC.LocalException(MessageID.ToString(), sp_name, Priority.ToString());
 
-            var List = await db.Database.ExecuteSqlRawAsync(sp_name + " @MessageID, @MessageType, @Priority", pMessageId, pMessageType, pPriority);
+            var List = await _db.Database.ExecuteSqlRawAsync(sp_name + " @MessageID, @MessageType, @Priority", pMessageId, pMessageType, pPriority);
 
-           await Task.Factory.StartNew(() => MessageDevicePublish(messageID, 1, ""));
+            await MessageDevicePublish(messageID, 1, "");
 
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             throw ex;
         }
     }
 
-    public async Task MessageDevicePublish(int messageID, int priority, string method = "")
-    {
+    public async Task MessageDevicePublish(int messageID, int priority, string method = "") {
 
-        try
-        {
-            var rabbithosts = RabbitHosts(out RabbitVirtualHost);
+        try {
+            //var rabbithosts = RabbitHosts(out RabbitVirtualHost);
             List<Task> queuetask = new List<Task>();
             //Task temail = null; Task tpush = null; Task tphone = null; Task ttext = null; Task twhatsapp = null;
 
-            if (method == "" || method == "EMAIL")
-            {
+            if (method == "" || method == "EMAIL") {
                 //Console.WriteLine("Publishing messages for " + Method);
-                var temail = await Task.Factory.StartNew(() => PublishMessageQueue(messageID, rabbithosts, "EMAIL", null, priority));
+                var temail = PublishMessageQueueJob(messageID, "EMAIL", priority);
                 if (temail != null)
                     queuetask.Add(temail);
             }
 
 
-            if (method == "" || method == "PUSH")
-            {
+            if (method == "" || method == "PUSH") {
                 //Console.WriteLine("Publishing messages for " + Method);
-                var tpush = Task.Factory.StartNew(() => PublishMessageQueue(messageID, rabbithosts, "PUSH", null, priority));
+                var tpush = PublishMessageQueueJob(messageID, "PUSH", priority);
                 if (tpush != null)
                     queuetask.Add(tpush);
             }
 
 
-            if (method == "" || method == "PHONE")
-            {
+            if (method == "" || method == "PHONE") {
                 //Console.WriteLine("Publishing messages for " + Method);
-                var tphone = Task.Factory.StartNew(() => PublishMessageQueue(messageID, rabbithosts, "PHONE", null, priority));
+                var tphone = PublishMessageQueueJob(messageID, "PHONE", priority);
                 if (tphone != null)
                     queuetask.Add(tphone);
             }
 
 
-            if (method == "" || method == "TEXT")
-            {
+            if (method == "" || method == "TEXT") {
                 //Console.WriteLine("Publishing messages for " + Method);
-                var ttext = Task.Factory.StartNew(() => PublishMessageQueue(messageID, rabbithosts, "TEXT", null, priority));
+                var ttext  = PublishMessageQueueJob(messageID, "TEXT", priority);
                 if (ttext != null)
                     queuetask.Add(ttext);
             }
@@ -202,15 +195,11 @@ public class QueueMessageService : IQueueMessageService
 
             Task[] tasksArray = queuetask.Where(t => t != null).ToArray();
 
-            if (tasksArray.Length > 0)
-            {
-                Task.WaitAll(tasksArray.ToArray());
-                foreach (Task tsk in tasksArray)
-                {
-                    if (tsk != null)
-                    {
-                        if (tsk.IsCompleted)
-                        {
+            if (tasksArray.Length > 0) {
+                await Task.WhenAll(tasksArray.ToArray());
+                foreach (Task tsk in tasksArray) {
+                    if (tsk != null) {
+                        if (tsk.IsCompleted) {
                             //DBC.CreateLog("INFO", tsk.Id + " for messageid " + MessageID + " is " + tsk.Status);
                             if (tsk != null)
                                 tsk.Dispose();
@@ -218,27 +207,50 @@ public class QueueMessageService : IQueueMessageService
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             throw ex;
         }
     }
+
+    public async Task PublishMessageQueueJob(int messageID, string method, int priority = 1) {
+
+        IScheduler _scheduler = await _schedulerFactory.GetScheduler();
+
+        string jobName = "PUBLISH_MESSAGE_QUEUE_" + messageID + "_" + method + priority;
+        string taskTrigger = "PUBLISH_MESSAGE_QUEUE_" + messageID + "_" + method + priority;
+
+        IJobDetail jobDetail = JobBuilder.Create<PublishMessageQueueJob>().WithIdentity(jobName, "PUBLISH_MESSAGE_QUEUE").Build();
+
+        jobDetail.JobDataMap["MessageID"] = messageID;
+        jobDetail.JobDataMap["Priority"] = priority;
+        jobDetail.JobDataMap["Method"] = method;
+
+
+        ITrigger trigger = TriggerBuilder.Create()
+                .WithIdentity(taskTrigger, "PUBLISH_MESSAGE_QUEUE")
+                //.StartAt(DateTime.Now.AddSeconds(ScheduleInterval))
+                .StartNow()
+                .Build();
+
+        await _scheduler.ScheduleJob(jobDetail, trigger);
+        if (!_scheduler.IsStarted) {
+            await _scheduler.Start();
+        }
+    }
+
+
     public async Task<bool> PublishMessageQueue(int messageID, List<string> rabbitHost, string method,
-       dynamic devicelist = null, int priority = 1)
-    {
+       dynamic devicelist = null, int priority = 1) {
 
 
-        try
-        {
+        try {
             await _MSG.CreateProcessQueue(messageID, "", method, "CONFIRM", 99);
 
             string RabbitMQUser = await _DBC.LookupWithKey("RABBITMQ_USER");
             string RabbitMQPassword = await _DBC.LookupWithKey("RABBITMQ_PASSWORD");
             string RabbitVirtualHosts = await _DBC.LookupWithKey("RABBITMQ_VIRTUAL_HOST");
             ushort RabbitMQHeartBeat = Convert.ToUInt16(await _DBC.LookupWithKey("RABBIT_HEARTBEAT_CHECK"));
-            var factory = new ConnectionFactory()
-            {
+            var factory = new ConnectionFactory() {
                 AutomaticRecoveryEnabled = true,
                 TopologyRecoveryEnabled = true,
                 NetworkRecoveryInterval = new TimeSpan(0, 0, 15),
@@ -249,8 +261,7 @@ public class QueueMessageService : IQueueMessageService
             };
 
             using (var connection = factory.CreateConnection(rabbitHost))
-            using (var model = connection.CreateModel())
-            {
+            using (var model = connection.CreateModel()) {
                 string exchange_name = await _DBC.LookupWithKey("RABBITMQ_QUEUE_EXCHANGE");
                 model.ExchangeDeclare(exchange: exchange_name, type: "direct", durable: true, autoDelete: false);
 
@@ -259,17 +270,13 @@ public class QueueMessageService : IQueueMessageService
                 properties.DeliveryMode = 2;
 
                 List<MessageQueueItem> device_list = new List<MessageQueueItem>();
-                if (devicelist != null)
-                {
+                if (devicelist != null) {
                     device_list = devicelist;
-                }
-                else
-                {
-                    device_list = await  GetDeviceQueue(messageID, method, 0, priority);
+                } else {
+                    device_list = await GetDeviceQueue(messageID, method, 0, priority);
                 }
 
-                if (device_list.Count > 0)
-                {
+                if (device_list.Count > 0) {
                     bool OneTimeParams = false, SEND_ORIGINAL_TEXT = false,
                         ALLOW_ACKNOWLEDGE_PING = true, ALLOW_ACKNOWLEDGE_INCIDENT = true, INCLUDE_SENDER_IN_SMS = true, CommsDebug = true,
                         AllowPingAckByWA = false, AllowIncidentAckbByWA = false, IncludeSenderInWA = false, SendInDirect = false;
@@ -303,15 +310,11 @@ public class QueueMessageService : IQueueMessageService
                     int DeviceCount = device_list.Count;
 
 
-                    if (DeviceCount <= MinItemInQueue)
-                    {
+                    if (DeviceCount <= MinItemInQueue) {
                         QueueSize = Math.Ceiling((double)(DeviceCount / 1));
-                    }
-                    else
-                    {
+                    } else {
                         double TmpMaxQueueNumber = DeviceCount / MinItemInQueue;
-                        if (TmpMaxQueueNumber < MaxQueueNumber)
-                        {
+                        if (TmpMaxQueueNumber < MaxQueueNumber) {
                             MaxQueueNumber = TmpMaxQueueNumber;
                             //Math.Ceiling((double)(DeviceCount / MinItemInQueue));
                         }
@@ -323,24 +326,15 @@ public class QueueMessageService : IQueueMessageService
 
                     TwilioRoutingApi = await _DBC.LookupWithKey("TWILIO_ROUTING_API");
 
-                    if (method.ToUpper() == "EMAIL")
-                    {
+                    if (method.ToUpper() == "EMAIL") {
                         emailitem = await ParamsHelper.GetEmailParams();
-                    }
-                    else if (method.ToUpper() == "PUSH")
-                    {
+                    } else if (method.ToUpper() == "PUSH") {
                         pushitem = await ParamsHelper.GetPushParams();
-                    }
-                    else if (method.ToUpper() == "TEXT")
-                    {
+                    } else if (method.ToUpper() == "TEXT") {
                         textitem = await ParamsHelper.GetTextParams();
-                    }
-                    else if (method.ToUpper() == "PHONE")
-                    {
+                    } else if (method.ToUpper() == "PHONE") {
                         phoneitem = ParamsHelper.GetPhoneParams();
-                    }
-                    else if (method.ToUpper() == "WHATSAPP")
-                    {
+                    } else if (method.ToUpper() == "WHATSAPP") {
                         waitem = await ParamsHelper.GetWhatsAppParams();
                     }
 
@@ -355,35 +349,29 @@ public class QueueMessageService : IQueueMessageService
                     string CurrentPushType = "";
                     string tmproutingKey = "";
 
-                    if (method.ToUpper() != "PUSH")
-                    {
+                    if (method.ToUpper() != "PUSH") {
                         MessageQueueItem tmpitem = new MessageQueueItem();
                         tmpitem.Status = "SKIP";
                         string tmpmessage = JsonConvert.SerializeObject(tmpitem);
                         var tmpbody = Encoding.UTF8.GetBytes(tmpmessage);
                         tmproutingKey = method.ToLower() + "_" + QueueCount;
 
-                        try
-                        {
+                        try {
                             model.QueueDeclare(queue: tmproutingKey, durable: true, exclusive: false, autoDelete: false);
                             model.QueueBind(queue: tmproutingKey, exchange: exchange_name, routingKey: tmproutingKey);
                             model.BasicPublish(exchange: exchange_name, routingKey: tmproutingKey, basicProperties: properties, body: tmpbody);
                             RoutingKeys.Add(tmproutingKey);
-                        }
-                        catch (Exception ex)
-                        {
+                        } catch (Exception ex) {
                             throw ex;
                         }
                         QueueCount++;
                     }
 
-                    foreach (var item in device_list)
-                    {
+                    foreach (var item in device_list) {
                         item.CommsDebug = CommsDebug;
 
                         if ((string.IsNullOrEmpty(item.ISDCode) || string.IsNullOrEmpty(item.MobileNo))
-                            && (method.ToUpper() == "PHONE" || method.ToUpper() == "TEXT"))
-                        {
+                            && (method.ToUpper() == "PHONE" || method.ToUpper() == "TEXT")) {
                             continue;
                         }
 
@@ -391,31 +379,23 @@ public class QueueMessageService : IQueueMessageService
                         //    continue;
                         //}
 
-                        if (!OneTimeParams)
-                        {
+                        if (!OneTimeParams) {
                             SIMULATION_TEXT = await _DBC.GetCompanyParameter("INCIDENT_SIMULATION_TEXT", item.CompanyId);
                             PHONE_SIMULATION_MESSAGE = await _DBC.GetCompanyParameter("INCIDENT_SIMULATION_PHONE", item.CompanyId);
 
 
-                            if (method.ToUpper() == "EMAIL")
-                            {
+                            if (method.ToUpper() == "EMAIL") {
                                 OneClickAck = await _DBC.GetCompanyParameter("ONE_CLICK_EMAIL_ACKNOWLEDGE", item.CompanyId);
                                 EmailProvider = await _DBC.GetCompanyParameter("EMAIL_PROVIDER", item.CompanyId);
                                 emailitem.OneClickAcknowledge = OneClickAck;
                                 emailitem.EmailProvider = EmailProvider;
 
-                            }
-                            else if (method.ToUpper() == "PHONE" || method.ToUpper() == "TEXT")
-                            {
-                                if (method.ToUpper() == "PHONE")
-                                {
+                            } else if (method.ToUpper() == "PHONE" || method.ToUpper() == "TEXT") {
+                                if (method.ToUpper() == "PHONE") {
                                     string VOICE_API = await _DBC.GetCompanyParameter("VOICE_API", item.CompanyId);
-                                    if (VOICE_API == "UNIFONIC")
-                                    {
+                                    if (VOICE_API == "UNIFONIC") {
                                         VoiceClientId = await _DBC.GetCompanyParameter(VOICE_API + "_PHONE_CLIENTID", item.CompanyId);
-                                    }
-                                    else
-                                    {
+                                    } else {
                                         VoiceClientId = await _DBC.LookupWithKey(VOICE_API + "_CLIENTID");
                                     }
 
@@ -429,17 +409,13 @@ public class QueueMessageService : IQueueMessageService
                                     phoneitem.VoiceAPI = VOICE_API;
                                 }
 
-                                if (method.ToUpper() == "TEXT")
-                                {
+                                if (method.ToUpper() == "TEXT") {
                                     string SMS_API = await _DBC.GetCompanyParameter("SMS_API", item.CompanyId);
                                     string MESSAGING_COPILOT_SID = await _DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", item.CompanyId);
-                                    if (SMS_API == "UNIFONIC")
-                                    {
+                                    if (SMS_API == "UNIFONIC") {
                                         SMSClientId = await _DBC.GetCompanyParameter(SMS_API + "_CLIENTID", item.CompanyId);
                                         SMSClientSecret = await _DBC.GetCompanyParameter(SMS_API + "_CLIENT_SECRET", item.CompanyId);
-                                    }
-                                    else
-                                    {
+                                    } else {
                                         SMSClientId = await _DBC.LookupWithKey(SMS_API + "_CLIENTID");
                                         SMSClientSecret = await _DBC.LookupWithKey(SMS_API + "_CLIENT_SECRET");
                                     }
@@ -460,26 +436,22 @@ public class QueueMessageService : IQueueMessageService
                                 phoneitem.SendInDirect = SendInDirect; phoneitem.TwilioRoutingApi = TwilioRoutingApi;
                             }
 
-                            if (method.ToUpper() == "TEXT" || method.ToUpper() == "WHATSAPP")
-                            {
-                                SEND_ORIGINAL_TEXT = Convert.ToBoolean(_DBC.GetCompanyParameter("SEND_ORIGINAL_TEXT", item.CompanyId));
+                            if (method.ToUpper() == "TEXT" || method.ToUpper() == "WHATSAPP") {
+                                SEND_ORIGINAL_TEXT = Convert.ToBoolean(await _DBC.GetCompanyParameter("SEND_ORIGINAL_TEXT", item.CompanyId));
                                 ReplyToNumber = await _DBC.GetCompanyParameter("REPLY_TO_NUMBER", item.CompanyId);
 
                                 GENERIC_TEXT = await _DBC.GetCompanyParameter("MESSAGE_TEXT_GENERIC", item.CompanyId);
 
-                                if (method.ToUpper() == "WHATSAPP")
-                                {
+                                if (method.ToUpper() == "WHATSAPP") {
                                     AllowPingAckByWA = Convert.ToBoolean(await _DBC.GetCompanyParameter("SEND_ORIGINAL_WATEXT", item.CompanyId)); ;
                                     AllowIncidentAckbByWA = Convert.ToBoolean(await _DBC.GetCompanyParameter("SEND_ORIGINAL_WATEXT", item.CompanyId)); ;
                                     IncludeSenderInWA = Convert.ToBoolean(await _DBC.GetCompanyParameter("SEND_ORIGINAL_WATEXT", item.CompanyId)); ;
                                     waitem.AllowIncidentAckbByWA = AllowIncidentAckbByWA; waitem.AllowPingAckByWA = AllowPingAckByWA;
                                     waitem.IncludeSenderInWA = IncludeSenderInWA;
-                                }
-                                else
-                                {
-                                    ALLOW_ACKNOWLEDGE_PING = Convert.ToBoolean(_DBC.GetCompanyParameter("ALLOW_PING_ACK_BY_TEXT", item.CompanyId));
-                                    ALLOW_ACKNOWLEDGE_INCIDENT = Convert.ToBoolean(_DBC.GetCompanyParameter("ALLOW_INCI_ACK_BY_TEXT", item.CompanyId));
-                                    INCLUDE_SENDER_IN_SMS = Convert.ToBoolean(_DBC.GetCompanyParameter("INC_SENDER_IN_SMS", item.CompanyId));
+                                } else {
+                                    ALLOW_ACKNOWLEDGE_PING = Convert.ToBoolean(await _DBC.GetCompanyParameter("ALLOW_PING_ACK_BY_TEXT", item.CompanyId));
+                                    ALLOW_ACKNOWLEDGE_INCIDENT = Convert.ToBoolean(await _DBC.GetCompanyParameter("ALLOW_INCI_ACK_BY_TEXT", item.CompanyId));
+                                    INCLUDE_SENDER_IN_SMS = Convert.ToBoolean(await _DBC.GetCompanyParameter("INC_SENDER_IN_SMS", item.CompanyId));
                                     textitem.SendOriginalText = SEND_ORIGINAL_TEXT; textitem.AllowPingAckByText = ALLOW_ACKNOWLEDGE_PING;
                                     textitem.AllowIncidentAckbByText = ALLOW_ACKNOWLEDGE_INCIDENT; textitem.IncludeSenderInText = INCLUDE_SENDER_IN_SMS;
                                     textitem.GenericText = GENERIC_TEXT; textitem.ReplyToNumber = ReplyToNumber;
@@ -487,93 +459,63 @@ public class QueueMessageService : IQueueMessageService
                             }
                             newAckOption = await _DBC.GetAckOptions(messageID);
                             OneTimeParams = true;
-                        }
-                        else if (method.ToUpper() == "PUSH")
-                        {
+                        } else if (method.ToUpper() == "PUSH") {
                             int.TryParse(await _DBC.GetCompanyParameter("TRACKING_DURATION", item.CompanyId), out TrackingDuration);
                             pushitem.TrackingDuration = TrackingDuration;
                         }
 
-                        if (item.MessageText == "NOMSG" && item.ParentID > 0)
-                        {
+                        if (item.MessageText == "NOMSG" && item.ParentID > 0) {
 
-                            string msg = await db.Set<Message>().Where(w => w.MessageId == item.ParentID).Select(s => s.MessageText).FirstOrDefaultAsync(); ;
-                            if (msg != null)
-                            {
+                            var msg = await _db.Set<Message>().Where(w => w.MessageId == item.ParentID).Select(s => s.MessageText).FirstOrDefaultAsync(); ;
+                            if (msg != null) {
                                 item.MessageText = msg;
                             }
 
                         }
 
 
-                        if (item.TransportType.ToUpper() == "SIMULATION" && method.ToUpper() == "PHONE")
-                        {
+                        if (item.TransportType.ToUpper() == "SIMULATION" && method.ToUpper() == "PHONE") {
                             item.MessageText = PHONE_SIMULATION_MESSAGE + " " + item.MessageText;
-                        }
-                        else if (item.TransportType.ToUpper() == "SIMULATION" && method.ToUpper() != "PHONE")
-                        {
+                        } else if (item.TransportType.ToUpper() == "SIMULATION" && method.ToUpper() != "PHONE") {
                             item.MessageText = SIMULATION_TEXT + " " + item.MessageText;
-                        }
-                        else
-                        {
+                        } else {
                             item.MessageText = item.MessageText;
                         }
 
 
                         string message = "";
-                        if (method.ToUpper() == "EMAIL")
-                        {
+                        if (method.ToUpper() == "EMAIL") {
                             message = ParamsHelper.MergeEmailParams(emailitem, item);
-                        }
-                        else if (method.ToUpper() == "PHONE")
-                        {
+                        } else if (method.ToUpper() == "PHONE") {
                             phoneitem.FromNumber = await _DBC.GetValueByIndex(FromNumberList, item.Attempt);
                             message = ParamsHelper.MergePhoneParams(phoneitem, item);
-                        }
-                        else if (method.ToUpper() == "TEXT")
-                        {
+                        } else if (method.ToUpper() == "TEXT") {
                             message = ParamsHelper.MergeTextParams(textitem, item);
-                        }
-                        else if (method.ToUpper() == "PUSH")
-                        {
+                        } else if (method.ToUpper() == "PUSH") {
                             pushitem.AckOptions = newAckOption;
                             message = ParamsHelper.MergePushParams(pushitem, item);
-                        }
-                        else if (method.ToUpper() == "WHATSAPP")
-                        {
+                        } else if (method.ToUpper() == "WHATSAPP") {
                             message = ParamsHelper.MergeWAParams(waitem, item);
                         }
 
 
                         var body = Encoding.UTF8.GetBytes(message);
 
-                        if (method.ToUpper() == "PUSH")
-                        {
-                            if (item.DeviceType.Contains("Android"))
-                            {
+                        if (method.ToUpper() == "PUSH") {
+                            if (item.DeviceType.Contains("Android")) {
                                 push_type = "android";
-                            }
-                            else if (item.DeviceType.Contains("iPad") || item.DeviceType.Contains("iPhone") || item.DeviceType.Contains("iPod"))
-                            {
+                            } else if (item.DeviceType.Contains("iPad") || item.DeviceType.Contains("iPhone") || item.DeviceType.Contains("iPod")) {
                                 push_type = "ios";
-                            }
-                            else if (item.DeviceType.Contains("WindowsDesktop"))
-                            {
+                            } else if (item.DeviceType.Contains("WindowsDesktop")) {
                                 push_type = "windowsdesktop";
-                            }
-                            else if (item.DeviceType.Contains("Windows"))
-                            {
+                            } else if (item.DeviceType.Contains("Windows")) {
                                 push_type = "windows";
-                            }
-                            else if (item.DeviceType.Contains("Blackberry"))
-                            {
+                            } else if (item.DeviceType.Contains("Blackberry")) {
                                 push_type = "blackberry";
                             }
                             //routingKey = Method.ToLower() + "_" + push_type + "_" + MessageID;
                             routingKey = push_type + "_push";
-                        }
-                        else
-                        {
+                        } else {
                             //routingKey = Method.ToLower() + "_" + MessageID;
                             routingKey = method.ToLower();
                         }
@@ -583,43 +525,34 @@ public class QueueMessageService : IQueueMessageService
 
                         tmproutingKey = routingKey + "_" + QueueCount;
 
-                        if (!RoutingKeys.Contains(tmproutingKey) || QueueItemCount == QueueSize || CurrentPushType != push_type)
-                        {
+                        if (!RoutingKeys.Contains(tmproutingKey) || QueueItemCount == QueueSize || CurrentPushType != push_type) {
                             //Dictionary<string, object> args = new Dictionary<string, object>();
                             //args.Add("x-queue-mode", "lazy");
                             QueueCount++;
                             routingKey = routingKey + "_" + QueueCount;
                             //var rqueue = model.QueueDeclare(queue: routingKey, durable: true, exclusive: false, autoDelete: false, arguments: args);
-                            try
-                            {
+                            try {
                                 model.QueueDeclare(queue: routingKey, durable: true, exclusive: false, autoDelete: false);
                                 model.QueueBind(queue: routingKey, exchange: exchange_name, routingKey: routingKey);
                                 RoutingKeys.Add(routingKey);
-                            }
-                            catch (Exception ex)
-                            {
+                            } catch (Exception ex) {
                                 throw ex;
                             }
 
                             await _DBC.MessageProcessLog(messageID, "MESSAGE_QUEUE_PUBLISHING", method, routingKey, "Count: " + QueueItemCount);
 
                             QueueItemCount = 0;
-                        }
-                        else
-                        {
+                        } else {
                             routingKey = routingKey + "_" + QueueCount;
                         }
 
                         CurrentPushType = push_type;
 
-                        try
-                        {
+                        try {
                             model.BasicPublish(exchange: exchange_name, routingKey: routingKey, basicProperties: properties, body: body);
                             PublishCount++;
                             QueueItemCount++;
-                        }
-                        catch (Exception ex)
-                        {
+                        } catch (Exception ex) {
                             throw ex;
                         }
                     }
@@ -627,9 +560,7 @@ public class QueueMessageService : IQueueMessageService
                 }
             }
             return true;
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
 
             await _MSG.CreateProcessQueue(messageID, "", method, "REQUEUE", 999);
             // MessageHelpers.Common CMN = new MessageHelpers.Common();
@@ -637,20 +568,17 @@ public class QueueMessageService : IQueueMessageService
             return false;
         }
     }
-    public List<string> RabbitHosts(out string VirtualHost)
-    {
+    public List<string> RabbitHosts(out string VirtualHost) {
 
-        string RabbitHost = _DBC.LookupWithKey("RABBITMQ_HOST").ToString();
-        VirtualHost = _DBC.LookupWithKey("RABBITMQ_VIRTUAL_HOST").ToString();
+        string RabbitHost = _DBC.LookupWithKey("RABBITMQ_HOST").Result.ToString();
+        VirtualHost = _DBC.LookupWithKey("RABBITMQ_VIRTUAL_HOST").Result.ToString();
 
         List<string> hostlist = RabbitHost.Split(',').ToList();
         return hostlist;
     }
-    public async Task<List<MessageQueueItem>> GetDeviceQueue(int messageID, string method, int messageDeviceId = 0, int priority = 1)
-    {
+    public async Task<List<MessageQueueItem>> GetDeviceQueue(int messageID, string method, int messageDeviceId = 0, int priority = 1) {
 
-        try
-        {
+        try {
 
             var pMessageId = new SqlParameter("@MessageID", messageID);
             var pMethod = new SqlParameter("@Method", method);
@@ -658,100 +586,86 @@ public class QueueMessageService : IQueueMessageService
             var pPriority = new SqlParameter("@Priority", priority);
 
 
-            db.Database.GetCommandTimeout();
-            var List = db.Set<MessageQueueItem>().FromSqlRaw("exec Pro_Get_Message_Device_Queue @MessageID,@Method,@MessageDeviceID,@Priority",
-                pMessageId, pMethod, pMessageDeviceId, pPriority).ToList().Select(c => {
-                    c.SenderName = c.SenderFirstName + " " + c.SenderLastName;
-                    if (c.Method.ToUpper() == "EMAIL")
-                    {
-                        c.DeviceAddress = c.UserEmail;
-                    }
-                    return c;
-                }).ToList();
+            //_db.Database.GetCommandTimeout();
+            var List = await _db.Set<MessageQueueItem>().FromSqlRaw("exec Pro_Get_Message_Device_Queue @MessageID,@Method,@MessageDeviceID,@Priority",
+                pMessageId, pMethod, pMessageDeviceId, pPriority).ToListAsync();
 
-            Console.WriteLine("Queue Count for " + method + " is " + List.Count);
+            List.Select(c => {
+                c.SenderName = c.SenderFirstName + " " + c.SenderLastName;
+                if (c.Method.ToUpper() == "EMAIL") {
+                    c.DeviceAddress = c.UserEmail;
+                }
+                return c;
+            }).ToList();
+
+            //Console.WriteLine("Queue Count for " + method + " is " + List.Count);
             return List;
 
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             throw ex;
         }
         return new List<MessageQueueItem>();
     }
 
-    public async Task<dynamic> GetFailedDeviceQueue(int messageId, string method, int messageDeviceId = 0)
-    {
-        try
-        {
+    public async Task<dynamic> GetFailedDeviceQueue(int messageId, string method, int messageDeviceId = 0) {
+        try {
             var pMessageId = new SqlParameter("@MessageID", messageId);
             var pMethod = new SqlParameter("@Method", method);
             var pMessageDeviceId = new SqlParameter("@MessageDeviceID", messageDeviceId);
-            db.Database.SetCommandTimeout(300);
-            var List = await db.Set<FailedDeviceQueue>().FromSqlRaw("EXEC Pro_Get_Failed_Device_Queue @MessageID,@Method,@MessageDeviceID",
+            _db.Database.SetCommandTimeout(300);
+            var List = await _db.Set<FailedDeviceQueue>().FromSqlRaw("EXEC Pro_Get_Failed_Device_Queue @MessageID,@Method,@MessageDeviceID",
                 pMessageId, pMethod, pMessageDeviceId).ToListAsync();
             return List;
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             throw ex;
         }
 
     }
 
-    public async Task<List<string>> RabbitHosts()
-    {
+    public async Task<List<string>> RabbitHosts() {
 
-        string rabbitHost = await  _DBC.LookupWithKey("RABBITMQ_HOST");
+        string rabbitHost = await _DBC.LookupWithKey("RABBITMQ_HOST");
         List<string> hostlist = rabbitHost.Split(',').ToList();
         return hostlist;
     }
 
-    public async Task<bool> RequeueMessage(int messageId, string method, dynamic devicelist)
-    {
-        var rabbithosts = await  RabbitHosts();
+    public async Task<bool> RequeueMessage(int messageId, string method, dynamic devicelist) {
+        var rabbithosts = await RabbitHosts();
         return await PublishMessageQueue(messageId, rabbithosts, method, devicelist);
     }
 
-    public async Task<List<MessageQueueItem>> GetPublicAlertDeviceQueue(int messageId, string method)
-    {
+    public async Task<List<MessageQueueItem>> GetPublicAlertDeviceQueue(int messageId, string method) {
 
-        try
-        {
+        try {
             var pMessageId = new SqlParameter("@MessageID", messageId);
             var pMethod = new SqlParameter("@Method", method);
 
-            db.Database.SetCommandTimeout(300);
-            var List = await db.Set<MessageQueueItem>().FromSqlRaw("EXEC Get_Public_Alert_Queue @MessageID, @Method", pMessageId, pMethod).ToListAsync();
+            _db.Database.SetCommandTimeout(300);
+            var List = await _db.Set<MessageQueueItem>().FromSqlRaw("EXEC Get_Public_Alert_Queue @MessageID, @Method", pMessageId, pMethod).ToListAsync();
 
 
-                List.Select(c => {
+            List.Select(c => {
                 c.SenderName = c.SenderFirstName + " " + c.SenderLastName;
                 return c;
             }).ToList();
             return List;
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
         }
         return new List<MessageQueueItem>();
 
     }
 
-    public async Task<bool> PublishPublicAlertQueue(int messageId, List<string> rabbitHost, string method)
-    {
+    public async Task<bool> PublishPublicAlertQueue(int messageId, List<string> rabbitHost, string method) {
 
 
-        try
-        {
+        try {
 
             string RabbitMQUser = await _DBC.LookupWithKey("RABBITMQ_USER");
             string RabbitMQPassword = await _DBC.LookupWithKey("RABBITMQ_PASSWORD");
 
             // DBC.CreateLog("INFO", "Step 3" + RabbitMQUser + RabbitMQPassword);
 
-            var factory = new ConnectionFactory()
-            {
+            var factory = new ConnectionFactory() {
                 AutomaticRecoveryEnabled = true,
                 TopologyRecoveryEnabled = true,
                 NetworkRecoveryInterval = new TimeSpan(0, 0, 15),
@@ -762,8 +676,7 @@ public class QueueMessageService : IQueueMessageService
             // DBC.CreateLog("INFO", "Step 4" + string.Join(",", RabbitHost.ToArray()));
 
             using (var connection = factory.CreateConnection(rabbitHost))
-            using (var model = connection.CreateModel())
-            {
+            using (var model = connection.CreateModel()) {
                 string exchange_name = "cc_processing_exchange";
                 model.ExchangeDeclare(exchange: exchange_name, type: "direct", durable: true, autoDelete: false);
 
@@ -773,12 +686,11 @@ public class QueueMessageService : IQueueMessageService
 
                 List<MessageQueueItem> device_list = new List<MessageQueueItem>();
 
-                device_list =await GetPublicAlertDeviceQueue(messageId, method);
+                device_list = await GetPublicAlertDeviceQueue(messageId, method);
 
                 // DBC.CreateLog("INFO", "Step 6: " + device_list.Count);
 
-                if (device_list.Count > 0)
-                {
+                if (device_list.Count > 0) {
                     bool OneTimeParams = false, INCLUDE_SENDER_IN_SMS = true, CommsDebug = true, SendInDirect = false;
 
                     string SMSClientId = "", SMSClientSecret = "", FromNumber = "", SMSAPIClass = "", OneClickAck = "", EmailProvider = "",
@@ -807,32 +719,25 @@ public class QueueMessageService : IQueueMessageService
 
                     int QueueCount = 0;
 
-                    foreach (var item in device_list)
-                    {
+                    foreach (var item in device_list) {
                         item.CommsDebug = CommsDebug;
 
-                        if (string.IsNullOrEmpty(item.MobileNo) && (method.ToUpper() == "PHONE" || method.ToUpper() == "TEXT"))
-                        {
+                        if (string.IsNullOrEmpty(item.MobileNo) && (method.ToUpper() == "PHONE" || method.ToUpper() == "TEXT")) {
                             continue;
                         }
 
-                        if (!OneTimeParams)
-                        {
+                        if (!OneTimeParams) {
                             // DBC.CreateLog("INFO", "Step 9");
 
-                            if (item.Method.ToUpper() == "EMAIL")
-                            {
+                            if (item.Method.ToUpper() == "EMAIL") {
                                 OneClickAck = await _DBC.GetCompanyParameter("ONE_CLICK_EMAIL_ACKNOWLEDGE", item.CompanyId);
                                 EmailProvider = await _DBC.GetCompanyParameter("EMAIL_PROVIDER", item.CompanyId);
                                 emailitem.OneClickAcknowledge = OneClickAck;
                                 emailitem.EmailProvider = EmailProvider;
 
-                            }
-                            else if (item.Method.ToUpper() == "TEXT")
-                            {
+                            } else if (item.Method.ToUpper() == "TEXT") {
 
-                                if (method.ToUpper() == "TEXT")
-                                {
+                                if (method.ToUpper() == "TEXT") {
                                     string SMS_API = await _DBC.GetCompanyParameter("SMS_API", item.CompanyId);
                                     string MESSAGING_COPILOT_SID = await _DBC.GetCompanyParameter("MESSAGING_COPILOT_SID", item.CompanyId);
                                     SMSClientId = await _DBC.LookupWithKey(SMS_API + "_CLIENTID");
@@ -849,8 +754,7 @@ public class QueueMessageService : IQueueMessageService
 
                             }
 
-                            if (method.ToUpper() == "TEXT" || method.ToUpper() == "WHATSAPP")
-                            {
+                            if (method.ToUpper() == "TEXT" || method.ToUpper() == "WHATSAPP") {
                                 INCLUDE_SENDER_IN_SMS = Convert.ToBoolean(_DBC.GetCompanyParameter("INC_SENDER_IN_SMS", item.CompanyId));
                                 textitem.SendOriginalText = true; textitem.AllowPingAckByText = true;
                                 textitem.AllowIncidentAckbByText = true; textitem.IncludeSenderInText = INCLUDE_SENDER_IN_SMS;
@@ -865,12 +769,9 @@ public class QueueMessageService : IQueueMessageService
                         item.MessageText = item.MessageText;
 
                         string message = "";
-                        if (method.ToUpper() == "EMAIL")
-                        {
+                        if (method.ToUpper() == "EMAIL") {
                             message = ParamsHelper.MergeEmailParams(emailitem, item);
-                        }
-                        else if (method.ToUpper() == "TEXT")
-                        {
+                        } else if (method.ToUpper() == "TEXT") {
                             message = ParamsHelper.MergeTextParams(textitem, item);
                         }
 
@@ -880,13 +781,12 @@ public class QueueMessageService : IQueueMessageService
 
                         routingKey = "pa_" + routingKey + "_" + QueueCount;
 
-                        if (!RoutingKeys.Contains(routingKey))
-                        {
+                        if (!RoutingKeys.Contains(routingKey)) {
                             model.QueueDeclare(queue: routingKey, durable: true, exclusive: false, autoDelete: false);
                             model.QueueBind(queue: routingKey, exchange: exchange_name, routingKey: routingKey);
 
                             RoutingKeys.Add(routingKey);
-                           await _DBC.MessageProcessLog(messageId, "MESSAGE_QUEUE_PUBLISHING", "PUBLIC", routingKey, "Count: " + device_list.Count);
+                            await _DBC.MessageProcessLog(messageId, "MESSAGE_QUEUE_PUBLISHING", "PUBLIC", routingKey, "Count: " + device_list.Count);
                         }
 
                         model.BasicPublish(exchange: exchange_name, routingKey: routingKey, basicProperties: properties, body: body);
@@ -895,29 +795,24 @@ public class QueueMessageService : IQueueMessageService
                 }
             }
             return true;
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             await _MSG.CreateProcessQueue(messageId, "", "PUBLIC", "REQUEUE", 999);
             //MessageHelpers.Common CMN = new MessageHelpers.Common();
             //CMN.NotifyRabbitServiceFailure(ex, "Critical!!: " + "PUBLIC" + MessageID + " Queue was not published, please check the system immediatly", false);
             return false;
         }
     }
-    public async Task<bool> CreateCommsLogDumpSession(string entry)
-    {
+    public async Task<bool> CreateCommsLogDumpSession(string entry) {
 
 
-        try
-        {
+        try {
             string RabbitMQUser = await _DBC.LookupWithKey("RABBITMQ_USER");
             string RabbitMQPassword = await _DBC.LookupWithKey("RABBITMQ_PASSWORD");
             ushort RabbitMQHeartBeat = Convert.ToUInt16(_DBC.LookupWithKey("RABBIT_HEARTBEAT_CHECK"));
 
             var rabbithosts = RabbitHosts(out RabbitVirtualHost);
 
-            var factory = new ConnectionFactory()
-            {
+            var factory = new ConnectionFactory() {
                 AutomaticRecoveryEnabled = true,
                 TopologyRecoveryEnabled = true,
                 NetworkRecoveryInterval = new TimeSpan(0, 0, 15),
@@ -928,8 +823,7 @@ public class QueueMessageService : IQueueMessageService
             };
 
             using (var connection = factory.CreateConnection(rabbithosts))
-            using (var model = connection.CreateModel())
-            {
+            using (var model = connection.CreateModel()) {
                 string exchange_name = await _DBC.LookupWithKey("RABBITMQ_QUEUE_EXCHANGE");
                 model.ExchangeDeclare(exchange: exchange_name, type: "direct", durable: true, autoDelete: false);
 
@@ -938,25 +832,20 @@ public class QueueMessageService : IQueueMessageService
                 properties.DeliveryMode = 2;
 
                 string routingKey = "comms_log_dump_sessions";
-                try
-                {
+                try {
                     model.QueueDeclare(queue: routingKey, durable: true, exclusive: false, autoDelete: false);
                     model.QueueBind(queue: routingKey, exchange: exchange_name, routingKey: routingKey);
 
                     var body = Encoding.UTF8.GetBytes(entry);
 
                     model.BasicPublish(exchange: exchange_name, routingKey: routingKey, basicProperties: properties, body: body);
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     throw ex;
                 }
 
             }
             return true;
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
 
             return false;
         }

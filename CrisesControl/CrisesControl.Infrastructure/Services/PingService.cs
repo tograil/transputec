@@ -163,7 +163,7 @@ namespace CrisesControl.Infrastructure.Services
                 }
 
                 if (socialHandle != null)
-                    await Task.Factory.StartNew(() => _MSG.SocialPosting(tblmessageid, socialHandle,companyId));
+                    await _MSG.SocialPosting(tblmessageid, socialHandle,companyId);
 
                 //QueueHelper.MessageListQueue(tblmessageid);
                 await _queue.CreateMessageList(tblmessageid, "", sendToAllRecipient);

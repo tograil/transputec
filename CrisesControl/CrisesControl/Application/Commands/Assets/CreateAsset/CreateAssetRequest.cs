@@ -17,7 +17,7 @@ namespace CrisesControl.Api.Application.Commands.Assets.CreateAsset
         public string? SourceFileName { get; set; }
         public int? AssetOwner { get; set; }
         public int? ReminderCount { get; set; }
-        public DateTimeOffset? ReviewDate { get; set; }
+        public DateTimeOffset ReviewDate { get; set; }
         public string? ReviewFrequency { get; set; }
     }
 }
