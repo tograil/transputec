@@ -1,4 +1,5 @@
-﻿using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.Companies;
+using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -17,5 +18,7 @@ public class CompanyParameterConfiguration : IEntityTypeConfiguration<CompanyPar
         builder.Property(e => e.Name).HasMaxLength(70);
 
         builder.Property(e => e.Value).HasMaxLength(500);
+
+        builder.ToTable("CompanyParameters");
     }
 }

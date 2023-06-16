@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.CompanyAggregate;
+﻿using CrisesControl.Core.Companies;
 using CrisesControl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -65,5 +65,15 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
 
         builder.HasMany(e => e.CompanyPaymentProfiles)
             .WithOne().HasForeignKey(x => x.CompanyId);
+
+        builder.HasOne(x => x.StdTimeZone)
+            .WithMany().HasForeignKey(x => x.CompanyId);
+
+        builder.HasOne(x => x.CompanyActivation)
+            .WithMany().HasForeignKey(x => x.CompanyId);
+        builder.HasOne(x => x.AddressLink)
+            .WithMany().HasForeignKey(x => x.CompanyId);
+        builder.HasOne(x => x.CompanyPackageItem)
+           .WithMany().HasForeignKey(x => x.CompanyId);
     }
 }

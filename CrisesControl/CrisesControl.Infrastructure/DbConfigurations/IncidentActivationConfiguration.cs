@@ -1,6 +1,6 @@
-﻿using CrisesControl.Core.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CrisesControl.Core.Incidents;
 
 namespace CrisesControl.Infrastructure.DbConfigurations;
 
@@ -9,7 +9,7 @@ public class IncidentActivationConfiguration : IEntityTypeConfiguration<Incident
     public void Configure(EntityTypeBuilder<IncidentActivation> builder)
     {
         builder.ToTable("IncidentActivation");
-
+       
         builder.HasIndex(e => e.ImpactedLocationId, "IDX_ImpactedLocationId")
             .HasFillFactor(100);
 
@@ -33,5 +33,8 @@ public class IncidentActivationConfiguration : IEntityTypeConfiguration<Incident
         builder.Property(e => e.SocialHandle)
             .HasMaxLength(100)
             .IsUnicode(false);
+
+        builder.HasOne(x => x.Incident).WithMany().HasForeignKey(x => x.IncidentId);
+        
     }
 }

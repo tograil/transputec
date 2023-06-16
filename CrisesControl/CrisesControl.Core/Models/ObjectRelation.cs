@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrisesControl.Core.Users;
+using System;
 
 namespace CrisesControl.Core.Models
 {
@@ -13,5 +14,6 @@ namespace CrisesControl.Core.Models
         public int UpdatedBy { get; set; }
         public DateTimeOffset UpdatedOn { get; set; }
         public bool ReceiveOnly { get; set; }
+        public User User { get; set; }
     }
 }

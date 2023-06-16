@@ -23,5 +23,6 @@ namespace CrisesControl.Core.Models
         public int CompanyId { get; set; }
         public DateTimeOffset LastRunDateTime { get; set; }
         public int JobIncidentId { get; set; }
+        public JobSchedule JobSchedule { get; set; }
     }
 }

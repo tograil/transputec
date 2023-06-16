@@ -8,6 +8,7 @@ public class IconConfiguration : IEntityTypeConfiguration<Icon>
 {
     public void Configure(EntityTypeBuilder<Icon> builder)
     {
+        builder.ToTable("Icons");
         builder.Property(e => e.IconId).HasColumnName("IconID");
 
         builder.Property(e => e.CompanyId).HasColumnName("CompanyID");
@@ -17,5 +18,6 @@ public class IconConfiguration : IEntityTypeConfiguration<Icon>
         builder.Property(e => e.IconTags).HasMaxLength(250);
 
         builder.Property(e => e.IconTitle).HasMaxLength(100);
+
     }
 }

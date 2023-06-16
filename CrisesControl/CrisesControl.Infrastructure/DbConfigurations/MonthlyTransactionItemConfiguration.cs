@@ -22,5 +22,7 @@ public class MonthlyTransactionItemConfiguration : IEntityTypeConfiguration<Mont
         builder.Property(e => e.UserId).HasColumnName("UserID");
 
         builder.Property(e => e.UserRole).HasMaxLength(20);
+
+        builder.ToTable("MonthlyTransactionItems");
     }
 }

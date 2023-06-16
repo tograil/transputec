@@ -10,5 +10,8 @@ public class CompanyCommConfiguration : IEntityTypeConfiguration<CompanyComm>
     {
         builder.HasKey(e => e.CompanyCommsId)
                 .HasName("PK_dbo.CompanyComms");
+        builder.ToTable("CompanyComms");
+        builder.HasOne(x => x.CommsMethod)
+           .WithMany().HasForeignKey(x => x.CompanyCommsId);
     }
 }

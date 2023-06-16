@@ -17,5 +17,7 @@ public class GroupSecuityObjectConfiguration : IEntityTypeConfiguration<GroupSec
         builder.Property(e => e.GroupSecurityObjectId).HasColumnName("GroupSecurityObjectID");
 
         builder.Property(e => e.SecurityObjectId).HasColumnName("SecurityObjectID");
+
+        builder.ToTable("GroupSecuityObjects");
     }
 }

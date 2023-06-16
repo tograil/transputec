@@ -22,5 +22,6 @@ public class ObjectMappingConfiguration : IEntityTypeConfiguration<ObjectMapping
         builder.Property(e => e.SourceObjectId).HasColumnName("SourceObjectID");
 
         builder.Property(e => e.TargetObjectId).HasColumnName("TargetObjectID");
+        builder.HasOne(e => e.Object).WithMany().HasForeignKey(e => e.TargetObjectId);
     }
 }

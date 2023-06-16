@@ -40,5 +40,12 @@ public class MessageListConfiguration : IEntityTypeConfiguration<MessageList>
         builder.Property(e => e.UserLocationLat).HasMaxLength(150);
 
         builder.Property(e => e.UserLocationLong).HasMaxLength(150);
+
+        builder.HasOne(x => x.Message)
+               .WithMany().HasForeignKey(x => x.MessageListId);
+        builder.HasOne(x => x.ActiveMessageResponse)
+              .WithMany().HasForeignKey(x => x.MessageListId);
+        builder.HasOne(x => x.User)
+             .WithMany().HasForeignKey(x => x.RecepientUserId);
     }
 }

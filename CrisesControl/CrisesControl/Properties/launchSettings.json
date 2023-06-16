@@ -5,18 +5,67 @@
     "anonymousAuthentication": true,
     "iisExpress": {
       "applicationUrl": "http://localhost:3231",
-      "sslPort": 44303
+      "sslPort": 0
     }
   },
   "profiles": {
+    "CrisesControlAndriy": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Andriy"
+      },
+      "applicationUrl": "http://localhost:7010;http://localhost:5010",
+      "dotnetRunMessages": true
+    },
+    "CrisesControlHana": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Hana"
+      },
+      "applicationUrl": "http://localhost:7010;http://localhost:5010",
+      "dotnetRunMessages": true
+    },
+    "CrisesControlAsif": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Asif"
+      },
+      "applicationUrl": "http://localhost:7010;http://localhost:5010",
+      "dotnetRunMessages": true
+    },
+    "CrisesControlDenish": {
+      "commandName": "Project",
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Denish"
+      },
+      "applicationUrl": "http://localhost:7010;http://localhost:5010",
+      "dotnetRunMessages": true
+    },
+    "CrisesControlConfi": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Confi"
+      },
+      "applicationUrl": "http://localhost:7010;http://localhost:5010",
+      "dotnetRunMessages": true
+    },
     "CrisesControl": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Debug"
       },
-      "applicationUrl": "https://localhost:7010;http://localhost:5010",
+      "applicationUrl": "http://localhost:7010;http://localhost:5010",
       "dotnetRunMessages": true
     },
     "IIS Express": {

@@ -1,4 +1,4 @@
-﻿using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.Groups;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

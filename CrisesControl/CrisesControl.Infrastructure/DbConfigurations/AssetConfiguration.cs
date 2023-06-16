@@ -1,12 +1,12 @@
-﻿using CrisesControl.Core.Models;
+﻿using CrisesControl.Core.Assets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CrisesControl.Infrastructure.DbConfigurations;
 
-public class AssetConfiguration : IEntityTypeConfiguration<Asset>
+public class AssetConfiguration : IEntityTypeConfiguration<Assets>
 {
-    public void Configure(EntityTypeBuilder<Asset> builder)
+    public void Configure(EntityTypeBuilder<Assets> builder)
     {
         builder.HasIndex(e => e.Status, "IDX_Status")
                 .HasFillFactor(100);

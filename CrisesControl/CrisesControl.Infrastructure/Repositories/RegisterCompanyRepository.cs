@@ -1,8 +1,8 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
-using CrisesControl.Core.CompanyAggregate;
-using CrisesControl.Core.CompanyAggregate.Repositories;
+using CrisesControl.Core.Companies;
+using CrisesControl.Core.Companies.Repositories;
 using CrisesControl.Infrastructure.Context;
 
 namespace CrisesControl.Infrastructure.Repositories;
@@ -21,6 +21,13 @@ public class RegisterCompanyRepository : IRegisterCompanyRepository
     public Registration? GetRegistrationDataByEmail(string email)
     {
         var regDb = _context.Set<Registration>().FirstOrDefault(x => x.Email == email);
+
+        return regDb;
+    }
+
+    public Registration GetRegistrationDataById(int id)
+    {
+        var regDb = _context.Set<Registration>().Single(x => x.Id == id);
 
         return regDb;
     }

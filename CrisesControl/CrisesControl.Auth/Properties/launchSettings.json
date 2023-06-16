@@ -4,8 +4,8 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:17815",
-      "sslPort": 44325
+      "applicationUrl": "http://localhost:56776/",
+      "sslPort": 44385
     }
   },
   "profiles": {
@@ -19,12 +19,39 @@
       "applicationUrl": "https://localhost:7078;http://localhost:5078",
       "dotnetRunMessages": true
     },
+    "Andriy": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Andriy"
+      },
+      "applicationUrl": "https://localhost:7078;http://localhost:5078",
+      "dotnetRunMessages": true
+    },
+    "Hana": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Hana"
+      },
+      "applicationUrl": "https://localhost:7078;http://localhost:5078",
+      "dotnetRunMessages": true
+    },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "IIS Express Denish": {
+      "commandName": "IISExpress",
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Denish"
       }
     },
     "Docker": {

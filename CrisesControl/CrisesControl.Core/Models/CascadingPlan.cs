@@ -1,4 +1,7 @@
-﻿namespace CrisesControl.Core.Models
+﻿using CrisesControl.Core.CompanyParameters;
+using System.Collections.Generic;
+
+namespace CrisesControl.Core.Models
 {
     public partial class CascadingPlan
     {
@@ -7,6 +10,7 @@
         public string PlanType { get; set; } = null!;
         public int CompanyId { get; set; }
         public bool LaunchSos { get; set; }
-        public int LaunchSosinterval { get; set; }
+        public int LaunchSosinterval { get; set; } 
+    
     }
 }

@@ -31,5 +31,7 @@ namespace CrisesControl.Core.Models
         public string? MobileIsd { get; set; }
         public string? MobileNo { get; set; }
         public string? UserEmail { get; set; }
+        public MessageList MessageList { get; set; }
+
     }
 }

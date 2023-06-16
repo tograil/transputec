@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+option csharp_namespace = "CrisesControl.Infrastructure.Client";
+
+service MessageSendService {
+	rpc SetMessage (AddMessageQuery) returns (AddMessageResponse) {
+	}
+}
+
+message AddMessageQuery {
+	string messageGuid = 1;
+	string messageTemplate = 2;
+	string messageAttchment = 3;
+	repeated Recipient recipients = 4;
+}
+
+message Recipient {
+	string idGuid = 1;
+	Email email = 2;
+	repeated Device devices = 3;
+	PhoneCall phone = 4;
+	SmsMessage sms = 5;
+}
+
+message Email {
+	string address = 1;
+	string recipientName = 2;
+	string ackUrl = 3;
+}
+
+enum DeviceType {
+	Android = 0;
+	Iphone = 1;
+	WindowsPhone = 2;
+	Windows = 3;
+}
+
+message Device {
+	string address = 1;
+	DeviceType deviceType = 2;
+	bool enabled = 3;
+}
+
+message PhoneCall {
+	string number = 1;
+	bool enabled = 2;
+}
+
+message SmsMessage {
+	string number = 1;
+	bool enabled = 2;
+}
+
+message AddMessageResponse {
+	bool success = 1;
+}

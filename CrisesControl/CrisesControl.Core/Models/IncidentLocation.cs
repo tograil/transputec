@@ -1,4 +1,6 @@
-﻿namespace CrisesControl.Core.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CrisesControl.Core.Models
 {
     public partial class IncidentLocation
     {
@@ -8,5 +10,7 @@
         public int? IncidentActivationId { get; set; }
         public int? ImpactedLocationId { get; set; }
         public bool Display { get; set; }
+        [ForeignKey("LocationId")]
+        public IncidentLocationLibrary? IncidentLocationLibrary { get; set; }
     }
 }

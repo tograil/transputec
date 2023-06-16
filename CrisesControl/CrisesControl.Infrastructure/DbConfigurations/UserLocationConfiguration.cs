@@ -37,5 +37,7 @@ public class UserLocationConfiguration : IEntityTypeConfiguration<UserLocation>
         builder.Property(e => e.UniqueId).HasColumnName("UniqueID");
 
         builder.Property(e => e.UserId).HasColumnName("UserID");
+        builder.Property(e => e.UserDeviceId).HasColumnName("UserDeviceID");
+       // builder.Property(e => e.CreatedOn).HasColumnName("CreatedOn");
     }
 }

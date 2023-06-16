@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -6,12 +6,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="CompanyAggregate\Handlers\**" />
-    <Compile Remove="CompanyAggregate\Maps\**" />
-    <EmbeddedResource Remove="CompanyAggregate\Handlers\**" />
-    <EmbeddedResource Remove="CompanyAggregate\Maps\**" />
-    <None Remove="CompanyAggregate\Handlers\**" />
-    <None Remove="CompanyAggregate\Maps\**" />
+    <Compile Remove="Companies\Handlers\**" />
+    <Compile Remove="Companies\Maps\**" />
+    <EmbeddedResource Remove="Companies\Handlers\**" />
+    <EmbeddedResource Remove="Companies\Maps\**" />
+    <None Remove="Companies\Handlers\**" />
+    <None Remove="Companies\Maps\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Administrator\LibIncident.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,12 +26,30 @@
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="10.3.6" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="10.3.6" />
+    <PackageReference Include="HotChocolate.AspNetCore" Version="12.12.0" />
     <PackageReference Include="MediatR" Version="10.0.1" />
     <PackageReference Include="MediatR.Extensions.Autofac.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.2.0" />
+    <PackageReference Include="MongoDB.Bson" Version="2.15.0" />
+    <PackageReference Include="Twilio" Version="5.75.2" />
+    <PackageReference Include="SuperSocket.WebSocket" Version="1.6.6.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CrisesControl.SharedKernel\CrisesControl.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="AuditLog\Misc\" />
+    <Folder Include="AuditLog\Services\" />
+    <Folder Include="Compatibility\Jobs\" />
+    <Folder Include="Exceptions\Error\Base\" />
+    <Folder Include="Incidents\Services\" />
+    <Folder Include="Jobs\Services\" />
+    <Folder Include="Messages\Repositories\" />
+    <Folder Include="Queues\Maps\" />
+    <Folder Include="Queues\Repositories\" />
+    <Folder Include="Settings\Repositories\" />
   </ItemGroup>
 
 </Project>
