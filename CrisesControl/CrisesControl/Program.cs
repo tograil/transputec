@@ -20,6 +20,7 @@ using CrisesControl.Infrastructure.Context.Misc;
 using CrisesControl.Infrastructure.Services;
 using GrpcAuditLogClient;
 using System.Net.WebSockets;
+using System.Runtime.InteropServices.ObjectiveC;
 using CrisesControl.Infrastructure.Repositories;
 using CrisesControl.Core.CCWebSocket.Repositories;
 using Quartz;
@@ -27,6 +28,7 @@ using CrisesControl.Infrastructure.Services.Jobs;
 using CrisesControl.Infrastructure.Jobs;
 using Quartz.Spi;
 using CrisesControl.Core.DBCommon.Repositories;
+using CrisesControl.Infrastructure.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -104,6 +106,13 @@ var auditLogSettings = builder.Configuration.GetSection("AuditLog").Get<AuditLog
 builder.Services.AddGrpcClient<AuditLogGrpc.AuditLogGrpcClient>(o =>
 {
     o.Address = new Uri(auditLogSettings.ServerAddress);
+});
+
+var messagingService = builder.Configuration.GetSection("MessagingService").Get<MessagingServiceOptions>();
+
+builder.Services.AddGrpcClient<MessageSendService.MessageSendServiceClient>(o =>
+{
+    o.Address = new Uri(messagingService.ServerAddress);
 });
 
 builder.Host.UseSerilog((ctx, lc) =>

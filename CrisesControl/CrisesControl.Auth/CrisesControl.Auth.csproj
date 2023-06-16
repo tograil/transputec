@@ -38,4 +38,13 @@
     <Folder Include="Config\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="scim-encryption-certificate.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="scim-signing-certificate.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

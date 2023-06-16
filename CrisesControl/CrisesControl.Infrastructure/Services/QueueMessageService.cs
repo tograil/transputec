@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -35,19 +36,21 @@ public class QueueMessageService : IQueueMessageService {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IDBCommonRepository _DBC;
     private readonly IMessageService _MSG;
+    private readonly IMessagingService _ME;
 
     public QueueMessageService(CrisesControlContext db,
         IMapper mapper,
         ISettingsRepository settingsRepository,
         ISchedulerFactory schedulerFactory,
         IDBCommonRepository DBC,
-        IMessageService MSG) {
+        IMessageService MSG, IMessagingService me) {
         _db = db;
         _mapper = mapper;
         _settingsRepository = settingsRepository;
         _schedulerFactory = schedulerFactory;
         _DBC = DBC;
         _MSG = MSG;
+        _ME = me;
     }
 
     public T GetMessage<T>(MessageQueueItem baseMessage) where T : MessageQueueItem {
@@ -124,9 +127,11 @@ public class QueueMessageService : IQueueMessageService {
         try {
 
             var pMessageId = new SqlParameter("@MessageID", messageID);
-            var pMessageType = new SqlParameter("@MessageType", messageType);
+            var pMessageType = new SqlParameter("@MessageType", SqlDbType.NVarChar, 10);
             var pPriority = new SqlParameter("@Priority", priority);
             //db.Database.GetCommandTimeout();
+
+            pMessageType.Value = messageType;
 
             string sp_name = "Pro_Create_Message_Queue ";
 
@@ -275,6 +280,8 @@ public class QueueMessageService : IQueueMessageService {
                 } else {
                     device_list = await GetDeviceQueue(messageID, method, 0, priority);
                 }
+
+                await _ME.EnqueueMessage(device_list);
 
                 if (device_list.Count > 0) {
                     bool OneTimeParams = false, SEND_ORIGINAL_TEXT = false,
@@ -580,15 +587,8 @@ public class QueueMessageService : IQueueMessageService {
 
         try {
 
-            var pMessageId = new SqlParameter("@MessageID", messageID);
-            var pMethod = new SqlParameter("@Method", method);
-            var pMessageDeviceId = new SqlParameter("@MessageDeviceID", messageDeviceId);
-            var pPriority = new SqlParameter("@Priority", priority);
-
-
-            //_db.Database.GetCommandTimeout();
-            var List = await _db.Set<MessageQueueItem>().FromSqlRaw("exec Pro_Get_Message_Device_Queue @MessageID,@Method,@MessageDeviceID,@Priority",
-                pMessageId, pMethod, pMessageDeviceId, pPriority).ToListAsync();
+            var List = await _db.Set<MessageQueueItem>().FromSqlRaw("exec Pro_Get_Message_Device_Queue {0}, {1}, {2}, {3}",
+                messageID, method, messageDeviceId, priority).ToListAsync();
 
             List.Select(c => {
                 c.SenderName = c.SenderFirstName + " " + c.SenderLastName;

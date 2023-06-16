@@ -72,6 +72,7 @@ namespace CrisesControl.Infrastructure
            
             builder.RegisterType<DBCommonRepository>().As<IDBCommonRepository>(); 
             builder.RegisterType<MessageService>().As<IMessageService>();
+            builder.RegisterType<MessagingService>().As<IMessagingService>();
             builder.RegisterType<MemoryCache>().As<IMemoryCache>().SingleInstance();
             builder.RegisterType<CompanyRepository>().As<ICompanyRepository>();
             builder.RegisterType<RegisterCompanyRepository>().As<IRegisterCompanyRepository>();

@@ -64,7 +64,8 @@ public class MessageQueueItem {
     public int ParentID { get; set; }
     public string? TransportType { get; set; }
     public int BadgeCount { get; set; }
-    public int AttachmentCount { get; set; }
+    [NotMapped]
+    public int? AttachmentCount { get; set; }
     [NotMapped]
     public string? DataCenter { get; set; } = "dublin";
 

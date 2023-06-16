@@ -50,6 +50,7 @@
 
 	<ItemGroup>
 		<Protobuf Include="Protos\auditlog.proto" GrpcServices="Client" />
+		<Protobuf Include="Protos\messages.proto" GrpcServices="Client" />
 	</ItemGroup>
 
   <ItemGroup>

@@ -6,6 +6,7 @@ using Quartz;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using CrisesControl.Core.Messages.Services;
 
 namespace CrisesControl.Infrastructure.Services.Jobs {
     public class MessageDevicePublishJob : IJob {
@@ -71,7 +72,9 @@ namespace CrisesControl.Infrastructure.Services.Jobs {
 
     public class PublishMessageQueueJob : IJob {
         private readonly IQueueMessageService _queueHelper;
-        public PublishMessageQueueJob(IQueueMessageService queueHelper) {
+        private readonly IMessagingService _messagingService;
+        public PublishMessageQueueJob(IQueueMessageService queueHelper, IMessagingService messagingService) {
+            _messagingService = messagingService;
             Debug.WriteLine("Inizialing the MessageDeviceQueueJob");
             try {
                 _queueHelper = queueHelper;
@@ -90,9 +93,13 @@ namespace CrisesControl.Infrastructure.Services.Jobs {
                 string? Method = context.JobDetail.JobDataMap.GetString("Method");
                 int Priority = context.JobDetail.JobDataMap.GetInt("Priority");
 
-                var rabbithosts = await _queueHelper.RabbitHosts();
+                var messageItemsToSend = await _queueHelper.GetDeviceQueue(MessageID, Method);
 
-                await _queueHelper.PublishMessageQueue(MessageID, rabbithosts, Method, null, Priority);
+                await _messagingService.EnqueueMessage(messageItemsToSend);
+
+                //var rabbithosts = await _queueHelper.RabbitHosts();
+
+                //await _queueHelper.PublishMessageQueue(MessageID, rabbithosts, Method, null, Priority);
 
             } catch (Exception ex) {
                 throw;
